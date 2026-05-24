@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { SiteHeader } from "@/components/site/SiteHeader";
 import type { homeContent } from "@/content/home";
 
@@ -25,19 +27,19 @@ export function HeroSection({ content }: HeroSectionProps) {
           </p>
 
           <div className="flex flex-col gap-3 sm:flex-row">
-            <a
+            <Link
               href={content.primaryCta.href}
               className="rounded-full bg-[#211815] px-6 py-3 text-center text-sm font-medium text-white"
             >
               {content.primaryCta.label}
-            </a>
+            </Link>
 
-            <a
+            <Link
               href={content.secondaryCta.href}
               className="rounded-full border border-[#211815]/20 px-6 py-3 text-center text-sm font-medium"
             >
               {content.secondaryCta.label}
-            </a>
+            </Link>
           </div>
         </div>
       </div>

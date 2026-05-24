@@ -20,4 +20,21 @@ export const calendarContent = {
   eventsPlaceholder: [
     "TODO: Add current upcoming events manually or wire a future event source.",
   ],
+  previewEvents: [
+    {
+      title: "Open Day + introduzione",
+      meta: "Per chi si avvicina allo studio",
+      description: "TODO: confermare prossima data e testo dal calendario.",
+    },
+    {
+      title: "Rope Jam",
+      meta: "Pratica e community",
+      description: "TODO: confermare prossima data e dettagli pratici.",
+    },
+    {
+      title: "Pratica guidata",
+      meta: "Continuità nella pratica",
+      description: "TODO: confermare formato, livello e calendario.",
+    },
+  ],
 };
