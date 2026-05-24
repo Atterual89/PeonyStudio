@@ -1,20 +1,27 @@
+import Link from "next/link";
+
 const navItems = [
-  { href: "#start", label: "Come iniziare" },
-  { href: "#programs", label: "Programmi" },
-  { href: "#practice", label: "Pratica" },
-  { href: "#calendar", label: "Calendario" },
+  { href: "/come-iniziare", label: "Come iniziare" },
+  { href: "/programmi", label: "Programmi" },
+  { href: "/pratica", label: "Pratica" },
+  { href: "/workshop-exploration", label: "Workshop & Exploration" },
+  { href: "/calendario", label: "Calendario" },
+  { href: "/peony", label: "Peony" },
+  { href: "/shop", label: "Shop" },
 ];
 
 export function SiteHeader() {
   return (
     <header className="flex items-center justify-between">
-      <div className="text-lg font-semibold tracking-wide">Peony Studio</div>
+      <Link href="/" className="text-lg font-semibold tracking-wide">
+        Peony Studio
+      </Link>
 
-      <nav className="hidden gap-6 text-sm md:flex">
+      <nav className="hidden gap-5 text-sm md:flex">
         {navItems.map((item) => (
-          <a key={item.href} href={item.href}>
+          <Link key={item.href} href={item.href}>
             {item.label}
-          </a>
+          </Link>
         ))}
       </nav>
     </header>
