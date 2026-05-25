@@ -2,14 +2,17 @@ import Link from "next/link";
 
 import type { homeContent } from "@/content/home";
 
-type HeroSectionProps = {
+type ZenHeroSectionProps = {
   content: typeof homeContent.hero;
 };
 
-export function HeroSection({ content }: HeroSectionProps) {
+export function ZenHeroSection({ content }: ZenHeroSectionProps) {
   return (
     <section className="relative flex min-h-[100svh] items-center justify-center overflow-hidden px-5 py-20 text-center sm:px-6 sm:py-24">
-      <div aria-hidden="true" className="absolute inset-0 bg-[#d8c8b8]" />
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-[#d8c8b8]"
+      />
       <div
         aria-hidden="true"
         className="absolute inset-0 bg-[linear-gradient(rgba(244,239,232,0.25),rgba(244,239,232,0.82)),linear-gradient(90deg,rgba(33,24,21,0.08)_1px,transparent_1px),linear-gradient(rgba(33,24,21,0.06)_1px,transparent_1px)] bg-[size:auto,88px_88px,88px_88px]"

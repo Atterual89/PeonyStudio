@@ -1,12 +1,6 @@
-import { SimpleContentPage } from "@/components/site/SimpleContentPage";
+import { HowToStartPage } from "@/components/how-to-start/HowToStartPage";
 import { howToStartContent } from "@/content/how-to-start";
 
 export default function ComeIniziarePage() {
-  return (
-    <SimpleContentPage
-      eyebrow={howToStartContent.hero.eyebrow}
-      title={howToStartContent.title}
-      intro={howToStartContent.hero.intro}
-    />
-  );
+  return <HowToStartPage content={howToStartContent} />;
 }

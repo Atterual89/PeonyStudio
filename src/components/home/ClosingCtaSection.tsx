@@ -2,11 +2,11 @@ import Link from "next/link";
 
 import type { homeContent } from "@/content/home";
 
-type FinalHomeCtaProps = {
-  content: typeof homeContent.finalCta;
+type ClosingCtaSectionProps = {
+  content: typeof homeContent.closingCta;
 };
 
-export function FinalHomeCta({ content }: FinalHomeCtaProps) {
+export function ClosingCtaSection({ content }: ClosingCtaSectionProps) {
   return (
     <section className="mx-auto max-w-6xl px-5 py-16 sm:px-6 sm:py-20 md:py-28">
       <div className="rounded-[8px] bg-[#211815] px-6 py-12 text-[#f4efe8] md:px-10 md:py-16">

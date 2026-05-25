@@ -37,4 +37,42 @@ export const calendarContent = {
       description: "TODO: confermare formato, livello e calendario.",
     },
   ],
+  featuredHomeEvent: {
+    category: "OPEN DAY",
+    title: "Open Day",
+    date: "Dom 15 Giugno",
+    detail: "15:00–18:00",
+  },
+  homeEvents: [
+    {
+      category: "PROGRAMMA",
+      title: "Foundation #0",
+      date: "Inizio 22 Giugno",
+      detail: "Ciclo 3 incontri",
+    },
+    {
+      category: "PRATICA",
+      title: "Pratica assistita",
+      date: "Mer 18 Giugno",
+      detail: "Tema: Tensioni base",
+    },
+    {
+      category: "COMMUNITY",
+      title: "Rope Jam / Peony Night",
+      date: "Sab 21 Giugno",
+      detail: "21:00–01:00",
+    },
+    {
+      category: "WORKSHOP",
+      title: "Workshop Mikael Fjdestel",
+      date: "24–25 Maggio",
+      detail: "Livello: Intermedio+",
+    },
+    {
+      category: "CULTURA",
+      title: "Cinema: Rope Culture in Japan",
+      date: "Mar 27 Maggio",
+      detail: "20:00",
+    },
+  ],
 };

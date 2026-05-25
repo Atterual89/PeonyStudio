@@ -1,3 +1,23 @@
+export type HomeVerticalPathItem = {
+  number: string;
+  title: string;
+  summary: string;
+  href: string;
+};
+
+export type HomeArea = {
+  title: string;
+  description: string;
+  href: string;
+};
+
+export type HomeEvent = {
+  category: string;
+  title: string;
+  date: string;
+  detail: string;
+};
+
 export type HomePathCard = {
   eyebrow: string;
   title: string;
@@ -8,38 +28,197 @@ export type HomePathCard = {
 export const homeContent = {
   hero: {
     eyebrow: "Kinbaku · Torino",
-    title: "Uno spazio per imparare, praticare e crescere nelle corde.",
+    title: "Kinbaku. Pratica. Crescita. Community.",
     description:
-      "Peony Studio è una scuola e community dedicata al kinbaku: tecnica, consapevolezza, ricerca e continuità nella pratica.",
+      "Peony Studio è uno spazio per imparare, praticare e crescere nelle corde.",
     primaryCta: {
-      label: "Come iniziare",
+      label: "Voglio iniziare",
       href: "/come-iniziare",
     },
     secondaryCta: {
-      label: "Calendario",
+      label: "Guarda il calendario",
       href: "/calendario",
+    },
+  },
+  verticalPath: [
+    {
+      number: "01",
+      title: "Open Day",
+      summary: "Scopri Peony",
+      href: "/come-iniziare",
+    },
+    {
+      number: "02",
+      title: "Foundation #0",
+      summary: "Il tuo ingresso",
+      href: "/programmi",
+    },
+    {
+      number: "03",
+      title: "Pratica assistita",
+      summary: "Allena con guidance",
+      href: "/pratica",
+    },
+    {
+      number: "04",
+      title: "Community",
+      summary: "Rope Jam, Peony Night",
+      href: "/pratica",
+    },
+    {
+      number: "05",
+      title: "#1 e oltre",
+      summary: "Approfondisci",
+      href: "/programmi",
+    },
+  ] satisfies HomeVerticalPathItem[],
+  splitIntro: {
+    primary: {
+      title: "Non sai da dove iniziare?",
+      cta: {
+        label: "Inizia da qui",
+        href: "/come-iniziare",
+      },
+    },
+    secondary: {
+      eyebrow: "Sei già praticante?",
+      title: "Non solo principianti.",
+      cta: {
+        label: "Vedi attività",
+        href: "/pratica",
+      },
+    },
+  },
+  areas: [
+    {
+      title: "Programmi",
+      description: "Percorsi strutturati",
+      href: "/programmi",
+    },
+    {
+      title: "Pratica",
+      description: "Allenamenti guidati",
+      href: "/pratica",
+    },
+    {
+      title: "Community",
+      description: "Spazi di incontro",
+      href: "/pratica",
+    },
+    {
+      title: "Workshop",
+      description: "Approfondimenti",
+      href: "/workshop-exploration",
+    },
+    {
+      title: "Exploration",
+      description: "Ricerca esperienziale",
+      href: "/workshop-exploration",
+    },
+    {
+      title: "Cultura",
+      description: "Cinema, storia, talk",
+      href: "/workshop-exploration",
+    },
+    {
+      title: "Shop",
+      description: "Corde, kit, materiali",
+      href: "/shop",
+    },
+  ] satisfies HomeArea[],
+  philosophy: {
+    title: "Tecnica → Estetica → Personalità",
+    cta: {
+      label: "Scopri di più",
+      href: "/peony",
+    },
+  },
+  studioPreview: {
+    title: "Il nostro spazio a Torino",
+    features: [
+      "Lounge e area relax",
+      "Cucina attrezzata",
+      "Bamboo e hashira",
+      "Ambiente curato e sicuro",
+    ],
+    cta: {
+      label: "Scopri lo studio",
+      href: "/peony",
+    },
+  },
+  finalCta: {
+    title: "Pronto/a a fare il primo passo?",
+    intro: "Siamo qui per rispondere a ogni tua domanda.",
+    primaryCta: {
+      label: "Vedi prossimo Open Day",
+      href: "/calendario",
+    },
+    secondaryCta: {
+      label: "Scrivici su Instagram",
+      href: "https://www.instagram.com/",
+    },
+  },
+  footer: {
+    brand: "Peony Studio",
+    columns: [
+      {
+        title: "Link utili",
+        links: [
+          { label: "Come iniziare", href: "/come-iniziare" },
+          { label: "Programmi", href: "/programmi" },
+          { label: "Calendario", href: "/calendario" },
+        ],
+      },
+      {
+        title: "Seguici",
+        links: [
+          { label: "Instagram", href: "https://www.instagram.com/" },
+          { label: "Peony", href: "/peony" },
+        ],
+      },
+      {
+        title: "Newsletter",
+        links: [{ label: "Placeholder newsletter", href: "/" }],
+      },
+    ],
+    copyright: "© 2025 Peony Studio",
+  },
+
+  // Compatibility data for older placeholder components that still live in the app.
+  splitEntry: {
+    primary: {
+      title: "Non sai da dove iniziare?",
+      cta: {
+        label: "Inizia da qui",
+        href: "/come-iniziare",
+      },
+    },
+    secondary: {
+      eyebrow: "Sei già praticante?",
+      title: "Non solo principianti.",
+      cta: {
+        label: "Vedi attività",
+        href: "/pratica",
+      },
     },
   },
   pathCards: [
     {
       eyebrow: "01",
       title: "Come iniziare",
-      description:
-        "Open day, Foundation e primi passi per entrare nello studio con chiarezza.",
+      description: "Open Day, Foundation e primi passi nello studio.",
       href: "/come-iniziare",
     },
     {
       eyebrow: "02",
       title: "Programmi",
-      description:
-        "Percorsi progressivi: Foundation, Laydown, classi tematiche e workshop.",
+      description: "Percorsi progressivi, classi e approfondimenti.",
       href: "/programmi",
     },
     {
       eyebrow: "03",
       title: "Pratica",
-      description:
-        "Rope jam, pratica assistita e momenti community per continuare a crescere.",
+      description: "Pratica assistita, rope jam e momenti community.",
       href: "/pratica",
     },
   ] satisfies HomePathCard[],
@@ -47,8 +226,8 @@ export const homeContent = {
     eyebrow: "Come iniziare",
     title: "Un percorso semplice per entrare nello studio.",
     intro:
-      "Il primo contatto passa da Open Day e introduzioni, poi continua con Foundation e momenti di pratica assistita o rope jam.",
-    steps: ["Open Day", "Foundation", "Pratica assistita / rope jam"],
+      "Open Day, Foundation e pratica assistita aiutano a trovare il primo passo giusto.",
+    steps: ["Open Day", "Foundation", "Pratica assistita", "Rope Jam"],
     cta: {
       label: "Scopri come iniziare",
       href: "/come-iniziare",
@@ -57,8 +236,7 @@ export const homeContent = {
   calendarPreview: {
     eyebrow: "Prossimi appuntamenti",
     title: "Classi, pratiche e momenti community.",
-    intro:
-      "Una selezione statica temporanea dagli appuntamenti Peony Studio. Il calendario completo arriverà nella pagina dedicata.",
+    intro: "Una selezione statica temporanea dagli appuntamenti Peony Studio.",
     cta: {
       label: "Vai al calendario",
       href: "/calendario",
@@ -68,23 +246,35 @@ export const homeContent = {
     eyebrow: "Lo spazio",
     title: "Uno studio a Torino pensato per praticare con calma.",
     intro:
-      "Peony Studio accoglie classi, workshop e pratica in un ambiente morbido: sala principale con bambù e hashira, lounge e spazi per prepararsi con agio.",
+      "Sala principale, lounge, bamboo, hashira e un ambiente curato e accogliente.",
     cta: {
       label: "Conosci Peony",
       href: "/peony",
     },
   },
-  finalCta: {
-    title: "Se vuoi avvicinarti alle corde, puoi iniziare da qui.",
-    intro:
-      "Trova il primo passo più adatto al tuo livello e al tuo momento di pratica.",
+  studioSpace: {
+    title: "Il nostro spazio a Torino",
+    features: [
+      "Lounge e area relax",
+      "Cucina attrezzata",
+      "Bamboo e hashira",
+      "Ambiente curato e sicuro",
+    ],
     cta: {
-      label: "Come iniziare",
-      href: "/come-iniziare",
+      label: "Scopri lo studio",
+      href: "/peony",
     },
   },
-  sourceNotes: [
-    "Current homepage copy is intentionally kept almost identical for this phase.",
-    "Future copy should draw from the live Peony Studio site: technique, connection, aesthetics, Kinbaku LuXuria, semenawa, rope jams, guided practice, workshops, and the Turin studio.",
-  ],
+  closingCta: {
+    title: "Pronto/a a fare il primo passo?",
+    intro: "Siamo qui per rispondere a ogni tua domanda.",
+    primaryCta: {
+      label: "Vedi prossimo Open Day",
+      href: "/calendario",
+    },
+    secondaryCta: {
+      label: "Scrivici su Instagram",
+      href: "https://www.instagram.com/",
+    },
+  },
 };
