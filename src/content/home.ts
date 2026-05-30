@@ -27,10 +27,10 @@ export type HomePathCard = {
 
 export const homeContent = {
   hero: {
-    eyebrow: "Kinbaku · Torino",
-    title: "Kinbaku. Pratica. Crescita. Community.",
+    eyebrow: "Kinbaku — Torino",
+    title: "Scuola, venue e community di kinbaku a Torino.",
     description:
-      "Peony Studio è uno spazio per imparare, praticare e crescere nelle corde.",
+      "Peony Studio unisce formazione, pratica e incontri in uno spazio dedicato alle corde.",
     primaryCta: {
       label: "Voglio iniziare",
       href: "/come-iniziare",
@@ -127,19 +127,33 @@ export const homeContent = {
     },
   ] satisfies HomeArea[],
   philosophy: {
-    title: "Tecnica → Estetica → Personalità",
+    title: "Basi chiare, una voce che diventa tua.",
+    concepts: [
+      {
+        word: "Tecnica",
+        desc: "Basi chiare, forma consapevole, una voce che ti guida. Il primo passo per costruire una pratica solida.",
+      },
+      {
+        word: "Estetica",
+        desc: "Ricerca della bellezza attraverso la pratica e l'attenzione al dettaglio. Ogni legatura racconta qualcosa.",
+      },
+      {
+        word: "Personalità",
+        desc: "Trovare la tua voce, il tuo modo di legare. Il percorso diventa espressione.",
+      },
+    ],
     cta: {
       label: "Scopri di più",
       href: "/peony",
     },
   },
   studioPreview: {
-    title: "Il nostro spazio a Torino",
+    title: "Uno spazio a Torino per praticare, studiare e incontrarsi.",
     features: [
-      "Lounge e area relax",
-      "Cucina attrezzata",
-      "Bamboo e hashira",
-      "Ambiente curato e sicuro",
+      "Lounge",
+      "Cucina",
+      "Bamboo / Hashira",
+      "Tappeti morbidi",
     ],
     cta: {
       label: "Scopri lo studio",

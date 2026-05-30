@@ -1,80 +1,247 @@
-export type BeginnerPathCard = {
+export type SoftCta = {
+  label: string;
+  href: string;
+};
+
+export type QuizAnswerKey = "A" | "B" | "C" | "D";
+
+export type QuizAnswer = {
+  key: QuizAnswerKey;
+  label: string;
+};
+
+export type QuizQuestion = {
+  question: string;
+  answers: QuizAnswer[];
+};
+
+export type QuizResult = {
+  key: QuizAnswerKey;
   title: string;
-  forWho: string;
-  whatHappens: string;
-  nextStep: string;
+  path: string;
+  text: string;
+  cta: SoftCta;
+};
+
+export type SimpleCard = {
+  title: string;
+  text: string;
+  cta?: SoftCta;
 };
 
 export const howToStartContent = {
   slug: "how-to-start",
   title: "Come iniziare",
   navigationLabel: "Come iniziare",
-  status: "draft",
-  sourceNotes: [
-    "Use the current live-site concepts around Open Day and introduction to shibari.",
-    "The live site presents Open Day / introduzione as the first contact point for people who want to connect with the studio.",
-  ],
   hero: {
     eyebrow: "Primi passi",
-    title: "Avvicinarsi alle corde con chiarezza, ascolto e gradualità.",
+    title: "Come iniziare",
     intro:
-      "Se è la prima volta che entri in Peony Studio, il percorso può iniziare in modo semplice: conoscere lo spazio, fare una prima introduzione, poi continuare con una base tecnica e momenti di pratica.",
+      "Non devi sapere già quale corso scegliere, né avere già esperienza. Puoi partire osservando, imparando le basi o continuando una pratica già iniziata.",
+    primaryCta: {
+      label: "Fai il quiz",
+      href: "#quiz",
+    },
+    secondaryCta: {
+      label: "Guarda il calendario",
+      href: "/calendario",
+    },
   },
-  path: {
-    eyebrow: "Percorso beginner",
-    title: "Open Day → Foundation → Pratica assistita → Rope Jam",
+  quiz: {
+    eyebrow: "Quiz",
+    title: "Che Peony student sei?",
+    intro:
+      "Rispondi a poche domande e scopri quale può essere il tuo punto di partenza.",
+    questions: [
+      {
+        question: "Hai già provato shibari / kinbaku?",
+        answers: [
+          {
+            key: "A",
+            label: "Mai, ho curiosità e vorrei capire meglio",
+          },
+          {
+            key: "B",
+            label: "Ho provato qualcosa, ma non ho basi solide",
+          },
+          {
+            key: "C",
+            label: "Ho già fatto corsi o pratico da un po'",
+          },
+          {
+            key: "D",
+            label:
+              "Pratico già e voglio approfondire stile, ricerca o direzione personale",
+          },
+        ],
+      },
+      {
+        question: "In questo momento, cosa ti aiuterebbe di più?",
+        answers: [
+          {
+            key: "A",
+            label: "Guardare, fare domande e capire l'ambiente",
+          },
+          {
+            key: "B",
+            label: "Imparare le basi con una guida chiara",
+          },
+          {
+            key: "C",
+            label: "Praticare con supporto e correggere quello che faccio",
+          },
+          {
+            key: "D",
+            label: "Esplorare temi più specifici, intensi o personali",
+          },
+        ],
+      },
+      {
+        question: "Vieni con una persona con cui praticare?",
+        answers: [
+          {
+            key: "A",
+            label: "No, vorrei capire se posso iniziare anche senza partner",
+          },
+          {
+            key: "B",
+            label: "Forse, dipende dal tipo di attività",
+          },
+          {
+            key: "C",
+            label: "Sì, ho una persona con cui praticare",
+          },
+          {
+            key: "D",
+            label:
+              "Non è il punto principale: mi interessa soprattutto il percorso",
+          },
+        ],
+      },
+      {
+        question: "Cosa ti farebbe sentire nel posto giusto?",
+        answers: [
+          {
+            key: "A",
+            label: "Poter osservare senza pressione",
+          },
+          {
+            key: "B",
+            label: "Avere un percorso semplice, chiaro e progressivo",
+          },
+          {
+            key: "C",
+            label: "Trovare continuità, confronto e correzioni",
+          },
+          {
+            key: "D",
+            label:
+              "Avere uno spazio dove sviluppare il mio modo di stare nelle corde",
+          },
+        ],
+      },
+    ] satisfies QuizQuestion[],
+    results: {
+      A: {
+        key: "A",
+        title: "Explorer",
+        path: "Open Day",
+        text:
+          "Il tuo punto di partenza è l'Open Day. Puoi conoscere lo spazio, osservare senza pressione, fare domande e capire se l'approccio di Peony fa per te.",
+        cta: {
+          label: "Vedi i prossimi Open Day",
+          href: "/calendario",
+        },
+      },
+      B: {
+        key: "B",
+        title: "Foundation Student",
+        path: "Foundation",
+        text:
+          "Il tuo punto di partenza è Foundation. Un percorso chiaro e progressivo per costruire le basi: tecnica, comunicazione, sicurezza e metodo.",
+        cta: {
+          label: "Scopri Foundation",
+          href: "/programmi",
+        },
+      },
+      C: {
+        key: "C",
+        title: "Practice Builder",
+        path: "Pratica assistita / Classi tematiche",
+        text:
+          "Il tuo punto di partenza è la pratica assistita o una classe tematica. Hai già iniziato e ora può esserti utile praticare con continuità, ricevere correzioni e consolidare quello che fai.",
+        cta: {
+          label: "Guarda le prossime pratiche",
+          href: "/pratica",
+        },
+      },
+      D: {
+        key: "D",
+        title: "Research Student",
+        path: "Workshop / Laydown / Rope Jam",
+        text:
+          "Il tuo punto di partenza è un workshop, Laydown, una Rope Jam o un contesto di ricerca. Hai già una pratica attiva e vuoi approfondire stile, direzione personale e modo di stare nelle corde.",
+        cta: {
+          label: "Esplora i prossimi appuntamenti",
+          href: "/calendario",
+        },
+      },
+    } satisfies Record<QuizAnswerKey, QuizResult>,
+  },
+  entryPaths: {
+    eyebrow: "Percorsi",
+    title: "I percorsi di ingresso",
     cards: [
       {
         title: "Open Day",
-        forWho:
-          "Per chi vuole conoscere lo studio, fare domande e capire se iniziare.",
-        whatHappens:
-          "Un primo incontro leggero: orientamento, informazioni pratiche, atmosfera dello spazio e introduzione al modo in cui si lavora.",
-        nextStep: "Prenotare una introduzione o entrare nel percorso Foundation.",
+        text: "Per conoscere lo spazio, osservare e fare domande.",
       },
       {
         title: "Foundation",
-        forWho:
-          "Per chi parte da zero o vuole costruire basi più solide e condivise.",
-        whatHappens:
-          "Si lavora su sicurezza, comunicazione, tecnica di base, gestione delle tensioni e primi pattern fondamentali.",
-        nextStep: "Continuare con pratica assistita e classi successive.",
+        text: "Per iniziare dalle basi con un percorso chiaro e progressivo.",
       },
       {
-        title: "Pratica assistita",
-        forWho:
-          "Per chi ha già una base e vuole consolidare con uno sguardo esterno.",
-        whatHappens:
-          "Uno spazio guidato per ripetere, chiarire dubbi, correggere dettagli e restare in continuità.",
-        nextStep: "Portare la pratica verso rope jam, classi o approfondimenti.",
+        title: "Pratica assistita / Classi tematiche",
+        text:
+          "Per praticare con continuità, ricevere correzioni e approfondire aspetti specifici.",
       },
       {
-        title: "Rope Jam",
-        forWho:
-          "Per chi vuole praticare in modo più autonomo dentro la community.",
-        whatHappens:
-          "Un momento informale per praticare, scambiare conoscenze e incontrare altre persone dello studio.",
-        nextStep: "Scegliere il prossimo appuntamento dal calendario.",
+        title: "Workshop / Laydown / Rope Jam",
+        text: "Per esplorare temi più personali, intensi o legati alla ricerca.",
       },
-    ] satisfies BeginnerPathCard[],
+    ] satisfies SimpleCard[],
   },
-  unsure: {
-    eyebrow: "Orientamento",
-    title: "Non sai da dove partire?",
+  preview: {
+    eyebrow: "Prima di scegliere",
+    title: "Guarda prima di scegliere",
     intro:
-      "Va bene così. Se non hai esperienza, se hai già praticato altrove o se non sai quale formato scegliere, puoi partire dal calendario o scriverci: ti aiuteremo a trovare il primo passo più adatto.",
+      "A volte il modo più semplice per capire se un luogo fa per te è guardarlo: lo spazio, l'atmosfera, le attività, il modo in cui si pratica.",
+    cards: [
+      {
+        title: "Gallery",
+        text: "Immagini dello studio, degli eventi e dei momenti di pratica.",
+        cta: {
+          label: "Guarda la gallery",
+          href: "/peony",
+        },
+      },
+      {
+        title: "Social",
+        text: "Aggiornamenti, backstage e prossimi appuntamenti.",
+        cta: {
+          label: "Esplora i social",
+          href: "https://www.instagram.com/",
+        },
+      },
+    ] satisfies SimpleCard[],
   },
   finalCta: {
-    title: "Scegli il primo passo con calma.",
+    title: "Trova il tuo primo passo",
     intro:
-      "Guarda i prossimi appuntamenti oppure usa il contatto placeholder per una domanda prima di prenotare.",
-    primaryCta: {
-      label: "Vai al calendario",
+      "Ogni percorso ha un punto di ingresso chiaro. Puoi iniziare osservando, imparando le basi o continuando una pratica già avviata.",
+    cta: {
+      label: "Guarda il calendario",
       href: "/calendario",
-    },
-    secondaryCta: {
-      label: "Contatto placeholder",
-      href: "mailto:hello@peonystudio.example",
     },
   },
 };
