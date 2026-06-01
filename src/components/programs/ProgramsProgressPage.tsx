@@ -5,7 +5,11 @@ import { useEffect, useState } from "react";
 
 import { ProgramsLevelQuiz } from "@/components/programs/ProgramsLevelQuiz";
 import { SiteHeader } from "@/components/site/SiteHeader";
-import type { ProgramStep, programsContent } from "@/content/programs";
+import type {
+  ParallelPracticeItem,
+  ProgramStep,
+  programsContent,
+} from "@/content/programs";
 
 type ProgramsProgressPageProps = {
   content: typeof programsContent;
@@ -15,6 +19,9 @@ const nodeLabels = ["Found. 1", "Found. 2", "Classe 1", "Classe 1+"];
 
 export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [activeParallelIndex, setActiveParallelIndex] = useState<number | null>(
+    null,
+  );
   const [showFullPath, setShowFullPath] = useState(false);
   const [modalStep, setModalStep] = useState<ProgramStep | null>(null);
   const activeStep =
@@ -52,7 +59,7 @@ export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
     <main className="min-h-screen overflow-hidden bg-[#f4efe8] text-[#211815]">
       <SiteHeader />
 
-      <section className="relative mx-auto max-w-6xl px-5 pb-8 pt-14 sm:px-6 md:pb-12 md:pt-20">
+      <section className="relative mx-auto max-w-6xl px-5 pb-6 pt-12 sm:px-6 md:pb-8 md:pt-16">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute right-[-120px] top-0 hidden h-72 w-[520px] opacity-45 md:block"
@@ -81,16 +88,16 @@ export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
         <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#8b5e4a]">
           {content.hero.eyebrow}
         </p>
-        <h1 className="mt-5 max-w-3xl font-serif text-[clamp(48px,11vw,86px)] font-medium leading-[0.95] tracking-normal text-[#211815]">
+        <h1 className="mt-4 max-w-3xl font-serif text-[clamp(48px,11vw,86px)] font-medium leading-[0.95] tracking-normal text-[#211815]">
           {content.hero.title}
         </h1>
-        <p className="mt-6 max-w-2xl text-[16px] leading-[1.75] text-[#211815]/85 md:text-lg">
+        <p className="mt-4 max-w-2xl text-[16px] leading-[1.75] text-[#211815]/85 md:text-lg">
           {content.hero.intro}
         </p>
       </section>
 
-      <section className="mx-auto max-w-6xl px-5 pb-12 pt-4 sm:px-6 md:pb-20">
-        <div className="relative px-1 pb-8 pt-12 md:px-2 md:pt-16">
+      <section className="mx-auto max-w-6xl px-5 pb-8 pt-0 sm:px-6 md:pb-12">
+        <div className="relative px-1 pb-5 pt-10 md:px-2 md:pb-6 md:pt-12">
           <div className="relative grid grid-cols-4 gap-1">
             <div
               aria-hidden="true"
@@ -142,11 +149,21 @@ export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
           </div>
         </div>
 
+        <ParallelBar
+          items={content.parallelPractice.items}
+          activeIndex={activeParallelIndex}
+          onToggle={(index) =>
+            setActiveParallelIndex((current) =>
+              current === index ? null : index,
+            )
+          }
+        />
+
         {!showFullPath ? (
           activeStep ? (
             <ProgramDetail step={activeStep} />
           ) : (
-            <div className="programs-panel-in mx-auto mt-2 max-w-5xl rounded-[14px] border border-[#211815]/10 bg-white/32 px-5 py-8 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] md:px-8">
+            <div className="programs-panel-in mx-auto mt-1 max-w-5xl rounded-[14px] border border-[#211815]/10 bg-white/32 px-5 py-6 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] md:px-8 md:py-7">
               <div
                 aria-hidden="true"
                 className="mx-auto mb-3 h-5 w-12 rounded-full border-t border-[#8b5e4a]/50"
@@ -158,7 +175,7 @@ export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
           )
         ) : null}
 
-        <div className="mx-auto mt-8 max-w-xl">
+        <div className="mx-auto mt-5 max-w-xl">
           <button
             type="button"
             aria-expanded={showFullPath}
@@ -189,7 +206,7 @@ export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
             }`}
           >
             <div className="overflow-hidden">
-              <div className="mt-6 rounded-[12px] border border-[#211815]/10 bg-white/32 px-4 py-5 md:px-5 md:py-7">
+              <div className="mt-4 rounded-[12px] border border-[#211815]/10 bg-white/32 px-4 py-5 md:px-5 md:py-6">
                 <FullPathTimeline
                   steps={content.progression}
                   onSelectStep={setModalStep}
@@ -200,7 +217,7 @@ export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
         </div>
       </section>
 
-      <section className="border-t border-[#211815]/10 px-5 py-14 sm:px-6 md:py-20">
+      <section className="hidden">
         <div className="mx-auto max-w-6xl">
           <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8b5e4a]">
             Attività trasversali
@@ -261,6 +278,7 @@ export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
       </section>
 
       <ProgramsLevelQuiz quiz={content.quiz} />
+      <DashboardTeaser />
 
       {modalStep ? (
         <ProgramStepModal
@@ -272,11 +290,145 @@ export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
   );
 }
 
+function ParallelBar({
+  items,
+  activeIndex,
+  onToggle,
+}: {
+  items: ParallelPracticeItem[];
+  activeIndex: number | null;
+  onToggle: (index: number) => void;
+}) {
+  const activeItem = activeIndex === null ? null : items[activeIndex];
+  const descriptions = [
+    "Uno spazio per ripetere e consolidare ciò che hai incontrato nei percorsi, fare domande e ricevere supporto tecnico. Accompagna il percorso e aiuta a renderlo più solido.",
+    "Incontri dedicati a un tema specifico, pensati per approfondire tecniche, strutture o qualità del lavoro in corda. Possono accompagnare diversi livelli del percorso, in base al tema proposto.",
+  ];
+
+  return (
+    <div className="mx-auto -mt-1 mb-5 max-w-5xl md:-mt-2 md:mb-6">
+      <div className="relative rounded-[8px] border border-[#211815]/10 bg-white/30 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]">
+        <div
+          aria-hidden="true"
+          className="absolute left-3 right-3 top-1/2 h-px -translate-y-1/2 bg-[#8b5e4a]/18"
+        />
+        <div className="relative grid grid-cols-3 gap-1 md:grid-cols-[0.8fr_1fr_1fr]">
+          <div className="grid min-h-12 place-items-center rounded-[7px] px-1 text-center text-[10px] font-semibold uppercase leading-[1.05] tracking-[0.13em] text-[#8b5e4a]/80 md:min-h-11 md:text-[11px] md:tracking-[0.16em]">
+            <span className="md:hidden">
+              In
+              <br />
+              parallelo
+            </span>
+            <span className="hidden md:inline">In parallelo</span>
+          </div>
+          {items.map((item, index) => {
+            const active = activeIndex === index;
+
+            return (
+              <button
+                key={item.title}
+                type="button"
+                aria-expanded={active}
+                aria-controls="parallel-mobile-detail"
+                onClick={() => onToggle(index)}
+                className={`grid min-h-12 place-items-center rounded-[7px] border px-1 text-center text-[10px] font-semibold uppercase leading-[1.08] tracking-[0.1em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f4efe8] md:min-h-11 md:text-[11px] md:tracking-[0.14em] ${
+                  active
+                    ? "border-[#8b5e4a]/55 bg-white/78 text-[#211815] shadow-[0_8px_20px_rgba(33,24,21,0.08)]"
+                    : "border-transparent bg-[#f4efe8]/45 text-[#5f524c] active:bg-white/60"
+                }`}
+              >
+                {item.title === "Pratica assistita" ? (
+                  <>
+                    <span className="md:hidden">
+                      Pratica
+                      <br />
+                      assistita
+                    </span>
+                    <span className="hidden md:inline">Pratica assistita</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="md:hidden">
+                      Classi
+                      <br />
+                      tematiche
+                    </span>
+                    <span className="hidden md:inline">Classi tematiche</span>
+                  </>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div
+        className={`grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none ${
+          activeItem ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        }`}
+      >
+        <div className="overflow-hidden">
+          {activeItem ? (
+            <article
+              id="parallel-mobile-detail"
+              className="programs-panel-in mt-3 rounded-[8px] border border-[#211815]/10 bg-white/42 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] md:grid md:grid-cols-[0.7fr_1.3fr_auto] md:items-center md:gap-5"
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8b5e4a]">
+                In parallelo al percorso
+              </p>
+              <h3 className="mt-2 font-serif text-2xl font-medium leading-[1.08] tracking-normal text-[#211815]">
+                {activeItem.title}
+              </h3>
+              <p className="mt-3 text-sm leading-[1.65] text-[#5f524c] md:mt-0">
+                {descriptions[activeIndex ?? 0]}
+              </p>
+              <Link
+                href="/pratica"
+                className="mt-4 inline-flex rounded-full border border-[#211815]/20 bg-[#f4efe8]/70 px-4 py-2.5 text-sm font-medium text-[#211815] transition hover:-translate-y-0.5 hover:bg-white/70 active:translate-y-px md:mt-0"
+              >
+                Vai alla pratica
+              </Link>
+            </article>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DashboardTeaser() {
+  return (
+    <section className="mx-auto max-w-6xl px-5 pb-10 sm:px-6 md:pb-12">
+      <div className="rounded-[8px] border border-[#211815]/10 bg-white/34 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] md:flex md:items-center md:justify-between md:gap-5 md:p-5">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+            Area personale
+          </p>
+          <h2 className="mt-2 font-serif text-3xl font-medium leading-[1.08] tracking-normal text-[#211815]">
+            Il tuo percorso, quando accedi
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-[1.65] text-[#5f524c]">
+            Nella dashboard personale potrai ritrovare iscrizioni, eventi
+            seguiti, storico attivita e, in prospettiva, il percorso suggerito
+            in base alla tua esperienza.
+          </p>
+        </div>
+        <Link
+          href="/dashboard"
+          className="mt-4 inline-flex rounded-full border border-[#211815]/20 bg-[#f4efe8]/70 px-5 py-3 text-sm font-medium text-[#211815] transition hover:-translate-y-0.5 hover:bg-white/70 md:mt-0"
+        >
+          Area personale
+        </Link>
+      </div>
+    </section>
+  );
+}
+
 function ProgramDetail({ step }: { step: ProgramStep }) {
   return (
     <article
       key={step.title}
-      className="programs-panel-in mx-auto mt-2 max-w-5xl rounded-[14px] border border-[#211815]/10 bg-white/42 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] md:grid md:grid-cols-[0.9fr_1.1fr] md:gap-8 md:p-7"
+      className="programs-panel-in mx-auto mt-1 max-w-5xl rounded-[14px] border border-[#211815]/10 bg-white/42 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] md:grid md:grid-cols-[0.9fr_1.1fr] md:gap-6 md:p-6"
     >
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
@@ -288,18 +440,18 @@ function ProgramDetail({ step }: { step: ProgramStep }) {
         <p className="mt-3 text-sm font-semibold leading-5 text-[#8b5e4a] md:text-base">
           {step.subtitle}
         </p>
-        <p className="mt-5 text-sm leading-[1.75] text-[#5f524c] md:text-base">
+        <p className="mt-4 text-sm leading-[1.7] text-[#5f524c] md:text-base">
           {step.description}
         </p>
         <Link
           href="/calendario"
-          className="mt-6 inline-flex rounded-full border border-[#211815]/20 bg-[#f4efe8]/70 px-5 py-3 text-sm font-medium text-[#211815] transition hover:-translate-y-0.5 hover:bg-white/70"
+          className="mt-5 inline-flex rounded-full border border-[#211815]/20 bg-[#f4efe8]/70 px-5 py-3 text-sm font-medium text-[#211815] transition hover:-translate-y-0.5 hover:bg-white/70"
         >
           Vedi prossime date
         </Link>
       </div>
 
-      <div className="mt-7 grid gap-4 md:mt-0">
+      <div className="mt-6 grid gap-3 md:mt-0">
         <InfoBlock title="Cosa si lavora" items={step.work} />
         <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/60 p-4">
           <h3 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">

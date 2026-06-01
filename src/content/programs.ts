@@ -119,6 +119,7 @@ export const programsContent = {
         description:
           "Una serata di pratica concentrata, senza demo e senza atmosfera da jam. Le coppie lavorano su pattern già conosciuti nello stile Kinbaku LuXuria, ripetendoli fedelmente o usandoli come base per esplorazioni personali. Kurogami è presente per dare supporto, consigli e correzioni.",
         tags: ["Aperta a tutti i livelli", "Nessuna demo", "Non è una rope jam"],
+        // TODO: sostituire con /pratica#pratica-assistita quando la pagina Pratica avra anchor dedicate.
         cta: {
           label: "Scopri la pratica assistita",
           href: "/pratica",
@@ -130,6 +131,7 @@ export const programsContent = {
         description:
           "Serate pratiche dedicate a un tema specifico: chair tie, bamboo, gag e altri strumenti o situazioni. Ogni incontro parte da una demo e prosegue con esercizi guidati e riproducibili a casa.",
         tags: ["Aperte a tutti i livelli", "Demo + esercizio", "Temi singoli"],
+        // TODO: sostituire con /pratica#classi-tematiche quando la pagina Pratica avra anchor dedicate.
         cta: {
           label: "Scopri le classi tematiche",
           href: "/pratica",
