@@ -4,10 +4,24 @@ export type SoftCta = {
 };
 
 export type QuizAnswerKey = "A" | "B" | "C" | "D";
+export type QuizBranchKey = "explorer" | "rigger" | "bottom" | "both";
+export type QuizResultKey =
+  | "EXPLORER"
+  | "RIGGER_FOUNDATION"
+  | "RIGGER_PRACTICE"
+  | "BOTTOM_EXPLORER"
+  | "BOTTOM_PRACTICE"
+  | "BOTTOM_RESEARCH"
+  | "ROPE_RESEARCH"
+  | "MIXED_RESEARCH";
 
 export type QuizAnswer = {
   key: QuizAnswerKey;
   label: string;
+};
+
+export type QuizFirstAnswer = QuizAnswer & {
+  branch: QuizBranchKey;
 };
 
 export type QuizQuestion = {
@@ -15,8 +29,17 @@ export type QuizQuestion = {
   answers: QuizAnswer[];
 };
 
+export type QuizFirstQuestion = {
+  question: string;
+  answers: QuizFirstAnswer[];
+};
+
+export type QuizBranch = {
+  questions: QuizQuestion[];
+};
+
 export type QuizResult = {
-  key: QuizAnswerKey;
+  key: QuizResultKey;
   title: string;
   path: string;
   text: string;
@@ -37,10 +60,10 @@ export const howToStartContent = {
     eyebrow: "Primi passi",
     title: "Come iniziare",
     intro:
-      "Non devi sapere già quale corso scegliere, né avere già esperienza. Puoi partire osservando, imparando le basi o continuando una pratica già iniziata.",
+      "Non devi sapere già quale corso scegliere. Rispondi a poche domande e trova il punto di partenza più adatto.",
     primaryCta: {
       label: "Fai il quiz",
-      href: "#quiz",
+      href: "#",
     },
     secondaryCta: {
       label: "Guarda il calendario",
@@ -51,163 +74,303 @@ export const howToStartContent = {
     eyebrow: "Quiz",
     title: "Che Peony student sei?",
     intro:
-      "Rispondi a poche domande e scopri quale può essere il tuo punto di partenza.",
-    questions: [
-      {
-        question: "Hai già provato shibari / kinbaku?",
-        answers: [
+      "Un orientamento veloce per capire da dove partire.",
+    firstQuestion: {
+      question: "Da che punto vuoi iniziare?",
+      answers: [
+        {
+          key: "A",
+          label: "Vorrei conoscere lo spazio e capire che tipo di pratica fa per me",
+          branch: "explorer",
+        },
+        {
+          key: "B",
+          label: "Vorrei imparare a legare",
+          branch: "rigger",
+        },
+        {
+          key: "C",
+          label: "Vorrei stare nelle corde o esplorare il ruolo di bottom",
+          branch: "bottom",
+        },
+        {
+          key: "D",
+          label: "Vorrei esplorare entrambi i lati",
+          branch: "both",
+        },
+      ],
+    } satisfies QuizFirstQuestion,
+    branches: {
+      explorer: {
+        questions: [
           {
-            key: "A",
-            label: "Mai, ho curiosità e vorrei capire meglio",
+            question: "Cosa ti aiuterebbe di più ora?",
+            answers: [
+              { key: "A", label: "Osservare senza pressione" },
+              { key: "B", label: "Capire corsi e livelli" },
+              { key: "C", label: "Conoscere persone e ambiente" },
+              { key: "D", label: "Vedere come si pratica dal vivo" },
+            ],
           },
           {
-            key: "B",
-            label: "Ho provato qualcosa, ma non ho basi solide",
-          },
-          {
-            key: "C",
-            label: "Ho già fatto corsi o pratico da un po'",
-          },
-          {
-            key: "D",
-            label:
-              "Pratico già e voglio approfondire stile, ricerca o direzione personale",
-          },
-        ],
-      },
-      {
-        question: "In questo momento, cosa ti aiuterebbe di più?",
-        answers: [
-          {
-            key: "A",
-            label: "Guardare, fare domande e capire l'ambiente",
-          },
-          {
-            key: "B",
-            label: "Imparare le basi con una guida chiara",
-          },
-          {
-            key: "C",
-            label: "Praticare con supporto e correggere quello che faccio",
-          },
-          {
-            key: "D",
-            label: "Esplorare temi più specifici, intensi o personali",
-          },
-        ],
-      },
-      {
-        question: "Vieni con una persona con cui praticare?",
-        answers: [
-          {
-            key: "A",
-            label: "No, vorrei capire se posso iniziare anche senza partner",
-          },
-          {
-            key: "B",
-            label: "Forse, dipende dal tipo di attività",
-          },
-          {
-            key: "C",
-            label: "Sì, ho una persona con cui praticare",
-          },
-          {
-            key: "D",
-            label:
-              "Non è il punto principale: mi interessa soprattutto il percorso",
+            question: "Come immagini il primo contatto con Peony?",
+            answers: [
+              { key: "A", label: "Una serata aperta e informale" },
+              { key: "B", label: "Un momento in cui fare domande" },
+              { key: "C", label: "Guardare una pratica o una Rope Jam" },
+              {
+                key: "D",
+                label: "Capire se posso iniziare anche senza partner",
+              },
+            ],
           },
         ],
       },
-      {
-        question: "Cosa ti farebbe sentire nel posto giusto?",
-        answers: [
+      rigger: {
+        questions: [
           {
-            key: "A",
-            label: "Poter osservare senza pressione",
+            question: "Che esperienza hai nel legare?",
+            answers: [
+              { key: "A", label: "Non ho mai legato" },
+              {
+                key: "B",
+                label: "Ho provato qualcosa, ma senza basi solide",
+              },
+              {
+                key: "C",
+                label: "Ho già fatto corsi o pratico da un po'",
+              },
+              {
+                key: "D",
+                label: "Conosco già basi, gote o sospensioni",
+              },
+            ],
           },
           {
-            key: "B",
-            label: "Avere un percorso semplice, chiaro e progressivo",
-          },
-          {
-            key: "C",
-            label: "Trovare continuità, confronto e correzioni",
-          },
-          {
-            key: "D",
-            label:
-              "Avere uno spazio dove sviluppare il mio modo di stare nelle corde",
+            question: "Cosa ti serve adesso?",
+            answers: [
+              { key: "A", label: "Imparare nodi, tensioni e strutture base" },
+              { key: "B", label: "Avere un percorso progressivo" },
+              {
+                key: "C",
+                label: "Praticare con correzioni e continuità",
+              },
+              {
+                key: "D",
+                label: "Approfondire kata, estetica, stile o sospensioni",
+              },
+            ],
           },
         ],
       },
-    ] satisfies QuizQuestion[],
+      bottom: {
+        questions: [
+          {
+            question: "Hai già esperienza nello stare nelle corde?",
+            answers: [
+              { key: "A", label: "No, vorrei capire da dove iniziare" },
+              {
+                key: "B",
+                label: "Ho provato qualcosa, ma vorrei più consapevolezza",
+              },
+              {
+                key: "C",
+                label: "Pratico già e voglio continuità",
+              },
+              {
+                key: "D",
+                label:
+                  "Voglio approfondire corpo, ascolto, intensità o ricerca personale",
+              },
+            ],
+          },
+          {
+            question: "Cosa ti aiuterebbe di più?",
+            answers: [
+              { key: "A", label: "Conoscere persone e ambiente" },
+              {
+                key: "B",
+                label: "Capire come stare nelle corde in modo più consapevole",
+              },
+              {
+                key: "C",
+                label: "Trovare occasioni di pratica e confronto",
+              },
+              {
+                key: "D",
+                label:
+                  "Esplorare il mio modo di vivere l'esperienza nelle corde",
+              },
+            ],
+          },
+          {
+            question: "Vieni con una persona con cui praticare?",
+            answers: [
+              { key: "A", label: "No, arrivo senza partner" },
+              { key: "B", label: "Forse" },
+              { key: "C", label: "Sì" },
+              { key: "D", label: "Non è il punto principale" },
+            ],
+          },
+        ],
+      },
+      both: {
+        questions: [
+          {
+            question: "Hai già praticato?",
+            answers: [
+              { key: "A", label: "No, voglio capire da dove partire" },
+              {
+                key: "B",
+                label: "Ho provato qualcosa, ma non ho basi solide",
+              },
+              {
+                key: "C",
+                label: "Pratico già da uno o entrambi i lati",
+              },
+              {
+                key: "D",
+                label: "Ho già esperienza e voglio approfondire",
+              },
+            ],
+          },
+          {
+            question: "Cosa ti interessa di più adesso?",
+            answers: [
+              { key: "A", label: "Orientarmi e conoscere l'ambiente" },
+              { key: "B", label: "Costruire basi tecniche" },
+              {
+                key: "C",
+                label: "Alternare pratica, confronto e correzioni",
+              },
+              {
+                key: "D",
+                label:
+                  "Approfondire corpo, stile, ricerca o direzione personale",
+              },
+            ],
+          },
+        ],
+      },
+    } satisfies Record<QuizBranchKey, QuizBranch>,
     results: {
-      A: {
-        key: "A",
+      EXPLORER: {
+        key: "EXPLORER",
         title: "Explorer",
-        path: "Open Day",
+        path: "Open Day / Rope Jam",
         text:
-          "Il tuo punto di partenza è l'Open Day. Puoi conoscere lo spazio, osservare senza pressione, fare domande e capire se l'approccio di Peony fa per te.",
+          "Il tuo punto di partenza può essere un Open Day o una Rope Jam. Puoi conoscere lo spazio, osservare, fare domande e capire che tipo di pratica ti interessa.",
         cta: {
-          label: "Vedi i prossimi Open Day",
+          label: "Guarda i prossimi appuntamenti",
           href: "/calendario",
         },
       },
-      B: {
-        key: "B",
-        title: "Foundation Student",
-        path: "Foundation",
+      RIGGER_FOUNDATION: {
+        key: "RIGGER_FOUNDATION",
+        title: "Rigger Foundation",
+        path: "Foundation 1 / Foundation 2",
         text:
-          "Il tuo punto di partenza è Foundation. Un percorso chiaro e progressivo per costruire le basi: tecnica, comunicazione, sicurezza e metodo.",
+          "Il tuo punto di partenza è Foundation. Foundation 1 lavora sulle basi tecniche; Foundation 2 introduce linee di sospensione e lavoro a terra in modo progressivo.",
         cta: {
           label: "Scopri Foundation",
-          href: "/programmi",
+          href: "/percorsi",
         },
       },
-      C: {
-        key: "C",
+      RIGGER_PRACTICE: {
+        key: "RIGGER_PRACTICE",
         title: "Practice Builder",
         path: "Pratica assistita / Classi tematiche",
         text:
-          "Il tuo punto di partenza è la pratica assistita o una classe tematica. Hai già iniziato e ora può esserti utile praticare con continuità, ricevere correzioni e consolidare quello che fai.",
+          "Hai già iniziato e ora può esserti utile praticare con continuità, ricevere correzioni e approfondire aspetti specifici.",
         cta: {
           label: "Guarda le prossime pratiche",
           href: "/pratica",
         },
       },
-      D: {
-        key: "D",
-        title: "Research Student",
-        path: "Workshop / Laydown / Rope Jam",
+      BOTTOM_EXPLORER: {
+        key: "BOTTOM_EXPLORER",
+        title: "Bottom Explorer",
+        path: "Aperibottom / Rope Jam / Open Day",
         text:
-          "Il tuo punto di partenza è un workshop, Laydown, una Rope Jam o un contesto di ricerca. Hai già una pratica attiva e vuoi approfondire stile, direzione personale e modo di stare nelle corde.",
+          "Il tuo punto di partenza può essere Aperibottom, una Rope Jam o un Open Day. Sono occasioni leggere per conoscere persone, osservare l'ambiente e avvicinarti alla pratica dal punto di vista di chi vuole stare nelle corde.",
+        cta: {
+          label: "Guarda i prossimi appuntamenti",
+          href: "/calendario",
+        },
+      },
+      BOTTOM_PRACTICE: {
+        key: "BOTTOM_PRACTICE",
+        title: "Bottom Practice",
+        path: "Classi tematiche / Pratica assistita",
+        text:
+          "Hai già iniziato a stare nelle corde e vuoi costruire più consapevolezza. Classi tematiche e pratica assistita possono aiutarti a fare domande, confrontarti e dare continuità alla pratica.",
+        cta: {
+          label: "Guarda le prossime pratiche",
+          href: "/pratica",
+        },
+      },
+      BOTTOM_RESEARCH: {
+        key: "BOTTOM_RESEARCH",
+        title: "Bottom Research",
+        path: "Workshop / Classi tematiche / Classe 1+",
+        text:
+          "Il tuo punto di partenza può essere un workshop, una classe tematica o Classe 1+. Sono contesti utili per esplorare ascolto del corpo, presenza, intensità e modo personale di stare nelle corde.",
         cta: {
           label: "Esplora i prossimi appuntamenti",
           href: "/calendario",
         },
       },
-    } satisfies Record<QuizAnswerKey, QuizResult>,
+      ROPE_RESEARCH: {
+        key: "ROPE_RESEARCH",
+        title: "Rope Research",
+        path: "Classe 1 / Classe 1+ / Workshop",
+        text:
+          "Il tuo punto di partenza può essere Classe 1, Classe 1+ o un workshop. Classe 1 introduce il gote di KL e i Kata di base; Classe 1+ prosegue con nuovi Kata, personalità, estetica e direzione personale.",
+        cta: {
+          label: "Esplora i prossimi appuntamenti",
+          href: "/calendario",
+        },
+      },
+      MIXED_RESEARCH: {
+        key: "MIXED_RESEARCH",
+        title: "Mixed Research",
+        path: "Workshop / Classi tematiche / Classe 1+",
+        text:
+          "Il tuo punto di partenza può essere un percorso specifico o un approfondimento. Classe 1 e Classe 1+ lavorano su gote, Kata, sospensioni, estetica e direzione personale; workshop e classi tematiche aprono spazi di ricerca mirati.",
+        cta: {
+          label: "Esplora i prossimi appuntamenti",
+          href: "/calendario",
+        },
+      },
+    } satisfies Record<QuizResultKey, QuizResult>,
   },
   entryPaths: {
-    eyebrow: "Percorsi",
-    title: "I percorsi di ingresso",
+    eyebrow: "Orientamento",
+    title: "I possibili punti di partenza",
     cards: [
       {
-        title: "Open Day",
-        text: "Per conoscere lo spazio, osservare e fare domande.",
+        title: "Open Day / Rope Jam",
+        text: "Osservare e orientarsi",
       },
       {
-        title: "Foundation",
-        text: "Per iniziare dalle basi con un percorso chiaro e progressivo.",
+        title: "Aperibottom",
+        text: "Stare nelle corde e conoscere persone",
+      },
+      {
+        title: "Foundation 1 / Foundation 2",
+        text: "Basi tecniche e primi lavori a terra",
       },
       {
         title: "Pratica assistita / Classi tematiche",
-        text:
-          "Per praticare con continuità, ricevere correzioni e approfondire aspetti specifici.",
+        text: "Consolidare e approfondire",
       },
       {
-        title: "Workshop / Laydown / Rope Jam",
-        text: "Per esplorare temi più personali, intensi o legati alla ricerca.",
+        title: "Classe 1 / Classe 1+",
+        text: "Gote KL, Kata e prime sospensioni",
+      },
+      {
+        title: "Workshop / KL",
+        text: "Deep dive e ricerca",
       },
     ] satisfies SimpleCard[],
   },
@@ -215,11 +378,11 @@ export const howToStartContent = {
     eyebrow: "Prima di scegliere",
     title: "Guarda prima di scegliere",
     intro:
-      "A volte il modo più semplice per capire se un luogo fa per te è guardarlo: lo spazio, l'atmosfera, le attività, il modo in cui si pratica.",
+      "A volte il modo più semplice per capire se un luogo fa per te è guardarlo.",
     cards: [
       {
         title: "Gallery",
-        text: "Immagini dello studio, degli eventi e dei momenti di pratica.",
+        text: "Lo spazio, l'atmosfera, la pratica.",
         cta: {
           label: "Guarda la gallery",
           href: "/peony",
@@ -227,7 +390,7 @@ export const howToStartContent = {
       },
       {
         title: "Social",
-        text: "Aggiornamenti, backstage e prossimi appuntamenti.",
+        text: "Aggiornamenti e prossimi appuntamenti.",
         cta: {
           label: "Esplora i social",
           href: "https://www.instagram.com/",
@@ -236,9 +399,8 @@ export const howToStartContent = {
     ] satisfies SimpleCard[],
   },
   finalCta: {
-    title: "Trova il tuo primo passo",
-    intro:
-      "Ogni percorso ha un punto di ingresso chiaro. Puoi iniziare osservando, imparando le basi o continuando una pratica già avviata.",
+    title: "Vuoi vedere le prossime date?",
+    intro: "Le date aggiornate sono nel calendario.",
     cta: {
       label: "Guarda il calendario",
       href: "/calendario",

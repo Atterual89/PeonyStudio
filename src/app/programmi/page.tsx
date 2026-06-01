@@ -1,12 +1,6 @@
-import { SimpleContentPage } from "@/components/site/SimpleContentPage";
+import { ProgramsProgressPage } from "@/components/programs/ProgramsProgressPage";
 import { programsContent } from "@/content/programs";
 
 export default function ProgrammiPage() {
-  return (
-    <SimpleContentPage
-      eyebrow={programsContent.hero.eyebrow}
-      title={programsContent.title}
-      intro={programsContent.hero.intro}
-    />
-  );
+  return <ProgramsProgressPage content={programsContent} />;
 }

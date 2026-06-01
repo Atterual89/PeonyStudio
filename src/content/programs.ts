@@ -52,7 +52,7 @@ export const programsContent = {
   },
   structuredPaths: [
     {
-      title: "Foundation",
+      title: "Foundation 1",
       subtitle: "4 lezioni",
       description:
         "Un percorso in 4 lezioni sui principi tecnici di base. Non solo tecnica: classi pensate per lasciare esercizi completi da portare a casa e riprendere anche durante le Rope Jam.",
@@ -67,18 +67,18 @@ export const programsContent = {
         "Per chi inizia o vuole costruire fondamenta tecniche chiare e solide.",
     },
     {
-      title: "Laydown",
-      subtitle: "4 serate",
+      title: "Foundation 2",
+      subtitle: "4 lezioni",
       description:
-        "Un percorso in 4 serate che introduce il lavoro sulle linee di sospensione e concetti vicini al lavoro a terra / liedown. Copy provvisoria da rifinire.",
+        "Un percorso in 4 lezioni che prosegue il lavoro di Foundation 1. Introduce prime linee di sospensione, direzioni di tensione, lavoro sul corpo e continuità tra pattern e transizioni.",
       work: [
-        "linee di sospensione",
+        "prime linee di sospensione",
         "direzioni di tensione",
-        "lavoro a terra",
-        "continuità e ascolto",
+        "lavoro sul corpo",
+        "continuità tra pattern e transizioni",
       ],
       audience:
-        "Per chi vuole iniziare a comprendere linee, tensioni e corpo nello spazio.",
+        "Per chi ha già lavorato sulle basi e vuole comprendere linee, tensioni e gestione del corpo nello spazio.",
     },
     {
       title: "Classe 1",
@@ -155,14 +155,14 @@ export const programsContent = {
     },
     {
       title: "Foundation 2",
-      subtitle: "Linee, stabilità, laydown",
+      subtitle: "Linee, stabilità, lavoro sul corpo",
       description:
-        "Il secondo step del percorso Foundation. Si introducono le prime linee di sospensione, le direzioni di tensione e il lavoro sul corpo a terra, con concetti vicini al laydown. L’obiettivo è costruire sicurezza, fluidità e continuità.",
+        "Il secondo step del percorso Foundation. Si introducono le prime linee di sospensione, le direzioni di tensione e il lavoro sul corpo. L’obiettivo è costruire sicurezza, fluidità e continuità.",
       work: [
         "prime linee di sospensione",
         "direzioni di tensione",
         "gestione del corpo a terra",
-        "strutture vicine al laydown",
+        "gestione del corpo nello spazio",
         "continuità tra pattern e transizioni",
       ],
       audience:
@@ -245,7 +245,7 @@ export const programsContent = {
       },
       {
         question:
-          "Hai già lavorato con linee di sospensione o lavoro a terra tipo laydown?",
+          "Hai già lavorato con linee di sospensione o lavoro sul corpo nello spazio?",
         answers: [
           { label: "No", result: "foundation1" },
           {

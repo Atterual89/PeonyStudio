@@ -7,12 +7,13 @@ import { BrandLogo } from "@/components/site/BrandLogo";
 
 const navItems = [
   { href: "/come-iniziare", label: "Come iniziare" },
-  { href: "/programmi", label: "Programmi" },
-  { href: "/pratica", label: "Pratica" },
-  { href: "/workshop-exploration", label: "Workshop" },
+  { href: "/percorsi", label: "Percorsi" },
+  { href: "/pratica", label: "Pratica & Community" },
+  { href: "/workshop", label: "Workshop" },
   { href: "/calendario", label: "Calendario" },
   { href: "/peony", label: "Peony" },
   { href: "/shop", label: "Shop" },
+  { href: "/dashboard", label: "Area personale" },
 ];
 
 export function SiteHeader() {
@@ -51,7 +52,7 @@ export function SiteHeader() {
             <BrandLogo compact />
           </Link>
 
-          <nav className="hidden items-center gap-5 text-[13px] font-medium text-[#5f524c] md:flex">
+          <nav className="hidden items-center gap-4 text-[12px] font-medium text-[#5f524c] xl:flex">
             {navItems.map((item) => (
               <Link
                 key={item.href}
@@ -66,7 +67,7 @@ export function SiteHeader() {
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="h-10 rounded-full border border-[#211815]/20 bg-white/60 px-4 text-sm font-medium text-[#211815] transition hover:bg-white/85 md:hidden"
+            className="h-10 rounded-full border border-[#211815]/20 bg-white/60 px-4 text-sm font-medium text-[#211815] transition hover:bg-white/85 xl:hidden"
           >
             Menu
           </button>
@@ -74,7 +75,7 @@ export function SiteHeader() {
       </header>
 
       <div
-        className={`fixed inset-0 z-[200] flex flex-col bg-[#f4efe8]/[0.97] px-5 py-5 backdrop-blur-xl transition-opacity duration-300 md:hidden ${
+        className={`fixed inset-0 z-[200] flex flex-col bg-[#f4efe8]/[0.97] px-5 py-5 backdrop-blur-xl transition-opacity duration-300 xl:hidden ${
           open ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       >

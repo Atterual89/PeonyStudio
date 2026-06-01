@@ -49,9 +49,9 @@ export const homeContent = {
     },
     {
       number: "02",
-      title: "Foundation #0",
+      title: "Foundation 1",
       summary: "Il tuo ingresso",
-      href: "/programmi",
+      href: "/percorsi",
     },
     {
       number: "03",
@@ -67,9 +67,9 @@ export const homeContent = {
     },
     {
       number: "05",
-      title: "#1 e oltre",
+      title: "Classe 1+",
       summary: "Approfondisci",
-      href: "/programmi",
+      href: "/percorsi",
     },
   ] satisfies HomeVerticalPathItem[],
   splitIntro: {
@@ -91,9 +91,9 @@ export const homeContent = {
   },
   areas: [
     {
-      title: "Programmi",
+      title: "Percorsi",
       description: "Percorsi strutturati",
-      href: "/programmi",
+      href: "/percorsi",
     },
     {
       title: "Pratica",
@@ -108,17 +108,17 @@ export const homeContent = {
     {
       title: "Workshop",
       description: "Approfondimenti",
-      href: "/workshop-exploration",
+      href: "/workshop",
     },
     {
       title: "Exploration",
       description: "Ricerca esperienziale",
-      href: "/workshop-exploration",
+      href: "/workshop",
     },
     {
       title: "Cultura",
       description: "Cinema, storia, talk",
-      href: "/workshop-exploration",
+      href: "/workshop",
     },
     {
       title: "Shop",
@@ -179,7 +179,7 @@ export const homeContent = {
         title: "Link utili",
         links: [
           { label: "Come iniziare", href: "/come-iniziare" },
-          { label: "Programmi", href: "/programmi" },
+          { label: "Percorsi", href: "/percorsi" },
           { label: "Calendario", href: "/calendario" },
         ],
       },
@@ -225,9 +225,9 @@ export const homeContent = {
     },
     {
       eyebrow: "02",
-      title: "Programmi",
+      title: "Percorsi",
       description: "Percorsi progressivi, classi e approfondimenti.",
-      href: "/programmi",
+      href: "/percorsi",
     },
     {
       eyebrow: "03",

@@ -6,40 +6,48 @@ import Link from "next/link";
 
 const doors = [
   {
-    mark: "I",
+    mark: "?",
     href: "/come-iniziare",
-    title: "Per chi inizia",
-    content: "Open Day + Foundation",
+    title: "Non so da dove iniziare",
+    content: "Guida + quiz",
     description:
-      "Un primo ingresso guidato per capire lo spazio, le basi e il percorso più adatto.",
-    cta: "Scopri come iniziare",
+      "Per chi è curioso/a, ma non sa ancora quale attività scegliere.",
+    cta: "Trova il punto di partenza",
     image: "/images/home/entry-beginner.jpg",
-    gradient:
-      "from-white/75 to-[#efe4d7]/70",
+    gradient: "from-white/75 to-[#efe4d7]/70",
   },
   {
     mark: "P",
-    href: "/pratica",
-    title: "Per chi pratica già",
-    content: "Pratica assistita + Rope Jam + Classi tematiche",
+    href: "/percorsi",
+    title: "Voglio seguire un percorso",
+    content: "Workshop + Classi tematiche + Classe 1 / 1+",
     description:
-      "Allenarsi, confrontarsi e dare continuità alla pratica con una cornice chiara.",
-    cta: "Vedi le pratiche",
+      "Per lavorare con continuità dentro un ciclo strutturato di incontri.",
+    cta: "Guarda i percorsi",
     image: "/images/home/entry-practice.jpg",
-    gradient:
-      "from-[#f4efe8]/80 to-[#d6b89f]/40",
+    gradient: "from-[#f4efe8]/80 to-[#d6b89f]/40",
   },
   {
-    mark: "+",
-    href: "/workshop-exploration",
-    title: "Per chi vuole approfondire",
-    content: "Workshop + Exploration + Laydown + #1",
+    mark: "W",
+    href: "/workshop",
+    title: "Voglio approfondire con workshop",
+    content: "Ospiti + temi + ricerca",
     description:
-      "Percorsi specifici per tecnica, estetica, ricerca e personalità.",
-    cta: "Esplora i workshop",
+      "Per appuntamenti intensivi, ospiti, temi specifici e momenti di ricerca.",
+    cta: "Scopri i workshop",
     image: "/images/home/entry-workshop.jpg",
-    gradient:
-      "from-white/70 to-[#d9c6b5]/55",
+    gradient: "from-white/70 to-[#d9c6b5]/55",
+  },
+  {
+    mark: "C",
+    href: "/pratica",
+    title: "Voglio conoscere la community",
+    content: "Rope Jam + Open Day + Aperibottom",
+    description:
+      "Per incontrare persone, praticare in modo più informale e vivere lo spazio.",
+    cta: "Entra nella community",
+    image: "/images/home/entry-practice.jpg",
+    gradient: "from-[#f4efe8]/80 to-[#d6b89f]/40",
   },
 ];
 
@@ -55,14 +63,18 @@ export function EntryDoorsSection() {
         transition={{ duration: 0.75, ease: [0.23, 1, 0.32, 1] }}
       >
         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-          Tre ingressi
+          Orientamento
         </p>
         <h2 className="mt-2 max-w-2xl font-serif text-[32px] font-medium leading-[1.1] tracking-normal text-[#211815] md:text-5xl">
-          Scegli da dove entrare nello studio.
+          Scegli come entrare a Peony Studio.
         </h2>
+        <p className="mt-4 max-w-2xl text-sm leading-[1.7] text-[#5f524c] md:text-base">
+          Ogni persona arriva alle corde da un punto diverso: curiosità,
+          studio, pratica, ricerca, desiderio di incontrare una community.
+        </p>
       </motion.div>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-3">
+      <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {doors.map((door, index) => (
           <motion.div
             key={door.title}

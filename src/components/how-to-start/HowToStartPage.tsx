@@ -9,7 +9,9 @@ import { HomeFooter } from "@/components/home/HomeFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import {
   type QuizAnswerKey,
+  type QuizBranchKey,
   type QuizResult,
+  type QuizResultKey,
   type SimpleCard,
   type SoftCta,
   type howToStartContent,
@@ -25,8 +27,6 @@ type SectionIntroProps = {
   title: string;
   intro?: string;
 };
-
-const answerKeys: QuizAnswerKey[] = ["A", "B", "C", "D"];
 
 export function HowToStartPage({ content }: HowToStartPageProps) {
   const reduceMotion = useReducedMotion();
@@ -92,26 +92,22 @@ export function HowToStartPage({ content }: HowToStartPageProps) {
             </div>
             <div className="absolute -bottom-4 left-4 right-4 rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/90 px-4 py-3 shadow-[0_10px_30px_rgba(33,24,21,0.10)] backdrop-blur md:left-auto md:w-72">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8b5e4a]">
-                Che Peony student sei?
+                Poche domande
               </p>
               <p className="mt-1 text-sm leading-[1.55] text-[#5f524c]">
-                Quattro domande, un primo orientamento.
+                1 punto di partenza
               </p>
             </div>
           </motion.div>
         </div>
       </section>
 
-      <section id="quiz" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-14 sm:px-6 md:py-20">
-        <QuizTeaser quiz={content.quiz} onStart={() => setQuizOpen(true)} />
-      </section>
-
-      <section className="mx-auto max-w-6xl px-5 py-12 sm:px-6 md:py-20">
+      <section className="mx-auto max-w-6xl px-5 py-8 sm:px-6 md:py-14">
         <SectionIntro
           eyebrow={content.entryPaths.eyebrow}
           title={content.entryPaths.title}
         />
-        <div className="mt-8 grid gap-4 md:grid-cols-4">
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {content.entryPaths.cards.map((card, index) => (
             <motion.article
               key={card.title}
@@ -123,15 +119,15 @@ export function HowToStartPage({ content }: HowToStartPageProps) {
                 delay: index * 0.08,
                 ease: [0.23, 1, 0.32, 1],
               }}
-              className="rounded-[8px] border border-[#211815]/10 bg-white/62 p-5 shadow-[0_2px_0_rgba(33,24,21,0.03)]"
+              className="rounded-[8px] border border-[#211815]/10 bg-white/55 p-4 shadow-[0_1px_0_rgba(33,24,21,0.03)]"
             >
               <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
                 {String(index + 1).padStart(2, "0")}
               </p>
-              <h3 className="mt-3 font-serif text-[26px] font-medium leading-[1.08] tracking-normal text-[#211815]">
+              <h3 className="mt-2 text-lg font-semibold leading-tight text-[#211815]">
                 {card.title}
               </h3>
-              <p className="mt-4 text-sm leading-[1.65] text-[#5f524c]">
+              <p className="mt-2 text-sm leading-[1.45] text-[#5f524c]">
                 {card.text}
               </p>
             </motion.article>
@@ -139,7 +135,7 @@ export function HowToStartPage({ content }: HowToStartPageProps) {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-5 py-12 sm:px-6 md:py-20">
+      <section className="mx-auto max-w-6xl px-5 py-10 sm:px-6 md:py-14">
         <div className="grid gap-6 md:grid-cols-[0.85fr_1.15fr] md:items-end">
           <SectionIntro
             eyebrow={content.preview.eyebrow}
@@ -154,16 +150,18 @@ export function HowToStartPage({ content }: HowToStartPageProps) {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-5 py-16 sm:px-6 sm:py-20 md:py-28">
-        <div className="rounded-[8px] border border-[#211815]/10 bg-gradient-to-br from-white/75 to-[#d6b89f]/35 px-6 py-12 md:px-10 md:py-16">
+      <section className="mx-auto max-w-6xl px-5 py-10 sm:px-6 md:py-16">
+        <div className="rounded-[8px] border border-[#211815]/10 bg-gradient-to-br from-white/75 to-[#d6b89f]/35 px-6 py-8 md:px-10 md:py-10">
           <div className="max-w-3xl">
-            <h2 className="font-serif text-3xl font-medium leading-[1.1] tracking-normal sm:text-4xl md:text-6xl">
+            <h2 className="font-serif text-3xl font-medium leading-[1.1] tracking-normal sm:text-4xl md:text-5xl">
               {content.finalCta.title}
             </h2>
-            <p className="mt-5 text-base leading-[1.75] text-[#5f524c] md:text-lg">
-              {content.finalCta.intro}
-            </p>
-            <div className="mt-8">
+            {content.finalCta.intro ? (
+              <p className="mt-3 text-sm leading-[1.6] text-[#5f524c] md:text-base">
+                {content.finalCta.intro}
+              </p>
+            ) : null}
+            <div className="mt-5">
               <SoftButton cta={content.finalCta.cta} variant="dark" />
             </div>
           </div>
@@ -176,34 +174,6 @@ export function HowToStartPage({ content }: HowToStartPageProps) {
         <QuizDialog quiz={content.quiz} onClose={() => setQuizOpen(false)} />
       ) : null}
     </main>
-  );
-}
-
-function QuizTeaser({
-  quiz,
-  onStart,
-}: {
-  quiz: typeof howToStartContent.quiz;
-  onStart: () => void;
-}) {
-  return (
-    <div className="grid gap-5 md:grid-cols-[0.8fr_1.2fr] md:items-end">
-      <SectionIntro eyebrow={quiz.eyebrow} title={quiz.title} intro={quiz.intro} />
-      <article className="rounded-[8px] border border-[#211815]/10 bg-gradient-to-br from-white/75 to-[#efe4d7]/65 p-5 shadow-[0_14px_34px_rgba(33,24,21,0.08)] md:p-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-          Orientamento leggero
-        </p>
-        <h3 className="mt-3 font-serif text-3xl font-medium leading-[1.08] tracking-normal text-[#211815] md:text-4xl">
-          Apri il quiz in un riquadro dedicato.
-        </h3>
-        <p className="mt-4 max-w-xl text-sm leading-[1.65] text-[#5f524c]">
-          La pagina resta libera: il quiz si apre solo quando vuoi e puoi chiuderlo o rifarlo in ogni momento.
-        </p>
-        <div className="mt-6">
-          <SoftActionButton label="Fai il quiz" onClick={onStart} variant="dark" />
-        </div>
-      </article>
-    </div>
   );
 }
 
@@ -272,38 +242,88 @@ function QuizDialog({
 }
 
 function QuizBlock({ quiz }: { quiz: typeof howToStartContent.quiz }) {
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState<Partial<Record<number, QuizAnswerKey>>>({});
-  const question = quiz.questions[currentQuestion];
-  const selectedAnswer = answers[currentQuestion];
-  const completed = quiz.questions.every((_, index) => answers[index]);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [firstAnswer, setFirstAnswer] = useState<QuizAnswerKey | null>(null);
+  const [branch, setBranch] = useState<QuizBranchKey | null>(null);
+  const [branchAnswers, setBranchAnswers] = useState<
+    Partial<Record<number, QuizAnswerKey>>
+  >({});
+  const branchQuestions = branch ? quiz.branches[branch].questions : [];
+  const totalQuestions = 1 + branchQuestions.length;
+  const question =
+    currentStep === 0 ? quiz.firstQuestion : branchQuestions[currentStep - 1];
+  const selectedAnswer =
+    currentStep === 0 ? firstAnswer : branchAnswers[currentStep - 1];
+  const completed =
+    Boolean(branch) &&
+    branchQuestions.length > 0 &&
+    branchQuestions.every((_, index) => branchAnswers[index]);
   const result = useMemo(
-    () => (completed ? getQuizResult(answers, quiz.results) : null),
-    [answers, completed, quiz.results],
+    () =>
+      completed && branch
+        ? getQuizResult(branch, branchAnswers, quiz.results)
+        : null,
+    [branch, branchAnswers, completed, quiz.results],
   );
 
   function chooseAnswer(key: QuizAnswerKey) {
-    setAnswers((current) => ({ ...current, [currentQuestion]: key }));
+    if (currentStep === 0) {
+      const nextBranch = quiz.firstQuestion.answers.find(
+        (answer) => answer.key === key,
+      )?.branch;
+
+      setFirstAnswer(key);
+
+      if (nextBranch && nextBranch !== branch) {
+        setBranch(nextBranch);
+        setBranchAnswers({});
+      }
+
+      return;
+    }
+
+    setBranchAnswers((current) => ({ ...current, [currentStep - 1]: key }));
   }
 
   function resetQuiz() {
-    setCurrentQuestion(0);
-    setAnswers({});
+    setCurrentStep(0);
+    setFirstAnswer(null);
+    setBranch(null);
+    setBranchAnswers({});
+  }
+
+  if (result) {
+    return (
+      <div className="mx-auto mt-8 max-w-3xl">
+        <article
+          aria-live="polite"
+          className="rounded-[8px] border border-[#211815]/10 bg-gradient-to-br from-white/75 to-[#efe4d7]/65 p-5 shadow-[0_14px_34px_rgba(33,24,21,0.08)] md:p-6"
+        >
+          <QuizResultCard result={result} onReset={resetQuiz} />
+        </article>
+      </div>
+    );
   }
 
   return (
-    <div className="mt-8 grid gap-5 md:grid-cols-[1.05fr_0.95fr] md:items-start">
+    <div className="mx-auto mt-8 max-w-3xl">
       <article className="rounded-[8px] border border-[#211815]/10 bg-white/65 p-5 shadow-[0_2px_0_rgba(33,24,21,0.03)] md:p-6">
         <div className="flex items-center justify-between gap-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-            Domanda {currentQuestion + 1} / {quiz.questions.length}
+            Domanda {currentStep + 1} / {totalQuestions}
           </p>
           <div className="flex gap-1.5" aria-hidden="true">
-            {quiz.questions.map((item, index) => (
+            {Array.from({ length: totalQuestions }).map((_, index) => (
               <span
-                key={item.question}
+                key={index}
                 className={`h-2 w-7 rounded-full transition ${
-                  answers[index] ? "bg-[#8b5e4a]" : "bg-[#211815]/10"
+                  index === 0
+                    ? firstAnswer
+                      ? "bg-[#8b5e4a]"
+                      : "bg-[#211815]/10"
+                    : branchAnswers[index - 1]
+                      ? "bg-[#8b5e4a]"
+                      : "bg-[#211815]/10"
                 }`}
               />
             ))}
@@ -350,80 +370,92 @@ function QuizBlock({ quiz }: { quiz: typeof howToStartContent.quiz }) {
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <button
             type="button"
-            onClick={() => setCurrentQuestion((current) => Math.max(0, current - 1))}
-            disabled={currentQuestion === 0}
+            onClick={() => setCurrentStep((current) => Math.max(0, current - 1))}
+            disabled={currentStep === 0}
             className="rounded-full border border-[#211815]/20 px-5 py-3 text-sm font-medium text-[#211815] transition hover:bg-white/70 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Indietro
           </button>
           <button
             type="button"
-            onClick={() =>
-              setCurrentQuestion((current) =>
-                Math.min(quiz.questions.length - 1, current + 1),
-              )
-            }
-            disabled={!selectedAnswer || currentQuestion === quiz.questions.length - 1}
+            onClick={() => {
+              if (currentStep < totalQuestions - 1) {
+                setCurrentStep((current) => current + 1);
+              }
+            }}
+            disabled={!selectedAnswer || currentStep === totalQuestions - 1}
             className="rounded-full bg-[#211815] px-5 py-3 text-sm font-medium text-white shadow-[0_6px_18px_rgba(33,24,21,0.15)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(33,24,21,0.22)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
           >
             Avanti
           </button>
         </div>
       </article>
-
-      <aside
-        aria-live="polite"
-        className="rounded-[8px] border border-[#211815]/10 bg-gradient-to-br from-white/75 to-[#efe4d7]/65 p-5 shadow-[0_14px_34px_rgba(33,24,21,0.08)] md:sticky md:top-28 md:p-6"
-      >
-        {result ? (
-          <QuizResultCard result={result} onReset={resetQuiz} />
-        ) : (
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-              Il risultato appare qui
-            </p>
-            <h3 className="mt-3 font-serif text-3xl font-medium leading-[1.1] tracking-normal">
-              Scegli una risposta per ogni domanda.
-            </h3>
-            <p className="mt-4 text-sm leading-[1.65] text-[#5f524c]">
-              Non è un test definitivo: serve solo a orientare il primo passo.
-            </p>
-          </div>
-        )}
-      </aside>
     </div>
   );
 }
 
 function getQuizResult(
+  branch: QuizBranchKey,
   answers: Partial<Record<number, QuizAnswerKey>>,
-  results: Record<QuizAnswerKey, QuizResult>,
+  results: Record<QuizResultKey, QuizResult>,
 ) {
-  const counts = answerKeys.reduce(
-    (total, key) => ({ ...total, [key]: 0 }),
-    {} as Record<QuizAnswerKey, number>,
-  );
+  const q2 = answers[0];
+  const q3 = answers[1];
+  const q4 = answers[2];
 
-  Object.values(answers).forEach((answer) => {
-    if (answer) {
-      counts[answer] += 1;
+  if (branch === "explorer") {
+    return results.EXPLORER;
+  }
+
+  if (branch === "rigger") {
+    if (q2 === "D" || q3 === "D") {
+      return results.ROPE_RESEARCH;
     }
-  });
 
-  const highest = Math.max(...Object.values(counts));
-  const winners = answerKeys.filter((key) => counts[key] === highest);
+    if (q2 === "C" && q3 === "C") {
+      return results.RIGGER_PRACTICE;
+    }
 
-  if (winners.length === 1) {
-    return results[winners[0]];
+    if (q2 === "A" || q2 === "B" || q3 === "A" || q3 === "B") {
+      return results.RIGGER_FOUNDATION;
+    }
+
+    return results.RIGGER_FOUNDATION;
   }
 
-  const secondAnswer = answers[1];
+  if (branch === "bottom") {
+    if (q2 === "D" || q3 === "D") {
+      return results.BOTTOM_RESEARCH;
+    }
 
-  if (secondAnswer && winners.includes(secondAnswer)) {
-    return results[secondAnswer];
+    if (q2 === "A" || q3 === "A" || q4 === "A") {
+      return results.BOTTOM_EXPLORER;
+    }
+
+    if (q2 === "B" || q2 === "C" || q3 === "B" || q3 === "C") {
+      return results.BOTTOM_PRACTICE;
+    }
+
+    return results.BOTTOM_EXPLORER;
   }
 
-  return results.A;
+  if (q2 === "D" || q3 === "D") {
+    return results.MIXED_RESEARCH;
+  }
+
+  if (q2 === "A" || q3 === "A") {
+    return results.EXPLORER;
+  }
+
+  if (q3 === "B") {
+    return results.RIGGER_FOUNDATION;
+  }
+
+  if (q3 === "C") {
+    return results.RIGGER_PRACTICE;
+  }
+
+  return results.EXPLORER;
 }
 
 function QuizResultCard({
@@ -479,11 +511,11 @@ function SectionIntro({ eyebrow, title, intro }: SectionIntroProps) {
 
 function InfoCard({ card }: { card: SimpleCard }) {
   return (
-    <article className="rounded-[8px] border border-[#211815]/10 bg-gradient-to-br from-white/70 to-[#efe4d7]/65 p-5 shadow-[0_2px_0_rgba(33,24,21,0.03)]">
-      <h3 className="font-serif text-3xl font-medium leading-[1.1] tracking-normal">
+    <article className="rounded-[8px] border border-[#211815]/10 bg-gradient-to-br from-white/70 to-[#efe4d7]/65 p-4 shadow-[0_1px_0_rgba(33,24,21,0.03)] md:p-5">
+      <h3 className="font-serif text-2xl font-medium leading-[1.1] tracking-normal md:text-3xl">
         {card.title}
       </h3>
-      <p className="mt-4 text-sm leading-[1.65] text-[#5f524c]">{card.text}</p>
+      <p className="mt-3 text-sm leading-[1.55] text-[#5f524c]">{card.text}</p>
       {card.cta ? (
         <Link
           href={card.cta.href}

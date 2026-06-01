@@ -1,42 +1,43 @@
 export const practiceContent = {
   slug: "practice",
-  title: "Pratica",
-  navigationLabel: "Pratica",
-  status: "placeholder",
-  sourceNotes: [
-    "Use live-site practice formats: Rope Jam, Pratica Guidata Play, Pratica Guidata LevUP, Aperi-bottom, Focus Gote.",
-    "Rope Jam is described as an informal evening for practice, exchange, and community connection in a safe and welcoming environment.",
-  ],
+  title: "Pratica & Community",
+  navigationLabel: "Pratica & Community",
   hero: {
     eyebrow: "Community",
-    title: "Spazi mensili per praticare, confrontarsi e restare in continuità.",
+    title: "Pratica, incontri e vita dello studio.",
     intro:
-      "TODO: Paste or adapt current live-site copy for recurring practice formats and community evenings.",
+      "Momenti ricorrenti per incontrare Peony Studio, praticare, fare domande e restare in relazione con la community.",
   },
   formats: [
     {
       title: "Rope Jam",
-      cadence: "Ogni mese",
+      cadence: "Community",
       body:
-        "Incontro informale per praticare, scambiare conoscenze e connettersi con la community. TODO: Replace with approved current-site copy if needed.",
+        "Serata informale per praticare, osservare, scambiare conoscenze e incontrare persone.",
     },
     {
-      title: "Pratica Guidata Play",
-      cadence: "Ogni mese",
+      title: "Open Day",
+      cadence: "Orientamento",
       body:
-        "TODO: Add current beginner guided-practice copy from the live site.",
+        "Un primo contatto leggero con lo spazio, le persone e il modo di lavorare di Peony.",
     },
     {
-      title: "Pratica Guidata LevUP",
-      cadence: "Ogni mese",
+      title: "Aperibottom",
+      cadence: "Community",
       body:
-        "TODO: Add current intermediate guided-practice copy from the live site.",
+        "Un momento per chi vuole stare nelle corde, conoscere persone e orientarsi senza pressione.",
     },
     {
-      title: "Aperi-bottom",
-      cadence: "Da confermare",
+      title: "Pratica assistita",
+      cadence: "Pratica",
       body:
-        "TODO: Add current copy for bottom-focused meetings, including tone, scope, and access details.",
+        "Uno spazio ricorrente per ripetere, consolidare, ricevere supporto e dare continuità.",
+    },
+    {
+      title: "Classi tematiche",
+      cadence: "Approfondimento",
+      body:
+        "Serate dedicate ad aspetti specifici della pratica, senza essere un percorso completo.",
     },
   ],
 };

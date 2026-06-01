@@ -48,7 +48,7 @@ export const calendarContent = {
   homeEvents: [
     {
       category: "FOUNDATION",
-      title: "Foundation #0",
+      title: "Foundation 1",
       date: "Inizio 22 Giugno",
       detail: "Ciclo 3 incontri",
       image: "/images/home/event-foundation.jpg",

@@ -1,7 +1,7 @@
 "use client";
 
 const items = [
-  "Programmi",
+  "Percorsi",
   "Pratica",
   "Community",
   "Workshop",
