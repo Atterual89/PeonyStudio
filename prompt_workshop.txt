@@ -1,0 +1,56 @@
+Correggi la pagina Workshop.
+
+Problema:
+La pagina `/workshop` ora mostra placeholder/manual items, ma deve invece mostrare le schede dei workshop reali già presenti nella sorgente eventi usata da Home/Calendario/Ticket Tailor.
+
+Obiettivo:
+`/workshop` deve essere una vista filtrata degli eventi:
+- prendere gli stessi eventi usati da Home/Calendario
+- mostrare solo quelli che sono workshop
+- quindi eventi con categoria/tipo/tag riconducibile a `Workshop`
+- esempi: Neck Rope, 3 Dimensions, workshop guest
+- NON mostrare classi tematiche, pratica assistita, Foundation, Classe 1, Rope Jam, Open Day, Aperibottom.
+
+Regola importante:
+Non duplicare a mano i workshop se sono già nella lista eventi/Ticket Tailor.
+La pagina Workshop deve riusare la stessa fonte dati eventi già usata da Calendario/Home.
+
+Cosa fare:
+1. Cerca dove sono definiti o trasformati gli eventi usati da Home e Calendario.
+2. Crea una funzione/helper, se utile, tipo:
+   `getWorkshopEvents()`
+   che filtra gli eventi generali e restituisce solo quelli con categoria/tipo Workshop.
+3. La pagina `/workshop` deve renderizzare le cards partendo da questi workshop filtrati.
+4. Le card devono avere lo stesso stile delle cards eventi della Home/Calendario, adattate alla pagina Workshop.
+5. Ogni card deve linkare al dettaglio corretto:
+   - se l’evento ha uno slug workshop: `/workshop/[slug]`
+   - se ha già un detailHref: usare quello
+   - se è Ticket Tailor e non c’è ancora pagina dettaglio interna, creare comunque una pagina dettaglio `/workshop/[slug]` che mostri info base + CTA Ticket Tailor.
+6. Mantieni i workshop esterni/manuali solo come fallback/aggiunta per eventi non presenti su Ticket Tailor, ad esempio Wildties & Red Sabbath.
+7. Quindi la lista finale della pagina Workshop deve essere:
+   `workshop da eventi/Ticket Tailor` + `workshop manuali external non presenti nella fonte eventi`.
+
+Regole comuni da mostrare sulle card/dettaglio:
+- badge `Workshop`
+- badge `Internazionale`
+- badge `Solo coppie`
+- observer non ammessi
+- box Prerequisiti nella pagina dettaglio
+
+Fonti:
+- Ticket Tailor: CTA “Prenota su Ticket Tailor”
+- Calendar preview: “In programma · biglietti non ancora disponibili”
+- External/manual: “Info e iscrizioni”
+
+Attenzione:
+- La pagina Workshop NON è una pagina statica con 3 placeholder.
+- Deve essere alimentata dalla stessa sorgente eventi del calendario/home e filtrata sui workshop.
+- Evitare duplicazioni tra `calendarContent`, `homeEvents` e `workshopsContent`.
+- Se oggi la sorgente eventi non ha un campo affidabile `type/category`, aggiungerlo in modo minimale agli eventi.
+- Non fare integrazione API reale Ticket Tailor ora: usa i dati già presenti nel progetto.
+
+Verifica:
+- `/workshop` mostra solo eventi workshop reali presenti nella sorgente eventi.
+- Gli eventi non workshop non appaiono.
+- I workshop manuali external appaiono solo se non sono nella sorgente eventi.
+- Dal calendario, il dettaglio di un workshop punta alla stessa pagina `/workshop/[slug]`.

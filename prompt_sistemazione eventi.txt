@@ -1,0 +1,125 @@
+Stiamo lavorando su Peony Studio.
+
+Task: sistemare pagina dettaglio evento `/eventi/[slug]` e normalizzazione dati evento.
+
+NON toccare:
+- src/content/events.json
+- caching/Vercel
+- UI calendario
+- architettura generale eventi
+
+File probabili:
+- src/app/eventi/[slug]/page.tsx
+- src/lib/ticketTailor.ts
+- src/lib/events.ts
+- scripts/debug-ticket-tailor.mjs solo per debug
+
+1. Pagina dettaglio: rimuovere ridondanze
+
+Nella sezione “In breve” rimuovi:
+- accordion “Descrizione completa”
+- bottone “Leggi dettagli completi”
+
+Mantieni solo:
+- shortDescription
+- CTA primaria verso event.bookingUrl
+
+Testo CTA:
+“Prenota / leggi i dettagli su Ticket Tailor”
+
+Non mostrare la descrizione completa Ticket Tailor sul sito.
+
+2. Orario Ticket Tailor sbagliato
+
+Ora compare “Dalle 02:00”, probabilmente perché viene preso un timestamp non relativo all’evento.
+
+Correggi `src/lib/ticketTailor.ts`:
+- NON cercare timestamp generici ricorsivi.
+- NON usare created_at, updated_at, published_at, sales_start, sales_end, sale_start, sale_end, checkout, availability o simili.
+- Usa solo campi espliciti evento.
+
+Start ammessi:
+- start
+- starts_at
+- start_at
+- start_date
+- event_start
+- occurrence.start
+- occurrence.starts_at
+- event.start
+- event.starts_at
+
+End ammessi:
+- end
+- ends_at
+- end_at
+- end_date
+- event_end
+- occurrence.end
+- occurrence.ends_at
+- event.end
+- event.ends_at
+
+Se start non è affidabile:
+- non generare timeLabel
+- non mostrare card “Orario”
+- non mostrare “Da confermare”
+
+Timezone:
+- Europe/Rome
+- formato 24h
+- esempi:
+  - “19:00 – 22:30”
+  - “Dalle 19:00” solo se start affidabile e end mancante
+- gestire correttamente timestamp Unix secondi vs millisecondi
+- evitare doppie conversioni
+
+3. Workshop multi-giorno
+
+I workshop spesso durano più giorni. Se `endDate` esiste ed è diversa da `date`, va indicato chiaramente.
+
+Verifica/aggiungi su PeonyEvent se necessario:
+- date
+- endDate
+- startTime?
+- endTime?
+- timeLabel?
+- dateLabel?
+- durationLabel?
+
+Pagina dettaglio:
+- Data deve mostrare intervallo, non solo primo giorno
+  es. “17–18 ottobre 2026” o “dal 17 al 18 ottobre 2026”
+- aggiungi info rapida “Durata” solo se durationLabel esiste
+  es. “2 giorni”, “3 giorni”
+- non inventare endDate/durata se non presenti
+
+4. Debug mirato
+
+Aggiorna `scripts/debug-ticket-tailor.mjs` per stampare sui primi 5 eventi futuri:
+- titolo
+- start/end candidati trovati
+- raw start usato
+- raw end usato
+- date finale
+- endDate finale
+- timeLabel finale
+- durationLabel finale
+- campi ignorati tipo created_at/updated_at/sales
+
+5. Controlli
+
+Verifica:
+- non compare più “Dalle 02:00” se non è l’orario reale
+- se l’orario non è sicuro, la card Orario è nascosta
+- workshop multi-giorno mostrano intervallo date + durata
+- “Descrizione completa” rimossa
+- “Leggi dettagli completi” rimosso
+- resta solo CTA “Prenota / leggi i dettagli su Ticket Tailor”
+- pagina più corta e mobile friendly
+- nessun HTML grezzo
+- Home/Calendario/Pratica non si rompono
+
+Esegui:
+npx.cmd tsc --noEmit
+npm.cmd run lint

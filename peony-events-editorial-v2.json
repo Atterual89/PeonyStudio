@@ -1,0 +1,2245 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "type": "excel",
+    "file": "2027-Peony-calendar.xlsx",
+    "sheet": "Dettaglio",
+    "extractedAt": "2026-06-01T10:56:18",
+    "notes": "Base 1/2 rinominati in Foundation 1/2; workshop/trasferte multi-giorno accorpati."
+  },
+  "fallbackBookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+  "events": [
+    {
+      "id": "classe-tematica-2026-09-17",
+      "source": "local",
+      "date": "2026-09-17",
+      "endDate": null,
+      "title": "Classe tematica",
+      "code": "CT",
+      "category": "pratica",
+      "description": "Classe tematica con demo.",
+      "notes": null,
+      "tags": [
+        "richiede basi",
+        "con demo"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        2
+      ],
+      "days": [
+        {
+          "date": "2026-09-17",
+          "weekday": "Giovedì",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "id": "open-day-2026-09-20",
+      "source": "local",
+      "date": "2026-09-20",
+      "endDate": null,
+      "title": "Open Day",
+      "code": "OD",
+      "category": "community",
+      "description": "Apertura stagione / vendita Foundation 1",
+      "notes": "Apertura stagione / vendita Foundation 1",
+      "tags": [
+        "anche per single",
+        "observer ammessi"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        3
+      ],
+      "days": [
+        {
+          "date": "2026-09-20",
+          "weekday": "Domenica",
+          "notes": "Apertura stagione / vendita Foundation 1"
+        }
+      ]
+    },
+    {
+      "id": "foundation-1-lezione-1-2026-09-22",
+      "source": "local",
+      "date": "2026-09-22",
+      "endDate": null,
+      "title": "Foundation 1 — lezione 1",
+      "code": "B1",
+      "category": "percorso",
+      "description": "Percorso Foundation 1.",
+      "notes": "Percorso 4 serate",
+      "tags": [
+        "aperto a chi inizia"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        4
+      ],
+      "days": [
+        {
+          "date": "2026-09-22",
+          "weekday": "Martedì",
+          "notes": "Percorso 4 serate"
+        }
+      ]
+    },
+    {
+      "id": "pratica-assistita-2026-09-23",
+      "source": "local",
+      "date": "2026-09-23",
+      "endDate": null,
+      "title": "Pratica assistita",
+      "code": "PA",
+      "category": "pratica",
+      "description": "Serata di pratica assistita.",
+      "notes": "4° mercoledì",
+      "tags": [
+        "richiede basi"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        5
+      ],
+      "days": [
+        {
+          "date": "2026-09-23",
+          "weekday": "Mercoledì",
+          "notes": "4° mercoledì"
+        }
+      ]
+    },
+    {
+      "id": "workshop-kinbaku-luxuria-2026-09-25",
+      "source": "local",
+      "date": "2026-09-25",
+      "endDate": "2026-09-27",
+      "title": "Workshop Kinbaku Luxuria",
+      "code": "WS",
+      "category": "workshop",
+      "description": "Workshop Kinbaku Luxuria. Il nome specifico verrà aggiornato quando disponibile.",
+      "notes": null,
+      "tags": [],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        6,
+        7,
+        8
+      ],
+      "days": [
+        {
+          "date": "2026-09-25",
+          "weekday": "Venerdì",
+          "notes": "inizio"
+        },
+        {
+          "date": "2026-09-26",
+          "weekday": "Sabato",
+          "notes": null
+        },
+        {
+          "date": "2026-09-27",
+          "weekday": "Domenica",
+          "notes": "fine"
+        }
+      ]
+    },
+    {
+      "id": "foundation-1-lezione-2-2026-09-29",
+      "source": "local",
+      "date": "2026-09-29",
+      "endDate": null,
+      "title": "Foundation 1 — lezione 2",
+      "code": "B1",
+      "category": "percorso",
+      "description": "Percorso Foundation 1.",
+      "notes": null,
+      "tags": [
+        "aperto a chi inizia"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        9
+      ],
+      "days": [
+        {
+          "date": "2026-09-29",
+          "weekday": "Martedì",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "id": "aperibottom-2026-10-05",
+      "source": "local",
+      "date": "2026-10-05",
+      "endDate": null,
+      "title": "Aperibottom",
+      "code": "AB",
+      "category": "community",
+      "description": "Aperibottom.",
+      "notes": null,
+      "tags": [
+        "per bottom",
+        "anche per single"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        10
+      ],
+      "days": [
+        {
+          "date": "2026-10-05",
+          "weekday": "Lunedì",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "id": "foundation-1-lezione-3-2026-10-06",
+      "source": "local",
+      "date": "2026-10-06",
+      "endDate": null,
+      "title": "Foundation 1 — lezione 3",
+      "code": "B1",
+      "category": "percorso",
+      "description": "Percorso Foundation 1.",
+      "notes": null,
+      "tags": [
+        "aperto a chi inizia"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        11
+      ],
+      "days": [
+        {
+          "date": "2026-10-06",
+          "weekday": "Martedì",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "id": "praga-2026-10-09",
+      "source": "local",
+      "date": "2026-10-09",
+      "endDate": "2026-10-11",
+      "title": "Praga",
+      "code": "TR",
+      "category": "trasferta",
+      "description": null,
+      "notes": "inizio trasferta; fine trasferta",
+      "tags": [],
+      "isPublic": false,
+      "showOnHome": false,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        12,
+        13,
+        14
+      ],
+      "days": [
+        {
+          "date": "2026-10-09",
+          "weekday": "Venerdì",
+          "notes": "inizio trasferta"
+        },
+        {
+          "date": "2026-10-10",
+          "weekday": "Sabato",
+          "notes": null
+        },
+        {
+          "date": "2026-10-11",
+          "weekday": "Domenica",
+          "notes": "fine trasferta"
+        }
+      ]
+    },
+    {
+      "id": "foundation-1-lezione-4-2026-10-13",
+      "source": "local",
+      "date": "2026-10-13",
+      "endDate": null,
+      "title": "Foundation 1 — lezione 4",
+      "code": "B1",
+      "category": "percorso",
+      "description": "Percorso Foundation 1.",
+      "notes": "fine Foundation 1",
+      "tags": [
+        "aperto a chi inizia"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        15
+      ],
+      "days": [
+        {
+          "date": "2026-10-13",
+          "weekday": "Martedì",
+          "notes": "fine Foundation 1"
+        }
+      ]
+    },
+    {
+      "id": "rope-jam-2026-10-14",
+      "source": "local",
+      "date": "2026-10-14",
+      "endDate": null,
+      "title": "Rope Jam",
+      "code": "RJ",
+      "category": "community",
+      "description": "Rope Jam.",
+      "notes": "2° mercoledì",
+      "tags": [
+        "anche per single",
+        "observer ammessi"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        16
+      ],
+      "days": [
+        {
+          "date": "2026-10-14",
+          "weekday": "Mercoledì",
+          "notes": "2° mercoledì"
+        }
+      ]
+    },
+    {
+      "id": "workshop-3d-2026-10-17",
+      "source": "local",
+      "date": "2026-10-17",
+      "endDate": "2026-10-18",
+      "title": "Workshop 3D",
+      "code": "WS",
+      "category": "workshop",
+      "description": null,
+      "notes": null,
+      "tags": [],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        17,
+        18
+      ],
+      "days": [
+        {
+          "date": "2026-10-17",
+          "weekday": "Sabato",
+          "notes": "inizio"
+        },
+        {
+          "date": "2026-10-18",
+          "weekday": "Domenica",
+          "notes": "fine"
+        }
+      ]
+    },
+    {
+      "id": "danimarca-2026-10-23",
+      "source": "local",
+      "date": "2026-10-23",
+      "endDate": "2026-10-25",
+      "title": "Danimarca",
+      "code": "TR",
+      "category": "trasferta",
+      "description": null,
+      "notes": "inizio trasferta; fine trasferta",
+      "tags": [],
+      "isPublic": false,
+      "showOnHome": false,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        19,
+        20,
+        21
+      ],
+      "days": [
+        {
+          "date": "2026-10-23",
+          "weekday": "Venerdì",
+          "notes": "inizio trasferta"
+        },
+        {
+          "date": "2026-10-24",
+          "weekday": "Sabato",
+          "notes": null
+        },
+        {
+          "date": "2026-10-25",
+          "weekday": "Domenica",
+          "notes": "fine trasferta"
+        }
+      ]
+    },
+    {
+      "id": "pratica-assistita-2026-10-28",
+      "source": "local",
+      "date": "2026-10-28",
+      "endDate": null,
+      "title": "Pratica assistita",
+      "code": "PA",
+      "category": "pratica",
+      "description": "Serata di pratica assistita.",
+      "notes": "4° mercoledì",
+      "tags": [
+        "richiede basi"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        22
+      ],
+      "days": [
+        {
+          "date": "2026-10-28",
+          "weekday": "Mercoledì",
+          "notes": "4° mercoledì"
+        }
+      ]
+    },
+    {
+      "id": "aperibottom-2026-11-02",
+      "source": "local",
+      "date": "2026-11-02",
+      "endDate": null,
+      "title": "Aperibottom",
+      "code": "AB",
+      "category": "community",
+      "description": "Aperibottom.",
+      "notes": null,
+      "tags": [
+        "per bottom",
+        "anche per single"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        23
+      ],
+      "days": [
+        {
+          "date": "2026-11-02",
+          "weekday": "Lunedì",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "id": "workshop-kinbaku-luxuria-2026-11-03",
+      "source": "local",
+      "date": "2026-11-03",
+      "endDate": "2026-11-08",
+      "title": "Workshop Kinbaku Luxuria",
+      "code": "WS",
+      "category": "workshop",
+      "description": "Workshop Kinbaku Luxuria. Il nome specifico verrà aggiornato quando disponibile.",
+      "notes": null,
+      "tags": [],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        24,
+        25,
+        26,
+        27,
+        28,
+        29
+      ],
+      "days": [
+        {
+          "date": "2026-11-03",
+          "weekday": "Martedì",
+          "notes": "inizio"
+        },
+        {
+          "date": "2026-11-04",
+          "weekday": "Mercoledì",
+          "notes": null
+        },
+        {
+          "date": "2026-11-05",
+          "weekday": "Giovedì",
+          "notes": null
+        },
+        {
+          "date": "2026-11-06",
+          "weekday": "Venerdì",
+          "notes": null
+        },
+        {
+          "date": "2026-11-07",
+          "weekday": "Sabato",
+          "notes": null
+        },
+        {
+          "date": "2026-11-08",
+          "weekday": "Domenica",
+          "notes": "fine"
+        }
+      ]
+    },
+    {
+      "id": "foundation-2-lezione-1-2026-11-10",
+      "source": "local",
+      "date": "2026-11-10",
+      "endDate": null,
+      "title": "Foundation 2 — lezione 1",
+      "code": "B2",
+      "category": "percorso",
+      "description": "Percorso Foundation 2.",
+      "notes": "Percorso 4 serate",
+      "tags": [
+        "aperto a chi inizia"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        30
+      ],
+      "days": [
+        {
+          "date": "2026-11-10",
+          "weekday": "Martedì",
+          "notes": "Percorso 4 serate"
+        }
+      ]
+    },
+    {
+      "id": "rope-jam-2026-11-11",
+      "source": "local",
+      "date": "2026-11-11",
+      "endDate": null,
+      "title": "Rope Jam",
+      "code": "RJ",
+      "category": "community",
+      "description": "Rope Jam.",
+      "notes": "2° mercoledì",
+      "tags": [
+        "anche per single",
+        "observer ammessi"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        31
+      ],
+      "days": [
+        {
+          "date": "2026-11-11",
+          "weekday": "Mercoledì",
+          "notes": "2° mercoledì"
+        }
+      ]
+    },
+    {
+      "id": "treviso-2026-11-14",
+      "source": "local",
+      "date": "2026-11-14",
+      "endDate": "2026-11-15",
+      "title": "Treviso",
+      "code": "TR",
+      "category": "trasferta",
+      "description": null,
+      "notes": "inizio trasferta; fine trasferta",
+      "tags": [],
+      "isPublic": false,
+      "showOnHome": false,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        32,
+        33
+      ],
+      "days": [
+        {
+          "date": "2026-11-14",
+          "weekday": "Sabato",
+          "notes": "inizio trasferta"
+        },
+        {
+          "date": "2026-11-15",
+          "weekday": "Domenica",
+          "notes": "fine trasferta"
+        }
+      ]
+    },
+    {
+      "id": "foundation-2-lezione-2-2026-11-17",
+      "source": "local",
+      "date": "2026-11-17",
+      "endDate": null,
+      "title": "Foundation 2 — lezione 2",
+      "code": "B2",
+      "category": "percorso",
+      "description": "Percorso Foundation 2.",
+      "notes": null,
+      "tags": [
+        "aperto a chi inizia"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        34
+      ],
+      "days": [
+        {
+          "date": "2026-11-17",
+          "weekday": "Martedì",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "id": "classe-tematica-2026-11-19",
+      "source": "local",
+      "date": "2026-11-19",
+      "endDate": null,
+      "title": "Classe tematica",
+      "code": "CT",
+      "category": "pratica",
+      "description": "Classe tematica con demo.",
+      "notes": "3° giovedì",
+      "tags": [
+        "richiede basi",
+        "con demo"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        35
+      ],
+      "days": [
+        {
+          "date": "2026-11-19",
+          "weekday": "Giovedì",
+          "notes": "3° giovedì"
+        }
+      ]
+    },
+    {
+      "id": "praga-2026-11-20",
+      "source": "local",
+      "date": "2026-11-20",
+      "endDate": "2026-11-21",
+      "title": "Praga",
+      "code": "TR",
+      "category": "trasferta",
+      "description": null,
+      "notes": "inizio trasferta; fine trasferta",
+      "tags": [],
+      "isPublic": false,
+      "showOnHome": false,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        36,
+        37
+      ],
+      "days": [
+        {
+          "date": "2026-11-20",
+          "weekday": "Venerdì",
+          "notes": "inizio trasferta"
+        },
+        {
+          "date": "2026-11-21",
+          "weekday": "Sabato",
+          "notes": "fine trasferta"
+        }
+      ]
+    },
+    {
+      "id": "foundation-2-lezione-3-2026-11-24",
+      "source": "local",
+      "date": "2026-11-24",
+      "endDate": null,
+      "title": "Foundation 2 — lezione 3",
+      "code": "B2",
+      "category": "percorso",
+      "description": "Percorso Foundation 2.",
+      "notes": null,
+      "tags": [
+        "aperto a chi inizia"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        38
+      ],
+      "days": [
+        {
+          "date": "2026-11-24",
+          "weekday": "Martedì",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "id": "pratica-assistita-2026-11-25",
+      "source": "local",
+      "date": "2026-11-25",
+      "endDate": null,
+      "title": "Pratica assistita",
+      "code": "PA",
+      "category": "pratica",
+      "description": "Serata di pratica assistita.",
+      "notes": "4° mercoledì",
+      "tags": [
+        "richiede basi"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        39
+      ],
+      "days": [
+        {
+          "date": "2026-11-25",
+          "weekday": "Mercoledì",
+          "notes": "4° mercoledì"
+        }
+      ]
+    },
+    {
+      "id": "foundation-2-lezione-4-2026-12-01",
+      "source": "local",
+      "date": "2026-12-01",
+      "endDate": null,
+      "title": "Foundation 2 — lezione 4",
+      "code": "B2",
+      "category": "percorso",
+      "description": "Percorso Foundation 2.",
+      "notes": "fine Foundation 2",
+      "tags": [
+        "aperto a chi inizia"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        40
+      ],
+      "days": [
+        {
+          "date": "2026-12-01",
+          "weekday": "Martedì",
+          "notes": "fine Foundation 2"
+        }
+      ]
+    },
+    {
+      "id": "rope-jam-2026-12-09",
+      "source": "local",
+      "date": "2026-12-09",
+      "endDate": null,
+      "title": "Rope Jam",
+      "code": "RJ",
+      "category": "community",
+      "description": "Rope Jam.",
+      "notes": "2° mercoledì",
+      "tags": [
+        "anche per single",
+        "observer ammessi"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        41
+      ],
+      "days": [
+        {
+          "date": "2026-12-09",
+          "weekday": "Mercoledì",
+          "notes": "2° mercoledì"
+        }
+      ]
+    },
+    {
+      "id": "aperibottom-2026-12-14",
+      "source": "local",
+      "date": "2026-12-14",
+      "endDate": null,
+      "title": "Aperibottom",
+      "code": "AB",
+      "category": "community",
+      "description": "Aperibottom.",
+      "notes": null,
+      "tags": [
+        "per bottom",
+        "anche per single"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        42
+      ],
+      "days": [
+        {
+          "date": "2026-12-14",
+          "weekday": "Lunedì",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "id": "classe-tematica-2026-12-17",
+      "source": "local",
+      "date": "2026-12-17",
+      "endDate": null,
+      "title": "Classe tematica",
+      "code": "CT",
+      "category": "pratica",
+      "description": "Classe tematica con demo.",
+      "notes": "3° giovedì",
+      "tags": [
+        "richiede basi",
+        "con demo"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        43
+      ],
+      "days": [
+        {
+          "date": "2026-12-17",
+          "weekday": "Giovedì",
+          "notes": "3° giovedì"
+        }
+      ]
+    },
+    {
+      "id": "pratica-assistita-rope-night-di-fine-anno-2026-12-23",
+      "source": "local",
+      "date": "2026-12-23",
+      "endDate": null,
+      "title": "Pratica assistita / Rope night di fine anno",
+      "code": "PA",
+      "category": "pratica",
+      "description": "Serata di pratica assistita.",
+      "notes": "Da valutare: vicino a Natale",
+      "tags": [
+        "richiede basi"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        44
+      ],
+      "days": [
+        {
+          "date": "2026-12-23",
+          "weekday": "Mercoledì",
+          "notes": "Da valutare: vicino a Natale"
+        }
+      ]
+    },
+    {
+      "id": "aperibottom-2027-01-11",
+      "source": "local",
+      "date": "2027-01-11",
+      "endDate": null,
+      "title": "Aperibottom",
+      "code": "AB",
+      "category": "community",
+      "description": "Aperibottom.",
+      "notes": null,
+      "tags": [
+        "per bottom",
+        "anche per single"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        45
+      ],
+      "days": [
+        {
+          "date": "2027-01-11",
+          "weekday": "Lunedì",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "id": "rope-jam-2027-01-13",
+      "source": "local",
+      "date": "2027-01-13",
+      "endDate": null,
+      "title": "Rope Jam",
+      "code": "RJ",
+      "category": "community",
+      "description": "Rope Jam.",
+      "notes": "2° mercoledì",
+      "tags": [
+        "anche per single",
+        "observer ammessi"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        46
+      ],
+      "days": [
+        {
+          "date": "2027-01-13",
+          "weekday": "Mercoledì",
+          "notes": "2° mercoledì"
+        }
+      ]
+    },
+    {
+      "id": "classe-tematica-2027-01-21",
+      "source": "local",
+      "date": "2027-01-21",
+      "endDate": null,
+      "title": "Classe tematica",
+      "code": "CT",
+      "category": "pratica",
+      "description": "Classe tematica con demo.",
+      "notes": "3° giovedì",
+      "tags": [
+        "richiede basi",
+        "con demo"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        47
+      ],
+      "days": [
+        {
+          "date": "2027-01-21",
+          "weekday": "Giovedì",
+          "notes": "3° giovedì"
+        }
+      ]
+    },
+    {
+      "id": "open-day-2027-01-24",
+      "source": "local",
+      "date": "2027-01-24",
+      "endDate": null,
+      "title": "Open Day",
+      "code": "OD",
+      "category": "community",
+      "description": "Prima del nuovo Foundation 1",
+      "notes": "Prima del nuovo Foundation 1",
+      "tags": [
+        "anche per single",
+        "observer ammessi"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        48
+      ],
+      "days": [
+        {
+          "date": "2027-01-24",
+          "weekday": "Domenica",
+          "notes": "Prima del nuovo Foundation 1"
+        }
+      ]
+    },
+    {
+      "id": "foundation-1-lezione-1-2027-01-26",
+      "source": "local",
+      "date": "2027-01-26",
+      "endDate": null,
+      "title": "Foundation 1 — lezione 1",
+      "code": "B1",
+      "category": "percorso",
+      "description": "Percorso Foundation 1.",
+      "notes": "Percorso 4 serate",
+      "tags": [
+        "aperto a chi inizia"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        49
+      ],
+      "days": [
+        {
+          "date": "2027-01-26",
+          "weekday": "Martedì",
+          "notes": "Percorso 4 serate"
+        }
+      ]
+    },
+    {
+      "id": "pratica-assistita-2027-01-27",
+      "source": "local",
+      "date": "2027-01-27",
+      "endDate": null,
+      "title": "Pratica assistita",
+      "code": "PA",
+      "category": "pratica",
+      "description": "Serata di pratica assistita.",
+      "notes": "4° mercoledì",
+      "tags": [
+        "richiede basi"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        50
+      ],
+      "days": [
+        {
+          "date": "2027-01-27",
+          "weekday": "Mercoledì",
+          "notes": "4° mercoledì"
+        }
+      ]
+    },
+    {
+      "id": "foundation-1-lezione-2-2027-02-02",
+      "source": "local",
+      "date": "2027-02-02",
+      "endDate": null,
+      "title": "Foundation 1 — lezione 2",
+      "code": "B1",
+      "category": "percorso",
+      "description": "Percorso Foundation 1.",
+      "notes": null,
+      "tags": [
+        "aperto a chi inizia"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        51
+      ],
+      "days": [
+        {
+          "date": "2027-02-02",
+          "weekday": "Martedì",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "id": "lione-2027-02-06",
+      "source": "local",
+      "date": "2027-02-06",
+      "endDate": "2027-02-07",
+      "title": "Lione",
+      "code": "TR",
+      "category": "trasferta",
+      "description": null,
+      "notes": "inizio trasferta; fine trasferta",
+      "tags": [],
+      "isPublic": false,
+      "showOnHome": false,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        52,
+        53
+      ],
+      "days": [
+        {
+          "date": "2027-02-06",
+          "weekday": "Sabato",
+          "notes": "inizio trasferta"
+        },
+        {
+          "date": "2027-02-07",
+          "weekday": "Domenica",
+          "notes": "fine trasferta"
+        }
+      ]
+    },
+    {
+      "id": "aperibottom-2027-02-08",
+      "source": "local",
+      "date": "2027-02-08",
+      "endDate": null,
+      "title": "Aperibottom",
+      "code": "AB",
+      "category": "community",
+      "description": "Aperibottom.",
+      "notes": null,
+      "tags": [
+        "per bottom",
+        "anche per single"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        54
+      ],
+      "days": [
+        {
+          "date": "2027-02-08",
+          "weekday": "Lunedì",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "id": "foundation-1-lezione-3-2027-02-09",
+      "source": "local",
+      "date": "2027-02-09",
+      "endDate": null,
+      "title": "Foundation 1 — lezione 3",
+      "code": "B1",
+      "category": "percorso",
+      "description": "Percorso Foundation 1.",
+      "notes": null,
+      "tags": [
+        "aperto a chi inizia"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        55
+      ],
+      "days": [
+        {
+          "date": "2027-02-09",
+          "weekday": "Martedì",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "id": "rope-jam-2027-02-10",
+      "source": "local",
+      "date": "2027-02-10",
+      "endDate": null,
+      "title": "Rope Jam",
+      "code": "RJ",
+      "category": "community",
+      "description": "Rope Jam.",
+      "notes": "2° mercoledì",
+      "tags": [
+        "anche per single",
+        "observer ammessi"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        56
+      ],
+      "days": [
+        {
+          "date": "2027-02-10",
+          "weekday": "Mercoledì",
+          "notes": "2° mercoledì"
+        }
+      ]
+    },
+    {
+      "id": "foundation-1-lezione-4-2027-02-16",
+      "source": "local",
+      "date": "2027-02-16",
+      "endDate": null,
+      "title": "Foundation 1 — lezione 4",
+      "code": "B1",
+      "category": "percorso",
+      "description": "Percorso Foundation 1.",
+      "notes": "fine Foundation 1",
+      "tags": [
+        "aperto a chi inizia"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        57
+      ],
+      "days": [
+        {
+          "date": "2027-02-16",
+          "weekday": "Martedì",
+          "notes": "fine Foundation 1"
+        }
+      ]
+    },
+    {
+      "id": "workshop-kinbaku-luxuria-2027-02-20",
+      "source": "local",
+      "date": "2027-02-20",
+      "endDate": "2027-02-21",
+      "title": "Workshop Kinbaku Luxuria",
+      "code": "WS",
+      "category": "workshop",
+      "description": "Workshop Kinbaku Luxuria. Il nome specifico verrà aggiornato quando disponibile.",
+      "notes": null,
+      "tags": [],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        58,
+        59
+      ],
+      "days": [
+        {
+          "date": "2027-02-20",
+          "weekday": "Sabato",
+          "notes": "inizio"
+        },
+        {
+          "date": "2027-02-21",
+          "weekday": "Domenica",
+          "notes": "fine"
+        }
+      ]
+    },
+    {
+      "id": "pratica-assistita-2027-02-24",
+      "source": "local",
+      "date": "2027-02-24",
+      "endDate": null,
+      "title": "Pratica assistita",
+      "code": "PA",
+      "category": "pratica",
+      "description": "Serata di pratica assistita.",
+      "notes": "4° mercoledì",
+      "tags": [
+        "richiede basi"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        60
+      ],
+      "days": [
+        {
+          "date": "2027-02-24",
+          "weekday": "Mercoledì",
+          "notes": "4° mercoledì"
+        }
+      ]
+    },
+    {
+      "id": "classe-tematica-opzionale-2027-02-25",
+      "source": "local",
+      "date": "2027-02-25",
+      "endDate": null,
+      "title": "Classe tematica opzionale",
+      "code": "CT",
+      "category": "pratica",
+      "description": "Classe tematica con demo.",
+      "notes": "Opzionale: mese già pieno",
+      "tags": [
+        "richiede basi",
+        "con demo"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        61
+      ],
+      "days": [
+        {
+          "date": "2027-02-25",
+          "weekday": "Giovedì",
+          "notes": "Opzionale: mese già pieno"
+        }
+      ]
+    },
+    {
+      "id": "class-1-lezione-1-2027-03-04",
+      "source": "local",
+      "date": "2027-03-04",
+      "endDate": null,
+      "title": "Class 1 — lezione 1",
+      "code": "C1",
+      "category": "percorso",
+      "description": "Percorso Class 1.",
+      "notes": "Percorso 4 serate",
+      "tags": [
+        "aperto a chi inizia"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        62
+      ],
+      "days": [
+        {
+          "date": "2027-03-04",
+          "weekday": "Giovedì",
+          "notes": "Percorso 4 serate"
+        }
+      ]
+    },
+    {
+      "id": "privata-francesi-2027-03-06",
+      "source": "local",
+      "date": "2027-03-06",
+      "endDate": "2027-03-07",
+      "title": "Privata francesi",
+      "code": "TR",
+      "category": "trasferta",
+      "description": null,
+      "notes": null,
+      "tags": [],
+      "isPublic": false,
+      "showOnHome": false,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        63,
+        64
+      ],
+      "days": [
+        {
+          "date": "2027-03-06",
+          "weekday": "Sabato",
+          "notes": "inizio"
+        },
+        {
+          "date": "2027-03-07",
+          "weekday": "Domenica",
+          "notes": "fine"
+        }
+      ]
+    },
+    {
+      "id": "aperibottom-2027-03-08",
+      "source": "local",
+      "date": "2027-03-08",
+      "endDate": null,
+      "title": "Aperibottom",
+      "code": "AB",
+      "category": "community",
+      "description": "Aperibottom.",
+      "notes": null,
+      "tags": [
+        "per bottom",
+        "anche per single"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        65
+      ],
+      "days": [
+        {
+          "date": "2027-03-08",
+          "weekday": "Lunedì",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "id": "rope-jam-2027-03-10",
+      "source": "local",
+      "date": "2027-03-10",
+      "endDate": null,
+      "title": "Rope Jam",
+      "code": "RJ",
+      "category": "community",
+      "description": "Rope Jam.",
+      "notes": "2° mercoledì",
+      "tags": [
+        "anche per single",
+        "observer ammessi"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        66
+      ],
+      "days": [
+        {
+          "date": "2027-03-10",
+          "weekday": "Mercoledì",
+          "notes": "2° mercoledì"
+        }
+      ]
+    },
+    {
+      "id": "class-1-lezione-2-2027-03-11",
+      "source": "local",
+      "date": "2027-03-11",
+      "endDate": null,
+      "title": "Class 1 — lezione 2",
+      "code": "C1",
+      "category": "percorso",
+      "description": "Percorso Class 1.",
+      "notes": null,
+      "tags": [
+        "aperto a chi inizia"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        67
+      ],
+      "days": [
+        {
+          "date": "2027-03-11",
+          "weekday": "Giovedì",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "id": "svizzera-2027-03-13",
+      "source": "local",
+      "date": "2027-03-13",
+      "endDate": "2027-03-14",
+      "title": "Svizzera",
+      "code": "TR",
+      "category": "trasferta",
+      "description": null,
+      "notes": "inizio trasferta; fine trasferta",
+      "tags": [],
+      "isPublic": false,
+      "showOnHome": false,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        68,
+        69
+      ],
+      "days": [
+        {
+          "date": "2027-03-13",
+          "weekday": "Sabato",
+          "notes": "inizio trasferta"
+        },
+        {
+          "date": "2027-03-14",
+          "weekday": "Domenica",
+          "notes": "fine trasferta"
+        }
+      ]
+    },
+    {
+      "id": "class-1-lezione-3-2027-03-18",
+      "source": "local",
+      "date": "2027-03-18",
+      "endDate": null,
+      "title": "Class 1 — lezione 3",
+      "code": "C1",
+      "category": "percorso",
+      "description": "Percorso Class 1.",
+      "notes": null,
+      "tags": [
+        "aperto a chi inizia"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        70
+      ],
+      "days": [
+        {
+          "date": "2027-03-18",
+          "weekday": "Giovedì",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "id": "foundation-2-lezione-1-2027-03-23",
+      "source": "local",
+      "date": "2027-03-23",
+      "endDate": null,
+      "title": "Foundation 2 — lezione 1",
+      "code": "B2",
+      "category": "percorso",
+      "description": "Percorso Foundation 2.",
+      "notes": "Percorso 4 serate",
+      "tags": [
+        "aperto a chi inizia"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        71
+      ],
+      "days": [
+        {
+          "date": "2027-03-23",
+          "weekday": "Martedì",
+          "notes": "Percorso 4 serate"
+        }
+      ]
+    },
+    {
+      "id": "pratica-assistita-2027-03-24",
+      "source": "local",
+      "date": "2027-03-24",
+      "endDate": null,
+      "title": "Pratica assistita",
+      "code": "PA",
+      "category": "pratica",
+      "description": "Serata di pratica assistita.",
+      "notes": "4° mercoledì",
+      "tags": [
+        "richiede basi"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        72
+      ],
+      "days": [
+        {
+          "date": "2027-03-24",
+          "weekday": "Mercoledì",
+          "notes": "4° mercoledì"
+        }
+      ]
+    },
+    {
+      "id": "class-1-lezione-4-2027-03-25",
+      "source": "local",
+      "date": "2027-03-25",
+      "endDate": null,
+      "title": "Class 1 — lezione 4",
+      "code": "C1",
+      "category": "percorso",
+      "description": "Percorso Class 1.",
+      "notes": "fine Class 1",
+      "tags": [
+        "aperto a chi inizia"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        73
+      ],
+      "days": [
+        {
+          "date": "2027-03-25",
+          "weekday": "Giovedì",
+          "notes": "fine Class 1"
+        }
+      ]
+    },
+    {
+      "id": "foundation-2-lezione-2-2027-03-30",
+      "source": "local",
+      "date": "2027-03-30",
+      "endDate": null,
+      "title": "Foundation 2 — lezione 2",
+      "code": "B2",
+      "category": "percorso",
+      "description": "Percorso Foundation 2.",
+      "notes": null,
+      "tags": [
+        "aperto a chi inizia"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        74
+      ],
+      "days": [
+        {
+          "date": "2027-03-30",
+          "weekday": "Martedì",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "id": "workshop-kinbaku-luxuria-2027-04-02",
+      "source": "local",
+      "date": "2027-04-02",
+      "endDate": "2027-04-04",
+      "title": "Workshop Kinbaku Luxuria",
+      "code": "WS",
+      "category": "workshop",
+      "description": "Workshop Kinbaku Luxuria. Il nome specifico verrà aggiornato quando disponibile.",
+      "notes": null,
+      "tags": [],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        75,
+        76,
+        77
+      ],
+      "days": [
+        {
+          "date": "2027-04-02",
+          "weekday": "Venerdì",
+          "notes": "inizio"
+        },
+        {
+          "date": "2027-04-03",
+          "weekday": "Sabato",
+          "notes": null
+        },
+        {
+          "date": "2027-04-04",
+          "weekday": "Domenica",
+          "notes": "fine"
+        }
+      ]
+    },
+    {
+      "id": "foundation-2-lezione-3-2027-04-06",
+      "source": "local",
+      "date": "2027-04-06",
+      "endDate": null,
+      "title": "Foundation 2 — lezione 3",
+      "code": "B2",
+      "category": "percorso",
+      "description": "Percorso Foundation 2.",
+      "notes": null,
+      "tags": [
+        "aperto a chi inizia"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        78
+      ],
+      "days": [
+        {
+          "date": "2027-04-06",
+          "weekday": "Martedì",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "id": "open-day-2027-04-11",
+      "source": "local",
+      "date": "2027-04-11",
+      "endDate": null,
+      "title": "Open Day",
+      "code": "OD",
+      "category": "community",
+      "description": "Open Day Peony Studio.",
+      "notes": null,
+      "tags": [
+        "anche per single",
+        "observer ammessi"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        79
+      ],
+      "days": [
+        {
+          "date": "2027-04-11",
+          "weekday": "Domenica",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "id": "aperibottom-2027-04-12",
+      "source": "local",
+      "date": "2027-04-12",
+      "endDate": null,
+      "title": "Aperibottom",
+      "code": "AB",
+      "category": "community",
+      "description": "Aperibottom.",
+      "notes": null,
+      "tags": [
+        "per bottom",
+        "anche per single"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        80
+      ],
+      "days": [
+        {
+          "date": "2027-04-12",
+          "weekday": "Lunedì",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "id": "foundation-2-lezione-4-2027-04-13",
+      "source": "local",
+      "date": "2027-04-13",
+      "endDate": null,
+      "title": "Foundation 2 — lezione 4",
+      "code": "B2",
+      "category": "percorso",
+      "description": "Percorso Foundation 2.",
+      "notes": "fine Foundation 2",
+      "tags": [
+        "aperto a chi inizia"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        81
+      ],
+      "days": [
+        {
+          "date": "2027-04-13",
+          "weekday": "Martedì",
+          "notes": "fine Foundation 2"
+        }
+      ]
+    },
+    {
+      "id": "rope-jam-2027-04-14",
+      "source": "local",
+      "date": "2027-04-14",
+      "endDate": null,
+      "title": "Rope Jam",
+      "code": "RJ",
+      "category": "community",
+      "description": "Rope Jam.",
+      "notes": "2° mercoledì",
+      "tags": [
+        "anche per single",
+        "observer ammessi"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        82
+      ],
+      "days": [
+        {
+          "date": "2027-04-14",
+          "weekday": "Mercoledì",
+          "notes": "2° mercoledì"
+        }
+      ]
+    },
+    {
+      "id": "classe-tematica-2027-04-22",
+      "source": "local",
+      "date": "2027-04-22",
+      "endDate": null,
+      "title": "Classe tematica",
+      "code": "CT",
+      "category": "pratica",
+      "description": "Classe tematica con demo.",
+      "notes": "Spostata perché 15/04 coincideva con Foundation 2/periodo denso",
+      "tags": [
+        "richiede basi",
+        "con demo"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        83
+      ],
+      "days": [
+        {
+          "date": "2027-04-22",
+          "weekday": "Giovedì",
+          "notes": "Spostata perché 15/04 coincideva con Foundation 2/periodo denso"
+        }
+      ]
+    },
+    {
+      "id": "pratica-assistita-2027-04-28",
+      "source": "local",
+      "date": "2027-04-28",
+      "endDate": null,
+      "title": "Pratica assistita",
+      "code": "PA",
+      "category": "pratica",
+      "description": "Serata di pratica assistita.",
+      "notes": "4° mercoledì",
+      "tags": [
+        "richiede basi"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        84
+      ],
+      "days": [
+        {
+          "date": "2027-04-28",
+          "weekday": "Mercoledì",
+          "notes": "4° mercoledì"
+        }
+      ]
+    },
+    {
+      "id": "aperibottom-2027-05-10",
+      "source": "local",
+      "date": "2027-05-10",
+      "endDate": null,
+      "title": "Aperibottom",
+      "code": "AB",
+      "category": "community",
+      "description": "Aperibottom.",
+      "notes": null,
+      "tags": [
+        "per bottom",
+        "anche per single"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        85
+      ],
+      "days": [
+        {
+          "date": "2027-05-10",
+          "weekday": "Lunedì",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "id": "rope-jam-2027-05-12",
+      "source": "local",
+      "date": "2027-05-12",
+      "endDate": null,
+      "title": "Rope Jam",
+      "code": "RJ",
+      "category": "community",
+      "description": "Rope Jam.",
+      "notes": "2° mercoledì",
+      "tags": [
+        "anche per single",
+        "observer ammessi"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        86
+      ],
+      "days": [
+        {
+          "date": "2027-05-12",
+          "weekday": "Mercoledì",
+          "notes": "2° mercoledì"
+        }
+      ]
+    },
+    {
+      "id": "workshop-kinbaku-luxuria-2027-05-14",
+      "source": "local",
+      "date": "2027-05-14",
+      "endDate": "2027-05-16",
+      "title": "Workshop Kinbaku Luxuria",
+      "code": "WS",
+      "category": "workshop",
+      "description": "Workshop Kinbaku Luxuria. Il nome specifico verrà aggiornato quando disponibile.",
+      "notes": null,
+      "tags": [],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        87,
+        88,
+        89
+      ],
+      "days": [
+        {
+          "date": "2027-05-14",
+          "weekday": "Venerdì",
+          "notes": "inizio"
+        },
+        {
+          "date": "2027-05-15",
+          "weekday": "Sabato",
+          "notes": null
+        },
+        {
+          "date": "2027-05-16",
+          "weekday": "Domenica",
+          "notes": "fine"
+        }
+      ]
+    },
+    {
+      "id": "classe-tematica-2027-05-20",
+      "source": "local",
+      "date": "2027-05-20",
+      "endDate": null,
+      "title": "Classe tematica",
+      "code": "CT",
+      "category": "pratica",
+      "description": "Classe tematica con demo.",
+      "notes": "3° giovedì",
+      "tags": [
+        "richiede basi",
+        "con demo"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        90
+      ],
+      "days": [
+        {
+          "date": "2027-05-20",
+          "weekday": "Giovedì",
+          "notes": "3° giovedì"
+        }
+      ]
+    },
+    {
+      "id": "pratica-assistita-2027-05-26",
+      "source": "local",
+      "date": "2027-05-26",
+      "endDate": null,
+      "title": "Pratica assistita",
+      "code": "PA",
+      "category": "pratica",
+      "description": "Serata di pratica assistita.",
+      "notes": "4° mercoledì",
+      "tags": [
+        "richiede basi"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        91
+      ],
+      "days": [
+        {
+          "date": "2027-05-26",
+          "weekday": "Mercoledì",
+          "notes": "4° mercoledì"
+        }
+      ]
+    },
+    {
+      "id": "aperibottom-2027-06-07",
+      "source": "local",
+      "date": "2027-06-07",
+      "endDate": null,
+      "title": "Aperibottom",
+      "code": "AB",
+      "category": "community",
+      "description": "Aperibottom.",
+      "notes": null,
+      "tags": [
+        "per bottom",
+        "anche per single"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        92
+      ],
+      "days": [
+        {
+          "date": "2027-06-07",
+          "weekday": "Lunedì",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "id": "rope-jam-2027-06-09",
+      "source": "local",
+      "date": "2027-06-09",
+      "endDate": null,
+      "title": "Rope Jam",
+      "code": "RJ",
+      "category": "community",
+      "description": "Rope Jam.",
+      "notes": "2° mercoledì",
+      "tags": [
+        "anche per single",
+        "observer ammessi"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        93
+      ],
+      "days": [
+        {
+          "date": "2027-06-09",
+          "weekday": "Mercoledì",
+          "notes": "2° mercoledì"
+        }
+      ]
+    },
+    {
+      "id": "workshop-kinbaku-luxuria-2027-06-11",
+      "source": "local",
+      "date": "2027-06-11",
+      "endDate": "2027-06-13",
+      "title": "Workshop Kinbaku Luxuria",
+      "code": "WS",
+      "category": "workshop",
+      "description": "Workshop Kinbaku Luxuria. Il nome specifico verrà aggiornato quando disponibile.",
+      "notes": null,
+      "tags": [],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        94,
+        95,
+        96
+      ],
+      "days": [
+        {
+          "date": "2027-06-11",
+          "weekday": "Venerdì",
+          "notes": "inizio"
+        },
+        {
+          "date": "2027-06-12",
+          "weekday": "Sabato",
+          "notes": null
+        },
+        {
+          "date": "2027-06-13",
+          "weekday": "Domenica",
+          "notes": "fine"
+        }
+      ]
+    },
+    {
+      "id": "classe-tematica-2027-06-17",
+      "source": "local",
+      "date": "2027-06-17",
+      "endDate": null,
+      "title": "Classe tematica",
+      "code": "CT",
+      "category": "pratica",
+      "description": "Classe tematica con demo.",
+      "notes": "3° giovedì",
+      "tags": [
+        "richiede basi",
+        "con demo"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        97
+      ],
+      "days": [
+        {
+          "date": "2027-06-17",
+          "weekday": "Giovedì",
+          "notes": "3° giovedì"
+        }
+      ]
+    },
+    {
+      "id": "open-day-2027-06-20",
+      "source": "local",
+      "date": "2027-06-20",
+      "endDate": null,
+      "title": "Open Day",
+      "code": "OD",
+      "category": "community",
+      "description": "Chiusura/rilancio stagione",
+      "notes": "Chiusura/rilancio stagione",
+      "tags": [
+        "anche per single",
+        "observer ammessi"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        98
+      ],
+      "days": [
+        {
+          "date": "2027-06-20",
+          "weekday": "Domenica",
+          "notes": "Chiusura/rilancio stagione"
+        }
+      ]
+    },
+    {
+      "id": "pratica-assistita-2027-06-23",
+      "source": "local",
+      "date": "2027-06-23",
+      "endDate": null,
+      "title": "Pratica assistita",
+      "code": "PA",
+      "category": "pratica",
+      "description": "Serata di pratica assistita.",
+      "notes": "4° mercoledì",
+      "tags": [
+        "richiede basi"
+      ],
+      "isPublic": true,
+      "showOnHome": true,
+      "featured": false,
+      "bookingUrl": "https://www.tickettailor.com/events/peonystudio1",
+      "sourceRows": [
+        99
+      ],
+      "days": [
+        {
+          "date": "2027-06-23",
+          "weekday": "Mercoledì",
+          "notes": "4° mercoledì"
+        }
+      ]
+    }
+  ],
+  "calendarDisplay": {
+    "defaultAudience": "public",
+    "defaultFilters": [
+      "percorso",
+      "pratica",
+      "community",
+      "workshop"
+    ],
+    "hiddenCategoriesByDefault": [
+      "trasferta",
+      "chiusura"
+    ],
+    "bookingFallbackLabel": "Apri Ticket Tailor"
+  }
+}

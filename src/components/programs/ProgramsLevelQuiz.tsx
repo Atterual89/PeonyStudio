@@ -29,34 +29,27 @@ export function ProgramsLevelQuiz({ quiz }: ProgramsLevelQuizProps) {
   const [open, setOpen] = useState(false);
 
   return (
-    <section className="mx-auto max-w-6xl px-5 py-12 sm:px-6 md:py-16">
-      <div className="relative overflow-hidden rounded-[14px] border border-[#211815]/10 bg-white/36 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] md:grid md:grid-cols-[1fr_0.72fr] md:items-center md:gap-8 md:p-8">
-        <div
-          aria-hidden="true"
-          className="absolute -left-16 bottom-2 hidden h-32 w-64 rounded-full border-t-[10px] border-[#8b5e4a]/14 md:block"
-        />
+    <section className="mx-auto max-w-6xl px-5 py-8 sm:px-6 md:py-10">
+      <div className="relative overflow-hidden rounded-[14px] border border-[#211815]/10 bg-white/36 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] md:grid md:grid-cols-[1fr_0.72fr] md:items-center md:gap-6 md:p-6">
         <div className="relative">
-          <h2 className="font-serif text-[31px] font-medium leading-[1.08] tracking-normal text-[#211815] md:text-4xl">
-            Se ti senti ancora un po&apos; perso o persa
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+            Orientamento interno
+          </p>
+          <h2 className="mt-2 font-serif text-[31px] font-medium leading-[1.08] tracking-normal text-[#211815] md:text-4xl">
+            Da dove partire nel percorso?
           </h2>
-          <p className="mt-4 max-w-2xl text-sm leading-[1.7] text-[#5f524c] md:text-base">
-            Puoi partire dalla pagina Come iniziare: ti aiuta a capire i primi
-            passi nello studio senza dover scegliere subito un percorso.
+          <p className="mt-3 max-w-2xl text-sm leading-[1.65] text-[#5f524c] md:text-base">
+            Un quiz breve per orientarti nella linea formativa: Foundation 1,
+            Foundation 2, Classe 1 o Classe 1+.
           </p>
         </div>
-        <div className="relative mt-6 flex flex-col gap-3 sm:flex-row md:mt-0 md:justify-end">
-          <Link
-            href="/come-iniziare"
-            className="inline-flex justify-center rounded-full border border-[#8b5e4a]/45 bg-white/35 px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#8b5e4a] transition hover:bg-white/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-4 focus-visible:ring-offset-[#f4efe8]"
-          >
-            Vai a Come iniziare →
-          </Link>
+        <div className="relative mt-5 flex flex-col gap-3 sm:flex-row md:mt-0 md:justify-end">
           <button
             type="button"
             onClick={() => setOpen(true)}
             className="inline-flex justify-center rounded-full bg-[#211815] px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.16em] text-white shadow-[0_6px_18px_rgba(33,24,21,0.15)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(33,24,21,0.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-4 focus-visible:ring-offset-[#f4efe8]"
           >
-            Fai il quiz
+            Trova il tuo punto di ingresso
           </button>
         </div>
       </div>

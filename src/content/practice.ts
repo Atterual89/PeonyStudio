@@ -1,43 +1,110 @@
+export type PracticeBranchKey = "practice" | "social";
+
+export type PracticeActivity = {
+  title: string;
+  description: string;
+  tags: string[];
+};
+
+export type PracticeBranch = {
+  key: PracticeBranchKey;
+  title: string;
+  description: string;
+  activities: PracticeActivity[];
+};
+
 export const practiceContent = {
   slug: "practice",
-  title: "Pratica & Community",
-  navigationLabel: "Pratica & Community",
+  title: "Pratica e socialità",
+  navigationLabel: "Pratica e socialità",
   hero: {
-    eyebrow: "Community",
-    title: "Pratica, incontri e vita dello studio.",
+    eyebrow: "Pratica e socialità",
+    title: "Pratica e socialità",
     intro:
-      "Momenti ricorrenti per incontrare Peony Studio, praticare, fare domande e restare in relazione con la community.",
+      "Spazi ricorrenti per allenarsi, consolidare, incontrare persone e partecipare alla vita dello studio.",
+    cta: {
+      label: "Guarda le prossime date",
+      href: "#prossime-date",
+    },
   },
-  formats: [
+  branches: [
     {
-      title: "Rope Jam",
-      cadence: "Community",
-      body:
-        "Serata informale per praticare, osservare, scambiare conoscenze e incontrare persone.",
+      key: "practice",
+      title: "Pratica",
+      description:
+        "Momenti pensati per ripetere, consolidare e approfondire. Non sostituiscono i percorsi formativi, ma aiutano a trasformare quello che hai imparato in esperienza reale.",
+      activities: [
+        {
+          title: "Pratica assistita",
+          description:
+            "Uno spazio accompagnato per ripetere materiale già visto, fare domande e lavorare con più continuità sulle basi.",
+          tags: [
+            "Anche per single",
+            "Aperta a chi inizia",
+            "Richiede basi",
+          ],
+        },
+        {
+          title: "Classi tematiche",
+          description:
+            "Incontri dedicati a un tema specifico scelto da Kurogami e Shiawase e comunicato in anticipo, con spiegazioni, demo e pratica guidata.",
+          tags: ["Aperta a chi inizia", "Richiede basi", "Con demo"],
+        },
+      ],
     },
     {
-      title: "Open Day",
-      cadence: "Orientamento",
-      body:
-        "Un primo contatto leggero con lo spazio, le persone e il modo di lavorare di Peony.",
+      key: "social",
+      title: "Socialità",
+      description:
+        "Momenti per vivere lo studio, incontrare persone, osservare, praticare liberamente e prendere parte alla community.",
+      activities: [
+        {
+          title: "Rope Jam",
+          description:
+            "Uno spazio libero di pratica e incontro, con sessioni, musica, atmosfera e possibilità di osservare o legare nel rispetto dello spazio condiviso.",
+          tags: [
+            "Anche per single",
+            "Aperta a chi inizia",
+            "Observer ammessi",
+          ],
+        },
+        {
+          title: "Open Day",
+          description:
+            "Una giornata lunga nel weekend per conoscere lo studio, praticare, osservare e partecipare a laboratori o attività speciali.",
+          tags: [
+            "Anche per single",
+            "Aperta a chi inizia",
+            "Observer ammessi",
+            "Giornata intera",
+          ],
+        },
+        {
+          title: "Aperi-bottom",
+          description:
+            "Un incontro dedicato ai bottom, con temi di confronto sul bottoming e momenti sociali per parlare, ascoltare e condividere esperienze.",
+          tags: [
+            "Per bottom",
+            "Aperto a chi inizia",
+            "Incontro tematico",
+            "Momento sociale",
+          ],
+        },
+      ],
     },
-    {
-      title: "Aperibottom",
-      cadence: "Community",
-      body:
-        "Un momento per chi vuole stare nelle corde, conoscere persone e orientarsi senza pressione.",
+  ] satisfies PracticeBranch[],
+  dates: {
+    title: "Prossime date",
+    cta: {
+      label: "Guarda il calendario completo",
+      href: "/calendario",
     },
-    {
-      title: "Pratica assistita",
-      cadence: "Pratica",
-      body:
-        "Uno spazio ricorrente per ripetere, consolidare, ricevere supporto e dare continuità.",
+  },
+  dashboard: {
+    text: "Accedi alla dashboard per vedere iscrizioni, eventi salvati e attività consigliate.",
+    cta: {
+      label: "Vai alla dashboard",
+      href: "/dashboard",
     },
-    {
-      title: "Classi tematiche",
-      cadence: "Approfondimento",
-      body:
-        "Serate dedicate ad aspetti specifici della pratica, senza essere un percorso completo.",
-    },
-  ],
+  },
 };

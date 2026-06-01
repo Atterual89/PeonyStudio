@@ -1,0 +1,210 @@
+Stiamo lavorando sul sito Peony Studio.
+
+Obiettivo:
+Migliorare le pagine dettaglio evento `/eventi/[slug]` e correggere la classificazione degli eventi Ticket Tailor attuali.
+
+NON modificare:
+- src/content/events.json
+- caching/Vercel
+- fetch/API Ticket Tailor salvo piccoli fix di normalizzazione
+- architettura generale del calendario
+
+Usare sempre:
+- src/lib/events.ts come sorgente eventi normalizzata
+- event.imageUrl per immagini
+- event.bookingUrl per prenotazione Ticket Tailor
+
+1. Classificazione eventi Ticket Tailor attuali
+
+Correggi/inferisci category, tags e info rapide da titolo/categoria/descrizione.
+
+Regole specifiche:
+
+- “Classe 1” / “Class 1”
+  - category: "percorso"
+  - code: "C1"
+  - tags: ["percorso", "richiede basi", "sospensioni"]
+  - livello: "Richiede basi"
+
+- “Pratica guidata”
+  - category: "percorso"
+  - tags: ["percorso", "pratica", "richiede basi", "anche per single"]
+  - livello: "Richiede basi"
+  - a chi è rivolto: "Per chi vuole ripassare o approfondire"
+
+- “Open Day”
+  - category: "community"
+  - tags: ["community", "principianti", "observer ammessi", "anche per single"]
+  - livello: "Aperto a chi inizia"
+  - partner: "Puoi partecipare anche senza partner"
+  - observer: "Observer ammessi"
+
+- “Neck Rope”
+  - category: "workshop"
+  - tags: ["workshop", "neck rope", "peter soptik", "sansei"]
+  - insegnanti, se supportato: "Peter Soptik e Sansei"
+
+- “3 Dimensions” / “Three Dimensions” / “3D”
+  - category: "workshop"
+  - tags: ["workshop", "3 dimensions"]
+
+Non duplicare tag.
+Normalizza tag in minuscolo.
+I filtri calendario devono usare questi tag dedotti.
+
+2. Orario evento
+
+Verifica che PeonyEvent supporti:
+
+- startTime?: string
+- endTime?: string
+- timeLabel?: string
+
+Per eventi Ticket Tailor:
+- estrai orario da start/end ricevuti dall’API
+- usa formato 24h italiano:
+  - “19:00 – 22:30”
+  - “Dalle 19:00” se manca fine
+- attenzione a non mostrare orari slittati per timezone/UTC
+
+Per eventi locali:
+- se non c’è orario, non inventarlo
+- non mostrare campi vuoti brutti
+
+Nella pagina dettaglio evento mostra l’orario:
+- nella hero, vicino alla data
+- nelle info rapide, come campo “Orario”, se disponibile
+
+3. Pagina dettaglio evento più user friendly
+
+File principale:
+src/app/eventi/[slug]/page.tsx
+
+La pagina Peony NON deve replicare Ticket Tailor.
+Deve essere una scheda sintetica e orientativa.
+
+Layout desiderato:
+
+Hero evento:
+- desktop a due colonne:
+  - sinistra: immagine/header evento
+  - destra: titolo, data, orario, categoria, badge principali, CTA
+- mobile:
+  - immagine sopra
+  - info subito sotto
+- CTA primaria: “Prenota su Ticket Tailor”
+- CTA secondaria: “Torna al calendario”
+
+Immagine:
+- usare event.imageUrl
+- formato header orizzontale
+- altezza contenuta
+- object-cover
+- non deve essere enorme in verticale
+
+Info rapide:
+- non una lista verticale infinita
+- usare griglia compatta
+- desktop: 3/4 colonne
+- mobile: 2 colonne dove possibile
+- mostrare solo info utili e disponibili:
+  - Data
+  - Orario
+  - Categoria
+  - Livello
+  - Partner
+  - Observer
+  - Prerequisiti
+  - Insegnanti, se disponibili
+  - Luogo, se disponibile
+- nascondere campi “Non indicato”
+- non mostrare “Fonte: Ticket Tailor” come info rapida
+- evitare duplicazioni tipo “Richiede basi” sia in livello sia in prerequisiti, se ridondante
+
+Tag:
+- mostrare massimo 4–6 tag utili
+- priorità:
+  - principianti
+  - anche per single
+  - observer ammessi
+  - bottom
+  - richiede basi
+  - con demo
+  - workshop
+  - percorso
+  - pratica
+
+4. Descrizione
+
+Non mostrare più tutta la descrizione lunga Ticket Tailor aperta di default.
+
+Mostrare solo:
+- event.shortDescription
+oppure
+- primi 220–300 caratteri del testo pulito
+
+Titolo sezione:
+“In breve”
+
+Sotto:
+- bottone “Prenota su Ticket Tailor”
+- bottone “Leggi dettagli completi”
+
+Entrambi possono puntare a event.bookingUrl.
+
+Se vuoi mantenere la descrizione completa sul sito:
+- mettila in accordion chiuso di default
+- titolo: “Descrizione completa”
+
+5. Pulizia testo descrizione
+
+Migliora helper HTML ? testo:
+
+- <br> ? nuova riga
+- </p> ? doppia nuova riga
+- </h1>, </h2>, </h3> ? doppia nuova riga
+- </li> ? nuova riga
+- rimuovere tag HTML
+- decodificare entità HTML
+- comprimere massimo 2 righe vuote consecutive
+- rimuovere righe tecniche tipo [tags: ...]
+- mai HTML grezzo
+- no dangerouslySetInnerHTML
+
+Per shortDescription:
+- niente nuove righe multiple
+- testo semplice
+- massimo 220–300 caratteri
+
+6. Eventi correlati
+
+Mantenerli solo se compatti:
+- 3–4 eventi futuri correlati
+- stessa categoria o tag in comune
+- escludere evento corrente
+- card piccole
+- immagine bassa/header
+- link interno a /eventi/[slug]
+
+7. Controlli
+
+Verifica:
+- Classe 1 = Percorso
+- Pratica guidata = Percorso
+- Open Day = Community
+- Neck Rope = Workshop
+- 3 Dimensions = Workshop
+- orario visibile nella hero e nelle info rapide
+- pagina evento più corta in verticale
+- info rapide in griglia compatta
+- descrizione lunga non aperta di default
+- nessun HTML grezzo
+- immagine in formato header
+- CTA Ticket Tailor visibile
+- mobile leggibile
+- filtri calendario usano tag/categorie dedotte
+- Home/Calendario/Pratica continuano a funzionare
+
+Esegui:
+npx.cmd tsc --noEmit
+npm.cmd run lint

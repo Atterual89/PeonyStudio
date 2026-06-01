@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx.cmd tsc *)",
+      "Bash(npm.cmd run *)",
+      "Bash(dir D:\\\\peony_studio\\\\PeonyStudio\\\\prompt_sistemazione* *)",
+      "Bash(dir D:\\\\peony_studio\\\\PeonyStudio\\\\\" | grep -i prompt\" *)"
+    ]
+  }
+}
