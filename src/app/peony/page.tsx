@@ -1,14 +1,20 @@
+import fs from "node:fs";
+import path from "node:path";
+
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { HomeFooter } from "@/components/home/HomeFooter";
+import { TeacherDuosGrid } from "@/components/peony/TeacherDuosGrid";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { homeContent } from "@/content/home";
 import { peonyAboutContent } from "@/content/peony-about";
+import { teacherDuos } from "@/content/teacher-duos";
 
 export default function PeonyPage() {
   const content = peonyAboutContent;
+  const galleryImages = getPeonyGalleryImages();
   const finalActions = content.finalCta.actions.filter(
     (action) => action.href !== "/contatti",
   );
@@ -96,7 +102,7 @@ export default function PeonyPage() {
                   {pillar.title}
                 </p>
                 <p className="mt-1 text-sm leading-[1.55] text-[#5f524c]">
-              {pillar.text}
+                  {pillar.text}
                 </p>
               </div>
             ))}
@@ -104,7 +110,11 @@ export default function PeonyPage() {
         </div>
       </section>
 
-      <SectionShell eyebrow={content.space.eyebrow} title={content.space.title}>
+      <SectionShell
+        id="luogo"
+        eyebrow={content.space.eyebrow}
+        title={content.space.title}
+      >
         <p className="max-w-3xl text-[15px] leading-[1.75] text-[#5f524c] md:text-base">
           {content.space.intro}
         </p>
@@ -112,7 +122,19 @@ export default function PeonyPage() {
         <CardGrid cards={content.space.cards} numbered />
       </SectionShell>
 
-      <section className="mx-auto grid max-w-6xl gap-4 px-5 py-7 sm:px-6 md:grid-cols-[0.9fr_1.1fr] md:py-12">
+      <SectionShell
+        id="gallery"
+        eyebrow={content.gallery.eyebrow}
+        title={content.gallery.title}
+        intro={content.gallery.intro}
+      >
+        <GalleryGrid images={galleryImages} emptyText={content.gallery.empty} />
+      </SectionShell>
+
+      <section
+        id="dove-siamo"
+        className="mx-auto grid max-w-6xl gap-4 px-5 py-7 sm:px-6 md:grid-cols-[0.9fr_1.1fr] md:py-12"
+      >
         <div className="rounded-[8px] border border-[#211815]/10 bg-white/38 p-5 md:p-6">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
             {content.location.eyebrow}
@@ -128,20 +150,39 @@ export default function PeonyPage() {
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
             Come arrivare
           </p>
-          <ul className="mt-4 grid gap-2.5">
-            {content.location.routes.map((route) => (
-              <li
-                key={route}
-                className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 px-4 py-2.5 text-sm text-[#211815]"
+          <div className="mt-4 grid gap-2.5">
+            {content.location.travel.map((group, index) => (
+              <details
+                key={group.title}
+                className="peony-details rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70"
+                open={index === 2}
               >
-                {route}
-              </li>
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-[#211815] marker:hidden">
+                  <span>{group.title}</span>
+                  <span
+                    aria-hidden="true"
+                    className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-[#211815]/10 bg-white/45 text-[#8b5e4a] transition group-open:rotate-45"
+                  >
+                    +
+                  </span>
+                </summary>
+                <ul className="grid gap-2 border-t border-[#211815]/10 px-4 py-3">
+                  {group.items.map((item) => (
+                    <li key={item} className="text-sm leading-[1.55] text-[#5f524c]">
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </details>
             ))}
-          </ul>
+          </div>
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-6xl gap-4 px-5 py-8 sm:px-6 md:grid-cols-2 md:py-12">
+      <section
+        id="approccio"
+        className="mx-auto grid max-w-6xl gap-4 px-5 py-8 sm:px-6 md:grid-cols-2 md:py-12"
+      >
         <article className="rounded-[8px] border border-[#8b5e4a]/20 bg-[#8b5e4a]/[0.08] p-5 md:p-7">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
             {content.nameStory.eyebrow}
@@ -171,24 +212,21 @@ export default function PeonyPage() {
       </section>
 
       <SectionShell
+        id="resident-teachers"
         eyebrow={content.residentTeachers.eyebrow}
         title={content.residentTeachers.title}
+        intro={content.residentTeachers.intro}
       >
-        <div className="rounded-[8px] border border-[#211815]/10 bg-white/38 p-5 md:p-6">
-          <BioText text={content.residentTeachers.bio} />
-        </div>
-        <CardGrid
-          cards={content.residentTeachers.profiles}
-          columns="md:grid-cols-2"
-        />
+        <TeacherDuosGrid duos={teacherDuos.slice(0, 1)} />
       </SectionShell>
 
       <SectionShell
+        id="guest-teachers"
         eyebrow={content.guestTeachers.eyebrow}
         title={content.guestTeachers.title}
         intro={content.guestTeachers.intro}
       >
-        <ScrollCards cards={content.guestTeachers.cards} />
+        <TeacherDuosGrid duos={teacherDuos.slice(1)} />
         <div>
           <Link
             href="/workshop"
@@ -239,18 +277,23 @@ export default function PeonyPage() {
 }
 
 function SectionShell({
+  id,
   eyebrow,
   title,
   intro,
   children,
 }: {
+  id?: string;
   eyebrow: string;
   title: string;
   intro?: string;
   children: ReactNode;
 }) {
   return (
-    <section className="mx-auto max-w-6xl px-5 py-7 sm:px-6 md:py-12">
+    <section
+      id={id}
+      className="mx-auto max-w-6xl px-5 py-7 sm:px-6 md:py-12"
+    >
       <div className="mb-4 md:mb-5">
         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
           {eyebrow}
@@ -357,26 +400,45 @@ function ImageMosaic() {
   );
 }
 
-function ScrollCards({ cards }: { cards: { title: string; text: string }[] }) {
+function GalleryGrid({
+  images,
+  emptyText,
+}: {
+  images: GalleryImage[];
+  emptyText: string;
+}) {
+  if (!images.length) {
+    return (
+      <div className="rounded-[8px] border border-dashed border-[#211815]/15 bg-white/30 p-6 text-sm leading-[1.6] text-[#5f524c]">
+        {emptyText}
+      </div>
+    );
+  }
+
   return (
-    <div className="-mx-5 overflow-x-auto px-5 pb-2 [scroll-snap-type:x_mandatory] [scrollbar-width:thin] [scrollbar-color:#8b5e4a33_transparent] sm:mx-0 sm:px-0">
-      <div className="flex gap-3 md:grid md:grid-cols-4">
-        {cards.map((card, index) => (
-          <article
-            key={card.title}
-            className="peony-reveal w-[min(76vw,280px)] shrink-0 rounded-[8px] border border-[#211815]/10 bg-white/42 p-4 [scroll-snap-align:start] shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] transition duration-500 hover:-translate-y-1 hover:bg-white/62 md:w-auto"
-            style={{ animationDelay: `${index * 80}ms` }}
+    <div className="-mx-5 overflow-x-auto px-5 pb-2 [scroll-snap-type:x_mandatory] [scrollbar-width:thin] [scrollbar-color:#8b5e4a33_transparent] sm:mx-0 sm:px-0 md:overflow-visible">
+      <div className="flex gap-3 md:grid md:grid-cols-3">
+        {images.map((image, index) => (
+          <figure
+            key={image.src}
+            className={`peony-reveal group relative w-[min(82vw,320px)] shrink-0 overflow-hidden rounded-[8px] border border-[#211815]/10 bg-[#efe4d7] [scroll-snap-align:start] md:w-auto ${
+              index === 0 ? "md:col-span-2" : ""
+            }`}
+            style={{ animationDelay: `${index * 70}ms` }}
           >
-            <span className="mb-5 inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#8b5e4a]/20 bg-[#8b5e4a]/10 text-xs font-semibold text-[#8b5e4a]">
-              {String(index + 1).padStart(2, "0")}
-            </span>
-            <h3 className="font-serif text-2xl font-medium leading-[1.08]">
-              {card.title}
-            </h3>
-            <p className="mt-2 text-sm leading-[1.5] text-[#5f524c]">
-              {card.text}
-            </p>
-          </article>
+            <Image
+              src={image.src}
+              alt={image.alt}
+              width={820}
+              height={560}
+              className={`w-full object-cover saturate-[0.94] transition duration-700 group-hover:scale-105 ${
+                index === 0 ? "h-[260px] md:h-[360px]" : "h-[260px] md:h-[270px]"
+              }`}
+            />
+            <figcaption className="absolute bottom-3 left-3 rounded-full border border-[#f4efe8]/25 bg-[#211815]/35 px-3 py-1.5 text-xs font-medium text-[#f4efe8] backdrop-blur-sm">
+              {image.alt}
+            </figcaption>
+          </figure>
         ))}
       </div>
     </div>
@@ -418,28 +480,6 @@ function CommunityLinkGrid({
   );
 }
 
-function BioText({ text }: { text: string }) {
-  const sentences = text.split(/(?<=\.)\s+/);
-  const midpoint = Math.ceil(sentences.length / 2);
-  const paragraphs = [
-    sentences.slice(0, midpoint).join(" "),
-    sentences.slice(midpoint).join(" "),
-  ].filter(Boolean);
-
-  return (
-    <div className="grid gap-3 md:grid-cols-2 md:gap-5">
-      {paragraphs.map((paragraph) => (
-        <p
-          key={paragraph}
-          className="text-[15px] leading-[1.68] text-[#5f524c] md:text-base md:leading-[1.75]"
-        >
-          {paragraph}
-        </p>
-      ))}
-    </div>
-  );
-}
-
 function TextPanel({
   eyebrow,
   title,
@@ -462,4 +502,43 @@ function TextPanel({
       </p>
     </article>
   );
+}
+
+type GalleryImage = {
+  src: string;
+  alt: string;
+};
+
+function getPeonyGalleryImages(): GalleryImage[] {
+  const galleryDirectory = path.join(
+    process.cwd(),
+    "public",
+    "images",
+    "peony-gallery",
+  );
+  const allowedExtensions = new Set([".jpg", ".jpeg", ".png", ".webp"]);
+
+  if (!fs.existsSync(galleryDirectory)) {
+    return [];
+  }
+
+  return fs
+    .readdirSync(galleryDirectory)
+    .filter((fileName) =>
+      allowedExtensions.has(path.extname(fileName).toLowerCase()),
+    )
+    .sort((a, b) => a.localeCompare(b))
+    .map((fileName) => ({
+      src: `/images/peony-gallery/${fileName}`,
+      alt: formatGalleryAlt(fileName),
+    }));
+}
+
+function formatGalleryAlt(fileName: string) {
+  return path
+    .basename(fileName, path.extname(fileName))
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }

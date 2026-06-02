@@ -8,6 +8,11 @@ type PeonyLink = {
   href: string;
 };
 
+type TravelGroup = {
+  title: string;
+  items: string[];
+};
+
 export const peonyAboutContent = {
   slug: "peony",
   title: "Scuola, venue e community di kinbaku a Torino.",
@@ -25,40 +30,70 @@ export const peonyAboutContent = {
     eyebrow: "Lo spazio",
     title: "Uno studio pensato per praticare, studiare e incontrarsi.",
     intro:
-      "Il progetto Peony Studio nasce da Kurogami e Shiawase nel luglio 2023. Lo studio apre a Torino nel luglio 2024 come luogo dedicato a classi, workshop, rope jam e momenti di ricerca condivisa.",
+      "Uno spazio accogliente e curato per classi, workshop, rope jam e momenti di ricerca condivisa.",
     cards: [
       {
         title: "Main workshop area",
         text:
-          "Una sala principale di circa 100 m² per classi, workshop, eventi e rope jam, con setup pensato per ospitare fino a 16 coppie che legano.",
+          "Una sala di circa 100 m² per classi, workshop e rope jam, fino a 16 coppie.",
       },
       {
         title: "Lounge & kitchen",
         text:
-          "Una zona lounge separata con cucina e divani, per respirare, parlare e vivere lo studio anche fuori dalla pratica.",
+          "Una lounge separata con cucina e divani per pause, conversazioni e momenti informali.",
       },
       {
         title: "Practice setup",
         text:
-          "Uno spazio luminoso, con grandi finestre e luce naturale, progettato per sostenere pratica, studio tecnico e lavoro in sicurezza.",
+          "Luce naturale, grandi finestre e un setup pensato per pratica e studio tecnico.",
       },
       {
         title: "Comfort",
         text:
-          "Due bagni, area per cambio ed effetti personali, e un ambiente accogliente, curato e professionale.",
+          "Due bagni, area cambio ed effetti personali, con spazi pensati per stare comodi.",
       },
     ] satisfies PeonyCard[],
+  },
+  gallery: {
+    eyebrow: "Gallery",
+    title: "Gallery",
+    intro:
+      "Uno sguardo allo spazio, alla sala pratica e ai dettagli di Peony Studio.",
+    empty:
+      "La gallery verrà aggiornata con nuove immagini dello spazio.",
   },
   location: {
     eyebrow: "Dove siamo",
     title: "Torino, a pochi minuti dalla metro Marche.",
     intro:
-      "Peony Studio si trova in una zona servita da mezzi pubblici, negozi, ristoranti e servizi. L’indirizzo completo viene condiviso nei canali di prenotazione e nelle comunicazioni operative.",
+      "Peony Studio si trova a Torino, a pochi minuti dalla metro Marche, in una zona servita da mezzi pubblici, negozi, ristoranti e servizi.",
     routes: [
       "Metro Linea 1, fermata Marche",
       "Bus 33, fermata Eritrea",
       "Bus 40, 62, 90, VE1, fermata Vandalino",
     ],
+    travel: [
+      {
+        title: "By Plane",
+        items: [
+          "Turin Caselle Airport",
+          "Milan Airports: Malpensa, Linate",
+          "Bergamo Orio al Serio Airport",
+        ],
+      },
+      {
+        title: "By Train",
+        items: ["Turin Porta Nuova", "Turin Porta Susa"],
+      },
+      {
+        title: "Public Transportation",
+        items: [
+          "Metro: Turin Metro Line, Marche Station",
+          "Bus Line 33, Eritrea Stop",
+          "Bus Lines 40, 62, 90, VE1, Vandalino Stop",
+        ],
+      },
+    ] satisfies TravelGroup[],
   },
   nameStory: {
     eyebrow: "Perché Peony",
@@ -70,7 +105,7 @@ export const peonyAboutContent = {
     eyebrow: "Approccio",
     title: "Tecnica, connessione, estetica.",
     text:
-      "Per noi il kinbaku non è solo tecnica: è una comunicazione silenziosa che coinvolge corpo, respiro, estetica e intenzione. L’approccio di Peony Studio è ispirato al Kinbaku LuXuria style, dove la corda diventa strumento di ascolto, relazione, ritmo, presenza, tensione, abbandono, controllo e fiducia.",
+      "Per noi il kinbaku non è solo tecnica: è una comunicazione silenziosa che coinvolge corpo, respiro, estetica e intenzione. L'approccio di Peony Studio è ispirato al Kinbaku LuXuria style, dove la corda diventa strumento di ascolto, relazione, ritmo, presenza, tensione, abbandono, controllo e fiducia.",
     pillars: [
       {
         title: "Tecnica",
@@ -91,43 +126,15 @@ export const peonyAboutContent = {
   },
   residentTeachers: {
     eyebrow: "Resident teachers",
-    title: "Kurogami & Shiawase",
-    bio:
-      "Kurogami e Shiawase sono resident teachers e founders di Peony Studio. Sono insieme dal 2014 e iniziano a studiare kinbaku nel settembre 2016. Nel novembre dello stesso anno partecipano al primo corso con Riccardo Wildties. Nel febbraio 2018 Andrea Kurogami diventa educatore certificato Kinbaku LuXuria. Negli anni partecipano a eventi in Italia e in Europa come studenti, performer ed educatori. Nel 2019 legano al 25° Nawa Naka Kai a Tokyo insieme a Riccardo, Red Sabbath e Naka-san.",
-    profiles: [
-      {
-        title: "Kurogami",
-        text: "Resident teacher / Kinbaku LuXuria educator",
-      },
-      {
-        title: "Shiawase",
-        text: "Resident teacher / co-founder / bottoming research",
-      },
-    ] satisfies PeonyCard[],
+    title: "La coppia residente",
+    intro:
+      "Peony Studio nasce dal lavoro condiviso di Kurogami e Shiawase: insegnamento, pratica, relazione e ricerca nelle corde.",
   },
   guestTeachers: {
     eyebrow: "Guest teachers",
     title: "Ospiti e collaborazioni",
     intro:
       "Peony Studio ospita periodicamente insegnanti italiani e internazionali per workshop, approfondimenti e progetti speciali.",
-    cards: [
-      {
-        title: "Riccardo Wildties & Red Sabbath",
-        text: "Workshop, ricerca e trasmissione legata al percorso Kinbaku LuXuria.",
-      },
-      {
-        title: "Peter Soptick",
-        text: "Ospite internazionale per approfondimenti tecnici e workshop intensivi.",
-      },
-      {
-        title: "Sansei",
-        text: "Ospite internazionale per studio tecnico, pratica e ricerca.",
-      },
-      {
-        title: "Future guests",
-        text: "Nuove collaborazioni e workshop speciali saranno annunciati nel calendario.",
-      },
-    ] satisfies PeonyCard[],
   },
   community: {
     eyebrow: "Community",
@@ -145,7 +152,8 @@ export const peonyAboutContent = {
       },
       {
         title: "Incontri bottom",
-        text: "Momenti dedicati a chi vuole esplorare il ruolo di bottom e lo stare nelle corde.",
+        text:
+          "Momenti dedicati a chi vuole esplorare il ruolo di bottom e lo stare nelle corde.",
       },
       {
         title: "Workshop internazionali",

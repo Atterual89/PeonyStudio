@@ -135,6 +135,19 @@ html {
   animation: peonyRevealIn 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+.peony-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.peony-details summary span:last-child {
+  transition: transform 280ms ease, background-color 280ms ease;
+}
+
+.peony-details[open] summary span:last-child {
+  transform: rotate(45deg);
+  background-color: rgba(139, 94, 74, 0.12);
+}
+
 .peony-reveal-delay-1 {
   animation-delay: 120ms;
 }
@@ -164,6 +177,18 @@ html {
     radial-gradient(circle at 78% 0, rgba(139, 94, 74, 0.32) 0 4px, transparent 5px);
 }
 
+@supports (animation-timeline: view()) {
+  .peony-reveal {
+    animation-timeline: view();
+    animation-range: entry 0% cover 28%;
+  }
+
+  .peony-reveal-delay-1,
+  .peony-reveal-delay-2 {
+    animation-delay: 0ms;
+  }
+}
+
 @media (min-width: 768px) {
   .programs-rope-fill {
     height: 1px;
@@ -183,6 +208,10 @@ html {
   }
 
   .programs-rope-interactive {
+    transition: none;
+  }
+
+  .peony-details summary span:last-child {
     transition: none;
   }
 }
