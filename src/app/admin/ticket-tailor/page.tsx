@@ -27,6 +27,19 @@ type Participant = {
   ticket_tailor_order_id: string | null;
 };
 
+type AdminEvent = {
+  id: string;
+  slug: string | null;
+  title: string | null;
+  category: string | null;
+  source: string | null;
+  ticket_tailor_event_id: string | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  is_public: boolean | null;
+  booking_url: string | null;
+};
+
 const syncSteps: SyncStep[] = [
   {
     label: "Eventi",
@@ -51,8 +64,10 @@ export default function TicketTailorAdminPage() {
   const [syncing, setSyncing] = useState(false);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [syncResults, setSyncResults] = useState<SyncResult[]>([]);
+  const [events, setEvents] = useState<AdminEvent[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [participantError, setParticipantError] = useState<string | null>(null);
+  const [eventsError, setEventsError] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     ticket_tailor_event_id: "",
     participant_type: "attendee",
@@ -104,7 +119,49 @@ export default function TicketTailorAdminPage() {
     }
 
     setSyncing(false);
+    await loadEvents();
     await loadParticipants();
+  }
+
+  async function loadEvents() {
+    if (!secret.trim()) {
+      setEventsError("Inserisci l'Admin sync secret.");
+      return [];
+    }
+
+    setEventsError(null);
+
+    try {
+      const response = await fetch("/api/admin/events", {
+        headers: {
+          "x-admin-sync-secret": secret,
+        },
+      });
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        events?: AdminEvent[];
+        error?: string;
+        message?: string;
+      };
+
+      if (!response.ok || payload.ok === false) {
+        setEvents([]);
+        setEventsError(
+          payload.error ?? payload.message ?? "Errore caricamento eventi.",
+        );
+        return [];
+      }
+
+      const nextEvents = payload.events ?? [];
+      setEvents(nextEvents);
+      return nextEvents;
+    } catch (error) {
+      setEvents([]);
+      setEventsError(
+        error instanceof Error ? error.message : "Errore sconosciuto.",
+      );
+      return [];
+    }
   }
 
   async function loadParticipants(event?: FormEvent<HTMLFormElement>) {
@@ -117,6 +174,10 @@ export default function TicketTailorAdminPage() {
 
     setLoadingParticipants(true);
     setParticipantError(null);
+
+    if (events.length === 0) {
+      await loadEvents();
+    }
 
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(filters)) {
@@ -235,8 +296,8 @@ export default function TicketTailorAdminPage() {
             onSubmit={loadParticipants}
           >
             <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-              Ticket Tailor event ID
-              <input
+              Evento
+              <select
                 className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-[#f4efe8]/80 px-3 py-2 text-sm normal-case tracking-normal outline-none focus:border-[#8b5e4a]"
                 value={filters.ticket_tailor_event_id}
                 onChange={(event) =>
@@ -245,8 +306,19 @@ export default function TicketTailorAdminPage() {
                     ticket_tailor_event_id: event.target.value,
                   }))
                 }
-                placeholder="ev_..."
-              />
+              >
+                <option value="">Tutti gli eventi</option>
+                {events
+                  .filter((event) => event.ticket_tailor_event_id)
+                  .map((event) => (
+                    <option
+                      key={event.id}
+                      value={event.ticket_tailor_event_id ?? ""}
+                    >
+                      {formatEventOptionLabel(event)}
+                    </option>
+                  ))}
+              </select>
             </label>
             <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
               Tipo
@@ -304,6 +376,12 @@ export default function TicketTailorAdminPage() {
               {loadingParticipants ? "Carico..." : "Carica partecipanti"}
             </button>
           </form>
+
+          {eventsError ? (
+            <p className="mt-4 rounded-[8px] border border-[#8b2f2a]/20 bg-[#8b2f2a]/5 p-3 text-sm text-[#8b2f2a]">
+              {eventsError}
+            </p>
+          ) : null}
 
           {participantError ? (
             <p className="mt-4 rounded-[8px] border border-[#8b2f2a]/20 bg-[#8b2f2a]/5 p-3 text-sm text-[#8b2f2a]">
@@ -393,4 +471,26 @@ function summarizePayload(payload: Record<string, unknown>) {
       return `${key}: ${Array.isArray(value) ? value.length : String(value)}`;
     })
     .join(" · ");
+}
+
+function formatEventOptionLabel(event: AdminEvent) {
+  const date = event.starts_at ? formatDate(event.starts_at) : "senza data";
+  const title = event.title ?? "Evento";
+  const ticketTailorId = event.ticket_tailor_event_id ?? "senza id";
+
+  return `${title} · ${date} · ${ticketTailorId}`;
+}
+
+function formatDate(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("it-IT", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
 }
