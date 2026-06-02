@@ -25,6 +25,7 @@ type Participant = {
   checked_in: boolean | null;
   checked_in_source: string | null;
   ticket_tailor_order_id: string | null;
+  notes_admin: string | null;
 };
 
 type AdminEvent = {
@@ -39,6 +40,21 @@ type AdminEvent = {
   is_public: boolean | null;
   booking_url: string | null;
 };
+
+type AssociationDraft = {
+  association_status: string;
+  association_expires_at: string;
+  notes_admin: string;
+};
+
+const associationStatuses = [
+  "unknown",
+  "missing",
+  "pending",
+  "verified",
+  "expired",
+  "not_required",
+];
 
 const syncSteps: SyncStep[] = [
   {
@@ -66,6 +82,12 @@ export default function TicketTailorAdminPage() {
   const [syncResults, setSyncResults] = useState<SyncResult[]>([]);
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [participantDrafts, setParticipantDrafts] = useState<
+    Record<string, AssociationDraft>
+  >({});
+  const [savingParticipantId, setSavingParticipantId] = useState<string | null>(
+    null,
+  );
   const [participantError, setParticipantError] = useState<string | null>(null);
   const [eventsError, setEventsError] = useState<string | null>(null);
   const [filters, setFilters] = useState({
@@ -201,19 +223,91 @@ export default function TicketTailorAdminPage() {
 
       if (!response.ok || payload.ok === false) {
         setParticipants([]);
+        setParticipantDrafts({});
         setParticipantError(
           payload.error ?? payload.message ?? "Errore caricamento partecipanti.",
         );
       } else {
-        setParticipants(payload.participants ?? []);
+        const nextParticipants = payload.participants ?? [];
+        setParticipants(nextParticipants);
+        setParticipantDrafts(createParticipantDrafts(nextParticipants));
       }
     } catch (error) {
       setParticipants([]);
+      setParticipantDrafts({});
       setParticipantError(
         error instanceof Error ? error.message : "Errore sconosciuto.",
       );
     } finally {
       setLoadingParticipants(false);
+    }
+  }
+
+  function updateParticipantDraft(
+    participantId: string,
+    field: keyof AssociationDraft,
+    value: string,
+  ) {
+    setParticipantDrafts((current) => ({
+      ...current,
+      [participantId]: {
+        ...(current[participantId] ?? {
+          association_status: "unknown",
+          association_expires_at: "",
+          notes_admin: "",
+        }),
+        [field]: value,
+      },
+    }));
+  }
+
+  async function saveParticipantAssociation(participantId: string) {
+    if (!secret.trim()) {
+      setParticipantError("Inserisci l'Admin sync secret.");
+      return;
+    }
+
+    const draft = participantDrafts[participantId];
+    if (!draft) {
+      setParticipantError("Dati associazione non trovati per questa riga.");
+      return;
+    }
+
+    setSavingParticipantId(participantId);
+    setParticipantError(null);
+
+    try {
+      const response = await fetch(`/api/admin/participants/${participantId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-sync-secret": secret,
+        },
+        body: JSON.stringify({
+          association_status: draft.association_status,
+          association_expires_at: draft.association_expires_at || null,
+          notes_admin: draft.notes_admin || null,
+        }),
+      });
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        message?: string;
+      };
+
+      if (!response.ok || payload.ok === false) {
+        setParticipantError(
+          payload.message ?? "Errore salvataggio associazione.",
+        );
+        return;
+      }
+
+      await loadParticipants();
+    } catch (error) {
+      setParticipantError(
+        error instanceof Error ? error.message : "Errore sconosciuto.",
+      );
+    } finally {
+      setSavingParticipantId(null);
     }
   }
 
@@ -390,7 +484,7 @@ export default function TicketTailorAdminPage() {
           ) : null}
 
           <div className="mt-5 overflow-x-auto rounded-[8px] border border-[#211815]/10">
-            <table className="min-w-[1200px] w-full border-collapse bg-[#f4efe8]/60 text-left text-sm">
+            <table className="min-w-[1600px] w-full border-collapse bg-[#f4efe8]/60 text-left text-sm">
               <thead className="bg-[#211815]/5 text-[11px] uppercase tracking-[0.14em] text-[#5f524c]">
                 <tr>
                   {[
@@ -401,9 +495,11 @@ export default function TicketTailorAdminPage() {
                     "ticket_tailor_event_id",
                     "association_status",
                     "association_expires_at",
+                    "notes_admin",
                     "checked_in",
                     "checked_in_source",
                     "ticket_tailor_order_id",
+                    "azioni",
                   ].map((column) => (
                     <th className="border-b border-[#211815]/10 px-3 py-3" key={column}>
                       {column}
@@ -420,8 +516,66 @@ export default function TicketTailorAdminPage() {
                       <td className="px-3 py-3">{participant.email ?? "-"}</td>
                       <td className="px-3 py-3">{participant.participant_type ?? "-"}</td>
                       <td className="px-3 py-3">{participant.ticket_tailor_event_id ?? "-"}</td>
-                      <td className="px-3 py-3">{participant.association_status ?? "-"}</td>
-                      <td className="px-3 py-3">{participant.association_expires_at ?? "-"}</td>
+                      <td className="px-3 py-3">
+                        <select
+                          className="w-full min-w-[150px] rounded-[8px] border border-[#211815]/15 bg-white/70 px-2 py-2 text-sm outline-none focus:border-[#8b5e4a]"
+                          value={
+                            participantDrafts[participant.id]?.association_status ??
+                            participant.association_status ??
+                            "unknown"
+                          }
+                          onChange={(event) =>
+                            updateParticipantDraft(
+                              participant.id,
+                              "association_status",
+                              event.target.value,
+                            )
+                          }
+                        >
+                          {associationStatuses.map((status) => (
+                            <option key={status} value={status}>
+                              {status}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-3 py-3">
+                        <input
+                          className="w-full min-w-[150px] rounded-[8px] border border-[#211815]/15 bg-white/70 px-2 py-2 text-sm outline-none focus:border-[#8b5e4a]"
+                          type="date"
+                          value={
+                            participantDrafts[participant.id]
+                              ?.association_expires_at ??
+                            participant.association_expires_at ??
+                            ""
+                          }
+                          onChange={(event) =>
+                            updateParticipantDraft(
+                              participant.id,
+                              "association_expires_at",
+                              event.target.value,
+                            )
+                          }
+                        />
+                      </td>
+                      <td className="px-3 py-3">
+                        <input
+                          className="w-full min-w-[220px] rounded-[8px] border border-[#211815]/15 bg-white/70 px-2 py-2 text-sm outline-none focus:border-[#8b5e4a]"
+                          value={
+                            participantDrafts[participant.id]?.notes_admin ??
+                            participant.notes_admin ??
+                            ""
+                          }
+                          onChange={(event) =>
+                            updateParticipantDraft(
+                              participant.id,
+                              "notes_admin",
+                              event.target.value,
+                            )
+                          }
+                          placeholder="Nota admin"
+                        />
+                      </td>
                       <td className="px-3 py-3">
                         {participant.checked_in === null
                           ? "-"
@@ -431,11 +585,23 @@ export default function TicketTailorAdminPage() {
                       </td>
                       <td className="px-3 py-3">{participant.checked_in_source ?? "-"}</td>
                       <td className="px-3 py-3">{participant.ticket_tailor_order_id ?? "-"}</td>
+                      <td className="px-3 py-3">
+                        <button
+                          className="rounded-full bg-[#211815] px-4 py-2 text-xs font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
+                          type="button"
+                          disabled={savingParticipantId === participant.id}
+                          onClick={() => saveParticipantAssociation(participant.id)}
+                        >
+                          {savingParticipantId === participant.id
+                            ? "Salvo..."
+                            : "Salva"}
+                        </button>
+                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td className="px-3 py-8 text-center text-[#5f524c]" colSpan={10}>
+                    <td className="px-3 py-8 text-center text-[#5f524c]" colSpan={12}>
                       Nessun partecipante caricato.
                     </td>
                   </tr>
@@ -446,6 +612,21 @@ export default function TicketTailorAdminPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+function createParticipantDrafts(participants: Participant[]) {
+  return participants.reduce<Record<string, AssociationDraft>>(
+    (drafts, participant) => {
+      drafts[participant.id] = {
+        association_status: participant.association_status ?? "unknown",
+        association_expires_at: participant.association_expires_at ?? "",
+        notes_admin: participant.notes_admin ?? "",
+      };
+
+      return drafts;
+    },
+    {},
   );
 }
 
