@@ -47,6 +47,15 @@ type AssociationDraft = {
   notes_admin: string;
 };
 
+type ParticipantFilters = {
+  ticket_tailor_event_id: string;
+  participant_type: string;
+  checked_in: string;
+  association_status: string;
+};
+
+type QuickFilterMode = "none" | "association_to_verify";
+
 const associationStatuses = [
   "unknown",
   "missing",
@@ -55,6 +64,13 @@ const associationStatuses = [
   "expired",
   "not_required",
 ];
+
+const associationStatusesToVerify = new Set([
+  "unknown",
+  "missing",
+  "pending",
+  "expired",
+]);
 
 const syncSteps: SyncStep[] = [
   {
@@ -90,12 +106,16 @@ export default function TicketTailorAdminPage() {
   );
   const [participantError, setParticipantError] = useState<string | null>(null);
   const [eventsError, setEventsError] = useState<string | null>(null);
-  const [filters, setFilters] = useState({
+  const [quickFilterMode, setQuickFilterMode] =
+    useState<QuickFilterMode>("none");
+  const [filters, setFilters] = useState<ParticipantFilters>({
     ticket_tailor_event_id: "",
     participant_type: "attendee",
     checked_in: "",
     association_status: "",
   });
+  const displayedParticipants = applyQuickFilter(participants, quickFilterMode);
+  const participantSummary = getParticipantSummary(displayedParticipants);
 
   async function handleSync() {
     if (!secret.trim()) {
@@ -186,9 +206,16 @@ export default function TicketTailorAdminPage() {
     }
   }
 
-  async function loadParticipants(event?: FormEvent<HTMLFormElement>) {
+  async function loadParticipants(
+    event?: FormEvent<HTMLFormElement>,
+    nextFilters = filters,
+  ) {
     event?.preventDefault();
+    setQuickFilterMode("none");
+    await fetchParticipants(nextFilters);
+  }
 
+  async function fetchParticipants(nextFilters = filters) {
     if (!secret.trim()) {
       setParticipantError("Inserisci l'Admin sync secret.");
       return;
@@ -202,7 +229,7 @@ export default function TicketTailorAdminPage() {
     }
 
     const params = new URLSearchParams();
-    for (const [key, value] of Object.entries(filters)) {
+    for (const [key, value] of Object.entries(nextFilters)) {
       if (value.trim()) {
         params.set(key, value.trim());
       }
@@ -241,6 +268,15 @@ export default function TicketTailorAdminPage() {
     } finally {
       setLoadingParticipants(false);
     }
+  }
+
+  async function applyFilters(
+    nextFilters: ParticipantFilters,
+    nextQuickFilterMode: QuickFilterMode = "none",
+  ) {
+    setFilters(nextFilters);
+    setQuickFilterMode(nextQuickFilterMode);
+    await fetchParticipants(nextFilters);
   }
 
   function updateParticipantDraft(
@@ -471,6 +507,98 @@ export default function TicketTailorAdminPage() {
             </button>
           </form>
 
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {[
+              ["Righe mostrate", participantSummary.total],
+              ["Checked-in", participantSummary.checkedIn],
+              ["Non checked-in", participantSummary.notCheckedIn],
+              ["Da verificare", participantSummary.toVerify],
+              ["Verified", participantSummary.verified],
+            ].map(([label, value]) => (
+              <div
+                className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3"
+                key={label}
+              >
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
+                  {label}
+                </p>
+                <p className="mt-2 font-serif text-3xl text-[#211815]">
+                  {value}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              className={quickFilterButtonClass(filters.participant_type === "attendee")}
+              type="button"
+              onClick={() =>
+                applyFilters({
+                  ...filters,
+                  participant_type: "attendee",
+                })
+              }
+            >
+              Solo attendee
+            </button>
+            <button
+              className={quickFilterButtonClass(filters.participant_type === "buyer")}
+              type="button"
+              onClick={() =>
+                applyFilters({
+                  ...filters,
+                  participant_type: "buyer",
+                })
+              }
+            >
+              Solo buyer
+            </button>
+            <button
+              className={quickFilterButtonClass(filters.checked_in === "false")}
+              type="button"
+              onClick={() =>
+                applyFilters({
+                  ...filters,
+                  checked_in: "false",
+                })
+              }
+            >
+              Solo non checked-in
+            </button>
+            <button
+              className={quickFilterButtonClass(
+                quickFilterMode === "association_to_verify",
+              )}
+              type="button"
+              onClick={() =>
+                applyFilters(
+                  {
+                    ...filters,
+                    association_status: "",
+                  },
+                  "association_to_verify",
+                )
+              }
+            >
+              Solo tessera da verificare
+            </button>
+            <button
+              className="rounded-full border border-[#211815]/15 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c] transition hover:border-[#8b5e4a] hover:text-[#211815]"
+              type="button"
+              onClick={() =>
+                applyFilters({
+                  ticket_tailor_event_id: "",
+                  participant_type: "",
+                  checked_in: "",
+                  association_status: "",
+                })
+              }
+            >
+              Reset filtri
+            </button>
+          </div>
+
           {eventsError ? (
             <p className="mt-4 rounded-[8px] border border-[#8b2f2a]/20 bg-[#8b2f2a]/5 p-3 text-sm text-[#8b2f2a]">
               {eventsError}
@@ -508,17 +636,21 @@ export default function TicketTailorAdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {participants.length > 0 ? (
-                  participants.map((participant) => (
-                    <tr className="border-b border-[#211815]/8" key={participant.id}>
+                {displayedParticipants.length > 0 ? (
+                  displayedParticipants.map((participant) => (
+                    <tr
+                      className={`border-b border-[#211815]/8 ${participantRowClass(participant)}`}
+                      key={participant.id}
+                    >
                       <td className="px-3 py-3">{participant.first_name ?? "-"}</td>
                       <td className="px-3 py-3">{participant.last_name ?? "-"}</td>
                       <td className="px-3 py-3">{participant.email ?? "-"}</td>
                       <td className="px-3 py-3">{participant.participant_type ?? "-"}</td>
                       <td className="px-3 py-3">{participant.ticket_tailor_event_id ?? "-"}</td>
                       <td className="px-3 py-3">
+                        <StatusBadge status={participant.association_status} />
                         <select
-                          className="w-full min-w-[150px] rounded-[8px] border border-[#211815]/15 bg-white/70 px-2 py-2 text-sm outline-none focus:border-[#8b5e4a]"
+                          className="mt-2 w-full min-w-[150px] rounded-[8px] border border-[#211815]/15 bg-white/70 px-2 py-2 text-sm outline-none focus:border-[#8b5e4a]"
                           value={
                             participantDrafts[participant.id]?.association_status ??
                             participant.association_status ??
@@ -577,11 +709,14 @@ export default function TicketTailorAdminPage() {
                         />
                       </td>
                       <td className="px-3 py-3">
+                        <CheckedInBadge checkedIn={participant.checked_in} />
+                        <span className="sr-only">
                         {participant.checked_in === null
                           ? "-"
                           : participant.checked_in
                             ? "Sì"
                             : "No"}
+                        </span>
                       </td>
                       <td className="px-3 py-3">{participant.checked_in_source ?? "-"}</td>
                       <td className="px-3 py-3">{participant.ticket_tailor_order_id ?? "-"}</td>
@@ -627,6 +762,118 @@ function createParticipantDrafts(participants: Participant[]) {
       return drafts;
     },
     {},
+  );
+}
+
+function applyQuickFilter(
+  participants: Participant[],
+  quickFilterMode: QuickFilterMode,
+) {
+  if (quickFilterMode === "association_to_verify") {
+    return participants.filter((participant) =>
+      associationStatusesToVerify.has(
+        normalizeAssociationStatus(participant.association_status),
+      ),
+    );
+  }
+
+  return participants;
+}
+
+function getParticipantSummary(participants: Participant[]) {
+  return participants.reduce(
+    (summary, participant) => {
+      const status = normalizeAssociationStatus(participant.association_status);
+
+      summary.total += 1;
+
+      if (participant.checked_in === true) {
+        summary.checkedIn += 1;
+      } else {
+        summary.notCheckedIn += 1;
+      }
+
+      if (["unknown", "missing", "expired"].includes(status)) {
+        summary.toVerify += 1;
+      }
+
+      if (status === "verified") {
+        summary.verified += 1;
+      }
+
+      return summary;
+    },
+    {
+      total: 0,
+      checkedIn: 0,
+      notCheckedIn: 0,
+      toVerify: 0,
+      verified: 0,
+    },
+  );
+}
+
+function normalizeAssociationStatus(status: string | null) {
+  return status?.trim() || "unknown";
+}
+
+function quickFilterButtonClass(active: boolean) {
+  return active
+    ? "rounded-full border border-[#8b5e4a] bg-[#8b5e4a] px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#f4efe8] transition hover:-translate-y-0.5"
+    : "rounded-full border border-[#211815]/15 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c] transition hover:border-[#8b5e4a] hover:text-[#211815]";
+}
+
+function participantRowClass(participant: Participant) {
+  const status = normalizeAssociationStatus(participant.association_status);
+
+  if (status === "missing" || status === "expired") {
+    return "bg-[#8b2f2a]/7";
+  }
+
+  return "";
+}
+
+function StatusBadge({ status }: { status: string | null }) {
+  const normalized = normalizeAssociationStatus(status);
+  const className =
+    normalized === "verified"
+      ? "border-[#2f5b3a]/25 bg-[#2f5b3a]/10 text-[#2f5b3a]"
+      : normalized === "missing" || normalized === "expired"
+        ? "border-[#8b2f2a]/25 bg-[#8b2f2a]/10 text-[#8b2f2a]"
+        : normalized === "pending"
+          ? "border-[#8b5e4a]/25 bg-[#8b5e4a]/10 text-[#8b5e4a]"
+          : "border-[#211815]/15 bg-[#211815]/5 text-[#5f524c]";
+
+  return (
+    <span
+      className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] ${className}`}
+    >
+      {normalized}
+    </span>
+  );
+}
+
+function CheckedInBadge({ checkedIn }: { checkedIn: boolean | null }) {
+  if (checkedIn === true) {
+    return (
+      <span className="inline-flex rounded-full border border-[#2f5b3a]/25 bg-[#2f5b3a]/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#2f5b3a]">
+        Si
+      </span>
+    );
+  }
+
+  if (checkedIn === false) {
+    return (
+      <span className="inline-flex rounded-full border border-[#8b2f2a]/25 bg-[#8b2f2a]/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#8b2f2a]">
+        No
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex rounded-full border border-[#211815]/15 bg-[#211815]/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#5f524c]">
+      N/D
+    </span>
   );
 }
 
