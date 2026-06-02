@@ -7,6 +7,7 @@ const publicFallbackUrl = "https://www.tickettailor.com/events/peonystudio1";
 loadDotEnvLocal();
 
 const apiKey = process.env.TICKET_TAILOR_API_KEY;
+const targetEventId = process.argv[2];
 const debugState = {
   calls: [],
   normalized: [],
@@ -88,6 +89,10 @@ async function run() {
     } else {
       debugState.discarded.push(result);
     }
+  }
+
+  if (targetEventId) {
+    printTargetEventVisibility(detailEnrichedRecords, targetEventId);
   }
 
   console.log(`Ticket Tailor normalizzati visibili: ${debugState.normalized.length}`);
@@ -209,6 +214,24 @@ function printSample(label, records) {
     url: findUrl(record, urlKeys) ?? "",
     thumbnail: findUrl(record, imageKeys) ?? "",
   })));
+}
+
+function printTargetEventVisibility(records, eventId) {
+  const record = records.find(
+    (item) => findString(item, ["id", "event_id", "eventId"]) === eventId,
+  );
+
+  console.log(`\nDebug visibilita evento ${eventId}:`);
+
+  if (!record) {
+    console.log("Evento non trovato nei payload recuperati.");
+    return;
+  }
+
+  console.log("campi disponibili:");
+  console.log(Object.keys(record).sort().join(", "));
+  console.log("metadati visibilita:");
+  console.table(collectVisibilityFields(record));
 }
 
 function normalizeRecord(record) {
@@ -470,6 +493,33 @@ function collectImageFields(record) {
       fields[key] = JSON.stringify(value).slice(0, 240);
     } else if (Array.isArray(value)) {
       fields[key] = JSON.stringify(value).slice(0, 240);
+    }
+  }
+
+  return fields;
+}
+
+function collectVisibilityFields(record, prefix = "") {
+  const fields = [];
+
+  for (const [key, value] of Object.entries(record)) {
+    const path = prefix ? `${prefix}.${key}` : key;
+
+    if (
+      /private|hidden|visibility|show.*box|box.*office|listed|unlisted|search|event_page|status|state/i.test(
+        path,
+      )
+    ) {
+      fields.push({
+        field: path,
+        value: isRecord(value) || Array.isArray(value)
+          ? JSON.stringify(value).slice(0, 500)
+          : String(value),
+      });
+    }
+
+    if (isRecord(value)) {
+      fields.push(...collectVisibilityFields(value, path));
     }
   }
 

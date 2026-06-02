@@ -3,10 +3,23 @@ import type { PeonyEvent, PeonyEventCategory } from "@/lib/events";
 const TICKET_TAILOR_API_BASE_URL = "https://api.tickettailor.com";
 const TICKET_TAILOR_EVENTS_ENDPOINT = `${TICKET_TAILOR_API_BASE_URL}/v1/events`;
 const TICKET_TAILOR_EVENT_SERIES_ENDPOINT = `${TICKET_TAILOR_API_BASE_URL}/v1/event_series`;
+const TICKET_TAILOR_ORDERS_ENDPOINT = `${TICKET_TAILOR_API_BASE_URL}/v1/orders`;
 export const TICKET_TAILOR_PUBLIC_URL =
   "https://www.tickettailor.com/events/peonystudio1";
 
 type TicketTailorRecord = Record<string, unknown>;
+
+export type TicketTailorOrder = {
+  ticketTailorOrderId: string;
+  buyerEmail?: string;
+  buyerFirstName?: string;
+  buyerLastName?: string;
+  ticketTailorEventId?: string;
+  paymentStatus?: string;
+  orderStatus?: string;
+  totalTickets?: number;
+  rawPayload: TicketTailorRecord;
+};
 
 export async function getTicketTailorEvents(): Promise<PeonyEvent[]> {
   const apiKey = process.env.TICKET_TAILOR_API_KEY;
@@ -52,6 +65,60 @@ export async function getTicketTailorEvents(): Promise<PeonyEvent[]> {
   } catch {
     return [];
   }
+}
+
+export async function getTicketTailorOrders(): Promise<TicketTailorOrder[]> {
+  const apiKey = process.env.TICKET_TAILOR_API_KEY;
+
+  if (!apiKey) {
+    return [];
+  }
+
+  try {
+    const records = await fetchTicketTailorEndpoint(
+      apiKey,
+      TICKET_TAILOR_ORDERS_ENDPOINT,
+    );
+
+    return records
+      .map(normalizeTicketTailorOrder)
+      .filter((order): order is TicketTailorOrder => Boolean(order));
+  } catch {
+    return [];
+  }
+}
+
+export async function getTicketTailorOrdersForEvents(
+  eventIds: string[],
+): Promise<{
+  orders: TicketTailorOrder[];
+  pagesRead: number;
+}> {
+  const apiKey = process.env.TICKET_TAILOR_API_KEY;
+
+  if (!apiKey || eventIds.length === 0) {
+    return { orders: [], pagesRead: 0 };
+  }
+
+  const ordersById = new Map<string, TicketTailorOrder>();
+  let pagesRead = 0;
+
+  for (const eventId of eventIds) {
+    const result = await fetchTicketTailorOrderRecordsForEvent(apiKey, eventId);
+    pagesRead += result.pagesRead;
+
+    for (const record of result.records) {
+      const order = normalizeTicketTailorOrder(record);
+      if (order) {
+        ordersById.set(order.ticketTailorOrderId, order);
+      }
+    }
+  }
+
+  return {
+    orders: Array.from(ordersById.values()),
+    pagesRead,
+  };
 }
 
 export function inferEventCategory(title: string): PeonyEventCategory {
@@ -152,6 +219,54 @@ async function fetchTicketTailorEndpoint(apiKey: string, url: string) {
   } catch {
     return [];
   }
+}
+
+async function fetchTicketTailorOrderRecordsForEvent(
+  apiKey: string,
+  eventId: string,
+) {
+  const records: TicketTailorRecord[] = [];
+  let pagesRead = 0;
+  let nextUrl: string | null =
+    `${TICKET_TAILOR_ORDERS_ENDPOINT}?event_id=${encodeURIComponent(eventId)}&limit=100`;
+  const maxPagesPerEvent = 20;
+
+  while (nextUrl && pagesRead < maxPagesPerEvent) {
+    try {
+      const response = await fetch(nextUrl, {
+        headers: getTicketTailorHeaders(apiKey),
+        next: { revalidate: 900 },
+      });
+
+      pagesRead += 1;
+
+      if (!response.ok) {
+        break;
+      }
+
+      const payload = (await response.json()) as unknown;
+      records.push(...extractTicketTailorRecords(payload));
+      nextUrl = findNextPageUrl(payload);
+    } catch {
+      break;
+    }
+  }
+
+  return { records, pagesRead };
+}
+
+function findNextPageUrl(payload: unknown) {
+  const record = extractTicketTailorRecord(payload);
+  if (!record) {
+    return null;
+  }
+
+  return (
+    getString(getPath(record, "links.next")) ??
+    getString(getPath(record, "links.next.href")) ??
+    getString(getPath(record, "pagination.next")) ??
+    null
+  );
 }
 
 async function fetchTicketTailorOccurrences(apiKey: string, seriesId: string) {
@@ -274,6 +389,12 @@ function normalizeTicketTailorEvent(
     ? truncateText(description, 280)
     : undefined;
   const status = findString(record, ["status", "state"]) ?? undefined;
+  const isPublic = inferTicketTailorIsPublic(record, {
+    title,
+    description,
+    shortDescription,
+    status,
+  });
   const sourceUrl = findUrl(record, urlKeys) ?? undefined;
   const imageUrl = findPreferredImageUrl(record) ?? undefined;
 
@@ -297,7 +418,7 @@ function normalizeTicketTailorEvent(
     description,
     shortDescription,
     tags: [],
-    isPublic: true,
+    isPublic,
     showOnHome: true,
     featured: false,
     bookingUrl: sourceUrl ?? TICKET_TAILOR_PUBLIC_URL,
@@ -307,6 +428,88 @@ function normalizeTicketTailorEvent(
     startTime,
     endTime,
     timeLabel,
+    rawTicketTailorPayload: record,
+  };
+}
+
+function normalizeTicketTailorOrder(
+  record: TicketTailorRecord,
+): TicketTailorOrder | null {
+  const ticketTailorOrderId = findString(record, [
+    "id",
+    "order_id",
+    "orderId",
+    "object_id",
+  ]);
+
+  if (!ticketTailorOrderId) {
+    return null;
+  }
+
+  return {
+    ticketTailorOrderId,
+    buyerEmail:
+      findString(record, [
+        "buyer_email",
+        "email",
+        "customer_email",
+        "purchaser_email",
+        "buyer.email",
+        "customer.email",
+        "order.email",
+      ]) ?? undefined,
+    buyerFirstName:
+      findString(record, [
+        "buyer_first_name",
+        "first_name",
+        "customer_first_name",
+        "purchaser_first_name",
+        "buyer.first_name",
+        "customer.first_name",
+        "order.first_name",
+      ]) ?? undefined,
+    buyerLastName:
+      findString(record, [
+        "buyer_last_name",
+        "last_name",
+        "customer_last_name",
+        "purchaser_last_name",
+        "buyer.last_name",
+        "customer.last_name",
+        "order.last_name",
+      ]) ?? undefined,
+    ticketTailorEventId:
+      findString(record, [
+        "ticket_tailor_event_id",
+        "event_id",
+        "eventId",
+        "event_summary.id",
+        "event_summary.event_id",
+        "event_summary.eventId",
+        "event.id",
+        "event.event_id",
+        "event.object_id",
+      ]) ?? undefined,
+    paymentStatus:
+      findString(record, [
+        "payment_status",
+        "paymentStatus",
+        "payment_state",
+        "payment.status",
+        "payment.state",
+      ]) ?? undefined,
+    orderStatus:
+      findString(record, ["order_status", "status", "state"]) ?? undefined,
+    totalTickets:
+      findNumber(record, [
+        "total_tickets",
+        "ticket_quantity",
+        "quantity",
+        "num_tickets",
+        "number_of_tickets",
+        "total_issued_tickets",
+      ]) ?? countTicketLikeItems(record),
+    rawPayload: record,
   };
 }
 
@@ -344,6 +547,77 @@ function isPublishedStatus(status?: string) {
   );
 }
 
+function inferTicketTailorIsPublic(
+  record: TicketTailorRecord,
+  text: {
+    title?: string;
+    description?: string;
+    shortDescription?: string;
+    status?: string;
+  },
+) {
+  if (findBoolean(record, ["private"]) === true) {
+    return false;
+  }
+
+  if (
+    ["hidden", "unlisted", "private_event", "is_private"].some(
+      (key) => findBoolean(record, [key]) === true,
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    [
+      "show_on_box_office",
+      "showOnBoxOffice",
+      "listed",
+      "event_page",
+      "search",
+    ].some((key) => findBoolean(record, [key]) === false)
+  ) {
+    return false;
+  }
+
+  const visibility = findString(record, [
+    "visibility",
+    "status",
+    "state",
+    "box_office",
+    "box_office.visibility",
+    "event_page.visibility",
+    "listing_status",
+  ]);
+
+  if (visibility && isPrivateVisibilityValue(visibility)) {
+    return false;
+  }
+
+  const fallbackText = [
+    text.title,
+    text.description,
+    text.shortDescription,
+    text.status,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return !/\bprivate\b/.test(fallbackText);
+}
+
+function isPrivateVisibilityValue(value: string) {
+  return [
+    "hidden",
+    "private",
+    "unlisted",
+    "not listed",
+    "not_listed",
+    "not-listed",
+  ].some((term) => value.toLowerCase().includes(term));
+}
+
 function isRecord(value: unknown): value is TicketTailorRecord {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -360,6 +634,46 @@ function findString(record: TicketTailorRecord, keys: string[]): string | null {
     if (isRecord(value)) {
       const nestedValue = findString(value, keys);
       if (nestedValue) {
+        return nestedValue;
+      }
+    }
+  }
+
+  return null;
+}
+
+function findBoolean(record: TicketTailorRecord, keys: string[]): boolean | null {
+  for (const key of keys) {
+    const directValue = getBoolean(getPath(record, key));
+    if (directValue !== null) {
+      return directValue;
+    }
+  }
+
+  for (const value of Object.values(record)) {
+    if (isRecord(value)) {
+      const nestedValue = findBoolean(value, keys);
+      if (nestedValue !== null) {
+        return nestedValue;
+      }
+    }
+  }
+
+  return null;
+}
+
+function findNumber(record: TicketTailorRecord, keys: string[]): number | null {
+  for (const key of keys) {
+    const directValue = getNumber(getPath(record, key));
+    if (directValue !== null) {
+      return directValue;
+    }
+  }
+
+  for (const value of Object.values(record)) {
+    if (isRecord(value)) {
+      const nestedValue = findNumber(value, keys);
+      if (nestedValue !== null) {
         return nestedValue;
       }
     }
@@ -480,6 +794,45 @@ function findDate(record: TicketTailorRecord, keys: string[]): string | null {
 
 function getString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function getBoolean(value: unknown): boolean | null {
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["true", "1", "yes"].includes(normalized)) return true;
+    if (["false", "0", "no"].includes(normalized)) return false;
+  }
+
+  return null;
+}
+
+function getNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+}
+
+function countTicketLikeItems(record: TicketTailorRecord): number | undefined {
+  const candidates = [
+    getPath(record, "tickets"),
+    getPath(record, "issued_tickets"),
+    getPath(record, "line_items"),
+    getPath(record, "items"),
+  ];
+  const array = candidates.find(Array.isArray);
+
+  return Array.isArray(array) ? array.length : undefined;
 }
 
 function getPath(record: TicketTailorRecord, path: string): unknown {

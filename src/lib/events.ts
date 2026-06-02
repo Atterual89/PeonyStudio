@@ -40,6 +40,7 @@ export type PeonyEvent = {
   dateLabel?: string;
   durationLabel?: string;
   workshopSlug?: string;
+  rawTicketTailorPayload?: Record<string, unknown>;
 };
 
 type LocalEventsFile =

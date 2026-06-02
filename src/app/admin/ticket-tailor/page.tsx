@@ -1,0 +1,396 @@
+"use client";
+
+import { FormEvent, useState } from "react";
+
+type SyncStep = {
+  label: string;
+  endpoint: string;
+};
+
+type SyncResult = {
+  label: string;
+  ok: boolean;
+  summary: string;
+};
+
+type Participant = {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  participant_type: string | null;
+  ticket_tailor_event_id: string | null;
+  association_status: string | null;
+  association_expires_at: string | null;
+  checked_in: boolean | null;
+  checked_in_source: string | null;
+  ticket_tailor_order_id: string | null;
+};
+
+const syncSteps: SyncStep[] = [
+  {
+    label: "Eventi",
+    endpoint: "/api/admin/ticket-tailor/sync-events",
+  },
+  {
+    label: "Ordini",
+    endpoint: "/api/admin/ticket-tailor/sync-orders",
+  },
+  {
+    label: "Ticket emessi",
+    endpoint: "/api/admin/ticket-tailor/sync-issued-tickets",
+  },
+  {
+    label: "Partecipanti",
+    endpoint: "/api/admin/ticket-tailor/sync-participants",
+  },
+];
+
+export default function TicketTailorAdminPage() {
+  const [secret, setSecret] = useState("");
+  const [syncing, setSyncing] = useState(false);
+  const [loadingParticipants, setLoadingParticipants] = useState(false);
+  const [syncResults, setSyncResults] = useState<SyncResult[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [participantError, setParticipantError] = useState<string | null>(null);
+  const [filters, setFilters] = useState({
+    ticket_tailor_event_id: "",
+    participant_type: "attendee",
+    checked_in: "",
+    association_status: "",
+  });
+
+  async function handleSync() {
+    if (!secret.trim()) {
+      setSyncResults([
+        {
+          label: "Errore",
+          ok: false,
+          summary: "Inserisci l'Admin sync secret.",
+        },
+      ]);
+      return;
+    }
+
+    setSyncing(true);
+    setSyncResults([]);
+
+    const results: SyncResult[] = [];
+
+    for (const step of syncSteps) {
+      try {
+        const response = await fetch(step.endpoint, {
+          method: "POST",
+          headers: {
+            "x-admin-sync-secret": secret,
+          },
+        });
+        const payload = (await response.json()) as Record<string, unknown>;
+
+        results.push({
+          label: step.label,
+          ok: response.ok && payload.ok !== false,
+          summary: summarizePayload(payload),
+        });
+      } catch (error) {
+        results.push({
+          label: step.label,
+          ok: false,
+          summary: error instanceof Error ? error.message : "Errore sconosciuto.",
+        });
+      }
+
+      setSyncResults([...results]);
+    }
+
+    setSyncing(false);
+    await loadParticipants();
+  }
+
+  async function loadParticipants(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
+
+    if (!secret.trim()) {
+      setParticipantError("Inserisci l'Admin sync secret.");
+      return;
+    }
+
+    setLoadingParticipants(true);
+    setParticipantError(null);
+
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(filters)) {
+      if (value.trim()) {
+        params.set(key, value.trim());
+      }
+    }
+
+    try {
+      const response = await fetch(`/api/admin/participants?${params}`, {
+        headers: {
+          "x-admin-sync-secret": secret,
+        },
+      });
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        participants?: Participant[];
+        error?: string;
+        message?: string;
+      };
+
+      if (!response.ok || payload.ok === false) {
+        setParticipants([]);
+        setParticipantError(
+          payload.error ?? payload.message ?? "Errore caricamento partecipanti.",
+        );
+      } else {
+        setParticipants(payload.participants ?? []);
+      }
+    } catch (error) {
+      setParticipants([]);
+      setParticipantError(
+        error instanceof Error ? error.message : "Errore sconosciuto.",
+      );
+    } finally {
+      setLoadingParticipants(false);
+    }
+  }
+
+  return (
+    <main className="min-h-screen bg-[#f4efe8] px-5 py-8 text-[#211815] sm:px-6">
+      <div className="mx-auto max-w-7xl">
+        <section className="rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.06)] md:p-7">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+            Admin
+          </p>
+          <h1 className="mt-3 font-serif text-4xl font-medium md:text-5xl">
+            Ticket Tailor sync
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
+            Strumento tecnico minimo per sincronizzare eventi, ordini, ticket e
+            partecipanti. Nessun secret viene salvato nel client.
+          </p>
+
+          <div className="mt-6 flex flex-col gap-3 md:flex-row md:items-end">
+            <label className="flex-1 text-sm font-medium text-[#5f524c]">
+              Admin sync secret
+              <input
+                className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-[#f4efe8]/80 px-3 py-2 text-[#211815] outline-none transition focus:border-[#8b5e4a]"
+                type="password"
+                value={secret}
+                onChange={(event) => setSecret(event.target.value)}
+                autoComplete="off"
+              />
+            </label>
+            <button
+              className="rounded-full bg-[#211815] px-5 py-2.5 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
+              type="button"
+              disabled={syncing}
+              onClick={handleSync}
+            >
+              {syncing ? "Sincronizzo..." : "Sincronizza Ticket Tailor"}
+            </button>
+          </div>
+
+          {syncResults.length > 0 ? (
+            <div className="mt-5 grid gap-3 md:grid-cols-4">
+              {syncResults.map((result) => (
+                <div
+                  className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3"
+                  key={result.label}
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
+                    {result.label}
+                  </p>
+                  <p
+                    className={`mt-2 text-sm font-medium ${
+                      result.ok ? "text-[#2f5b3a]" : "text-[#8b2f2a]"
+                    }`}
+                  >
+                    {result.ok ? "OK" : "Errore"}
+                  </p>
+                  <p className="mt-2 text-xs leading-5 text-[#5f524c]">
+                    {result.summary}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </section>
+
+        <section className="mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+                Partecipanti
+              </p>
+              <h2 className="mt-2 font-serif text-3xl font-medium">
+                Event participants
+              </h2>
+            </div>
+          </div>
+
+          <form
+            className="mt-5 grid gap-3 md:grid-cols-5"
+            onSubmit={loadParticipants}
+          >
+            <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+              Ticket Tailor event ID
+              <input
+                className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-[#f4efe8]/80 px-3 py-2 text-sm normal-case tracking-normal outline-none focus:border-[#8b5e4a]"
+                value={filters.ticket_tailor_event_id}
+                onChange={(event) =>
+                  setFilters((current) => ({
+                    ...current,
+                    ticket_tailor_event_id: event.target.value,
+                  }))
+                }
+                placeholder="ev_..."
+              />
+            </label>
+            <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+              Tipo
+              <select
+                className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-[#f4efe8]/80 px-3 py-2 text-sm normal-case tracking-normal outline-none focus:border-[#8b5e4a]"
+                value={filters.participant_type}
+                onChange={(event) =>
+                  setFilters((current) => ({
+                    ...current,
+                    participant_type: event.target.value,
+                  }))
+                }
+              >
+                <option value="">Tutti</option>
+                <option value="attendee">attendee</option>
+                <option value="buyer">buyer</option>
+              </select>
+            </label>
+            <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+              Check-in
+              <select
+                className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-[#f4efe8]/80 px-3 py-2 text-sm normal-case tracking-normal outline-none focus:border-[#8b5e4a]"
+                value={filters.checked_in}
+                onChange={(event) =>
+                  setFilters((current) => ({
+                    ...current,
+                    checked_in: event.target.value,
+                  }))
+                }
+              >
+                <option value="">Tutti</option>
+                <option value="true">Sì</option>
+                <option value="false">No</option>
+              </select>
+            </label>
+            <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+              Associazione
+              <input
+                className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-[#f4efe8]/80 px-3 py-2 text-sm normal-case tracking-normal outline-none focus:border-[#8b5e4a]"
+                value={filters.association_status}
+                onChange={(event) =>
+                  setFilters((current) => ({
+                    ...current,
+                    association_status: event.target.value,
+                  }))
+                }
+                placeholder="unknown"
+              />
+            </label>
+            <button
+              className="rounded-full border border-[#211815]/20 px-5 py-2.5 text-sm font-semibold text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55 md:self-end"
+              type="submit"
+              disabled={loadingParticipants}
+            >
+              {loadingParticipants ? "Carico..." : "Carica partecipanti"}
+            </button>
+          </form>
+
+          {participantError ? (
+            <p className="mt-4 rounded-[8px] border border-[#8b2f2a]/20 bg-[#8b2f2a]/5 p-3 text-sm text-[#8b2f2a]">
+              {participantError}
+            </p>
+          ) : null}
+
+          <div className="mt-5 overflow-x-auto rounded-[8px] border border-[#211815]/10">
+            <table className="min-w-[1200px] w-full border-collapse bg-[#f4efe8]/60 text-left text-sm">
+              <thead className="bg-[#211815]/5 text-[11px] uppercase tracking-[0.14em] text-[#5f524c]">
+                <tr>
+                  {[
+                    "first_name",
+                    "last_name",
+                    "email",
+                    "participant_type",
+                    "ticket_tailor_event_id",
+                    "association_status",
+                    "association_expires_at",
+                    "checked_in",
+                    "checked_in_source",
+                    "ticket_tailor_order_id",
+                  ].map((column) => (
+                    <th className="border-b border-[#211815]/10 px-3 py-3" key={column}>
+                      {column}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {participants.length > 0 ? (
+                  participants.map((participant) => (
+                    <tr className="border-b border-[#211815]/8" key={participant.id}>
+                      <td className="px-3 py-3">{participant.first_name ?? "-"}</td>
+                      <td className="px-3 py-3">{participant.last_name ?? "-"}</td>
+                      <td className="px-3 py-3">{participant.email ?? "-"}</td>
+                      <td className="px-3 py-3">{participant.participant_type ?? "-"}</td>
+                      <td className="px-3 py-3">{participant.ticket_tailor_event_id ?? "-"}</td>
+                      <td className="px-3 py-3">{participant.association_status ?? "-"}</td>
+                      <td className="px-3 py-3">{participant.association_expires_at ?? "-"}</td>
+                      <td className="px-3 py-3">
+                        {participant.checked_in === null
+                          ? "-"
+                          : participant.checked_in
+                            ? "Sì"
+                            : "No"}
+                      </td>
+                      <td className="px-3 py-3">{participant.checked_in_source ?? "-"}</td>
+                      <td className="px-3 py-3">{participant.ticket_tailor_order_id ?? "-"}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td className="px-3 py-8 text-center text-[#5f524c]" colSpan={10}>
+                      Nessun partecipante caricato.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}
+
+function summarizePayload(payload: Record<string, unknown>) {
+  const keys = [
+    "fetched",
+    "targetEvents",
+    "matched",
+    "upserted",
+    "skipped",
+    "ordersRead",
+    "ticketsFound",
+    "ticketsRead",
+    "buyerParticipantsUpserted",
+    "attendeeParticipantsUpserted",
+    "errors",
+  ];
+
+  return keys
+    .filter((key) => key in payload)
+    .map((key) => {
+      const value = payload[key];
+      return `${key}: ${Array.isArray(value) ? value.length : String(value)}`;
+    })
+    .join(" · ");
+}
