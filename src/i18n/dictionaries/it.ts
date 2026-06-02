@@ -1,0 +1,246 @@
+export const it = {
+  meta: {
+    title: "Peony Studio — Kinbaku Torino",
+    description:
+      "Peony Studio e una scuola, venue e community di kinbaku a Torino.",
+  },
+  nav: {
+    howToStart: "Come iniziare",
+    programs: "Percorsi",
+    practice: "Pratica & Community",
+    workshops: "Workshop",
+    calendar: "Calendario",
+    peony: "Peony",
+    shop: "Shop",
+    personalArea: "Area personale",
+  },
+  chrome: {
+    menu: "Menu",
+    closeMenu: "Chiudi menu",
+    language: "Lingua",
+    chooseLanguage: "Scegli lingua",
+    mobileFooter: "Peony Studio — Kinbaku a Torino",
+    homeAria: "Peony Studio home",
+  },
+  footer: {
+    brand: "PEONY STUDIO",
+    copyright: "Kinbaku, pratica e community a Torino.",
+    columns: [
+      {
+        title: "Studio",
+        links: [
+          { label: "Peony", href: "/peony" },
+          { label: "Come iniziare", href: "/come-iniziare" },
+          { label: "Calendario", href: "/calendario" },
+        ],
+      },
+      {
+        title: "Attivita",
+        links: [
+          { label: "Percorsi", href: "/percorsi" },
+          { label: "Pratica & Community", href: "/pratica" },
+          { label: "Workshop", href: "/workshop" },
+        ],
+      },
+      {
+        title: "Area",
+        links: [
+          { label: "Shop", href: "/shop" },
+          { label: "Area personale", href: "/area-personale" },
+        ],
+      },
+    ],
+  },
+  login: {
+    eyebrow: "Area personale",
+    title: "Accedi alla tua area personale",
+    intro:
+      "Inserisci la stessa email usata per prenotare gli eventi Peony Studio. Ti invieremo un link sicuro per entrare senza password.",
+    calendarHelp:
+      "Se hai prenotato con un'altra email, accedi usando quella. Per dubbi puoi tornare al",
+    calendarLink: "calendario",
+    emailLabel: "Email",
+    emailPlaceholder: "nome@email.com",
+    submit: "Entra nell'area personale",
+    submitting: "Invio in corso...",
+    success: "Controlla la tua email: ti abbiamo inviato il link per accedere.",
+    invalidEmail: "Inserisci una email valida.",
+    error:
+      "Non siamo riusciti a inviare il link di accesso. Riprova tra poco.",
+  },
+  personalArea: {
+    eyebrow: "Area personale",
+    title: "Area personale",
+    loggedInAs: "Accesso effettuato con",
+    openSummary: "Apri riepilogo",
+    closeSummary: "Chiudi riepilogo",
+    calendarCta: "Vai al calendario",
+    activeSection: "Sezione attiva",
+    menu: "Menu",
+    recap: "Riepilogo",
+    profile: "Profilo",
+    status: "Stato",
+    enrollmentsMetric: "Iscrizioni",
+    eventsMetric: "Eventi",
+    profileOk: "OK",
+    profileCheck: "Check",
+    navAria: "Area personale",
+    sections: {
+      next: {
+        title: "Prossimo evento",
+        text: "La prossima data collegata alla tua email.",
+      },
+      events: {
+        title: "I miei eventi",
+        text: "Appuntamenti futuri e passati in un unico spazio.",
+      },
+      membership: {
+        title: "Tessera associativa",
+        text: "Stato e scadenza, quando disponibili.",
+      },
+      info: {
+        title: "Informazioni utili",
+        text: "Accesso allo studio, regole e contatto emergenza.",
+      },
+      partner: {
+        title: "Partner / accompagnatore",
+        text: "Uno spazio che arrivera piu avanti.",
+      },
+      path: {
+        title: "Il mio percorso",
+        text: "Una traccia orientativa dentro Peony Studio.",
+      },
+    },
+    labels: {
+      nextDate: "Prossima data",
+      event: "Evento",
+      peonyEvent: "Evento Peony Studio",
+      ticketTailor: "Ticket Tailor",
+      openEventDetails: "Vedi dettagli evento",
+      appointments: "Appuntamenti",
+      future: "Futuri",
+      past: "Passati",
+      detail: "Dettaglio",
+      eventDetails: "Dettagli evento",
+      program: "Programma / orari",
+      location: "Location",
+      directions: "Come arrivare",
+      access: "Come accedere allo studio",
+      spaceRules: "Regole dello spazio",
+      emergency: "Contatto emergenza",
+      ticketStatus: "Stato iscrizione / ticket",
+      openTicketTailor: "Apri Ticket Tailor",
+      chooseEvent:
+        "Seleziona un evento per vedere le informazioni utili.",
+      membership: "Associazione",
+      membershipStatus: "Stato",
+      expiry: "Scadenza",
+      toVerify: "Da verificare",
+      address: "Indirizzo",
+      entrance: "Ingresso",
+      metro: "Metro",
+      arrival: "Arrivo",
+      space: "Spazio",
+      path: "Percorso",
+    },
+    copy: {
+      noEvents:
+        "Non risultano ancora eventi associati a questa email. Se hai prenotato con un'altra email, accedi usando quella.",
+      membershipUnknown:
+        "Lo stato della tessera sara verificato dallo staff.",
+      membershipManual:
+        "Questo stato viene aggiornato manualmente dallo staff.",
+      membershipHelp: "Se hai dubbi, scrivici prima dell'evento.",
+      location: "Peony Studio, Via Vandalino 85/38, Torino.",
+      directions: "Metro Marche, uscita Via Eritrea, 5 minuti a piedi.",
+      access:
+        "Citofono: UR Expression. Lo studio si trova al piano -1.",
+      rules:
+        "Non sostare in gruppo davanti al portone. Fare silenzio sulle scale. Spazio senza scarpe. Vietato fumare/vape. No drink aperti nell'area corde/workshop. Acqua disponibile in cucina.",
+      emergency: "+39 320 6486577 Andrea, WhatsApp/Telegram.",
+      entrance: "Citofono: UR Expression. Piano -1.",
+      arrival:
+        "Non sostare in gruppo davanti al portone. Fare silenzio sulle scale.",
+      space:
+        "Spazio senza scarpe. Vietato fumare/vape. No drink aperti nell'area corde/workshop. Acqua disponibile in cucina.",
+      partner:
+        "In futuro potrai indicare qui la persona con cui parteciperai. Per ora, se hai bisogno di comunicarci qualcosa prima di un evento, scrivici sui canali abituali.",
+      path:
+        "Pratica assistita e classi tematiche accompagnano il percorso come attivita parallele. La logica di progresso arrivera in uno step successivo.",
+    },
+    statuses: {
+      confirmed: "Iscrizione confermata",
+      unknown: "Da verificare",
+      missing: "Mancante",
+      pending: "In verifica",
+      verified: "Verificata",
+      expired: "Scaduta",
+      notRequired: "Non richiesta",
+      dateToConfirm: "Data da confermare",
+    },
+  },
+  calendar: {
+    filters: "Filtri",
+    noActiveFilters: "Nessun filtro attivo",
+    resetFilters: "Reset filtri",
+    showFilters: "Mostra filtri",
+    hideFilters: "Nascondi filtri",
+    searchPlaceholder: "Cerca per titolo, formato o tag",
+    searchEvent: "Cerca evento",
+    category: "Categoria",
+    period: "Periodo",
+    allTags: "Tutti i tag",
+    noResults: "Nessun evento trovato con questi filtri.",
+    openTicketTailor: "Apri Ticket Tailor",
+    monthlyCalendar: "Calendario mensile",
+    filteredEvents: "eventi filtrati",
+    showCalendar: "Mostra calendario",
+    hideCalendar: "Nascondi calendario",
+    previousMonth: "Mese precedente",
+    nextMonth: "Mese successivo",
+    selectedDay: "Giorno selezionato",
+    eventsOf: "Eventi del",
+    noEventsDay: "Nessun evento in questa data.",
+    details: "Dettagli",
+    book: "Prenota",
+    filtersList: {
+      all: "Tutti",
+      programs: "Percorsi",
+      practice: "Pratica",
+      community: "Community",
+      workshops: "Workshop",
+      next30: "Prossimi 30 giorni",
+      next90: "Prossimi 3 mesi",
+      season: "Stagione completa",
+    },
+    sections: {
+      upcoming: {
+        title: "Prossimi appuntamenti",
+        subtitle: "Le date piu vicine, ordinate per giorno.",
+      },
+      percorso: {
+        title: "Percorsi",
+        subtitle: "Cicli e classi strutturate per costruire continuita.",
+      },
+      pratica: {
+        title: "Pratica",
+        subtitle: "Serate per ripetere, consolidare e fare domande.",
+      },
+      community: {
+        title: "Community",
+        subtitle: "Occasioni per incontrare persone e vivere lo spazio.",
+      },
+      workshop: {
+        title: "Workshop",
+        subtitle: "Appuntamenti intensivi e approfondimenti specifici.",
+      },
+    },
+    categoryLabels: {
+      percorso: "Percorso",
+      pratica: "Pratica",
+      community: "Community",
+      workshop: "Workshop",
+      altro: "Evento",
+    },
+  },
+};

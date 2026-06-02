@@ -4,21 +4,23 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { BrandLogo } from "@/components/site/BrandLogo";
-
-const navItems = [
-  { href: "/come-iniziare", label: "Come iniziare" },
-  { href: "/percorsi", label: "Percorsi" },
-  { href: "/pratica", label: "Pratica & Community" },
-  { href: "/workshop", label: "Workshop" },
-  { href: "/calendario", label: "Calendario" },
-  { href: "/peony", label: "Peony" },
-  { href: "/shop", label: "Shop" },
-  { href: "/dashboard", label: "Area personale" },
-];
+import { useLanguage } from "@/components/site/LanguageProvider";
+import { LanguageSelector } from "@/components/site/LanguageSelector";
 
 export function SiteHeader() {
+  const { dictionary } = useLanguage();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const navItems = [
+    { href: "/come-iniziare", label: dictionary.nav.howToStart },
+    { href: "/percorsi", label: dictionary.nav.programs },
+    { href: "/pratica", label: dictionary.nav.practice },
+    { href: "/workshop", label: dictionary.nav.workshops },
+    { href: "/calendario", label: dictionary.nav.calendar },
+    { href: "/peony", label: dictionary.nav.peony },
+    { href: "/shop", label: dictionary.nav.shop },
+    { href: "/area-personale", label: dictionary.nav.personalArea },
+  ];
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -48,7 +50,7 @@ export function SiteHeader() {
               : "shadow-[0_1px_0_rgba(33,24,21,0.04)]"
           }`}
         >
-          <Link href="/" aria-label="Peony Studio home">
+          <Link href="/" aria-label={dictionary.chrome.homeAria}>
             <BrandLogo compact />
           </Link>
 
@@ -64,13 +66,20 @@ export function SiteHeader() {
             ))}
           </nav>
 
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="h-10 rounded-full border border-[#211815]/20 bg-white/60 px-4 text-sm font-medium text-[#211815] transition hover:bg-white/85 xl:hidden"
-          >
-            Menu
-          </button>
+          <div className="hidden items-center gap-2 xl:flex">
+            <LanguageSelector />
+          </div>
+
+          <div className="flex items-center gap-2 xl:hidden">
+            <LanguageSelector compact />
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="h-10 rounded-full border border-[#211815]/20 bg-white/60 px-4 text-sm font-medium text-[#211815] transition hover:bg-white/85"
+            >
+              {dictionary.chrome.menu}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -84,7 +93,7 @@ export function SiteHeader() {
           <button
             type="button"
             onClick={() => setOpen(false)}
-            aria-label="Chiudi menu"
+            aria-label={dictionary.chrome.closeMenu}
             className="grid h-11 w-11 place-items-center rounded-full border border-[#211815]/20 bg-white/70 text-lg text-[#211815]"
           >
             x
@@ -110,8 +119,15 @@ export function SiteHeader() {
           ))}
         </nav>
 
+        <div className="mt-8">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8b5e4a]">
+            {dictionary.chrome.language}
+          </p>
+          <LanguageSelector />
+        </div>
+
         <p className="mt-auto border-t border-[#211815]/10 pt-5 text-sm text-[#5f524c]">
-          Peony Studio — Kinbaku a Torino
+          {dictionary.chrome.mobileFooter}
         </p>
       </div>
     </>

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, DM_Sans } from "next/font/google";
+import { LanguageProvider } from "@/components/site/LanguageProvider";
 import { ScrollProgress } from "@/components/site/ScrollProgress";
+import { getDictionary } from "@/i18n/getDictionary";
 import "./globals.css";
 
 const serif = Cormorant_Garamond({
@@ -16,9 +18,8 @@ const sans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Peony Studio — Kinbaku Torino",
-  description:
-    "Peony Studio è una scuola, venue e community di kinbaku a Torino.",
+  title: getDictionary("it").meta.title,
+  description: getDictionary("it").meta.description,
 };
 
 export default function RootLayout({
@@ -32,8 +33,10 @@ export default function RootLayout({
       className={`${serif.variable} ${sans.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <ScrollProgress />
-        {children}
+        <LanguageProvider>
+          <ScrollProgress />
+          {children}
+        </LanguageProvider>
       </body>
     </html>
   );

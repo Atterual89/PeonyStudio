@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 
+import { useLanguage } from "@/components/site/LanguageProvider";
 import type { homeContent } from "@/content/home";
 
 type HomeFooterProps = {
@@ -7,18 +10,21 @@ type HomeFooterProps = {
 };
 
 export function HomeFooter({ content }: HomeFooterProps) {
+  const { dictionary } = useLanguage();
+  const footer = dictionary.footer ?? content;
+
   return (
     <footer className="border-t border-[#211815]/10 bg-[#efe4d7] px-5 py-10 sm:px-6">
       <div className="mx-auto grid max-w-6xl gap-10 md:grid-cols-[1.2fr_2fr]">
         <div>
           <p className="font-serif text-lg font-medium tracking-[0.08em]">
-            {content.brand}
+            {footer.brand}
           </p>
-          <p className="mt-4 text-sm text-[#5f524c]">{content.copyright}</p>
+          <p className="mt-4 text-sm text-[#5f524c]">{footer.copyright}</p>
         </div>
 
         <div className="grid gap-8 sm:grid-cols-3">
-          {content.columns.map((column) => (
+          {footer.columns.map((column) => (
             <div key={column.title}>
               <h2 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8b5e4a]">
                 {column.title}

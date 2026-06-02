@@ -4,6 +4,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 
+import { useLanguage } from "@/components/site/LanguageProvider";
+import type { Dictionary } from "@/i18n/getDictionary";
 import type { PersonalAreaData } from "@/lib/personal-area";
 
 type SectionId =
@@ -15,52 +17,41 @@ type SectionId =
   | "path";
 
 type Enrollment = PersonalAreaData["enrollments"][number];
+type PersonalAreaCopy = Dictionary["personalArea"];
 
-const sectionCards: Array<{
+const sectionCardConfig: Array<{
   id: SectionId;
-  title: string;
-  text: string;
   icon: string;
 }> = [
   {
     id: "next",
-    title: "Prossimo evento",
-    text: "La prossima data collegata alla tua email.",
     icon: "calendar",
   },
   {
     id: "events",
-    title: "I miei eventi",
-    text: "Appuntamenti futuri e passati in un unico spazio.",
     icon: "ticket",
   },
   {
     id: "membership",
-    title: "Tessera associativa",
-    text: "Stato e scadenza, quando disponibili.",
     icon: "card",
   },
   {
     id: "info",
-    title: "Informazioni utili",
-    text: "Accesso allo studio, regole e contatto emergenza.",
     icon: "info",
   },
   {
     id: "partner",
-    title: "Partner / accompagnatore",
-    text: "Uno spazio che arrivera piu avanti.",
     icon: "people",
   },
   {
     id: "path",
-    title: "Il mio percorso",
-    text: "Una traccia orientativa dentro Peony Studio.",
     icon: "path",
   },
 ];
 
 export function PersonalAreaDashboard({ data }: { data: PersonalAreaData }) {
+  const { dictionary, locale } = useLanguage();
+  const copy = dictionary.personalArea;
   const [activeSection, setActiveSection] = useState<SectionId>("next");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedEnrollmentId, setSelectedEnrollmentId] = useState<
@@ -103,13 +94,13 @@ export function PersonalAreaDashboard({ data }: { data: PersonalAreaData }) {
         <div className="relative flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8b5e4a]">
-              Area personale
+              {copy.eyebrow}
             </p>
             <h1 className="mt-4 font-serif text-[clamp(42px,8vw,72px)] font-medium leading-[0.98]">
-              Area personale
+              {copy.title}
             </h1>
             <p className="mt-4 max-w-xl text-sm leading-6 text-[#5f524c]">
-              Accesso effettuato con{" "}
+              {copy.loggedInAs}{" "}
               <span className="font-semibold text-[#211815]">{data.email}</span>
               .
             </p>
@@ -120,13 +111,13 @@ export function PersonalAreaDashboard({ data }: { data: PersonalAreaData }) {
               type="button"
               onClick={() => setSidebarOpen(true)}
             >
-              Apri riepilogo
+              {copy.openSummary}
             </button>
             <Link
               className="inline-flex w-fit rounded-full border border-[#211815]/20 px-5 py-2.5 text-sm font-semibold text-[#211815] transition hover:-translate-y-0.5 hover:border-[#8b5e4a]"
               href="/calendario"
             >
-              Vai al calendario
+              {copy.calendarCta}
             </Link>
           </div>
         </div>
@@ -138,6 +129,7 @@ export function PersonalAreaDashboard({ data }: { data: PersonalAreaData }) {
             <DashboardSidebar
               activeSection={activeSection}
               data={data}
+              copy={copy}
               onSectionChange={openSection}
             />
           </div>
@@ -147,10 +139,10 @@ export function PersonalAreaDashboard({ data }: { data: PersonalAreaData }) {
           <div className="mb-4 flex items-center justify-between rounded-[8px] border border-[#211815]/10 bg-white/45 px-4 py-3 lg:hidden">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8b5e4a]">
-                Sezione attiva
+                {copy.activeSection}
               </p>
               <p className="font-serif text-2xl font-medium">
-                {getSectionTitle(activeSection)}
+                {getSectionTitle(activeSection, copy)}
               </p>
             </div>
             <button
@@ -158,34 +150,41 @@ export function PersonalAreaDashboard({ data }: { data: PersonalAreaData }) {
               type="button"
               onClick={() => setSidebarOpen(true)}
             >
-              Menu
+              {copy.menu}
             </button>
           </div>
 
           {activeSection === "next" ? (
-            <NextEventSection enrollment={nextEnrollment} onOpen={openEvent} />
+            <NextEventSection
+              copy={copy}
+              enrollment={nextEnrollment}
+              locale={locale}
+              onOpen={openEvent}
+            />
           ) : null}
           {activeSection === "events" ? (
             <EventsSection
+              copy={copy}
               futureEnrollments={futureEnrollments}
+              locale={locale}
               pastEnrollments={pastEnrollments}
               selectedEnrollment={selectedEnrollment}
               onOpen={openEvent}
             />
           ) : null}
           {activeSection === "membership" ? (
-            <MembershipSection data={data} />
+            <MembershipSection copy={copy} data={data} locale={locale} />
           ) : null}
-          {activeSection === "info" ? <UsefulInfoSection /> : null}
-          {activeSection === "partner" ? <PartnerSection /> : null}
-          {activeSection === "path" ? <PathSection /> : null}
+          {activeSection === "info" ? <UsefulInfoSection copy={copy} /> : null}
+          {activeSection === "partner" ? <PartnerSection copy={copy} /> : null}
+          {activeSection === "path" ? <PathSection copy={copy} /> : null}
         </div>
       </div>
 
       {sidebarOpen ? (
         <div className="fixed inset-0 z-50 lg:hidden">
           <button
-            aria-label="Chiudi riepilogo"
+            aria-label={copy.closeSummary}
             className="absolute inset-0 bg-[#211815]/35"
             type="button"
             onClick={() => setSidebarOpen(false)}
@@ -193,10 +192,10 @@ export function PersonalAreaDashboard({ data }: { data: PersonalAreaData }) {
           <div className="relative h-full w-[min(88vw,360px)] overflow-y-auto bg-[#f4efe8] p-4 shadow-[18px_0_48px_rgba(33,24,21,0.18)]">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8b5e4a]">
-                Riepilogo
+                {copy.recap}
               </p>
               <button
-                aria-label="Chiudi riepilogo"
+                aria-label={copy.closeSummary}
                 className="grid h-10 w-10 place-items-center rounded-full border border-[#211815]/15 bg-white/55 text-lg"
                 type="button"
                 onClick={() => setSidebarOpen(false)}
@@ -207,6 +206,7 @@ export function PersonalAreaDashboard({ data }: { data: PersonalAreaData }) {
             <DashboardSidebar
               activeSection={activeSection}
               data={data}
+              copy={copy}
               onSectionChange={openSection}
             />
           </div>
@@ -218,13 +218,17 @@ export function PersonalAreaDashboard({ data }: { data: PersonalAreaData }) {
 
 function DashboardSidebar({
   activeSection,
+  copy,
   data,
   onSectionChange,
 }: {
   activeSection: SectionId;
+  copy: PersonalAreaCopy;
   data: PersonalAreaData;
   onSectionChange: (sectionId: SectionId) => void;
 }) {
+  const sectionCards = getSectionCards(copy);
+
   return (
     <div className="rounded-[8px] border border-[#211815]/10 bg-white/55 p-4 shadow-[0_12px_36px_rgba(33,24,21,0.06)]">
       <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/75 p-4">
@@ -234,7 +238,7 @@ function DashboardSidebar({
           </div>
           <div className="min-w-0">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8b5e4a]">
-              Profilo
+              {copy.profile}
             </p>
             <p className="truncate text-sm font-semibold text-[#211815]">
               {data.email}
@@ -244,21 +248,21 @@ function DashboardSidebar({
 
         <div className="mt-4 grid grid-cols-3 gap-2">
           <SidebarMetric
-            label="Stato"
-            value={data.profileLinked ? "OK" : "Check"}
+            label={copy.status}
+            value={data.profileLinked ? copy.profileOk : copy.profileCheck}
           />
           <SidebarMetric
-            label="Iscrizioni"
+            label={copy.enrollmentsMetric}
             value={String(data.claimedBuyerParticipants)}
           />
           <SidebarMetric
-            label="Eventi"
+            label={copy.eventsMetric}
             value={String(data.enrollments.length)}
           />
         </div>
       </div>
 
-      <nav className="mt-4 space-y-2" aria-label="Area personale">
+      <nav className="mt-4 space-y-2" aria-label={copy.navAria}>
         {sectionCards.map((card) => (
           <button
             className={`group flex w-full items-center gap-3 rounded-[8px] border px-3 py-3 text-left transition ${
@@ -357,11 +361,16 @@ function NavIcon({ name }: { name: string }) {
   );
 }
 
-function getSectionTitle(sectionId: SectionId) {
-  return (
-    sectionCards.find((card) => card.id === sectionId)?.title ??
-    "Area personale"
-  );
+function getSectionCards(copy: PersonalAreaCopy) {
+  return sectionCardConfig.map((card) => ({
+    ...card,
+    title: copy.sections[card.id].title,
+    text: copy.sections[card.id].text,
+  }));
+}
+
+function getSectionTitle(sectionId: SectionId, copy: PersonalAreaCopy) {
+  return copy.sections[sectionId]?.title ?? copy.title;
 }
 
 function SectionShell({
@@ -387,27 +396,31 @@ function SectionShell({
 }
 
 function NextEventSection({
+  copy,
   enrollment,
+  locale,
   onOpen,
 }: {
+  copy: PersonalAreaCopy;
   enrollment: Enrollment | null;
+  locale: string;
   onOpen: (enrollment: Enrollment) => void;
 }) {
   return (
-    <SectionShell eyebrow="Prossima data" title="Prossimo evento">
+    <SectionShell eyebrow={copy.labels.nextDate} title={copy.sections.next.title}>
       {enrollment ? (
         <div className="mt-5 rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-5">
           <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
             <div>
               <div className="flex flex-wrap gap-2">
-                <Badge>{enrollment.events?.category ?? "Evento"}</Badge>
-                <Badge>Ticket Tailor</Badge>
+                <Badge>{enrollment.events?.category ?? copy.labels.event}</Badge>
+                <Badge>{copy.labels.ticketTailor}</Badge>
               </div>
               <h3 className="mt-4 font-serif text-3xl font-medium">
-                {enrollment.events?.title ?? "Evento Peony Studio"}
+                {enrollment.events?.title ?? copy.labels.peonyEvent}
               </h3>
               <p className="mt-3 text-sm leading-6 text-[#5f524c]">
-                {formatEventDate(enrollment.events?.starts_at)}
+                {formatEventDate(enrollment.events?.starts_at, copy, locale)}
               </p>
             </div>
             <button
@@ -415,42 +428,50 @@ function NextEventSection({
               type="button"
               onClick={() => onOpen(enrollment)}
             >
-              Vedi dettagli evento
+              {copy.labels.openEventDetails}
             </button>
           </div>
         </div>
       ) : (
-        <EmptyEventsMessage />
+        <EmptyEventsMessage copy={copy} />
       )}
     </SectionShell>
   );
 }
 
 function EventsSection({
+  copy,
   futureEnrollments,
+  locale,
   pastEnrollments,
   selectedEnrollment,
   onOpen,
 }: {
+  copy: PersonalAreaCopy;
   futureEnrollments: Enrollment[];
+  locale: string;
   pastEnrollments: Enrollment[];
   selectedEnrollment: Enrollment | null;
   onOpen: (enrollment: Enrollment) => void;
 }) {
   return (
     <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-      <SectionShell eyebrow="Appuntamenti" title="I miei eventi">
+      <SectionShell eyebrow={copy.labels.appointments} title={copy.sections.events.title}>
         {futureEnrollments.length === 0 && pastEnrollments.length === 0 ? (
-          <EmptyEventsMessage />
+          <EmptyEventsMessage copy={copy} />
         ) : (
           <div className="mt-5 space-y-6">
             <EventGroup
-              title="Futuri"
+              copy={copy}
+              locale={locale}
+              title={copy.labels.future}
               enrollments={futureEnrollments}
               onOpen={onOpen}
             />
             <EventGroup
-              title="Passati"
+              copy={copy}
+              locale={locale}
+              title={copy.labels.past}
               enrollments={pastEnrollments}
               onOpen={onOpen}
             />
@@ -458,18 +479,22 @@ function EventsSection({
         )}
       </SectionShell>
 
-      <EventDetail enrollment={selectedEnrollment} />
+      <EventDetail copy={copy} enrollment={selectedEnrollment} locale={locale} />
     </div>
   );
 }
 
 function EventGroup({
+  copy,
   title,
   enrollments,
+  locale,
   onOpen,
 }: {
+  copy: PersonalAreaCopy;
   title: string;
   enrollments: Enrollment[];
+  locale: string;
   onOpen: (enrollment: Enrollment) => void;
 }) {
   if (enrollments.length === 0) {
@@ -490,14 +515,14 @@ function EventGroup({
             onClick={() => onOpen(enrollment)}
           >
             <div className="flex flex-wrap gap-2">
-              <Badge>{enrollment.events?.category ?? "Evento"}</Badge>
-              <Badge>{formatEnrollmentStatus(enrollment.enrollment_status)}</Badge>
+              <Badge>{enrollment.events?.category ?? copy.labels.event}</Badge>
+              <Badge>{formatEnrollmentStatus(enrollment.enrollment_status, copy)}</Badge>
             </div>
             <p className="mt-3 font-serif text-2xl font-medium">
-              {enrollment.events?.title ?? "Evento Peony Studio"}
+              {enrollment.events?.title ?? copy.labels.peonyEvent}
             </p>
             <p className="mt-2 text-sm leading-6 text-[#5f524c]">
-              {formatEventDate(enrollment.events?.starts_at)}
+              {formatEventDate(enrollment.events?.starts_at, copy, locale)}
             </p>
           </button>
         ))}
@@ -506,53 +531,61 @@ function EventGroup({
   );
 }
 
-function EventDetail({ enrollment }: { enrollment: Enrollment | null }) {
+function EventDetail({
+  copy,
+  enrollment,
+  locale,
+}: {
+  copy: PersonalAreaCopy;
+  enrollment: Enrollment | null;
+  locale: string;
+}) {
   return (
-    <SectionShell eyebrow="Dettaglio" title="Dettagli evento">
+    <SectionShell eyebrow={copy.labels.detail} title={copy.labels.eventDetails}>
       {enrollment ? (
         <div className="mt-5 space-y-4">
           <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-4">
             <div className="flex flex-wrap gap-2">
-              <Badge>{enrollment.events?.category ?? "Evento"}</Badge>
-              <Badge>Ticket Tailor</Badge>
+              <Badge>{enrollment.events?.category ?? copy.labels.event}</Badge>
+              <Badge>{copy.labels.ticketTailor}</Badge>
             </div>
             <h3 className="mt-3 font-serif text-3xl font-medium">
-              {enrollment.events?.title ?? "Evento Peony Studio"}
+              {enrollment.events?.title ?? copy.labels.peonyEvent}
             </h3>
             <p className="mt-2 text-sm leading-6 text-[#5f524c]">
-              {formatEventDate(enrollment.events?.starts_at)}
+              {formatEventDate(enrollment.events?.starts_at, copy, locale)}
             </p>
           </div>
 
           <InfoGrid
             items={[
               {
-                title: "Programma / orari",
-                text: formatProgram(enrollment),
+                title: copy.labels.program,
+                text: formatProgram(enrollment, copy, locale),
               },
               {
-                title: "Location",
-                text: "Peony Studio, Via Vandalino 85/38, Torino.",
+                title: copy.labels.location,
+                text: copy.copy.location,
               },
               {
-                title: "Come arrivare",
-                text: "Metro Marche, uscita Via Eritrea, 5 minuti a piedi.",
+                title: copy.labels.directions,
+                text: copy.copy.directions,
               },
               {
-                title: "Come accedere allo studio",
-                text: "Citofono: UR Expression. Lo studio si trova al piano -1.",
+                title: copy.labels.access,
+                text: copy.copy.access,
               },
               {
-                title: "Regole dello spazio",
-                text: "Non sostare in gruppo davanti al portone. Fare silenzio sulle scale. Spazio senza scarpe. Vietato fumare/vape. No drink aperti nell'area corde/workshop. Acqua disponibile in cucina.",
+                title: copy.labels.spaceRules,
+                text: copy.copy.rules,
               },
               {
-                title: "Contatto emergenza",
-                text: "+39 320 6486577 Andrea, WhatsApp/Telegram.",
+                title: copy.labels.emergency,
+                text: copy.copy.emergency,
               },
               {
-                title: "Stato iscrizione / ticket",
-                text: formatEnrollmentStatus(enrollment.enrollment_status),
+                title: copy.labels.ticketStatus,
+                text: formatEnrollmentStatus(enrollment.enrollment_status, copy),
               },
             ]}
           />
@@ -563,48 +596,56 @@ function EventDetail({ enrollment }: { enrollment: Enrollment | null }) {
               href={enrollment.events.booking_url}
               target="_blank"
             >
-              Apri Ticket Tailor
+              {copy.labels.openTicketTailor}
             </Link>
           ) : null}
         </div>
       ) : (
         <p className="mt-5 rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-5 text-sm leading-6 text-[#5f524c]">
-          Seleziona un evento per vedere le informazioni utili.
+          {copy.labels.chooseEvent}
         </p>
       )}
     </SectionShell>
   );
 }
 
-function MembershipSection({ data }: { data: PersonalAreaData }) {
+function MembershipSection({
+  copy,
+  data,
+  locale,
+}: {
+  copy: PersonalAreaCopy;
+  data: PersonalAreaData;
+  locale: string;
+}) {
   const status = data.profile?.association_status ?? "unknown";
   const expiresAt = data.profile?.association_expires_at;
 
   return (
-    <SectionShell eyebrow="Associazione" title="Tessera associativa">
+    <SectionShell eyebrow={copy.labels.membership} title={copy.sections.membership.title}>
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
-            Stato
+            {copy.labels.membershipStatus}
           </p>
           <p className="mt-2 font-serif text-3xl font-medium">
-            {formatAssociationStatus(status)}
+            {formatAssociationStatus(status, copy)}
           </p>
           <p className="mt-2 text-sm leading-6 text-[#5f524c]">
             {status === "unknown"
-              ? "Lo stato della tessera sara verificato dallo staff."
-              : "Questo stato viene aggiornato manualmente dallo staff."}
+              ? copy.copy.membershipUnknown
+              : copy.copy.membershipManual}
           </p>
         </div>
         <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
-            Scadenza
+            {copy.labels.expiry}
           </p>
           <p className="mt-2 font-serif text-3xl font-medium">
-            {expiresAt ? formatShortDate(expiresAt) : "Da verificare"}
+            {expiresAt ? formatShortDate(expiresAt, locale) : copy.labels.toVerify}
           </p>
           <p className="mt-2 text-sm leading-6 text-[#5f524c]">
-            Se hai dubbi, scrivici prima dell&apos;evento.
+            {copy.copy.membershipHelp}
           </p>
         </div>
       </div>
@@ -612,34 +653,34 @@ function MembershipSection({ data }: { data: PersonalAreaData }) {
   );
 }
 
-function UsefulInfoSection() {
+function UsefulInfoSection({ copy }: { copy: PersonalAreaCopy }) {
   return (
-    <SectionShell eyebrow="Studio" title="Informazioni utili">
+    <SectionShell eyebrow="Studio" title={copy.sections.info.title}>
       <InfoGrid
         items={[
           {
-            title: "Indirizzo",
-            text: "Peony Studio, Via Vandalino 85/38, Torino.",
+            title: copy.labels.address,
+            text: copy.copy.location,
           },
           {
-            title: "Ingresso",
-            text: "Citofono: UR Expression. Piano -1.",
+            title: copy.labels.entrance,
+            text: copy.copy.entrance,
           },
           {
-            title: "Metro",
-            text: "Metro Marche, uscita Via Eritrea, 5 minuti a piedi.",
+            title: copy.labels.metro,
+            text: copy.copy.directions,
           },
           {
-            title: "Arrivo",
-            text: "Non sostare in gruppo davanti al portone. Fare silenzio sulle scale.",
+            title: copy.labels.arrival,
+            text: copy.copy.arrival,
           },
           {
-            title: "Spazio",
-            text: "Spazio senza scarpe. Vietato fumare/vape. No drink aperti nell'area corde/workshop. Acqua disponibile in cucina.",
+            title: copy.labels.space,
+            text: copy.copy.space,
           },
           {
-            title: "Emergenza",
-            text: "+39 320 6486577 Andrea, WhatsApp/Telegram.",
+            title: copy.labels.emergency,
+            text: copy.copy.emergency,
           },
         ]}
       />
@@ -647,21 +688,19 @@ function UsefulInfoSection() {
   );
 }
 
-function PartnerSection() {
+function PartnerSection({ copy }: { copy: PersonalAreaCopy }) {
   return (
-    <SectionShell eyebrow="Partecipazione" title="Partner / accompagnatore">
+    <SectionShell eyebrow="Partecipazione" title={copy.sections.partner.title}>
       <p className="mt-5 rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-5 text-sm leading-6 text-[#5f524c]">
-        In futuro potrai indicare qui la persona con cui parteciperai. Per ora,
-        se hai bisogno di comunicarci qualcosa prima di un evento, scrivici sui
-        canali abituali.
+        {copy.copy.partner}
       </p>
     </SectionShell>
   );
 }
 
-function PathSection() {
+function PathSection({ copy }: { copy: PersonalAreaCopy }) {
   return (
-    <SectionShell eyebrow="Percorso" title="Il mio percorso">
+    <SectionShell eyebrow={copy.labels.path} title={copy.sections.path.title}>
       <div className="mt-5 grid gap-3 md:grid-cols-4">
         {["Foundation 1", "Foundation 2", "Class 1", "Class 1+"].map(
           (step, index) => (
@@ -678,9 +717,7 @@ function PathSection() {
         )}
       </div>
       <div className="mt-4 rounded-[8px] border border-[#211815]/10 bg-white/50 p-4 text-sm leading-6 text-[#5f524c]">
-        Pratica assistita e classi tematiche accompagnano il percorso come
-        attivita parallele. La logica di progresso arrivera in uno step
-        successivo.
+        {copy.copy.path}
       </div>
     </SectionShell>
   );
@@ -719,11 +756,10 @@ function Badge({ children }: { children: ReactNode }) {
   );
 }
 
-function EmptyEventsMessage() {
+function EmptyEventsMessage({ copy }: { copy: PersonalAreaCopy }) {
   return (
     <div className="mt-5 rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-5 text-sm leading-6 text-[#5f524c]">
-      Non risultano ancora eventi associati a questa email. Se hai prenotato
-      con un&apos;altra email, accedi usando quella.
+      {copy.copy.noEvents}
     </div>
   );
 }
@@ -751,9 +787,13 @@ function getEnrollmentTime(enrollment: Enrollment) {
   return Number.isNaN(time) ? null : time;
 }
 
-function formatEventDate(value?: string | null) {
+function formatEventDate(
+  value: string | null | undefined,
+  copy: PersonalAreaCopy,
+  locale: string,
+) {
   if (!value) {
-    return "Data da confermare";
+    return copy.statuses.dateToConfirm;
   }
 
   const date = new Date(value);
@@ -761,7 +801,7 @@ function formatEventDate(value?: string | null) {
     return value;
   }
 
-  return new Intl.DateTimeFormat("it-IT", {
+  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "it-IT", {
     day: "2-digit",
     month: "long",
     year: "numeric",
@@ -770,45 +810,49 @@ function formatEventDate(value?: string | null) {
   }).format(date);
 }
 
-function formatShortDate(value: string) {
+function formatShortDate(value: string, locale: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
     return value;
   }
 
-  return new Intl.DateTimeFormat("it-IT", {
+  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "it-IT", {
     day: "2-digit",
     month: "long",
     year: "numeric",
   }).format(date);
 }
 
-function formatProgram(enrollment: Enrollment) {
-  const start = formatEventDate(enrollment.events?.starts_at);
+function formatProgram(
+  enrollment: Enrollment,
+  copy: PersonalAreaCopy,
+  locale: string,
+) {
+  const start = formatEventDate(enrollment.events?.starts_at, copy, locale);
   const end = enrollment.events?.ends_at
-    ? formatEventDate(enrollment.events.ends_at)
+    ? formatEventDate(enrollment.events.ends_at, copy, locale)
     : null;
 
   return end ? `${start} - ${end}` : start;
 }
 
-function formatEnrollmentStatus(status: string | null) {
+function formatEnrollmentStatus(status: string | null, copy: PersonalAreaCopy) {
   if (!status || status === "active") {
-    return "Iscrizione confermata";
+    return copy.statuses.confirmed;
   }
 
   return status.replaceAll("_", " ");
 }
 
-function formatAssociationStatus(status: string | null) {
+function formatAssociationStatus(status: string | null, copy: PersonalAreaCopy) {
   const normalized = status ?? "unknown";
   const labels: Record<string, string> = {
-    unknown: "Da verificare",
-    missing: "Mancante",
-    pending: "In verifica",
-    verified: "Verificata",
-    expired: "Scaduta",
-    not_required: "Non richiesta",
+    unknown: copy.statuses.unknown,
+    missing: copy.statuses.missing,
+    pending: copy.statuses.pending,
+    verified: copy.statuses.verified,
+    expired: copy.statuses.expired,
+    not_required: copy.statuses.notRequired,
   };
 
   return labels[normalized] ?? normalized;

@@ -2,9 +2,11 @@
 
 import { FormEvent, useState } from "react";
 
+import { useLanguage } from "@/components/site/LanguageProvider";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export function LoginForm() {
+  const { dictionary } = useLanguage();
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +19,7 @@ export function LoginForm() {
 
     const normalizedEmail = email.trim().toLowerCase();
     if (!isValidEmail(normalizedEmail)) {
-      setError("Inserisci un indirizzo email valido.");
+      setError(dictionary.login.invalidEmail);
       return;
     }
 
@@ -35,16 +37,14 @@ export function LoginForm() {
 
       if (signInError) {
         logAuthError("Supabase Auth signInWithOtp error", signInError);
-        setError("Non siamo riusciti a inviare il link di accesso. Riprova tra poco.");
+        setError(dictionary.login.error);
         return;
       }
 
-      setMessage(
-        "Controlla la tua email: ti abbiamo inviato il link per accedere.",
-      );
+      setMessage(dictionary.login.success);
     } catch (catchError) {
       logAuthError("Supabase Auth signInWithOtp unexpected error", catchError);
-      setError("Non siamo riusciti a inviare il link di accesso. Riprova tra poco.");
+      setError(dictionary.login.error);
     } finally {
       setLoading(false);
     }
@@ -53,14 +53,14 @@ export function LoginForm() {
   return (
     <form className="mt-7 space-y-4" onSubmit={handleSubmit}>
       <label className="block text-sm font-medium text-[#5f524c]">
-        Email
+        {dictionary.login.emailLabel}
         <input
           className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/70 px-4 py-3 text-base text-[#211815] outline-none transition focus:border-[#8b5e4a]"
           type="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           autoComplete="email"
-          placeholder="nome@email.com"
+          placeholder={dictionary.login.emailPlaceholder}
           required
         />
       </label>
@@ -70,7 +70,7 @@ export function LoginForm() {
         type="submit"
         disabled={loading}
       >
-        {loading ? "Invio in corso..." : "Entra nell'area personale"}
+        {loading ? dictionary.login.submitting : dictionary.login.submit}
       </button>
 
       {message ? (

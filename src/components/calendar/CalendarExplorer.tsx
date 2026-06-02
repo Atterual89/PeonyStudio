@@ -1,9 +1,11 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { useLanguage } from "@/components/site/LanguageProvider";
+import type { Dictionary } from "@/i18n/getDictionary";
 import {
   isWorkshopEvent,
   type PeonyEvent,
@@ -17,21 +19,7 @@ type CalendarExplorerProps = {
 
 type CategoryFilter = "all" | "percorso" | "pratica" | "community" | "workshop";
 type PeriodFilter = "all" | "30" | "90" | "season";
-
-const categoryFilters: { label: string; value: CategoryFilter }[] = [
-  { label: "Tutti", value: "all" },
-  { label: "Percorsi", value: "percorso" },
-  { label: "Pratica", value: "pratica" },
-  { label: "Community", value: "community" },
-  { label: "Workshop", value: "workshop" },
-];
-
-const periodFilters: { label: string; value: PeriodFilter }[] = [
-  { label: "Tutti", value: "all" },
-  { label: "Prossimi 30 giorni", value: "30" },
-  { label: "Prossimi 3 mesi", value: "90" },
-  { label: "Stagione completa", value: "season" },
-];
+type CalendarCopy = Dictionary["calendar"];
 
 const suggestedTags = [
   "anche per single",
@@ -41,47 +29,37 @@ const suggestedTags = [
   "bottom",
 ];
 
-const sectionMeta: {
-  key: string;
-  title: string;
-  subtitle: string;
-  category?: PeonyEventCategory;
-}[] = [
-  {
-    key: "upcoming",
-    title: "Prossimi appuntamenti",
-    subtitle: "Le date più vicine, ordinate per giorno.",
-  },
-  {
-    key: "percorso",
-    title: "Percorsi",
-    subtitle: "Cicli e classi strutturate per costruire continuità.",
-    category: "percorso",
-  },
-  {
-    key: "pratica",
-    title: "Pratica",
-    subtitle: "Serate per ripetere, consolidare e fare domande.",
-    category: "pratica",
-  },
-  {
-    key: "community",
-    title: "Community",
-    subtitle: "Occasioni per incontrare persone e vivere lo spazio.",
-    category: "community",
-  },
-  {
-    key: "workshop",
-    title: "Workshop",
-    subtitle: "Appuntamenti intensivi e approfondimenti specifici.",
-    category: "workshop",
-  },
-];
-
 export function CalendarExplorer({
   events,
   ticketTailorUrl,
 }: CalendarExplorerProps) {
+  const { dictionary, locale } = useLanguage();
+  const copy = dictionary.calendar;
+  const categoryFilterOptions: { label: string; value: CategoryFilter }[] = [
+    { label: copy.filtersList.all, value: "all" },
+    { label: copy.filtersList.programs, value: "percorso" },
+    { label: copy.filtersList.practice, value: "pratica" },
+    { label: copy.filtersList.community, value: "community" },
+    { label: copy.filtersList.workshops, value: "workshop" },
+  ];
+  const periodFilterOptions: { label: string; value: PeriodFilter }[] = [
+    { label: copy.filtersList.all, value: "all" },
+    { label: copy.filtersList.next30, value: "30" },
+    { label: copy.filtersList.next90, value: "90" },
+    { label: copy.filtersList.season, value: "season" },
+  ];
+  const sectionItems = [
+    { key: "upcoming", ...copy.sections.upcoming },
+    { key: "percorso", ...copy.sections.percorso, category: "percorso" },
+    { key: "pratica", ...copy.sections.pratica, category: "pratica" },
+    { key: "community", ...copy.sections.community, category: "community" },
+    { key: "workshop", ...copy.sections.workshop, category: "workshop" },
+  ] satisfies Array<{
+    key: string;
+    title: string;
+    subtitle: string;
+    category?: PeonyEventCategory;
+  }>;
   const sortedEvents = useMemo(
     () =>
       events
@@ -191,8 +169,11 @@ export function CalendarExplorer({
   const filterSummary = getFilterSummary({
     query,
     category,
+    categoryFilters: categoryFilterOptions,
     period,
+    periodFilters: periodFilterOptions,
     activeTags,
+    noActiveFilters: copy.noActiveFilters,
   });
 
   function resetFilters() {
@@ -220,7 +201,7 @@ export function CalendarExplorer({
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="font-serif text-2xl font-medium leading-none">
-              Filtri
+              {copy.filters}
             </h2>
             <p className="mt-1 text-xs text-[#5f524c]">{filterSummary}</p>
           </div>
@@ -231,7 +212,7 @@ export function CalendarExplorer({
                 onClick={resetFilters}
                 className="rounded-full border border-[#211815]/10 bg-[#f4efe8]/70 px-3 py-2 text-xs font-medium text-[#5f524c] transition hover:bg-white/70"
               >
-                Reset filtri
+                {copy.resetFilters}
               </button>
             ) : null}
             <button
@@ -240,7 +221,7 @@ export function CalendarExplorer({
               onClick={() => setFiltersOpen((open) => !open)}
               className="rounded-full bg-[#211815] px-4 py-2 text-xs font-medium text-white transition hover:-translate-y-0.5"
             >
-              {filtersOpen ? "Nascondi filtri" : "Mostra filtri"}
+              {filtersOpen ? copy.hideFilters : copy.showFilters}
             </button>
           </div>
         </div>
@@ -253,23 +234,23 @@ export function CalendarExplorer({
           <div className="overflow-hidden">
             <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto_auto] md:items-center">
               <label className="block">
-                <span className="sr-only">Cerca evento</span>
+                <span className="sr-only">{copy.searchEvent}</span>
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Cerca per titolo, formato o tag"
+                  placeholder={copy.searchPlaceholder}
                   className="h-11 w-full rounded-full border border-[#211815]/10 bg-[#f4efe8]/70 px-4 text-sm text-[#211815] outline-none transition placeholder:text-[#5f524c]/60 focus:border-[#8b5e4a]/60 focus:bg-white/70"
                 />
               </label>
               <FilterGroup
-                label="Categoria"
-                options={categoryFilters}
+                label={copy.category}
+                options={categoryFilterOptions}
                 value={category}
                 onChange={(value) => setCategory(value)}
               />
               <FilterGroup
-                label="Periodo"
-                options={periodFilters}
+                label={copy.period}
+                options={periodFilterOptions}
                 value={period}
                 onChange={(value) => setPeriod(value)}
               />
@@ -282,7 +263,7 @@ export function CalendarExplorer({
                   onClick={() => setActiveTags([])}
                   className={tagButtonClass(activeTags.length === 0)}
                 >
-                  Tutti i tag
+                  {copy.allTags}
                 </button>
                 {availableTags.map((tag) => (
                   <button
@@ -303,20 +284,20 @@ export function CalendarExplorer({
       {!hasResults ? (
         <div className="mt-6 rounded-[8px] border border-[#211815]/10 bg-white/45 p-6">
           <h2 className="font-serif text-3xl font-medium leading-[1.08] tracking-normal">
-            Nessun evento trovato con questi filtri.
+            {copy.noResults}
           </h2>
           <button
             type="button"
             onClick={resetFilters}
             className="mt-5 mr-2 inline-flex rounded-full border border-[#211815]/20 bg-[#f4efe8]/70 px-5 py-3 text-sm font-medium text-[#211815]"
           >
-            Reset filtri
+            {copy.resetFilters}
           </button>
           <Link
             href={ticketTailorUrl}
             className="mt-5 inline-flex rounded-full bg-[#211815] px-5 py-3 text-sm font-medium text-white"
           >
-            Apri Ticket Tailor
+            {copy.openTicketTailor}
           </Link>
         </div>
       ) : (
@@ -325,10 +306,10 @@ export function CalendarExplorer({
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="font-serif text-2xl font-medium leading-none">
-                  Calendario mensile
+                  {copy.monthlyCalendar}
                 </h2>
                 <p className="mt-1 text-xs text-[#5f524c]">
-                  {formatMonthLabel(visibleMonth)} · {filteredEvents.length} eventi filtrati
+                  {formatMonthLabel(visibleMonth, locale)} Â· {filteredEvents.length} {copy.filteredEvents}
                 </p>
               </div>
               <button
@@ -337,7 +318,7 @@ export function CalendarExplorer({
                 onClick={() => setCalendarOpen((open) => !open)}
                 className="rounded-full bg-[#211815] px-4 py-2 text-xs font-medium text-white transition hover:-translate-y-0.5"
               >
-                {calendarOpen ? "Nascondi calendario" : "Mostra calendario"}
+                {calendarOpen ? copy.hideCalendar : copy.showCalendar}
               </button>
             </div>
 
@@ -354,20 +335,20 @@ export function CalendarExplorer({
                         type="button"
                         onClick={() => setVisibleMonth(shiftMonth(visibleMonth, -1))}
                         className="grid h-10 w-10 place-items-center rounded-full border border-[#211815]/10 bg-[#f4efe8]/60 text-lg text-[#8b5e4a] transition hover:bg-white/70"
-                        aria-label="Mese precedente"
+                        aria-label={copy.previousMonth}
                       >
-                        ‹
+                        â€¹
                       </button>
                       <h3 className="font-serif text-3xl font-medium capitalize leading-[1.05] md:text-4xl">
-                        {formatMonthLabel(visibleMonth)}
+                        {formatMonthLabel(visibleMonth, locale)}
                       </h3>
                       <button
                         type="button"
                         onClick={() => setVisibleMonth(shiftMonth(visibleMonth, 1))}
                         className="grid h-10 w-10 place-items-center rounded-full border border-[#211815]/10 bg-[#f4efe8]/60 text-lg text-[#8b5e4a] transition hover:bg-white/70"
-                        aria-label="Mese successivo"
+                        aria-label={copy.nextMonth}
                       >
-                        ›
+                        â€º
                       </button>
                     </div>
 
@@ -402,10 +383,10 @@ export function CalendarExplorer({
 
                   <div className="rounded-[8px] border border-[#211815]/10 bg-white/45 p-4 md:p-5">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-                      Giorno selezionato
+                      {copy.selectedDay}
                     </p>
                     <h3 className="mt-2 font-serif text-3xl font-medium leading-[1.06] md:text-4xl">
-                      Eventi del {formatDayTitle(effectiveSelectedDay)}
+                      {copy.eventsOf} {formatDayTitle(effectiveSelectedDay, locale)}
                     </h3>
                     <div className="mt-4 grid gap-3">
                       {selectedDayEvents.length ? (
@@ -413,13 +394,15 @@ export function CalendarExplorer({
                           <EventCard
                             key={event.id}
                             event={event}
+                            copy={copy}
+                            locale={locale}
                             ticketTailorUrl={ticketTailorUrl}
                             compact
                           />
                         ))
                       ) : (
                         <p className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/60 p-4 text-sm text-[#5f524c]">
-                          Nessun evento in questa data.
+                          {copy.noEventsDay}
                         </p>
                       )}
                     </div>
@@ -430,14 +413,16 @@ export function CalendarExplorer({
           </section>
 
           <div className="mt-7 grid gap-5">
-            {sectionMeta.map((section) => {
+            {sectionItems.map((section) => {
+              const sectionCategory =
+                "category" in section ? section.category : undefined;
               const sectionEvents =
                 section.key === "upcoming"
                   ? filteredEvents.slice(0, 12)
                   : filteredEvents.filter((event) =>
                       section.key === "workshop"
                         ? isWorkshopEvent(event)
-                        : event.category === section.category,
+                        : event.category === sectionCategory,
                     );
 
               if (!sectionEvents.length) {
@@ -458,6 +443,8 @@ export function CalendarExplorer({
                     }))
                   }
                   ticketTailorUrl={ticketTailorUrl}
+                  copy={copy}
+                  locale={locale}
                 />
               );
             })}
@@ -507,6 +494,8 @@ function EventRail({
   open,
   onToggle,
   ticketTailorUrl,
+  copy,
+  locale,
 }: {
   title: string;
   subtitle: string;
@@ -514,6 +503,8 @@ function EventRail({
   open: boolean;
   onToggle: () => void;
   ticketTailorUrl: string;
+  copy: CalendarCopy;
+  locale: string;
 }) {
   return (
     <section className="rounded-[8px] border border-[#211815]/10 bg-white/35 p-4 md:p-5">
@@ -532,7 +523,7 @@ function EventRail({
           onClick={onToggle}
           className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[#211815]/10 bg-[#f4efe8]/60 text-xl leading-none text-[#8b5e4a] transition hover:bg-white/70"
         >
-          {open ? "−" : "+"}
+          {open ? "âˆ’" : "+"}
         </button>
       </div>
       <div
@@ -546,6 +537,8 @@ function EventRail({
               <EventCard
                 key={event.id}
                 event={event}
+                copy={copy}
+                locale={locale}
                 ticketTailorUrl={ticketTailorUrl}
               />
             ))}
@@ -559,10 +552,14 @@ function EventRail({
 function EventCard({
   event,
   ticketTailorUrl,
+  copy,
+  locale,
   compact = false,
 }: {
   event: PeonyEvent;
   ticketTailorUrl: string;
+  copy: CalendarCopy;
+  locale: string;
   compact?: boolean;
 }) {
   const image = event.imageUrl ?? getFallbackImage(event);
@@ -595,10 +592,10 @@ function EventCard({
       <div className="flex min-w-0 flex-col p-4">
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full border border-[#211815]/10 bg-[#f4efe8]/70 px-2.5 py-1 text-[11px] font-medium capitalize text-[#8b5e4a]">
-            {categoryLabel(event.category)}
+            {categoryLabel(event.category, copy)}
           </span>
           <span className="text-xs font-semibold text-[#5f524c]">
-            {formatCalendarDay(event.date)}
+            {formatCalendarDay(event.date, locale)}
           </span>
         </div>
         <Link href={detailHref} className="mt-2 block">
@@ -628,13 +625,13 @@ function EventCard({
             href={detailHref}
             className="inline-flex w-fit rounded-full border border-[#211815]/20 bg-[#f4efe8]/70 px-4 py-2 text-sm font-medium text-[#211815] transition hover:bg-white/70"
           >
-            Dettagli
+            {copy.details}
           </Link>
           <Link
             href={event.bookingUrl ?? ticketTailorUrl}
             className="inline-flex w-fit rounded-full bg-[#211815] px-4 py-2 text-sm font-medium text-white transition hover:-translate-y-0.5"
           >
-            Prenota
+            {copy.book}
           </Link>
         </div>
       </div>
@@ -679,13 +676,19 @@ function dayButtonClass({
 function getFilterSummary({
   query,
   category,
+  categoryFilters,
   period,
+  periodFilters,
   activeTags,
+  noActiveFilters,
 }: {
   query: string;
   category: CategoryFilter;
+  categoryFilters: { label: string; value: CategoryFilter }[];
   period: PeriodFilter;
+  periodFilters: { label: string; value: PeriodFilter }[];
   activeTags: string[];
+  noActiveFilters: string;
 }) {
   const parts = [];
   const categoryLabel = categoryFilters.find((item) => item.value === category)?.label;
@@ -707,9 +710,8 @@ function getFilterSummary({
     parts.push(`"${query.trim()}"`);
   }
 
-  return parts.length ? parts.join(" · ") : "Nessun filtro attivo";
+  return parts.length ? parts.join(" · ") : noActiveFilters;
 }
-
 function getMonthCells(monthKey: string, eventsByDay: Map<string, PeonyEvent[]>) {
   const [year, month] = monthKey.split("-").map(Number);
   const firstOfMonth = new Date(year, month - 1, 1);
@@ -774,47 +776,47 @@ function toIsoDate(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-function formatMonthLabel(monthKey: string) {
+function formatMonthLabel(monthKey: string, locale: string) {
   const [year, month] = monthKey.split("-").map(Number);
-  return new Intl.DateTimeFormat("it-IT", {
+  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "it-IT", {
     month: "long",
     year: "numeric",
   }).format(new Date(year, month - 1, 1));
 }
 
-function formatDayTitle(date: string) {
-  return new Intl.DateTimeFormat("it-IT", {
+function formatDayTitle(date: string, locale: string) {
+  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "it-IT", {
     day: "numeric",
     month: "long",
   }).format(new Date(`${date}T12:00:00`));
 }
 
-function formatCalendarDay(date: string) {
-  return new Intl.DateTimeFormat("it-IT", {
+function formatCalendarDay(date: string, locale: string) {
+  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "it-IT", {
     weekday: "short",
     day: "numeric",
     month: "short",
   }).format(new Date(`${date}T12:00:00`));
 }
 
-function categoryLabel(category: PeonyEventCategory) {
+function categoryLabel(category: PeonyEventCategory, copy: CalendarCopy) {
   if (category === "percorso") {
-    return "Percorso";
+    return copy.categoryLabels.percorso;
   }
 
   if (category === "pratica") {
-    return "Pratica";
+    return copy.categoryLabels.pratica;
   }
 
   if (category === "community") {
-    return "Community";
+    return copy.categoryLabels.community;
   }
 
   if (category === "workshop") {
-    return "Workshop";
+    return copy.categoryLabels.workshop;
   }
 
-  return "Evento";
+  return copy.categoryLabels.altro;
 }
 
 function getFallbackImage(event: PeonyEvent) {
