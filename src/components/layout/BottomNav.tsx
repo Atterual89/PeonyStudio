@@ -7,8 +7,8 @@ import { useLanguage } from "@/components/site/LanguageProvider";
 
 type TabKey = "home" | "calendar" | "programs" | "shop" | "profile";
 
-const tabs: { href: string; key: TabKey }[] = [
-  { href: "/", key: "home" },
+const tabs: { href: string; key: TabKey; overrideLabel?: string }[] = [
+  { href: "/peony", key: "home", overrideLabel: "Peony" },
   { href: "/calendario", key: "calendar" },
   { href: "/percorsi", key: "programs" },
   { href: "/shop", key: "shop" },
@@ -16,7 +16,7 @@ const tabs: { href: string; key: TabKey }[] = [
 ];
 
 function isActive(href: string, key: TabKey, pathname: string): boolean {
-  if (href === "/") return pathname === "/";
+  if (key === "home") return pathname.startsWith("/peony");
   if (key === "programs") {
     return pathname.startsWith("/percorsi") || pathname.startsWith("/workshop");
   }
@@ -31,9 +31,13 @@ function TabIcon({ name, active }: { name: TabKey; active: boolean }) {
   switch (name) {
     case "home":
       return (
-        <svg className={cls} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M3 9.5L10 3l7 6.5" />
-          <path d="M5 8.5V17h4v-5h2v5h4V8.5" />
+        <svg className={cls} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" aria-hidden="true">
+          <circle cx="10" cy="10" r="2" />
+          <circle cx="10"  cy="5.8" r="2.2" />
+          <circle cx="13.6" cy="8.8" r="2.2" />
+          <circle cx="12.2" cy="13"  r="2.2" />
+          <circle cx="7.8"  cy="13"  r="2.2" />
+          <circle cx="6.4"  cy="8.8" r="2.2" />
         </svg>
       );
     case "calendar":
@@ -82,7 +86,7 @@ export function BottomNav() {
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       aria-label="Bottom navigation"
     >
-      {tabs.map(({ href, key }) => {
+      {tabs.map(({ href, key, overrideLabel }) => {
         const active = isActive(href, key, pathname);
         return (
           <Link
@@ -93,7 +97,7 @@ export function BottomNav() {
             }`}
           >
             <TabIcon name={key} active={active} />
-            <span>{labels[key]}</span>
+            <span>{overrideLabel ?? labels[key]}</span>
           </Link>
         );
       })}

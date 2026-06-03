@@ -1,51 +1,49 @@
-Leggi src/components/home/EntryDoorsSection.tsx per intero.
+Leggi src/components/home/PhilosophySection.tsx per intero.
 
-Ridisegna il componente SOLO su mobile (md: invariato).
+Sostituisci il componente SOLO su mobile (md: invariato) con 
+questo layout SVG interattivo:
 
-LAYOUT — collage di card scure con icone SVG inline:
+STRUTTURA MOBILE (md:hidden):
+- Sfondo: bg-[#2a1e14], border-radius 12px, padding 24px
+- Eyebrow "FILOSOFIA" + titolo serif esistente
+- Layout flex orizzontale: SVG a sinistra (150px fissi) + 
+  testi a destra
 
-Card 1 — grande (height 180px), occupa tutta la larghezza:
-- Sfondo #1a1510
-- Icona SVG inline centrata in alto: punto interrogativo stilizzato 
-  o bussola (cerca un SVG semplice outline coerente)
-- Numero "01" in alto a sinistra text-[9px] tracking-wide muted
-- Testo in basso: label uppercase tiny + titolo serif cream + 
-  link "Trova il punto di partenza ?" in accent
+SVG (viewBox="0 0 150 170"):
+- Piramide unica, apice in alto al centro (75,6), 
+  base in basso (6,165) (144,165)
+- 3 fasce colorate:
+  · TECNICA (basso, 0-62% altezza): #3d2518
+  · ESTETICA (medio, 62-70%): #253820  
+  · PERSONALITÀ (top, 70-100%): #302040
+- 2 linee orizzontali divisorie: rgba(196,168,130,0.5)
+- Outline piramide: rgba(196,168,130,0.8) stroke 1.5px
+- Label testo nelle fasce: TECNICA, ESTETICA, PERS. 
+  font-size 7px rgba(245,240,235,0.25)
+- Defs SVG con 3 marker freccia (t/e/p) per arrowhead
+- 5 frecce diagonali basso-sinistra ? alto-destra 
+  con colori: t=rgba(212,149,106,0.55) 
+  e=rgba(122,170,106,0.55) p=rgba(170,122,196,0.55)
+- Transizioni fill 0.4s su tutte le fasce
 
-Riga 2 card — due card affiancate (grid 2 col, height 110px):
-Card 2 — sfondo #2e3d2e (verde scuro):
-- Icona: cerchi concentrici (percorso/livelli)
-- "02" + titolo serif piccolo + label tiny
+TESTI A DESTRA (3 step cliccabili):
+- Ogni step: numero tiny accent + titolo serif + 
+  descrizione (max-height 0 ? 80px quando active) + 
+  linea colorata sotto
+- Step attivo: opacity 1, inattivi: opacity 0.35
+- Usa i testi già esistenti nel componente
 
-Card 3 — sfondo #1e2040 (blu notte):
-- Icona: stella / fiore stilizzato (workshop/ospiti)  
-- "03" + titolo serif piccolo + label tiny
+INTERAZIONE:
+- Click su step o su fascia SVG ? attiva quel livello
+- Fascia attiva: colore bright (t=#c4845a, e=#7aaa6a, p=#aa7ac4)
+- Fasce inattive: si scuriscono leggermente
+- Frecce: mostrano solo quelle del livello attivo e inferiori
+- Default attivo: tecnica
 
-Card 4 — orizzontale (height 72px), full width:
-- Sfondo #2e1a2e (viola scuro)
-- Icona a sinistra: persone/community
-- Testo a destra: numero + titolo
-- Pallino animato (pulse) + "Rope Jam · Open Day" in accent
+BOTTONE CTA esistente: mantienilo sotto i 3 step
 
-INTERAZIONE — tap su qualsiasi card:
-- Apre pannello inline sotto le card (non modal, non overlay)
-- Pannello: bg #1a1510, border-radius 12px, padding 16px
-- Contenuto: label uppercase + titolo serif + descrizione + 
-  bottone CTA accent + bottone "Chiudi"
-- Animazione: max-height 0 ? auto con transition 300ms
-- Una sola card aperta alla volta
-
-ICONE SVG — disegnale inline come path semplici, 
-stroke only, no fill, colore rgba(245,240,235,0.7), 
-dimensione 28-32px. Niente librerie esterne.
-
-TESTI — usa quelli già esistenti nel componente 
-(non inventare copy).
-
-PALETTE:
-- cream: #f5efea, dark: #1a1510, accent: #8b5e4a, warm: #c4a882
-
-Desktop (hidden md:block o md:grid): invariato.
+"use client" — useState per livello attivo.
+Nessuna libreria esterna. Desktop md: invariato.
 
 npx tsc --noEmit && npm run lint && npm run build
 Mostra file modificati + errori residui.
