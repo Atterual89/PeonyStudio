@@ -1,5 +1,6 @@
 "use client";
 
+import { BookOpen, Calendar, Eye, Ribbon, Sprout, User, Users } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -19,11 +20,15 @@ type PracticeSocialPageProps = {
   events: PeonyEventCard[];
 };
 
+const ICON_MAP = { User, Users, Sprout, BookOpen, Ribbon, Eye } as const;
+type IconName = keyof typeof ICON_MAP;
+
 export function PracticeSocialPage({
   content,
   events,
 }: PracticeSocialPageProps) {
   const { dictionary, locale } = useLanguage();
+  const p = dictionary.practice;
   const localizedContent = practiceBilingual[locale] ?? practiceBilingual.it;
   const [openBranches, setOpenBranches] = useState<
     Record<PracticeBranchKey, boolean>
@@ -33,33 +38,57 @@ export function PracticeSocialPage({
   });
   const relatedDates = useMemo(() => events, [events]);
 
+  const iconLegend = [
+    { name: "User" as IconName, label: p.iconLegendUser },
+    { name: "Users" as IconName, label: p.iconLegendUsers },
+    { name: "Sprout" as IconName, label: p.iconLegendSprout },
+    { name: "BookOpen" as IconName, label: p.iconLegendBookOpen },
+    { name: "Ribbon" as IconName, label: p.iconLegendRibbon },
+    { name: "Eye" as IconName, label: p.iconLegendEye },
+  ];
+
   return (
     <main className="min-h-screen overflow-hidden bg-[#f4efe8] text-[#211815]">
       <SiteHeader />
 
       <section className="mx-auto max-w-6xl px-5 pb-8 pt-12 sm:px-6 md:pb-10 md:pt-16">
         <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8b5e4a]">
-          {dictionary.practice.heroEyebrow}
+          {p.heroEyebrow}
         </p>
         <div className="mt-4 grid gap-5 md:grid-cols-[1fr_0.42fr] md:items-end">
           <div>
             <h1 className="max-w-4xl font-serif text-[clamp(44px,10vw,82px)] font-medium leading-[0.96] tracking-normal text-[#211815]">
-              {dictionary.practice.heroTitle}
+              {p.heroTitle}
             </h1>
             <p className="mt-5 max-w-2xl text-[15px] leading-[1.75] text-[#5f524c] md:text-base">
-              {dictionary.practice.heroIntro}
+              {p.heroIntro}
             </p>
           </div>
           <Link
             href={content.hero.cta.href}
             className="inline-flex w-fit rounded-full bg-[#211815] px-5 py-3 text-sm font-medium text-white shadow-[0_8px_24px_rgba(33,24,21,0.16)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(33,24,21,0.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-4 focus-visible:ring-offset-[#f4efe8]"
           >
-            {dictionary.practice.heroCtaLabel}
+            {p.heroCtaLabel}
           </Link>
         </div>
       </section>
 
       <section className="mx-auto max-w-6xl px-5 py-6 sm:px-6 md:py-8">
+        {/* Icon legend */}
+        <div className="-mx-5 mb-5 overflow-x-auto px-5 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
+          <div className="flex gap-4 md:gap-6">
+            {iconLegend.map(({ name, label }) => {
+              const Icon = ICON_MAP[name];
+              return (
+                <div key={name} className="flex shrink-0 items-center gap-1.5">
+                  <Icon size={13} className="shrink-0 text-[#8b5e4a]/60" aria-hidden="true" />
+                  <span className="text-[11px] leading-none text-[#5f524c]/70">{label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 gap-3 md:gap-5">
           {localizedContent.branches.map((branch) => {
             return (
@@ -83,9 +112,9 @@ export function PracticeSocialPage({
         <FeaturedEventsSection
           featured={relatedDates[0] ?? null}
           events={relatedDates.slice(1)}
-          eyebrow={dictionary.practice.eventsEyebrow}
-          title={dictionary.practice.datesTitle}
-          ctaLabel={dictionary.practice.datesCtaLabel}
+          eyebrow={p.eventsEyebrow}
+          title={p.datesTitle}
+          ctaLabel={p.datesCtaLabel}
           ctaHref={content.dates.cta.href}
         />
       </section>
@@ -93,13 +122,13 @@ export function PracticeSocialPage({
       <section className="mx-auto max-w-6xl px-5 pb-12 pt-4 sm:px-6 md:pb-16">
         <div className="rounded-[8px] border border-[#211815]/10 bg-white/34 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] md:flex md:items-center md:justify-between md:gap-6">
           <p className="max-w-2xl text-sm leading-[1.65] text-[#5f524c]">
-            {dictionary.practice.dashboardText}
+            {p.dashboardText}
           </p>
           <Link
             href={content.dashboard.cta.href}
             className="mt-4 inline-flex rounded-full border border-[#211815]/20 bg-[#f4efe8]/70 px-5 py-3 text-sm font-medium text-[#211815] transition hover:-translate-y-0.5 hover:bg-white/70 md:mt-0"
           >
-            {dictionary.practice.dashboardCtaLabel}
+            {p.dashboardCtaLabel}
           </Link>
         </div>
       </section>
@@ -163,29 +192,31 @@ function BranchColumn({
         <div className="overflow-hidden">
           <div className="mx-auto h-5 w-px border-l border-dashed border-[#8b5e4a]/45 md:h-10" />
           <div className="grid gap-3">
-            {branch.activities.map((activity) => (
-              <article
-                key={activity.title}
-                className="rounded-[8px] border border-[#211815]/10 bg-gradient-to-br from-white/68 to-[#efe4d7]/50 p-3 shadow-[0_2px_0_rgba(33,24,21,0.03)] md:p-4"
-              >
-                <h3 className="font-serif text-[23px] font-medium leading-[1.05] tracking-normal text-[#211815] md:text-3xl">
-                  {activity.title}
-                </h3>
-                <p className="mt-2 text-xs leading-[1.55] text-[#5f524c] md:mt-3 md:text-sm md:leading-[1.65]">
-                  {activity.description}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-1.5 md:mt-4 md:gap-2">
-                  {activity.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full border border-[#211815]/10 bg-[#f4efe8]/72 px-2 py-1 text-[11px] leading-none text-[#5f524c] md:px-3 md:py-1.5 md:text-xs"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </article>
-            ))}
+            {branch.activities.map((activity) => {
+              const icons = (activity.icons as IconName[]).map((name) => ICON_MAP[name]).filter(Boolean);
+              return (
+                <article
+                  key={activity.title}
+                  className="rounded-[8px] border border-[#211815]/10 bg-gradient-to-br from-white/68 to-[#efe4d7]/50 p-3 shadow-[0_2px_0_rgba(33,24,21,0.03)] md:p-4"
+                >
+                  <h3 className="font-serif text-[23px] font-medium leading-[1.05] tracking-normal text-[#211815] md:text-3xl">
+                    {activity.title}
+                  </h3>
+                  <div className="mt-1.5 flex items-center gap-1.5">
+                    <Calendar size={11} className="shrink-0 text-[#8b5e4a]/55" aria-hidden="true" />
+                    <span className="text-[11px] leading-none text-[#5f524c]/65">{activity.frequency}</span>
+                  </div>
+                  <p className="mt-2 text-xs leading-[1.55] text-[#5f524c] md:mt-3 md:text-sm md:leading-[1.65]">
+                    {activity.description}
+                  </p>
+                  <div className="mt-3 flex gap-2 md:mt-4">
+                    {icons.map((Icon, i) => (
+                      <Icon key={i} size={15} className="text-[#8b5e4a]/65" aria-hidden="true" />
+                    ))}
+                  </div>
+                </article>
+              );
+            })}
           </div>
         </div>
       </div>

@@ -15,12 +15,12 @@ type TravelGroup = {
 
 export const peonyAboutContent = {
   slug: "peony",
-  title: "Scuola, venue e community di kinbaku a Torino.",
+  title: "Peony Studio — Kinbaku venue · Torino",
   navigationLabel: "Peony",
   language: "it",
   hero: {
     eyebrow: "Peony Studio",
-    title: "Scuola, venue e community di kinbaku a Torino.",
+    title: "Peony Studio — Kinbaku venue · Torino",
     intro:
       "Peony Studio è uno spazio dedicato allo studio delle corde: tecnica, connessione, estetica e pratica condivisa dentro un ambiente curato e accogliente.",
     primaryCta: { label: "Guarda il calendario", href: "/calendario" },
@@ -126,7 +126,7 @@ export const peonyAboutContent = {
   },
   residentTeachers: {
     eyebrow: "Resident teachers",
-    title: "La coppia residente",
+    title: "Resident Teachers",
     intro:
       "Peony Studio nasce dal lavoro condiviso di Kurogami e Shiawase: insegnamento, pratica, relazione e ricerca nelle corde.",
   },
@@ -140,7 +140,7 @@ export const peonyAboutContent = {
     eyebrow: "Community",
     title: "Peony come luogo vivo.",
     intro:
-      "Peony Studio non è solo una scuola. È un luogo in cui studiare, praticare, osservare, fare domande e incontrare persone con cui condividere la ricerca nelle corde.",
+      "Peony Studio non è solo un venue. È un luogo in cui studiare, praticare, osservare, fare domande e incontrare persone con cui condividere la ricerca nelle corde.",
     cards: [
       {
         title: "Classi",
@@ -175,12 +175,12 @@ export const peonyAboutContent = {
 
 const peonyAboutContentEn = {
   slug: "peony",
-  title: "A kinbaku school, venue and community in Turin.",
+  title: "Peony Studio — Kinbaku venue · Turin",
   navigationLabel: "Peony",
   language: "en",
   hero: {
     eyebrow: "Peony Studio",
-    title: "A kinbaku school, venue and community in Turin.",
+    title: "Peony Studio — Kinbaku venue · Turin",
     intro:
       "Peony Studio is a space dedicated to the study of rope: technique, connection, aesthetics and shared practice in a carefully crafted environment.",
     primaryCta: { label: "View the calendar", href: "/calendario" },
@@ -188,7 +188,7 @@ const peonyAboutContentEn = {
   },
   space: {
     eyebrow: "The space",
-    title: "A studio designed for practice, study and gathering.",
+    title: "A studio built for practice, study and connection.",
     intro:
       "A welcoming and carefully crafted space for classes, workshops, rope jams and moments of shared research.",
     cards: [
@@ -291,7 +291,7 @@ const peonyAboutContentEn = {
     eyebrow: "Community",
     title: "Peony as a living place.",
     intro:
-      "Peony Studio is not just a school. It is a place to study, practice, observe, ask questions and meet people with whom to share research in ropes.",
+      "Peony Studio is not just a venue. It is a place to study, practice, observe, ask questions and meet people with whom to share research in ropes.",
     cards: [
       {
         title: "Classes",

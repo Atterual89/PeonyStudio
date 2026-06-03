@@ -28,7 +28,7 @@ export type HomePathCard = {
 export const homeContent = {
   hero: {
     eyebrow: "Kinbaku — Torino",
-    title: "Scuola, venue e community di kinbaku a Torino.",
+    title: "Peony Studio — Kinbaku venue · Torino",
     description:
       "Peony Studio unisce formazione, pratica e incontri in uno spazio dedicato alle corde.",
     primaryCta: {

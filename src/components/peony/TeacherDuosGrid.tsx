@@ -4,9 +4,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useId, useState } from "react";
 
+import { useLanguage } from "@/components/site/LanguageProvider";
 import type { TeacherDuo } from "@/content/teacher-duos";
 
 export function TeacherDuosGrid({ duos }: { duos: TeacherDuo[] }) {
+  const { dictionary, locale } = useLanguage();
+  const readBioLabel = dictionary.peony.readBio;
   const [activeDuo, setActiveDuo] = useState<TeacherDuo | null>(null);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const dialogTitleId = useId();
@@ -52,7 +55,7 @@ export function TeacherDuosGrid({ duos }: { duos: TeacherDuo[] }) {
             />
             <div className="p-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8b5e4a]">
-                {duo.role}
+                {locale === "en" && duo.roleEn ? duo.roleEn : duo.role}
               </p>
               <h3 className="mt-2 font-serif text-2xl font-medium leading-[1.08]">
                 {duo.name}
@@ -77,7 +80,7 @@ export function TeacherDuosGrid({ duos }: { duos: TeacherDuo[] }) {
                 className="mt-4 inline-flex rounded-full border border-[#211815]/15 bg-white/55 px-4 py-2 text-sm font-medium text-[#211815] transition hover:bg-white/85"
                 onClick={() => setActiveDuo(duo)}
               >
-                Leggi bio
+                {readBioLabel}
               </button>
             </div>
           </article>
@@ -118,7 +121,7 @@ export function TeacherDuosGrid({ duos }: { duos: TeacherDuo[] }) {
               />
               <div className="p-5 md:p-7">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-                  {activeDuo.role}
+                  {locale === "en" && activeDuo.roleEn ? activeDuo.roleEn : activeDuo.role}
                 </p>
                 <h3
                   id={dialogTitleId}
@@ -126,9 +129,17 @@ export function TeacherDuosGrid({ duos }: { duos: TeacherDuo[] }) {
                 >
                   {activeDuo.name}
                 </h3>
-                <p className="mt-4 text-[15px] leading-[1.75] text-[#5f524c]">
-                  {activeDuo.fullBio}
-                </p>
+                {(locale === "en" && activeDuo.fullBioEn
+                  ? activeDuo.fullBioEn
+                  : activeDuo.fullBio
+                ).split("\n\n").map((para, i) => (
+                  <p
+                    key={i}
+                    className={`${i === 0 ? "mt-4" : "mt-3"} text-[15px] leading-[1.75] text-[#5f524c]`}
+                  >
+                    {para}
+                  </p>
+                ))}
 
                 {activeDuo.tags?.length ? (
                   <div className="mt-5 flex flex-wrap gap-2">

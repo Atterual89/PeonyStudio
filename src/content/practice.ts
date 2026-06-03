@@ -4,6 +4,8 @@ export type PracticeActivity = {
   title: string;
   description: string;
   tags: string[];
+  icons: string[];
+  frequency: string;
 };
 
 export type PracticeBranch = {
@@ -21,7 +23,7 @@ export const practiceContent = {
     eyebrow: "Pratica e socialità",
     title: "Pratica e socialità",
     intro:
-      "Spazi ricorrenti per allenarsi, consolidare, incontrare persone e partecipare alla vita dello studio.",
+      "Spazi ricorrenti per allenarsi, consolidare, incontrare persone e partecipare alla vita dello spazio.",
     cta: {
       label: "Guarda le prossime date",
       href: "#prossime-date",
@@ -38,17 +40,17 @@ export const practiceContent = {
           title: "Pratica assistita",
           description:
             "Uno spazio accompagnato per ripetere materiale già visto, fare domande e lavorare con più continuità sulle basi.",
-          tags: [
-            "Anche per single",
-            "Aperta a chi inizia",
-            "Richiede basi",
-          ],
+          tags: ["Anche per single", "Aperta a chi inizia", "Richiede basi"],
+          icons: ["User", "BookOpen", "Sprout"],
+          frequency: "Una volta al mese",
         },
         {
           title: "Classi tematiche",
           description:
             "Incontri dedicati a un tema specifico scelto da Kurogami e Shiawase e comunicato in anticipo, con spiegazioni, demo e pratica guidata.",
           tags: ["Aperta a chi inizia", "Richiede basi", "Con demo"],
+          icons: ["Users", "BookOpen", "Sprout"],
+          frequency: "Ogni due mesi",
         },
       ],
     },
@@ -56,39 +58,31 @@ export const practiceContent = {
       key: "social",
       title: "Socialità",
       description:
-        "Momenti per vivere lo studio, incontrare persone, osservare, praticare liberamente e prendere parte alla community.",
+        "Momenti per vivere lo spazio, incontrare persone, osservare, praticare liberamente e prendere parte alla community.",
       activities: [
         {
           title: "Rope Jam",
           description:
             "Uno spazio libero di pratica e incontro, con sessioni, musica, atmosfera e possibilità di osservare o legare nel rispetto dello spazio condiviso.",
-          tags: [
-            "Anche per single",
-            "Aperta a chi inizia",
-            "Observer ammessi",
-          ],
+          tags: ["Anche per single", "Aperta a chi inizia", "Observer ammessi"],
+          icons: ["Eye", "Sprout", "User"],
+          frequency: "Una volta al mese",
         },
         {
           title: "Open Day",
           description:
-            "Una giornata lunga nel weekend per conoscere lo studio, praticare, osservare e partecipare a laboratori o attività speciali.",
-          tags: [
-            "Anche per single",
-            "Aperta a chi inizia",
-            "Observer ammessi",
-            "Giornata intera",
-          ],
+            "Una giornata lunga nel weekend per conoscere lo spazio, praticare, osservare e partecipare a laboratori o attività speciali.",
+          tags: ["Anche per single", "Aperta a chi inizia", "Observer ammessi", "Giornata intera"],
+          icons: ["Eye", "Sprout", "User"],
+          frequency: "4 volte all'anno",
         },
         {
           title: "Aperi-bottom",
           description:
             "Un incontro dedicato ai bottom, con temi di confronto sul bottoming e momenti sociali per parlare, ascoltare e condividere esperienze.",
-          tags: [
-            "Per bottom",
-            "Aperto a chi inizia",
-            "Incontro tematico",
-            "Momento sociale",
-          ],
+          tags: ["Per bottom", "Aperto a chi inizia", "Incontro tematico", "Momento sociale"],
+          icons: ["Ribbon", "Sprout", "User"],
+          frequency: "Ogni due mesi",
         },
       ],
     },
@@ -117,7 +111,7 @@ const practiceContentEn = {
     eyebrow: "Practice & Community",
     title: "Practice & Community",
     intro:
-      "Recurring spaces to train, consolidate, meet people and take part in studio life.",
+      "Regular sessions to train, consolidate, meet people and take part in the life of the venue.",
     cta: { label: "View upcoming dates", href: "#prossime-date" },
   },
   branches: [
@@ -132,12 +126,16 @@ const practiceContentEn = {
           description:
             "An accompanied space to repeat material already covered, ask questions and work with more continuity on the basics.",
           tags: ["You can join without a partner", "Open to beginners", "Requires basics"],
+          icons: ["User", "BookOpen", "Sprout"],
+          frequency: "Once a month",
         },
         {
           title: "Themed Classes",
           description:
             "Sessions dedicated to a specific topic chosen by Kurogami and Shiawase and announced in advance, with explanations, demos and guided practice.",
           tags: ["Open to beginners", "Requires basics", "With demo"],
+          icons: ["Users", "BookOpen", "Sprout"],
+          frequency: "Every two months",
         },
       ],
     },
@@ -145,25 +143,31 @@ const practiceContentEn = {
       key: "social" as PracticeBranchKey,
       title: "Community",
       description:
-        "Moments to experience the studio, meet people, observe, practice freely and take part in community life.",
+        "Moments to experience the venue, meet people, observe, practice freely and take part in community life.",
       activities: [
         {
           title: "Rope Jam",
           description:
             "A free practice and gathering space, with sessions, music, atmosphere and the possibility to observe or tie in respect of the shared space.",
           tags: ["You can join without a partner", "Open to beginners", "Observers welcome"],
+          icons: ["Eye", "Sprout", "User"],
+          frequency: "Once a month",
         },
         {
           title: "Open Day",
           description:
-            "A long weekend day to discover the studio, practice, observe and take part in workshops or special activities.",
+            "A long weekend day to discover the venue, practice, observe and take part in workshops or special activities.",
           tags: ["You can join without a partner", "Open to beginners", "Observers welcome", "Full day"],
+          icons: ["Eye", "Sprout", "User"],
+          frequency: "4 times a year",
         },
         {
           title: "Aperi-bottom",
           description:
             "A gathering dedicated to bottoms, with topics about the bottom experience and social moments to talk, listen and share.",
           tags: ["For bottoms", "Open to beginners", "Themed gathering", "Social moment"],
+          icons: ["Ribbon", "Sprout", "User"],
+          frequency: "Every two months",
         },
       ],
     },

@@ -2,7 +2,7 @@ export const it = {
   meta: {
     title: "Peony Studio — Kinbaku Torino",
     description:
-      "Peony Studio e una scuola, venue e community di kinbaku a Torino.",
+      "Peony Studio — Kinbaku venue · Torino",
   },
   nav: {
     howToStart: "Come iniziare",
@@ -26,12 +26,12 @@ export const it = {
     closeMenu: "Chiudi menu",
     language: "Lingua",
     chooseLanguage: "Scegli lingua",
-    mobileFooter: "Peony Studio — Kinbaku a Torino",
+    mobileFooter: "Peony Studio — Kinbaku venue · Torino",
     homeAria: "Peony Studio home",
   },
   footer: {
     brand: "PEONY STUDIO",
-    copyright: "Kinbaku, pratica e community a Torino.",
+    copyright: "Peony Studio — Kinbaku venue · Torino",
     columns: [
       {
         title: "Studio",
@@ -277,11 +277,30 @@ export const it = {
     studioCommunity: "Torino · Kinbaku · Community",
     studioText:
       "Uno spazio per studiare la corda come tecnica, relazione e presenza.",
-    heroTitle: "Scuola, venue e community di kinbaku a Torino.",
+    heroTitle: "Peony Studio — Kinbaku venue · Torino",
     heroIntro:
       "Peony Studio è uno spazio dedicato allo studio delle corde: tecnica, connessione, estetica e pratica condivisa dentro un ambiente curato e accogliente.",
     heroPrimaryCtaLabel: "Guarda il calendario",
     heroSecondaryCtaLabel: "Come iniziare",
+    tabAbout: "About",
+    tabSpazio: "Spazio",
+    tabTeam: "Team",
+    tabCommunity: "Community",
+    readBio: "Leggi bio",
+    foundersEyebrow: "FONDATORI",
+    foundersTitle: "Kurogami & Shiawase",
+    guestEyebrow: "GUEST TEACHERS",
+    guestTitle: "Chi è passato da Peony",
+    communityTabEyebrow: "COMMUNITY",
+    communityTabTitle: "Studiare, praticare, incontrare.",
+    finalCtaTitle: "Vieni a Peony.",
+    finalCtaBtn1: "Guarda i prossimi eventi",
+    finalCtaBtn2: "Scopri come iniziare",
+    contactEyebrow: "CONTATTI",
+    contactTitle: "Scrivici.",
+    contactSubtitle: "Hai domande? Usa il form qui sotto oppure trovaci sui social.",
+    contactInstagram: "@peony.studio.turin",
+    contactTelegram: "Canale Telegram",
   },
   howToStart: {
     fewQuestions: "Poche domande",
@@ -315,7 +334,7 @@ export const it = {
     heroEyebrow: "Pratica e socialità",
     heroTitle: "Pratica e socialità",
     heroIntro:
-      "Spazi ricorrenti per allenarsi, consolidare, incontrare persone e partecipare alla vita dello studio.",
+      "Spazi ricorrenti per allenarsi, consolidare, incontrare persone e partecipare alla vita dello spazio.",
     heroCtaLabel: "Guarda le prossime date",
     datesTitle: "Prossime date",
     datesCtaLabel: "Guarda il calendario completo",
@@ -324,6 +343,17 @@ export const it = {
     dashboardCtaLabel: "Vai alla dashboard",
     branchPracticeTitle: "Pratica",
     branchSocialTitle: "Socialità",
+    freqPraticaAssistita: "Una volta al mese",
+    freqClassiTematiche: "Ogni due mesi",
+    freqRopeJam: "Una volta al mese",
+    freqOpenDay: "4 volte all'anno",
+    freqAperibottom: "Ogni due mesi",
+    iconLegendUser: "Anche per single",
+    iconLegendUsers: "Per coppie",
+    iconLegendSprout: "Aperta a chi inizia",
+    iconLegendBookOpen: "Richiede basi",
+    iconLegendRibbon: "Solo per bottom",
+    iconLegendEye: "Observer ammessi",
   },
   shop: {
     ticketTailorCta: "Vai direttamente allo shop su Ticket Tailor",
@@ -362,7 +392,7 @@ export const it = {
   home: {
     hero: {
       eyebrow: "Kinbaku — Torino",
-      title: "Scuola, venue e community di kinbaku a Torino.",
+      title: "Peony Studio — Kinbaku venue · Torino",
       description:
         "Peony Studio unisce formazione, pratica e incontri in uno spazio dedicato alle corde.",
       primaryCta: { label: "Voglio iniziare", href: "/come-iniziare" },

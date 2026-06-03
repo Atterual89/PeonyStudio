@@ -14,7 +14,9 @@
       "Bash(echo \"=== TSC EXIT $?\")",
       "Bash(echo \"=== LINT EXIT $?\")",
       "Bash(echo \"=== BUILD EXIT $?\")",
-      "Bash(echo \"=== EXIT $?\")"
+      "Bash(echo \"=== EXIT $?\")",
+      "Bash(node -e \"require\\('lucide-react'\\); console.log\\('ok'\\)\")",
+      "Bash(npm.cmd install *)"
     ]
   }
 }

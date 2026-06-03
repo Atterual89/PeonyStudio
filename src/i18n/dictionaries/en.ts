@@ -4,7 +4,7 @@ export const en: typeof it = {
   meta: {
     title: "Peony Studio — Kinbaku Turin",
     description:
-      "Peony Studio is a kinbaku school, venue and community in Turin.",
+      "Peony Studio — Kinbaku venue · Turin",
   },
   nav: {
     howToStart: "How to start",
@@ -28,7 +28,7 @@ export const en: typeof it = {
     closeMenu: "Close menu",
     language: "Language",
     chooseLanguage: "Choose language",
-    mobileFooter: "Peony Studio — Kinbaku in Turin",
+    mobileFooter: "Peony Studio — Kinbaku venue · Turin",
     homeAria: "Peony Studio home",
   },
   footer: {
@@ -258,7 +258,7 @@ export const en: typeof it = {
     ctaBook: "Book on Ticket Tailor",
   },
   peony: {
-    howToGetThere: "How to get there",
+    howToGetThere: "How to get here",
     goToSection: "Go to section",
     viewWorkshops: "View workshops",
     communityLabels: [
@@ -272,11 +272,30 @@ export const en: typeof it = {
     studioCommunity: "Turin · Kinbaku · Community",
     studioText:
       "A space to study rope as technique, relationship and presence.",
-    heroTitle: "A kinbaku school, venue and community in Turin.",
+    heroTitle: "Peony Studio — Kinbaku venue · Turin",
     heroIntro:
       "Peony Studio is a space dedicated to the study of rope: technique, connection, aesthetics and shared practice in a carefully crafted environment.",
     heroPrimaryCtaLabel: "View the calendar",
     heroSecondaryCtaLabel: "How to start",
+    tabAbout: "About",
+    tabSpazio: "Space",
+    tabTeam: "Team",
+    tabCommunity: "Community",
+    readBio: "Read bio",
+    foundersEyebrow: "FOUNDERS",
+    foundersTitle: "Kurogami & Shiawase",
+    guestEyebrow: "GUEST TEACHERS",
+    guestTitle: "Guest teachers at Peony",
+    communityTabEyebrow: "COMMUNITY",
+    communityTabTitle: "Study, practice, connect.",
+    finalCtaTitle: "Come to Peony.",
+    finalCtaBtn1: "View upcoming events",
+    finalCtaBtn2: "How to get started",
+    contactEyebrow: "CONTACT",
+    contactTitle: "Get in touch.",
+    contactSubtitle: "Got questions? Use the form below or find us on social.",
+    contactInstagram: "@peony.studio.turin",
+    contactTelegram: "Telegram Channel",
   },
   howToStart: {
     fewQuestions: "A few questions",
@@ -310,7 +329,7 @@ export const en: typeof it = {
     heroEyebrow: "Practice & Community",
     heroTitle: "Practice & Community",
     heroIntro:
-      "Recurring spaces to train, consolidate, meet people and take part in studio life.",
+      "Regular sessions to train, consolidate, meet people and take part in the life of the venue.",
     heroCtaLabel: "View upcoming dates",
     datesTitle: "Upcoming dates",
     datesCtaLabel: "View full calendar",
@@ -319,6 +338,17 @@ export const en: typeof it = {
     dashboardCtaLabel: "Go to dashboard",
     branchPracticeTitle: "Practice",
     branchSocialTitle: "Community",
+    freqPraticaAssistita: "Once a month",
+    freqClassiTematiche: "Every two months",
+    freqRopeJam: "Once a month",
+    freqOpenDay: "4 times a year",
+    freqAperibottom: "Every two months",
+    iconLegendUser: "You can join solo",
+    iconLegendUsers: "For couples",
+    iconLegendSprout: "Open to beginners",
+    iconLegendBookOpen: "Some experience needed",
+    iconLegendRibbon: "For bottoms only",
+    iconLegendEye: "Observers welcome",
   },
   shop: {
     ticketTailorCta: "Go directly to the shop on Ticket Tailor",
@@ -357,7 +387,7 @@ export const en: typeof it = {
   home: {
     hero: {
       eyebrow: "Kinbaku — Turin",
-      title: "A kinbaku school, venue and community in Turin.",
+      title: "Peony Studio — Kinbaku venue · Turin",
       description:
         "Peony Studio brings together training, practice and meetings in a dedicated rope space.",
       primaryCta: { label: "I want to start", href: "/come-iniziare" },
