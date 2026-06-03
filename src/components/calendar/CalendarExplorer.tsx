@@ -5,10 +5,12 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { useLanguage } from "@/components/site/LanguageProvider";
+import { EventsNetflixLayout } from "@/components/shared/EventsNetflixLayout";
 import type { Dictionary } from "@/i18n/getDictionary";
 import {
   isWorkshopEvent,
   type PeonyEvent,
+  type PeonyEventCard,
   type PeonyEventCategory,
 } from "@/lib/events";
 
@@ -28,6 +30,13 @@ const suggestedTags = [
   "con demo",
   "bottom",
 ];
+
+const MOBILE_PERIODS = [
+  { label: "Tutto", value: "all" },
+  { label: "Questo mese", value: "month" },
+  { label: "Prossimi 3 mesi", value: "90days" },
+] as const;
+type MobilePeriod = (typeof MOBILE_PERIODS)[number]["value"];
 
 export function CalendarExplorer({
   events,
@@ -95,6 +104,17 @@ export function CalendarExplorer({
     workshop: true,
   });
 
+  // mobile-only state
+  const [mobileQuery, setMobileQuery] = useState("");
+  const [mobilePeriod, setMobilePeriod] = useState<MobilePeriod>("all");
+  const [mobileCalendarOpen, setMobileCalendarOpen] = useState(false);
+  const [mobileVisibleMonth, setMobileVisibleMonth] = useState(() =>
+    getMonthKey(getTodayIso()),
+  );
+  const [mobileSelectedDay, setMobileSelectedDay] = useState<string | null>(
+    null,
+  );
+
   const availableTags = useMemo(() => {
     const tags = new Set(
       sortedEvents.flatMap((event) =>
@@ -148,6 +168,36 @@ export function CalendarExplorer({
     });
   }, [activeTags, category, period, query, sortedEvents, today]);
 
+  const mobileEvents = useMemo(
+    () =>
+      sortedEvents
+        .filter((event) => event.date >= today)
+        .map(toNetflixCard),
+    [sortedEvents, today],
+  );
+
+  const mobileEventDays = useMemo(
+    () => new Set(mobileEvents.map((e) => e.date)),
+    [mobileEvents],
+  );
+
+  const mobileMonthCells = useMemo(
+    () => getMobileMonthCells(mobileVisibleMonth, mobileEventDays),
+    [mobileVisibleMonth, mobileEventDays],
+  );
+
+  const filteredMobileEvents = useMemo(() => {
+    if (mobilePeriod === "all") return mobileEvents;
+    if (mobilePeriod === "month") {
+      const monthKey = today.slice(0, 7);
+      return mobileEvents.filter((e) => e.date.startsWith(monthKey));
+    }
+    const limit = new Date(`${today}T12:00:00`);
+    limit.setDate(limit.getDate() + 90);
+    const limitIso = toIsoDate(limit);
+    return mobileEvents.filter((e) => e.date <= limitIso);
+  }, [mobileEvents, mobilePeriod, today]);
+
   const eventsByDay = useMemo(
     () => groupEventsByDate(filteredEvents),
     [filteredEvents],
@@ -197,6 +247,162 @@ export function CalendarExplorer({
 
   return (
     <section className="mx-auto max-w-6xl px-5 pb-16 pt-2 sm:px-6 md:pb-24">
+      {/* ── MOBILE: Layer 1 + 2 + 3 ── */}
+      <div className="md:hidden">
+
+        {/* Layer 1 — Ricerca */}
+        <div className="mb-4">
+          <input
+            value={mobileQuery}
+            onChange={(e) => setMobileQuery(e.target.value)}
+            placeholder="Cerca eventi..."
+            className="w-full border-b border-[#1a1510]/20 bg-transparent py-2 font-sans text-sm text-[#1a1510] outline-none transition-colors placeholder:text-[#6b5c52]/60 focus:border-[#8b5e4a]"
+          />
+        </div>
+
+        {/* Layer 1 — Filtro periodo */}
+        <div className="mb-5 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {MOBILE_PERIODS.map(({ label, value }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => {
+                setMobilePeriod(value);
+                setMobileSelectedDay(null);
+              }}
+              className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-medium transition ${
+                mobilePeriod === value
+                  ? "bg-[#1a1510] text-[#f5efea]"
+                  : "border border-[#1a1510]/20 bg-transparent text-[#6b5c52]"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Layer 2 — Calendario collassabile */}
+        <div className="mb-5">
+          {/* toggle: NON tocca mobileSelectedDay */}
+          <button
+            type="button"
+            onClick={() => setMobileCalendarOpen((o) => !o)}
+            className="flex w-full items-center justify-between border-b border-[#1a1510]/15 pb-2 font-sans text-xs uppercase tracking-widest text-[#6b5c52]"
+          >
+            <span>
+              Calendario
+              {mobileSelectedDay !== null && (
+                <span className="ml-2 text-[#8b5e4a]">·</span>
+              )}
+            </span>
+            <span aria-hidden="true">{mobileCalendarOpen ? "↑" : "↓"}</span>
+          </button>
+
+          <div
+            className={`overflow-hidden transition-all duration-300 ${
+              mobileCalendarOpen ? "max-h-[320px]" : "max-h-0"
+            }`}
+          >
+            <div className="pt-3">
+              {/* navigazione mese */}
+              <div className="mb-2 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setMobileVisibleMonth((m) => shiftMonth(m, -1))}
+                  className="grid h-7 w-7 place-items-center rounded-full border border-[#1a1510]/15 text-sm text-[#8b5e4a] transition hover:bg-white/60"
+                  aria-label="Mese precedente"
+                >
+                  ‹
+                </button>
+                <span className="font-sans text-xs font-medium capitalize text-[#1a1510]">
+                  {formatMonthLabel(mobileVisibleMonth, locale)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setMobileVisibleMonth((m) => shiftMonth(m, 1))}
+                  className="grid h-7 w-7 place-items-center rounded-full border border-[#1a1510]/15 text-sm text-[#8b5e4a] transition hover:bg-white/60"
+                  aria-label="Mese successivo"
+                >
+                  ›
+                </button>
+              </div>
+
+              {/* intestazioni giorni */}
+              <div className="mb-1 grid grid-cols-7 gap-0.5 text-center text-[9px] uppercase tracking-wider text-[#8b5e4a]">
+                {["L", "M", "M", "G", "V", "S", "D"].map((d, i) => (
+                  <span key={`${d}-${i}`}>{d}</span>
+                ))}
+              </div>
+
+              {/* celle giorni */}
+              <div className="grid grid-cols-7 gap-0.5">
+                {mobileMonthCells.map((cell) => (
+                  <div key={cell.iso} className="flex justify-center">
+                    {cell.inMonth ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setMobileSelectedDay((prev) =>
+                            prev === cell.iso ? null : cell.iso,
+                          )
+                        }
+                        className={`flex h-7 w-7 flex-col items-center justify-center rounded-full text-[11px] font-medium transition ${
+                          mobileSelectedDay === cell.iso
+                            ? "bg-[#1a1510] text-[#f5efea]"
+                            : cell.hasEvents
+                              ? "text-[#1a1510] hover:bg-[#1a1510]/8"
+                              : "text-[#6b5c52]/40"
+                        }`}
+                      >
+                        <span className="leading-none">{cell.day}</span>
+                        {cell.hasEvents ? (
+                          <span
+                            className={`mt-0.5 h-[3px] w-[3px] rounded-full ${
+                              mobileSelectedDay === cell.iso
+                                ? "bg-[#f5efea]/70"
+                                : "bg-[#8b5e4a]"
+                            }`}
+                          />
+                        ) : null}
+                      </button>
+                    ) : (
+                      <span className="h-7 w-7" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* deseleziona giorno — visibile solo quando selectedDay è attivo */}
+        {mobileSelectedDay !== null && (
+          <div className="mb-3 flex items-center justify-between rounded-[8px] border border-[#1a1510]/10 bg-white/50 px-3 py-2">
+            <span className="font-sans text-xs text-[#6b5c52]">
+              {formatDayTitle(mobileSelectedDay, locale)}
+            </span>
+            <button
+              type="button"
+              onClick={() => setMobileSelectedDay(null)}
+              className="rounded-full border border-[#1a1510]/15 px-3 py-1 font-sans text-[10px] text-[#6b5c52] transition hover:bg-white/80"
+            >
+              × Deseleziona
+            </button>
+          </div>
+        )}
+
+        {/* Layer 3 — Netflix layout
+            selectedDay null  → layout Netflix (periodo selezionato)
+            selectedDay attivo → lista flat eventi del giorno */}
+        <EventsNetflixLayout
+          events={filteredMobileEvents}
+          searchQuery={mobileQuery}
+          selectedDay={mobileSelectedDay}
+        />
+      </div>
+
+      {/* desktop: layout calendario invariato */}
+      <div className="hidden md:block">
       <div className="rounded-[8px] border border-[#211815]/10 bg-white/38 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] md:p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -451,6 +657,7 @@ export function CalendarExplorer({
           </div>
         </>
       )}
+      </div>
     </section>
   );
 }
@@ -839,4 +1046,42 @@ function getFallbackImage(event: PeonyEvent) {
   }
 
   return "/images/home/event-class.jpg";
+}
+
+function getMobileMonthCells(
+  monthKey: string,
+  eventDays: Set<string>,
+): { iso: string; day: number; inMonth: boolean; hasEvents: boolean }[] {
+  const [year, month] = monthKey.split("-").map(Number);
+  const firstOfMonth = new Date(year, month - 1, 1);
+  const mondayOffset = (firstOfMonth.getDay() + 6) % 7;
+  const start = new Date(year, month - 1, 1 - mondayOffset);
+
+  return Array.from({ length: 42 }, (_, index) => {
+    const d = new Date(start);
+    d.setDate(start.getDate() + index);
+    const iso = toIsoDate(d);
+    return {
+      iso,
+      day: d.getDate(),
+      inMonth: iso.startsWith(monthKey),
+      hasEvents: eventDays.has(iso),
+    };
+  });
+}
+
+function toNetflixCard(event: PeonyEvent): PeonyEventCard {
+  const detailHref = event.workshopSlug
+    ? `/workshop/${event.workshopSlug}`
+    : `/eventi/${event.slug}`;
+  return {
+    slug: event.slug,
+    category: event.category,
+    title: event.title,
+    date: event.date, // ISO YYYY-MM-DD — formattato da tryFormatDate nel componente
+    detail: event.shortDescription,
+    image: event.imageUrl ?? getFallbackImage(event),
+    eventUrl: detailHref,
+    bookingUrl: event.bookingUrl,
+  };
 }

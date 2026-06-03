@@ -9,7 +9,10 @@ import {
   useState,
 } from "react";
 
+import { useLanguage } from "@/components/site/LanguageProvider";
+
 import {
+  shopBilingual,
   shopContent,
   type PeonyCardVariant,
   type RopeProduct,
@@ -141,6 +144,9 @@ const CARD_RESULT_COPY: Record<CardLevel, string> = {
 };
 
 export function ShopProducts({ storeUrl }: { storeUrl?: string }) {
+  const { dictionary, locale } = useLanguage();
+  const shopDict = dictionary.shop;
+  const localizedShop = shopBilingual[locale] ?? shopBilingual.it;
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
@@ -228,7 +234,7 @@ export function ShopProducts({ storeUrl }: { storeUrl?: string }) {
   if (loading) {
     return (
       <div className="rounded-[8px] border border-[#211815]/10 bg-white/35 p-5 text-sm text-[#5f524c]">
-        Caricamento prodotti...
+        {shopDict.loading}
       </div>
     );
   }
@@ -237,34 +243,37 @@ export function ShopProducts({ storeUrl }: { storeUrl?: string }) {
     <div className="grid gap-7 md:gap-9">
       <section className="rounded-[8px] border border-[#211815]/10 bg-white/35 p-4 md:p-5">
         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-          Cosa stai cercando?
+          {shopDict.whatLooking}
         </p>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
-          {SHOP_CHOICES.map((choice) => (
-            <button
-              key={choice.key}
-              type="button"
-              className="group rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/65 p-4 text-left transition hover:-translate-y-0.5 hover:bg-white/65"
-              onClick={() => openAndScroll(choice.key)}
-            >
-              <span className="font-serif text-2xl font-medium leading-[1.08]">
-                {choice.title}
-              </span>
-              <span className="mt-2 block text-sm leading-[1.55] text-[#5f524c]">
-                {choice.text}
-              </span>
-              <span className="mt-4 inline-flex text-sm font-medium text-[#8b5e4a] transition group-hover:translate-x-1">
-                Apri sezione
-              </span>
-            </button>
-          ))}
+          {SHOP_CHOICES.map((choice, index) => {
+            const choiceText = shopDict.shopChoices[index];
+            return (
+              <button
+                key={choice.key}
+                type="button"
+                className="group rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/65 p-4 text-left transition hover:-translate-y-0.5 hover:bg-white/65"
+                onClick={() => openAndScroll(choice.key)}
+              >
+                <span className="font-serif text-2xl font-medium leading-[1.08]">
+                  {choiceText?.title ?? choice.title}
+                </span>
+                <span className="mt-2 block text-sm leading-[1.55] text-[#5f524c]">
+                  {choiceText?.text ?? choice.text}
+                </span>
+                <span className="mt-4 inline-flex text-sm font-medium text-[#8b5e4a] transition group-hover:translate-x-1">
+                  {shopDict.openSection}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </section>
 
       <ShopAccordionSection
         id="peony-card"
-        eyebrow={shopContent.peonyCards.eyebrow}
-        title={shopContent.peonyCards.title}
+        eyebrow={localizedShop.peonyCards.eyebrow}
+        title={localizedShop.peonyCards.title}
         open={openSections["peony-card"]}
         onToggle={() => toggleSection("peony-card")}
       >
@@ -288,8 +297,8 @@ export function ShopProducts({ storeUrl }: { storeUrl?: string }) {
 
       <ShopAccordionSection
         id="gift-card"
-        eyebrow={shopContent.giftCards.eyebrow}
-        title={shopContent.giftCards.title}
+        eyebrow={localizedShop.giftCards.eyebrow}
+        title={localizedShop.giftCards.title}
         open={openSections["gift-card"]}
         onToggle={() => toggleSection("gift-card")}
       >
@@ -305,8 +314,8 @@ export function ShopProducts({ storeUrl }: { storeUrl?: string }) {
 
       <ShopAccordionSection
         id="corde"
-        eyebrow={shopContent.ropes.eyebrow}
-        title={shopContent.ropes.title}
+        eyebrow={localizedShop.ropes.eyebrow}
+        title={localizedShop.ropes.title}
         open={openSections.corde}
         onToggle={() => toggleSection("corde")}
       >
@@ -387,6 +396,8 @@ function PeonyCardsSection({
   onOpenQuiz: () => void;
   storeUrl?: string;
 }) {
+  const { dictionary } = useLanguage();
+  const shopDict = dictionary.shop;
   const content = shopContent.peonyCards;
 
   return (
@@ -398,14 +409,14 @@ function PeonyCardsSection({
           className="inline-flex justify-center rounded-full border border-[#211815]/15 bg-white/55 px-5 py-3 text-sm font-medium text-[#211815] transition hover:bg-white"
           onClick={onCompare}
         >
-          Confronta le Card
+          {shopDict.compareCards}
         </button>
         <button
           type="button"
           className="inline-flex justify-center rounded-full bg-[#211815] px-5 py-3 text-sm font-medium text-white transition hover:-translate-y-0.5"
           onClick={onOpenQuiz}
         >
-          Aiutami a scegliere
+          {shopDict.helpChoose}
         </button>
       </div>
       {products.length ? (
@@ -427,7 +438,7 @@ function PeonyCardsSection({
           })}
         </div>
       ) : (
-        <EmptyState text="Le Peony Card disponibili verranno mostrate qui quando lo store Ticket Tailor sarà attivo." />
+        <EmptyState text={shopDict.peonyCardEmpty} />
       )}
       <div className="grid gap-3">
         <DetailsBlock
@@ -459,6 +470,8 @@ function PeonyCardProduct({
   onImageError: (id: string) => void;
   storeUrl?: string;
 }) {
+  const { dictionary } = useLanguage();
+  const shopDict = dictionary.shop;
   const title = `Peony Card 2027 — ${variant.variant}`;
 
   return (
@@ -493,12 +506,12 @@ function PeonyCardProduct({
           {product?.price ? <Chip strong>{product.price}</Chip> : null}
           <Chip>{variant.value}</Chip>
           {typeof product?.quantity === "number" ? (
-            <Chip>Disponibili: {product.quantity}</Chip>
+            <Chip>{shopDict.available}: {product.quantity}</Chip>
           ) : null}
         </div>
         <BuyButton storeUrl={storeUrl} />
         <DetailsBlock
-          title="Cosa include"
+          title={shopDict.whatIncludes}
           items={variant.benefits}
           defaultOpen={highlighted}
         />
@@ -518,6 +531,8 @@ function GiftCardsSection({
   onImageError: (id: string) => void;
   storeUrl?: string;
 }) {
+  const { dictionary } = useLanguage();
+  const shopDict = dictionary.shop;
   const content = shopContent.giftCards;
 
   return (
@@ -543,7 +558,7 @@ function GiftCardsSection({
           })}
         </div>
       ) : (
-        <EmptyState text="Le Gift Card disponibili verranno mostrate qui quando lo store Ticket Tailor sarà attivo." />
+        <EmptyState text={shopDict.giftCardEmpty} />
       )}
     </div>
   );
@@ -562,6 +577,9 @@ function ProductCard({
   onImageError: (id: string) => void;
   storeUrl?: string;
 }) {
+  const { dictionary } = useLanguage();
+  const shopDictForCard = dictionary.shop;
+
   return (
     <article className="overflow-hidden rounded-[8px] border border-[#211815]/10 bg-white/42 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]">
       <ProductImage
@@ -583,7 +601,7 @@ function ProductCard({
         <div className="mt-4 flex flex-wrap gap-2 text-sm">
           {product.price ? <Chip strong>{product.price}</Chip> : null}
           {typeof product.quantity === "number" ? (
-            <Chip>Disponibili: {product.quantity}</Chip>
+            <Chip>{shopDictForCard.available}: {product.quantity}</Chip>
           ) : null}
         </div>
         <BuyButton storeUrl={storeUrl} />
@@ -1089,10 +1107,13 @@ function ProductImage({
 }
 
 function BuyButton({ storeUrl }: { storeUrl?: string }) {
+  const { dictionary } = useLanguage();
+  const shopDict = dictionary.shop;
+
   if (!storeUrl) {
     return (
       <p className="mt-3 rounded-[8px] border border-[#211815]/10 bg-white/45 px-4 py-3 text-sm leading-[1.6] text-[#5f524c]">
-        Shop Ticket Tailor in arrivo.
+        {shopDict.shopComingSoon}
       </p>
     );
   }
@@ -1104,7 +1125,7 @@ function BuyButton({ storeUrl }: { storeUrl?: string }) {
       rel="noreferrer"
       className="mt-3 inline-flex w-full justify-center rounded-full bg-[#211815] px-4 py-2.5 text-sm font-medium text-white transition hover:-translate-y-0.5"
     >
-      Acquista
+      {shopDict.buy}
     </a>
   );
 }

@@ -1,0 +1,51 @@
+Leggi src/components/home/EntryDoorsSection.tsx per intero.
+
+Ridisegna il componente SOLO su mobile (md: invariato).
+
+LAYOUT — collage di card scure con icone SVG inline:
+
+Card 1 — grande (height 180px), occupa tutta la larghezza:
+- Sfondo #1a1510
+- Icona SVG inline centrata in alto: punto interrogativo stilizzato 
+  o bussola (cerca un SVG semplice outline coerente)
+- Numero "01" in alto a sinistra text-[9px] tracking-wide muted
+- Testo in basso: label uppercase tiny + titolo serif cream + 
+  link "Trova il punto di partenza ?" in accent
+
+Riga 2 card — due card affiancate (grid 2 col, height 110px):
+Card 2 — sfondo #2e3d2e (verde scuro):
+- Icona: cerchi concentrici (percorso/livelli)
+- "02" + titolo serif piccolo + label tiny
+
+Card 3 — sfondo #1e2040 (blu notte):
+- Icona: stella / fiore stilizzato (workshop/ospiti)  
+- "03" + titolo serif piccolo + label tiny
+
+Card 4 — orizzontale (height 72px), full width:
+- Sfondo #2e1a2e (viola scuro)
+- Icona a sinistra: persone/community
+- Testo a destra: numero + titolo
+- Pallino animato (pulse) + "Rope Jam · Open Day" in accent
+
+INTERAZIONE — tap su qualsiasi card:
+- Apre pannello inline sotto le card (non modal, non overlay)
+- Pannello: bg #1a1510, border-radius 12px, padding 16px
+- Contenuto: label uppercase + titolo serif + descrizione + 
+  bottone CTA accent + bottone "Chiudi"
+- Animazione: max-height 0 ? auto con transition 300ms
+- Una sola card aperta alla volta
+
+ICONE SVG — disegnale inline come path semplici, 
+stroke only, no fill, colore rgba(245,240,235,0.7), 
+dimensione 28-32px. Niente librerie esterne.
+
+TESTI — usa quelli già esistenti nel componente 
+(non inventare copy).
+
+PALETTE:
+- cream: #f5efea, dark: #1a1510, accent: #8b5e4a, warm: #c4a882
+
+Desktop (hidden md:block o md:grid): invariato.
+
+npx tsc --noEmit && npm run lint && npm run build
+Mostra file modificati + errori residui.

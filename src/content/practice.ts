@@ -108,3 +108,77 @@ export const practiceContent = {
     },
   },
 };
+
+const practiceContentEn = {
+  slug: "practice",
+  title: "Practice & Community",
+  navigationLabel: "Practice & Community",
+  hero: {
+    eyebrow: "Practice & Community",
+    title: "Practice & Community",
+    intro:
+      "Recurring spaces to train, consolidate, meet people and take part in studio life.",
+    cta: { label: "View upcoming dates", href: "#prossime-date" },
+  },
+  branches: [
+    {
+      key: "practice" as PracticeBranchKey,
+      title: "Practice",
+      description:
+        "Moments designed to repeat, consolidate and deepen. They don't replace the structured programs, but help turn what you have learned into real experience.",
+      activities: [
+        {
+          title: "Assisted Practice",
+          description:
+            "An accompanied space to repeat material already covered, ask questions and work with more continuity on the basics.",
+          tags: ["You can join without a partner", "Open to beginners", "Requires basics"],
+        },
+        {
+          title: "Themed Classes",
+          description:
+            "Sessions dedicated to a specific topic chosen by Kurogami and Shiawase and announced in advance, with explanations, demos and guided practice.",
+          tags: ["Open to beginners", "Requires basics", "With demo"],
+        },
+      ],
+    },
+    {
+      key: "social" as PracticeBranchKey,
+      title: "Community",
+      description:
+        "Moments to experience the studio, meet people, observe, practice freely and take part in community life.",
+      activities: [
+        {
+          title: "Rope Jam",
+          description:
+            "A free practice and gathering space, with sessions, music, atmosphere and the possibility to observe or tie in respect of the shared space.",
+          tags: ["You can join without a partner", "Open to beginners", "Observers welcome"],
+        },
+        {
+          title: "Open Day",
+          description:
+            "A long weekend day to discover the studio, practice, observe and take part in workshops or special activities.",
+          tags: ["You can join without a partner", "Open to beginners", "Observers welcome", "Full day"],
+        },
+        {
+          title: "Aperi-bottom",
+          description:
+            "A gathering dedicated to bottoms, with topics about the bottom experience and social moments to talk, listen and share.",
+          tags: ["For bottoms", "Open to beginners", "Themed gathering", "Social moment"],
+        },
+      ],
+    },
+  ] satisfies PracticeBranch[],
+  dates: {
+    title: "Upcoming dates",
+    cta: { label: "View full calendar", href: "/calendario" },
+  },
+  dashboard: {
+    text: "Access your dashboard to view bookings, saved events and recommended activities.",
+    cta: { label: "Go to dashboard", href: "/dashboard" },
+  },
+};
+
+export const practiceBilingual = {
+  it: practiceContent,
+  en: practiceContentEn,
+};

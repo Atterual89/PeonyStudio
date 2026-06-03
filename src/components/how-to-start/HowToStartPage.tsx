@@ -6,10 +6,14 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { HomeFooter } from "@/components/home/HomeFooter";
+import { useLanguage } from "@/components/site/LanguageProvider";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import {
+  howToStartBilingual,
   type QuizAnswerKey,
+  type QuizBranch,
   type QuizBranchKey,
+  type QuizFirstQuestion,
   type QuizResult,
   type QuizResultKey,
   type SimpleCard,
@@ -22,6 +26,13 @@ type HowToStartPageProps = {
   content: typeof howToStartContent;
 };
 
+type LocaleQuiz = {
+  title: string;
+  firstQuestion: QuizFirstQuestion;
+  branches: Record<QuizBranchKey, QuizBranch>;
+  results: Record<QuizResultKey, QuizResult>;
+};
+
 type SectionIntroProps = {
   eyebrow: string;
   title: string;
@@ -30,6 +41,9 @@ type SectionIntroProps = {
 
 export function HowToStartPage({ content }: HowToStartPageProps) {
   const reduceMotion = useReducedMotion();
+  const { dictionary, locale } = useLanguage();
+  const hts = dictionary.howToStart;
+  const localizedContent = howToStartBilingual[locale] ?? howToStartBilingual.it;
   const [quizOpen, setQuizOpen] = useState(false);
 
   useEffect(() => {
@@ -56,21 +70,24 @@ export function HowToStartPage({ content }: HowToStartPageProps) {
             transition={{ duration: 0.75, ease: [0.23, 1, 0.32, 1] }}
           >
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-              {content.hero.eyebrow}
+              {hts.heroEyebrow}
             </p>
             <h1 className="mt-4 max-w-2xl font-serif text-[clamp(42px,10vw,76px)] font-medium leading-[0.98] tracking-normal text-[#211815]">
-              {content.hero.title}
+              {hts.heroTitle}
             </h1>
             <p className="mt-6 max-w-xl text-[15px] leading-[1.75] text-[#5f524c] md:text-base">
-              {content.hero.intro}
+              {hts.heroIntro}
             </p>
             <div className="mt-8 flex flex-col gap-2.5 sm:flex-row">
               <SoftActionButton
-                label={content.hero.primaryCta.label}
+                label={hts.heroPrimaryCtaLabel}
                 onClick={() => setQuizOpen(true)}
                 variant="dark"
               />
-              <SoftButton cta={content.hero.secondaryCta} variant="light" />
+              <SoftButton
+                cta={{ label: hts.heroSecondaryCtaLabel, href: content.hero.secondaryCta.href }}
+                variant="light"
+              />
             </div>
           </motion.div>
 
@@ -92,10 +109,10 @@ export function HowToStartPage({ content }: HowToStartPageProps) {
             </div>
             <div className="absolute -bottom-4 left-4 right-4 rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/90 px-4 py-3 shadow-[0_10px_30px_rgba(33,24,21,0.10)] backdrop-blur md:left-auto md:w-72">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8b5e4a]">
-                Poche domande
+                {hts.fewQuestions}
               </p>
               <p className="mt-1 text-sm leading-[1.55] text-[#5f524c]">
-                1 punto di partenza
+                {hts.oneStartingPoint}
               </p>
             </div>
           </motion.div>
@@ -104,11 +121,11 @@ export function HowToStartPage({ content }: HowToStartPageProps) {
 
       <section className="mx-auto max-w-6xl px-5 py-8 sm:px-6 md:py-14">
         <SectionIntro
-          eyebrow={content.entryPaths.eyebrow}
-          title={content.entryPaths.title}
+          eyebrow={hts.entryPathsEyebrow}
+          title={hts.entryPathsTitle}
         />
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {content.entryPaths.cards.map((card, index) => (
+          {localizedContent.entryPaths.cards.map((card, index) => (
             <motion.article
               key={card.title}
               initial={reduceMotion ? false : { opacity: 0, y: 22 }}
@@ -138,12 +155,12 @@ export function HowToStartPage({ content }: HowToStartPageProps) {
       <section className="mx-auto max-w-6xl px-5 py-10 sm:px-6 md:py-14">
         <div className="grid gap-6 md:grid-cols-[0.85fr_1.15fr] md:items-end">
           <SectionIntro
-            eyebrow={content.preview.eyebrow}
-            title={content.preview.title}
-            intro={content.preview.intro}
+            eyebrow={hts.previewEyebrow}
+            title={hts.previewTitle}
+            intro={hts.previewIntro}
           />
           <div className="grid gap-4 sm:grid-cols-2">
-            {content.preview.cards.map((card) => (
+            {localizedContent.preview.cards.map((card) => (
               <InfoCard key={card.title} card={card} />
             ))}
           </div>
@@ -154,15 +171,13 @@ export function HowToStartPage({ content }: HowToStartPageProps) {
         <div className="rounded-[8px] border border-[#211815]/10 bg-gradient-to-br from-white/75 to-[#d6b89f]/35 px-6 py-8 md:px-10 md:py-10">
           <div className="max-w-3xl">
             <h2 className="font-serif text-3xl font-medium leading-[1.1] tracking-normal sm:text-4xl md:text-5xl">
-              {content.finalCta.title}
+              {hts.finalCtaTitle}
             </h2>
-            {content.finalCta.intro ? (
-              <p className="mt-3 text-sm leading-[1.6] text-[#5f524c] md:text-base">
-                {content.finalCta.intro}
-              </p>
-            ) : null}
             <div className="mt-5">
-              <SoftButton cta={content.finalCta.cta} variant="dark" />
+              <SoftButton
+                cta={{ label: hts.finalCtaCtaLabel, href: content.finalCta.cta.href }}
+                variant="dark"
+              />
             </div>
           </div>
         </div>
@@ -171,7 +186,7 @@ export function HowToStartPage({ content }: HowToStartPageProps) {
       <HomeFooter content={homeContent.footer} />
 
       {quizOpen ? (
-        <QuizDialog quiz={content.quiz} onClose={() => setQuizOpen(false)} />
+        <QuizDialog quiz={localizedContent.quiz} onClose={() => setQuizOpen(false)} />
       ) : null}
     </main>
   );
@@ -181,9 +196,12 @@ function QuizDialog({
   quiz,
   onClose,
 }: {
-  quiz: typeof howToStartContent.quiz;
+  quiz: LocaleQuiz;
   onClose: () => void;
 }) {
+  const { dictionary } = useLanguage();
+  const hts = dictionary.howToStart;
+
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -217,7 +235,7 @@ function QuizDialog({
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-              Quiz
+              {hts.quiz}
             </p>
             <h2
               id="quiz-dialog-title"
@@ -229,7 +247,7 @@ function QuizDialog({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Chiudi quiz"
+            aria-label={hts.closeQuiz}
             className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#211815]/20 bg-white/70 text-lg text-[#211815] transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-4 focus-visible:ring-offset-[#f4efe8]"
           >
             x
@@ -241,7 +259,9 @@ function QuizDialog({
   );
 }
 
-function QuizBlock({ quiz }: { quiz: typeof howToStartContent.quiz }) {
+function QuizBlock({ quiz }: { quiz: LocaleQuiz }) {
+  const { dictionary } = useLanguage();
+  const hts = dictionary.howToStart;
   const [currentStep, setCurrentStep] = useState(0);
   const [firstAnswer, setFirstAnswer] = useState<QuizAnswerKey | null>(null);
   const [branch, setBranch] = useState<QuizBranchKey | null>(null);
@@ -310,7 +330,7 @@ function QuizBlock({ quiz }: { quiz: typeof howToStartContent.quiz }) {
       <article className="rounded-[8px] border border-[#211815]/10 bg-white/65 p-5 shadow-[0_2px_0_rgba(33,24,21,0.03)] md:p-6">
         <div className="flex items-center justify-between gap-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-            Domanda {currentStep + 1} / {totalQuestions}
+            {hts.question} {currentStep + 1} / {totalQuestions}
           </p>
           <div className="flex gap-1.5" aria-hidden="true">
             {Array.from({ length: totalQuestions }).map((_, index) => (
@@ -374,7 +394,7 @@ function QuizBlock({ quiz }: { quiz: typeof howToStartContent.quiz }) {
             disabled={currentStep === 0}
             className="rounded-full border border-[#211815]/20 px-5 py-3 text-sm font-medium text-[#211815] transition hover:bg-white/70 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Indietro
+            {hts.back}
           </button>
           <button
             type="button"
@@ -386,7 +406,7 @@ function QuizBlock({ quiz }: { quiz: typeof howToStartContent.quiz }) {
             disabled={!selectedAnswer || currentStep === totalQuestions - 1}
             className="rounded-full bg-[#211815] px-5 py-3 text-sm font-medium text-white shadow-[0_6px_18px_rgba(33,24,21,0.15)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(33,24,21,0.22)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
           >
-            Avanti
+            {hts.next}
           </button>
         </div>
       </article>
@@ -465,16 +485,19 @@ function QuizResultCard({
   result: QuizResult;
   onReset: () => void;
 }) {
+  const { dictionary } = useLanguage();
+  const hts = dictionary.howToStart;
+
   return (
     <div>
       <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-        Il tuo risultato
+        {hts.yourResult}
       </p>
       <h3 className="mt-3 font-serif text-4xl font-medium leading-[1.05] tracking-normal">
         {result.title}
       </h3>
       <p className="mt-4 text-[11px] font-semibold uppercase leading-5 tracking-[0.12em] text-[#8b5e4a]">
-        Percorso consigliato · {result.path}
+        {hts.recommendedPath} · {result.path}
       </p>
       <p className="mt-4 text-sm leading-[1.7] text-[#5f524c]">{result.text}</p>
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -484,7 +507,7 @@ function QuizResultCard({
           onClick={onReset}
           className="rounded-full border border-[#211815]/20 bg-[#f4efe8]/70 px-5 py-3 text-sm font-medium text-[#211815] transition hover:-translate-y-0.5 hover:bg-white/75"
         >
-          Rifai il quiz
+          {hts.retakeQuiz}
         </button>
       </div>
     </div>

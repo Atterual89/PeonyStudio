@@ -15,6 +15,13 @@ export const en: typeof it = {
     peony: "Peony",
     shop: "Shop",
     personalArea: "Personal Dashboard",
+    bottomNav: {
+      home: "Home",
+      calendar: "Calendar",
+      programs: "Programs",
+      shop: "Shop",
+      profile: "Profile",
+    },
   },
   chrome: {
     menu: "Menu",
@@ -174,6 +181,289 @@ export const en: typeof it = {
       expired: "Expired",
       notRequired: "Not required",
       dateToConfirm: "Date to be confirmed",
+    },
+  },
+  marquee: {
+    items: [
+      "Programs",
+      "Practice",
+      "Community",
+      "Workshops",
+      "Exploration",
+      "Culture",
+      "Shop",
+    ],
+  },
+  programs: {
+    heroEyebrow: "Structured programs",
+    heroTitle: "Your rope journey.",
+    heroIntro:
+      "A clear progression, built to help you grow in Kinbaku LuXuria, one step at a time.",
+    clickNodeInstruction: "Click on a node to learn more about each program.",
+    toggleShow: "Discover the full path",
+    toggleHide: "Hide the full path",
+    inParallel: "Parallel",
+    inParallelToPath: "Alongside the program",
+    goToPractice: "Go to practice",
+    selectedProgram: "Selected program",
+    viewDates: "View upcoming dates",
+    whatWeWork: "What we work on",
+    forWhom: "Who it's for",
+    openDetail: "Open detail",
+    program: "Program",
+    closeDetail: "Close detail",
+    dashboardEyebrow: "Personal area",
+    dashboardTitle: "Your path, when you sign in",
+    dashboardText:
+      "In your personal dashboard you will find bookings, events attended, activity history and, in the future, a suggested path based on your experience.",
+    dashboardCta: "Personal area",
+    quizEyebrow: "Orientation",
+    quizTitle: "Where to start in the program?",
+    quizDescription:
+      "A short quiz to guide you through the learning path: Foundation 1, Foundation 2, Class 1 or Class 1+.",
+    quizCta: "Find your entry point",
+    quizResultEyebrow: "Result",
+    quizResultDisclaimer:
+      "The result is not binding: if you have doubts, write to us.",
+    quizViewDates: "View upcoming dates",
+    quizRetake: "Retake the quiz",
+    quizClose: "Close",
+    quizQuestion: "Question",
+    quizOf: "of",
+    quizBack: "Back",
+    quizNext: "Next",
+    quizShowResult: "See result",
+    quizCloseAria: "Close quiz",
+    parallelPracticeLabel: "Assisted practice",
+    parallelClassiLabel: "Thematic classes",
+    parallelPracticeDesc:
+      "A space to repeat and consolidate what you have encountered in the programs, ask questions and receive technical support. It accompanies the path and helps make it more solid.",
+    parallelClassiDesc:
+      "Sessions dedicated to a specific topic, designed to deepen techniques, structures or the quality of rope work. They can accompany different levels of the path, depending on the theme.",
+  },
+  workshop: {
+    eyebrow: "Workshops",
+    description:
+      "Intensive deep dives, guest teachers and study days dedicated to specific kinbaku topics.",
+    note:
+      "All workshops are designed for couples. Observers are not admitted unless otherwise stated.",
+    upcoming: "Upcoming workshops",
+    viewCalendar: "View full calendar",
+    noWorkshopsPrefix: "No workshops scheduled at the moment. Check the",
+    noWorkshopsCalendar: "calendar",
+    noWorkshopsSuffix: "for updates.",
+    badgeInternational: "International",
+    badgeCoupleOnly: "Couples only",
+    statusPreview: "Scheduled",
+    ctaBook: "Book on Ticket Tailor",
+  },
+  peony: {
+    howToGetThere: "How to get there",
+    goToSection: "Go to section",
+    viewWorkshops: "View workshops",
+    communityLabels: [
+      "Programs",
+      "Practice & Community",
+      "Workshops",
+      "Calendar",
+    ],
+    heroOverlay: "Studio, lounge, practice, meetings.",
+    heroBadge: "Turin",
+    studioCommunity: "Turin · Kinbaku · Community",
+    studioText:
+      "A space to study rope as technique, relationship and presence.",
+    heroTitle: "A kinbaku school, venue and community in Turin.",
+    heroIntro:
+      "Peony Studio is a space dedicated to the study of rope: technique, connection, aesthetics and shared practice in a carefully crafted environment.",
+    heroPrimaryCtaLabel: "View the calendar",
+    heroSecondaryCtaLabel: "How to start",
+  },
+  howToStart: {
+    fewQuestions: "A few questions",
+    oneStartingPoint: "1 starting point",
+    question: "Question",
+    back: "Back",
+    next: "Next",
+    yourResult: "Your result",
+    recommendedPath: "Recommended path",
+    retakeQuiz: "Retake the quiz",
+    closeQuiz: "Close quiz",
+    quiz: "Quiz",
+    heroEyebrow: "First steps",
+    heroTitle: "How to start",
+    heroIntro:
+      "You don't need to know which course to choose yet. Answer a few questions and find the right starting point.",
+    heroPrimaryCtaLabel: "Take the quiz",
+    heroSecondaryCtaLabel: "View the calendar",
+    entryPathsEyebrow: "Orientation",
+    entryPathsTitle: "Possible starting points",
+    previewEyebrow: "Before choosing",
+    previewTitle: "Look before you choose",
+    previewIntro:
+      "Sometimes the simplest way to know if a place is right for you is to look at it.",
+    finalCtaTitle: "Want to see the upcoming dates?",
+    finalCtaCtaLabel: "View the calendar",
+  },
+  practice: {
+    eventsEyebrow: "Calendar",
+    branchLabel: "Branch",
+    heroEyebrow: "Practice & Community",
+    heroTitle: "Practice & Community",
+    heroIntro:
+      "Recurring spaces to train, consolidate, meet people and take part in studio life.",
+    heroCtaLabel: "View upcoming dates",
+    datesTitle: "Upcoming dates",
+    datesCtaLabel: "View full calendar",
+    dashboardText:
+      "Access your dashboard to view bookings, saved events and recommended activities.",
+    dashboardCtaLabel: "Go to dashboard",
+    branchPracticeTitle: "Practice",
+    branchSocialTitle: "Community",
+  },
+  shop: {
+    ticketTailorCta: "Go directly to the shop on Ticket Tailor",
+    heroEyebrow: "Shop",
+    heroTitle: "Peony Studio materials and resources.",
+    heroIntro:
+      "Gift cards, Peony Cards, materials and selected resources to support your practice inside and outside the studio.",
+    loading: "Loading products...",
+    whatLooking: "What are you looking for?",
+    openSection: "Open section",
+    compareCards: "Compare Cards",
+    helpChoose: "Help me choose",
+    shopChoices: [
+      {
+        title: "Peony Card",
+        text: "Access, priority, discounts and benefits for the 2026/2027 season.",
+      },
+      {
+        title: "Gift Card",
+        text: "Vouchers and gift cards available on Ticket Tailor.",
+      },
+      {
+        title: "Corde",
+        text: "Jute ropes available in studio, with payment and pickup in person.",
+      },
+    ],
+    peonyCardEmpty:
+      "Available Peony Cards will appear here when the Ticket Tailor store is active.",
+    giftCardEmpty:
+      "Available Gift Cards will appear here when the Ticket Tailor store is active.",
+    shopComingSoon: "Ticket Tailor shop coming soon.",
+    buy: "Buy",
+    whatIncludes: "What it includes",
+    available: "Available",
+  },
+  home: {
+    hero: {
+      eyebrow: "Kinbaku — Turin",
+      title: "A kinbaku school, venue and community in Turin.",
+      description:
+        "Peony Studio brings together training, practice and meetings in a dedicated rope space.",
+      primaryCta: { label: "I want to start", href: "/come-iniziare" },
+      secondaryCta: { label: "View the calendar", href: "/calendario" },
+    },
+    events: {
+      eyebrow: "Upcoming dates",
+      title: "Next appointments",
+      ctaLabel: "View calendar →",
+      fallback: {
+        eyebrow: "Calendar",
+        title: "Upcoming dates coming soon.",
+        cta: "View availability on Ticket Tailor",
+      },
+    },
+    doors: {
+      eyebrow: "Orientation",
+      title: "Choose how to enter Peony Studio.",
+      description:
+        "Every person arrives at rope from a different point: curiosity, study, practice, research, a wish to meet a community.",
+      items: [
+        {
+          mark: "?",
+          href: "/come-iniziare",
+          title: "I don't know where to start",
+          content: "Guide + quiz",
+          description:
+            "For those who are curious but don't yet know which activity to choose.",
+          cta: "Find your starting point",
+          image: "/images/home/entry-beginner.jpg",
+          gradient: "from-white/75 to-[#efe4d7]/70",
+        },
+        {
+          mark: "P",
+          href: "/percorsi",
+          title: "I want to follow a structured path",
+          content: "Workshops + Thematic classes + Class 1 / 1+",
+          description:
+            "For working with continuity inside a structured cycle of sessions.",
+          cta: "View learning programs",
+          image: "/images/home/entry-practice.jpg",
+          gradient: "from-[#f4efe8]/80 to-[#d6b89f]/40",
+        },
+        {
+          mark: "W",
+          href: "/workshop",
+          title: "I want to deepen through workshops",
+          content: "Guests + themes + research",
+          description:
+            "For intensive dates, guests, specific topics and research moments.",
+          cta: "Discover workshops",
+          image: "/images/home/entry-workshop.jpg",
+          gradient: "from-white/70 to-[#d9c6b5]/55",
+        },
+        {
+          mark: "C",
+          href: "/pratica",
+          title: "I want to meet the community",
+          content: "Rope Jam + Open Day + Aperibottom",
+          description:
+            "To meet people, practice more informally and experience the space.",
+          cta: "Join the community",
+          image: "/images/home/entry-practice.jpg",
+          gradient: "from-[#f4efe8]/80 to-[#d6b89f]/40",
+        },
+      ],
+    },
+    philosophy: {
+      eyebrow: "Philosophy",
+      title: "Clear foundations, a voice that becomes yours.",
+      concepts: [
+        {
+          word: "Technique",
+          desc: "Clear foundations, conscious form, a voice that guides you. The first step to building a solid practice.",
+        },
+        {
+          word: "Aesthetics",
+          desc: "The search for beauty through practice and attention to detail. Every tie tells something.",
+        },
+        {
+          word: "Personality",
+          desc: "Finding your voice, your way of tying. The path becomes expression.",
+        },
+      ],
+      cta: { label: "Learn more", href: "/peony" },
+    },
+    studio: {
+      eyebrow: "The space · Turin",
+      title: "A space in Turin to practice, study and meet.",
+      features: ["Lounge", "Kitchen", "Bamboo / Hashira", "Soft mats"],
+      summaries: [
+        "Arrive, talk, breathe.",
+        "A social area.",
+        "Dedicated work points.",
+        "Comfort for study and practice.",
+      ],
+      cta: { label: "Discover the studio", href: "/peony" },
+    },
+    finalCta: {
+      title: "Ready to take the first step?",
+      intro: "We are here to answer any question you have.",
+      primaryCta: { label: "View next Open Day", href: "/calendario" },
+      secondaryCta: {
+        label: "Write us on Instagram",
+        href: "https://www.instagram.com/",
+      },
     },
   },
   calendar: {

@@ -407,3 +407,249 @@ export const howToStartContent = {
     },
   },
 };
+
+const howToStartContentEn = {
+  slug: "how-to-start",
+  title: "How to start",
+  navigationLabel: "How to start",
+  hero: {
+    eyebrow: "First steps",
+    title: "How to start",
+    intro:
+      "You don't need to know which course to choose yet. Answer a few questions and find the right starting point.",
+    primaryCta: { label: "Take the quiz", href: "#" },
+    secondaryCta: { label: "View the calendar", href: "/calendario" },
+  },
+  quiz: {
+    eyebrow: "Quiz",
+    title: "What kind of Peony student are you?",
+    intro: "A quick orientation to find your starting point.",
+    firstQuestion: {
+      question: "Where do you want to start from?",
+      answers: [
+        {
+          key: "A" as QuizAnswerKey,
+          label: "I'd like to explore the space and understand what kind of practice suits me",
+          branch: "explorer" as QuizBranchKey,
+        },
+        {
+          key: "B" as QuizAnswerKey,
+          label: "I'd like to learn to tie",
+          branch: "rigger" as QuizBranchKey,
+        },
+        {
+          key: "C" as QuizAnswerKey,
+          label: "I'd like to be in ropes or explore the bottom role",
+          branch: "bottom" as QuizBranchKey,
+        },
+        {
+          key: "D" as QuizAnswerKey,
+          label: "I'd like to explore both sides",
+          branch: "both" as QuizBranchKey,
+        },
+      ],
+    } satisfies QuizFirstQuestion,
+    branches: {
+      explorer: {
+        questions: [
+          {
+            question: "What would help you most right now?",
+            answers: [
+              { key: "A" as QuizAnswerKey, label: "Observe without pressure" },
+              { key: "B" as QuizAnswerKey, label: "Understand the courses and levels" },
+              { key: "C" as QuizAnswerKey, label: "Meet people and discover the environment" },
+              { key: "D" as QuizAnswerKey, label: "See practice in person" },
+            ],
+          },
+          {
+            question: "How do you imagine your first contact with Peony?",
+            answers: [
+              { key: "A" as QuizAnswerKey, label: "An open, informal evening" },
+              { key: "B" as QuizAnswerKey, label: "A moment to ask questions" },
+              { key: "C" as QuizAnswerKey, label: "Watch a practice session or a Rope Jam" },
+              { key: "D" as QuizAnswerKey, label: "Find out if I can start without a partner" },
+            ],
+          },
+        ],
+      },
+      rigger: {
+        questions: [
+          {
+            question: "How much experience do you have tying?",
+            answers: [
+              { key: "A" as QuizAnswerKey, label: "I have never tied" },
+              { key: "B" as QuizAnswerKey, label: "I've tried something, but without solid foundations" },
+              { key: "C" as QuizAnswerKey, label: "I've already taken courses or practiced for a while" },
+              { key: "D" as QuizAnswerKey, label: "I already know basics, gote or suspensions" },
+            ],
+          },
+          {
+            question: "What do you need right now?",
+            answers: [
+              { key: "A" as QuizAnswerKey, label: "Learn knots, tensions and basic structures" },
+              { key: "B" as QuizAnswerKey, label: "Have a progressive learning path" },
+              { key: "C" as QuizAnswerKey, label: "Practice with feedback and continuity" },
+              { key: "D" as QuizAnswerKey, label: "Deepen kata, aesthetics, style or suspensions" },
+            ],
+          },
+        ],
+      },
+      bottom: {
+        questions: [
+          {
+            question: "Do you have experience being in ropes?",
+            answers: [
+              { key: "A" as QuizAnswerKey, label: "No, I'd like to understand where to start" },
+              { key: "B" as QuizAnswerKey, label: "I've tried something, but I'd like more awareness" },
+              { key: "C" as QuizAnswerKey, label: "I already practice and want continuity" },
+              {
+                key: "D" as QuizAnswerKey,
+                label: "I want to deepen body awareness, listening, intensity or personal research",
+              },
+            ],
+          },
+          {
+            question: "What would help you most?",
+            answers: [
+              { key: "A" as QuizAnswerKey, label: "Meet people and discover the environment" },
+              { key: "B" as QuizAnswerKey, label: "Learn how to be in ropes more consciously" },
+              { key: "C" as QuizAnswerKey, label: "Find opportunities for practice and exchange" },
+              { key: "D" as QuizAnswerKey, label: "Explore my own way of experiencing ropes" },
+            ],
+          },
+          {
+            question: "Are you coming with a practice partner?",
+            answers: [
+              { key: "A" as QuizAnswerKey, label: "No, I'll come without a partner" },
+              { key: "B" as QuizAnswerKey, label: "Maybe" },
+              { key: "C" as QuizAnswerKey, label: "Yes" },
+              { key: "D" as QuizAnswerKey, label: "That's not the main point" },
+            ],
+          },
+        ],
+      },
+      both: {
+        questions: [
+          {
+            question: "Have you practiced before?",
+            answers: [
+              { key: "A" as QuizAnswerKey, label: "No, I want to find my starting point" },
+              { key: "B" as QuizAnswerKey, label: "I've tried something, but I don't have solid foundations" },
+              { key: "C" as QuizAnswerKey, label: "I already practice from one or both sides" },
+              { key: "D" as QuizAnswerKey, label: "I already have experience and want to go deeper" },
+            ],
+          },
+          {
+            question: "What interests you most right now?",
+            answers: [
+              { key: "A" as QuizAnswerKey, label: "Get oriented and discover the environment" },
+              { key: "B" as QuizAnswerKey, label: "Build technical foundations" },
+              { key: "C" as QuizAnswerKey, label: "Alternate practice, exchange and feedback" },
+              {
+                key: "D" as QuizAnswerKey,
+                label: "Deepen body awareness, style, research or personal direction",
+              },
+            ],
+          },
+        ],
+      },
+    } satisfies Record<QuizBranchKey, QuizBranch>,
+    results: {
+      EXPLORER: {
+        key: "EXPLORER" as QuizResultKey,
+        title: "Explorer",
+        path: "Open Day / Rope Jam",
+        text: "Your starting point could be an Open Day or a Rope Jam. You can discover the space, observe, ask questions and understand what kind of practice interests you.",
+        cta: { label: "View upcoming dates", href: "/calendario" },
+      },
+      RIGGER_FOUNDATION: {
+        key: "RIGGER_FOUNDATION" as QuizResultKey,
+        title: "Rigger Foundation",
+        path: "Foundation 1 / Foundation 2",
+        text: "Your starting point is Foundation. Foundation 1 covers technical basics; Foundation 2 introduces suspension lines and floor work progressively.",
+        cta: { label: "Explore Foundation", href: "/percorsi" },
+      },
+      RIGGER_PRACTICE: {
+        key: "RIGGER_PRACTICE" as QuizResultKey,
+        title: "Practice Builder",
+        path: "Assisted Practice / Themed Classes",
+        text: "You've already started and it would be useful to practice consistently, receive feedback and deepen specific aspects.",
+        cta: { label: "View upcoming practice sessions", href: "/pratica" },
+      },
+      BOTTOM_EXPLORER: {
+        key: "BOTTOM_EXPLORER" as QuizResultKey,
+        title: "Bottom Explorer",
+        path: "Aperibottom / Rope Jam / Open Day",
+        text: "Your starting point could be Aperibottom, a Rope Jam or an Open Day. Light occasions to meet people, observe the environment and approach practice from the perspective of someone who wants to be in ropes.",
+        cta: { label: "View upcoming dates", href: "/calendario" },
+      },
+      BOTTOM_PRACTICE: {
+        key: "BOTTOM_PRACTICE" as QuizResultKey,
+        title: "Bottom Practice",
+        path: "Themed Classes / Assisted Practice",
+        text: "You've started being in ropes and want to build more awareness. Themed classes and Assisted Practice help you ask questions, share experiences and give continuity to your practice.",
+        cta: { label: "View upcoming practice sessions", href: "/pratica" },
+      },
+      BOTTOM_RESEARCH: {
+        key: "BOTTOM_RESEARCH" as QuizResultKey,
+        title: "Bottom Research",
+        path: "Workshop / Themed Classes / Classe 1+",
+        text: "Your starting point could be a workshop, a themed class or Classe 1+. Useful contexts for exploring body listening, presence, intensity and your personal way of experiencing ropes.",
+        cta: { label: "Explore upcoming dates", href: "/calendario" },
+      },
+      ROPE_RESEARCH: {
+        key: "ROPE_RESEARCH" as QuizResultKey,
+        title: "Rope Research",
+        path: "Classe 1 / Classe 1+ / Workshop",
+        text: "Your starting point could be Classe 1, Classe 1+ or a workshop. Classe 1 introduces the KL gote and basic Kata; Classe 1+ continues with new Kata, personality, aesthetics and personal direction.",
+        cta: { label: "Explore upcoming dates", href: "/calendario" },
+      },
+      MIXED_RESEARCH: {
+        key: "MIXED_RESEARCH" as QuizResultKey,
+        title: "Mixed Research",
+        path: "Workshop / Themed Classes / Classe 1+",
+        text: "Your starting point could be a specific program or a deep dive. Classe 1 and Classe 1+ work on gote, Kata, suspensions, aesthetics and personal direction; workshops and themed classes open targeted research spaces.",
+        cta: { label: "Explore upcoming dates", href: "/calendario" },
+      },
+    } satisfies Record<QuizResultKey, QuizResult>,
+  },
+  entryPaths: {
+    eyebrow: "Orientation",
+    title: "Possible starting points",
+    cards: [
+      { title: "Open Day / Rope Jam", text: "Explore and get oriented" },
+      { title: "Aperibottom", text: "Experience the bottom role and meet people" },
+      { title: "Foundation 1 / Foundation 2", text: "Technical foundations and first floor work" },
+      { title: "Assisted Practice / Themed Classes", text: "Consolidate and deepen" },
+      { title: "Classe 1 / Classe 1+", text: "KL gote, Kata and first suspensions" },
+      { title: "Workshop / KL", text: "Deep dive and research" },
+    ] satisfies SimpleCard[],
+  },
+  preview: {
+    eyebrow: "Before choosing",
+    title: "Look before you choose",
+    intro: "Sometimes the simplest way to know if a place is right for you is to look at it.",
+    cards: [
+      {
+        title: "Gallery",
+        text: "The space, the atmosphere, the practice.",
+        cta: { label: "View the gallery", href: "/peony" },
+      },
+      {
+        title: "Social",
+        text: "Updates and upcoming dates.",
+        cta: { label: "Explore social media", href: "https://www.instagram.com/" },
+      },
+    ] satisfies SimpleCard[],
+  },
+  finalCta: {
+    title: "Want to see the upcoming dates?",
+    intro: "Updated dates are in the calendar.",
+    cta: { label: "View the calendar", href: "/calendario" },
+  },
+};
+
+export const howToStartBilingual = {
+  it: howToStartContent,
+  en: howToStartContentEn,
+};

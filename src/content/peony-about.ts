@@ -172,3 +172,157 @@ export const peonyAboutContent = {
     ] satisfies PeonyLink[],
   },
 };
+
+const peonyAboutContentEn = {
+  slug: "peony",
+  title: "A kinbaku school, venue and community in Turin.",
+  navigationLabel: "Peony",
+  language: "en",
+  hero: {
+    eyebrow: "Peony Studio",
+    title: "A kinbaku school, venue and community in Turin.",
+    intro:
+      "Peony Studio is a space dedicated to the study of rope: technique, connection, aesthetics and shared practice in a carefully crafted environment.",
+    primaryCta: { label: "View the calendar", href: "/calendario" },
+    secondaryCta: { label: "How to start", href: "/come-iniziare" },
+  },
+  space: {
+    eyebrow: "The space",
+    title: "A studio designed for practice, study and gathering.",
+    intro:
+      "A welcoming and carefully crafted space for classes, workshops, rope jams and moments of shared research.",
+    cards: [
+      {
+        title: "Main workshop area",
+        text: "A room of about 100 m² for classes, workshops and rope jams, accommodating up to 16 couples.",
+      },
+      {
+        title: "Lounge & kitchen",
+        text: "A separate lounge with kitchen and sofas for breaks, conversations and informal moments.",
+      },
+      {
+        title: "Practice setup",
+        text: "Natural light, large windows and a setup designed for practice and technical study.",
+      },
+      {
+        title: "Comfort",
+        text: "Two bathrooms, changing area and personal storage, with spaces designed for your comfort.",
+      },
+    ] satisfies PeonyCard[],
+  },
+  gallery: {
+    eyebrow: "Gallery",
+    title: "Gallery",
+    intro: "A look at the space, the practice room and the details of Peony Studio.",
+    empty: "The gallery will be updated with new images of the space.",
+  },
+  location: {
+    eyebrow: "Where we are",
+    title: "Turin, a few minutes from the Marche metro.",
+    intro:
+      "Peony Studio is in Turin, a few minutes from the Marche metro, in an area well served by public transport, shops, restaurants and services.",
+    routes: [
+      "Metro Line 1, Marche station",
+      "Bus 33, Eritrea stop",
+      "Bus 40, 62, 90, VE1, Vandalino stop",
+    ],
+    travel: [
+      {
+        title: "By Plane",
+        items: [
+          "Turin Caselle Airport",
+          "Milan Airports: Malpensa, Linate",
+          "Bergamo Orio al Serio Airport",
+        ],
+      },
+      {
+        title: "By Train",
+        items: ["Turin Porta Nuova", "Turin Porta Susa"],
+      },
+      {
+        title: "Public Transportation",
+        items: [
+          "Metro: Turin Metro Line, Marche Station",
+          "Bus Line 33, Eritrea Stop",
+          "Bus Lines 40, 62, 90, VE1, Vandalino Stop",
+        ],
+      },
+    ] satisfies TravelGroup[],
+  },
+  nameStory: {
+    eyebrow: "Why Peony",
+    title: "A peony, a reference, a dedication.",
+    text:
+      "The name Peony comes from a reference connected to Japan, to Naka San and the symbol of the peony. The studio is dedicated to his legacy and to the peony as an image of beauty, presence and memory. The Peony logo is handmade by Elemiaow.",
+  },
+  approach: {
+    eyebrow: "Approach",
+    title: "Technique, connection, aesthetics.",
+    text:
+      "For us kinbaku is not just technique: it is a silent communication involving body, breath, aesthetics and intention. Peony Studio's approach is inspired by the Kinbaku LuXuria style, where rope becomes a tool of listening, relationship, rhythm, presence, tension, surrender, control and trust.",
+    pillars: [
+      {
+        title: "Technique",
+        text: "Structures, tensions, progressions and method to build a clear practice.",
+      },
+      {
+        title: "Connection",
+        text: "Body listening, shared rhythm and attention to the relationship in ropes.",
+      },
+      {
+        title: "Aesthetics",
+        text: "Lines, intention, personality and visual quality as part of the study.",
+      },
+    ] satisfies PeonyCard[],
+  },
+  residentTeachers: {
+    eyebrow: "Resident teachers",
+    title: "The resident couple",
+    intro:
+      "Peony Studio was born from the shared work of Kurogami and Shiawase: teaching, practice, relationship and research in ropes.",
+  },
+  guestTeachers: {
+    eyebrow: "Guest teachers",
+    title: "Guests and collaborations",
+    intro:
+      "Peony Studio regularly hosts Italian and international teachers for workshops, deep dives and special projects.",
+  },
+  community: {
+    eyebrow: "Community",
+    title: "Peony as a living place.",
+    intro:
+      "Peony Studio is not just a school. It is a place to study, practice, observe, ask questions and meet people with whom to share research in ropes.",
+    cards: [
+      {
+        title: "Classes",
+        text: "Programs and sessions for different levels of experience.",
+      },
+      {
+        title: "Rope jam",
+        text: "Free practice spaces, gathering and continuity.",
+      },
+      {
+        title: "Bottom gatherings",
+        text: "Moments dedicated to those who want to explore the bottom role and being in ropes.",
+      },
+      {
+        title: "International workshops",
+        text: "Deep dives with guest teachers and special projects.",
+      },
+    ] satisfies PeonyCard[],
+  },
+  finalCta: {
+    title: "Want to meet Peony in person?",
+    text: "The simplest way is to choose an upcoming date, come and discover the space, or start from the guide to find your way.",
+    actions: [
+      { label: "View upcoming events", href: "/calendario" },
+      { label: "Discover how to start", href: "/come-iniziare" },
+      { label: "Contact us", href: "/contatti" },
+    ] satisfies PeonyLink[],
+  },
+};
+
+export const peonyAboutBilingual = {
+  it: peonyAboutContent,
+  en: peonyAboutContentEn,
+};

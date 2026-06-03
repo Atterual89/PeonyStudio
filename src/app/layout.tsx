@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, DM_Sans } from "next/font/google";
+import { BottomNav } from "@/components/layout/BottomNav";
 import { LanguageProvider } from "@/components/site/LanguageProvider";
 import { ScrollProgress } from "@/components/site/ScrollProgress";
 import { getDictionary } from "@/i18n/getDictionary";
@@ -35,7 +36,10 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <LanguageProvider>
           <ScrollProgress />
-          {children}
+          <div className="pb-16 md:pb-0">
+            {children}
+          </div>
+          <BottomNav />
         </LanguageProvider>
       </body>
     </html>

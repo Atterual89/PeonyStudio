@@ -75,7 +75,7 @@ export function SiteHeader() {
             <button
               type="button"
               onClick={() => setOpen(true)}
-              className="h-10 rounded-full border border-[#211815]/20 bg-white/60 px-4 text-sm font-medium text-[#211815] transition hover:bg-white/85"
+              className="hidden md:flex h-10 items-center rounded-full border border-[#211815]/20 bg-white/60 px-4 text-sm font-medium text-[#211815] transition hover:bg-white/85"
             >
               {dictionary.chrome.menu}
             </button>

@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { ProgramsLevelQuiz } from "@/components/programs/ProgramsLevelQuiz";
+import { SectionTabSwitcher } from "@/components/layout/SectionTabSwitcher";
+import { useLanguage } from "@/components/site/LanguageProvider";
 import { SiteHeader } from "@/components/site/SiteHeader";
+import { programsBilingual } from "@/content/programs";
 import type {
   ParallelPracticeItem,
   ProgramStep,
@@ -18,6 +21,9 @@ type ProgramsProgressPageProps = {
 const nodeLabels = ["Found. 1", "Found. 2", "Classe 1", "Classe 1+"];
 
 export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
+  const { dictionary, locale } = useLanguage();
+  const prog = dictionary.programs;
+  const localizedContent = programsBilingual[locale] ?? programsBilingual.it;
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [activeParallelIndex, setActiveParallelIndex] = useState<number | null>(
     null,
@@ -59,6 +65,13 @@ export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
     <main className="min-h-screen overflow-hidden bg-[#f4efe8] text-[#211815]">
       <SiteHeader />
 
+      <SectionTabSwitcher
+        tabs={[
+          { href: "/percorsi", label: dictionary.nav.programs },
+          { href: "/workshop", label: dictionary.nav.workshops },
+        ]}
+      />
+
       <section className="relative mx-auto max-w-6xl px-5 pb-6 pt-12 sm:px-6 md:pb-8 md:pt-16">
         <div
           aria-hidden="true"
@@ -86,13 +99,13 @@ export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
         </div>
 
         <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#8b5e4a]">
-          {content.hero.eyebrow}
+          {prog.heroEyebrow}
         </p>
         <h1 className="mt-4 max-w-3xl font-serif text-[clamp(48px,11vw,86px)] font-medium leading-[0.95] tracking-normal text-[#211815]">
-          {content.hero.title}
+          {prog.heroTitle}
         </h1>
         <p className="mt-4 max-w-2xl text-[16px] leading-[1.75] text-[#211815]/85 md:text-lg">
-          {content.hero.intro}
+          {prog.heroIntro}
         </p>
       </section>
 
@@ -109,7 +122,7 @@ export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
               style={{ transform: `scaleX(${progressScale})` }}
             />
 
-            {content.progression.map((step, index) => {
+            {localizedContent.progression.map((step, index) => {
               const active = index === activeIndex;
 
               return (
@@ -150,8 +163,9 @@ export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
         </div>
 
         <ParallelBar
-          items={content.parallelPractice.items}
+          items={localizedContent.parallelPractice.items}
           activeIndex={activeParallelIndex}
+          prog={prog}
           onToggle={(index) =>
             setActiveParallelIndex((current) =>
               current === index ? null : index,
@@ -161,7 +175,7 @@ export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
 
         {!showFullPath ? (
           activeStep ? (
-            <ProgramDetail step={activeStep} />
+            <ProgramDetail step={activeStep} prog={prog} />
           ) : (
             <div className="programs-panel-in mx-auto mt-1 max-w-5xl rounded-[14px] border border-[#211815]/10 bg-white/32 px-5 py-6 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] md:px-8 md:py-7">
               <div
@@ -169,7 +183,7 @@ export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
                 className="mx-auto mb-3 h-5 w-12 rounded-full border-t border-[#8b5e4a]/50"
               />
               <p className="font-serif text-lg leading-[1.5] text-[#211815] md:text-xl">
-                Clicca su uno dei nodi per approfondire di cosa si tratta.
+                {prog.clickNodeInstruction}
               </p>
             </div>
           )
@@ -186,9 +200,7 @@ export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
               <span aria-hidden="true" className="text-lg tracking-normal">
                 ☷
               </span>
-              {showFullPath
-                ? "Nascondi il percorso completo"
-                : "Scopri tutto il percorso"}
+              {showFullPath ? prog.toggleHide : prog.toggleShow}
             </span>
             <span
               aria-hidden="true"
@@ -208,7 +220,8 @@ export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
             <div className="overflow-hidden">
               <div className="mt-4 rounded-[12px] border border-[#211815]/10 bg-white/32 px-4 py-5 md:px-5 md:py-6">
                 <FullPathTimeline
-                  steps={content.progression}
+                  steps={localizedContent.progression}
+                  openDetail={prog.openDetail}
                   onSelectStep={setModalStep}
                 />
               </div>
@@ -277,12 +290,13 @@ export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
         </div>
       </section>
 
-      <ProgramsLevelQuiz quiz={content.quiz} />
-      <DashboardTeaser />
+      <ProgramsLevelQuiz quiz={localizedContent.quiz} />
+      <DashboardTeaser prog={prog} />
 
       {modalStep ? (
         <ProgramStepModal
           step={modalStep}
+          prog={prog}
           onClose={() => setModalStep(null)}
         />
       ) : null}
@@ -293,17 +307,17 @@ export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
 function ParallelBar({
   items,
   activeIndex,
+  prog,
   onToggle,
 }: {
   items: ParallelPracticeItem[];
   activeIndex: number | null;
+  prog: { inParallel: string; inParallelToPath: string; parallelPracticeLabel: string; parallelClassiLabel: string; parallelPracticeDesc: string; parallelClassiDesc: string; goToPractice: string };
   onToggle: (index: number) => void;
 }) {
   const activeItem = activeIndex === null ? null : items[activeIndex];
-  const descriptions = [
-    "Uno spazio per ripetere e consolidare ciò che hai incontrato nei percorsi, fare domande e ricevere supporto tecnico. Accompagna il percorso e aiuta a renderlo più solido.",
-    "Incontri dedicati a un tema specifico, pensati per approfondire tecniche, strutture o qualità del lavoro in corda. Possono accompagnare diversi livelli del percorso, in base al tema proposto.",
-  ];
+  const descriptions = [prog.parallelPracticeDesc, prog.parallelClassiDesc];
+  const labels = [prog.parallelPracticeLabel, prog.parallelClassiLabel];
 
   return (
     <div className="mx-auto -mt-1 mb-5 max-w-5xl md:-mt-2 md:mb-6">
@@ -314,15 +328,13 @@ function ParallelBar({
         />
         <div className="relative grid grid-cols-3 gap-1 md:grid-cols-[0.8fr_1fr_1fr]">
           <div className="grid min-h-12 place-items-center rounded-[7px] px-1 text-center text-[10px] font-semibold uppercase leading-[1.05] tracking-[0.13em] text-[#8b5e4a]/80 md:min-h-11 md:text-[11px] md:tracking-[0.16em]">
-            <span className="md:hidden">
-              In
-              <br />
-              parallelo
-            </span>
-            <span className="hidden md:inline">In parallelo</span>
+            <span className="hidden md:inline">{prog.inParallel}</span>
+            <span className="md:hidden" aria-hidden="true">⌁</span>
           </div>
           {items.map((item, index) => {
             const active = activeIndex === index;
+            const label = labels[index] ?? item.title;
+            const [first, ...rest] = label.split(" ");
 
             return (
               <button
@@ -337,25 +349,12 @@ function ParallelBar({
                     : "border-transparent bg-[#f4efe8]/45 text-[#5f524c] active:bg-white/60"
                 }`}
               >
-                {item.title === "Pratica assistita" ? (
-                  <>
-                    <span className="md:hidden">
-                      Pratica
-                      <br />
-                      assistita
-                    </span>
-                    <span className="hidden md:inline">Pratica assistita</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="md:hidden">
-                      Classi
-                      <br />
-                      tematiche
-                    </span>
-                    <span className="hidden md:inline">Classi tematiche</span>
-                  </>
-                )}
+                <span className="md:hidden">
+                  {first}
+                  <br />
+                  {rest.join(" ")}
+                </span>
+                <span className="hidden md:inline">{label}</span>
               </button>
             );
           })}
@@ -374,10 +373,10 @@ function ParallelBar({
               className="programs-panel-in mt-3 rounded-[8px] border border-[#211815]/10 bg-white/42 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] md:grid md:grid-cols-[0.7fr_1.3fr_auto] md:items-center md:gap-5"
             >
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8b5e4a]">
-                In parallelo al percorso
+                {prog.inParallelToPath}
               </p>
               <h3 className="mt-2 font-serif text-2xl font-medium leading-[1.08] tracking-normal text-[#211815]">
-                {activeItem.title}
+                {labels[activeIndex ?? 0] ?? activeItem.title}
               </h3>
               <p className="mt-3 text-sm leading-[1.65] text-[#5f524c] md:mt-0">
                 {descriptions[activeIndex ?? 0]}
@@ -386,7 +385,7 @@ function ParallelBar({
                 href="/pratica"
                 className="mt-4 inline-flex rounded-full border border-[#211815]/20 bg-[#f4efe8]/70 px-4 py-2.5 text-sm font-medium text-[#211815] transition hover:-translate-y-0.5 hover:bg-white/70 active:translate-y-px md:mt-0"
               >
-                Vai alla pratica
+                {prog.goToPractice}
               </Link>
             </article>
           ) : null}
@@ -396,35 +395,33 @@ function ParallelBar({
   );
 }
 
-function DashboardTeaser() {
+function DashboardTeaser({ prog }: { prog: { dashboardEyebrow: string; dashboardTitle: string; dashboardText: string; dashboardCta: string } }) {
   return (
     <section className="mx-auto max-w-6xl px-5 pb-10 sm:px-6 md:pb-12">
       <div className="rounded-[8px] border border-[#211815]/10 bg-white/34 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] md:flex md:items-center md:justify-between md:gap-5 md:p-5">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-            Area personale
+            {prog.dashboardEyebrow}
           </p>
           <h2 className="mt-2 font-serif text-3xl font-medium leading-[1.08] tracking-normal text-[#211815]">
-            Il tuo percorso, quando accedi
+            {prog.dashboardTitle}
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-[1.65] text-[#5f524c]">
-            Nella dashboard personale potrai ritrovare iscrizioni, eventi
-            seguiti, storico attivita e, in prospettiva, il percorso suggerito
-            in base alla tua esperienza.
+            {prog.dashboardText}
           </p>
         </div>
         <Link
           href="/dashboard"
           className="mt-4 inline-flex rounded-full border border-[#211815]/20 bg-[#f4efe8]/70 px-5 py-3 text-sm font-medium text-[#211815] transition hover:-translate-y-0.5 hover:bg-white/70 md:mt-0"
         >
-          Area personale
+          {prog.dashboardCta}
         </Link>
       </div>
     </section>
   );
 }
 
-function ProgramDetail({ step }: { step: ProgramStep }) {
+function ProgramDetail({ step, prog }: { step: ProgramStep; prog: { selectedProgram: string; viewDates: string; whatWeWork: string; forWhom: string } }) {
   return (
     <article
       key={step.title}
@@ -432,7 +429,7 @@ function ProgramDetail({ step }: { step: ProgramStep }) {
     >
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-          Percorso selezionato
+          {prog.selectedProgram}
         </p>
         <h2 className="mt-3 font-serif text-[38px] font-medium leading-[1.02] tracking-normal text-[#211815] md:text-6xl">
           {step.title}
@@ -447,15 +444,15 @@ function ProgramDetail({ step }: { step: ProgramStep }) {
           href="/calendario"
           className="mt-5 inline-flex rounded-full border border-[#211815]/20 bg-[#f4efe8]/70 px-5 py-3 text-sm font-medium text-[#211815] transition hover:-translate-y-0.5 hover:bg-white/70"
         >
-          Vedi prossime date
+          {prog.viewDates}
         </Link>
       </div>
 
       <div className="mt-6 grid gap-3 md:mt-0">
-        <InfoBlock title="Cosa si lavora" items={step.work} />
+        <InfoBlock title={prog.whatWeWork} items={step.work} />
         <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/60 p-4">
           <h3 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-            Per chi è
+            {prog.forWhom}
           </h3>
           <p className="mt-3 text-sm leading-[1.65] text-[#5f524c]">
             {step.audience}
@@ -489,9 +486,11 @@ function InfoBlock({ title, items }: { title: string; items: string[] }) {
 
 function FullPathTimeline({
   steps,
+  openDetail,
   onSelectStep,
 }: {
   steps: ProgramStep[];
+  openDetail: string;
   onSelectStep: (step: ProgramStep) => void;
 }) {
   return (
@@ -533,7 +532,7 @@ function FullPathTimeline({
                 {step.description}
               </p>
               <span className="mt-4 inline-flex border-b border-[#8b5e4a]/35 pb-1 text-sm font-medium text-[#8b5e4a]">
-                Apri dettaglio
+                {openDetail}
               </span>
             </button>
           </article>
@@ -545,9 +544,11 @@ function FullPathTimeline({
 
 function ProgramStepModal({
   step,
+  prog,
   onClose,
 }: {
   step: ProgramStep;
+  prog: { program: string; closeDetail: string; whatWeWork: string; forWhom: string; viewDates: string };
   onClose: () => void;
 }) {
   return (
@@ -569,7 +570,7 @@ function ProgramStepModal({
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-              Percorso
+              {prog.program}
             </p>
             <h2
               id="program-step-modal-title"
@@ -584,7 +585,7 @@ function ProgramStepModal({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Chiudi dettaglio"
+            aria-label={prog.closeDetail}
             className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#211815]/20 bg-white/70 text-lg text-[#211815] transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-4 focus-visible:ring-offset-[#f4efe8]"
           >
             x
@@ -596,10 +597,10 @@ function ProgramStepModal({
         </p>
 
         <div className="mt-6 grid gap-4 md:grid-cols-2">
-          <InfoBlock title="Cosa si lavora" items={step.work} />
+          <InfoBlock title={prog.whatWeWork} items={step.work} />
           <div className="rounded-[8px] border border-[#211815]/10 bg-white/55 p-4">
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-              Per chi è
+              {prog.forWhom}
             </h3>
             <p className="mt-3 text-sm leading-[1.65] text-[#5f524c]">
               {step.audience}
@@ -611,7 +612,7 @@ function ProgramStepModal({
           href="/calendario"
           className="mt-6 inline-flex rounded-full bg-[#211815] px-5 py-3 text-sm font-medium text-white shadow-[0_6px_18px_rgba(33,24,21,0.15)] transition hover:-translate-y-0.5"
         >
-          Vedi prossime date
+          {prog.viewDates}
         </Link>
       </div>
     </div>

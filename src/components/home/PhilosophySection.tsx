@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRef, useState } from "react";
 
+import { useLanguage } from "@/components/site/LanguageProvider";
 import type { homeContent } from "@/content/home";
 
 type PhilosophySectionProps = {
@@ -14,6 +15,7 @@ type PhilosophySectionProps = {
 export function PhilosophySection({ content }: PhilosophySectionProps) {
   const [open, setOpen] = useState(0);
   const reduceMotion = useReducedMotion();
+  const { dictionary } = useLanguage();
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -54,7 +56,7 @@ export function PhilosophySection({ content }: PhilosophySectionProps) {
             transition={{ duration: 0.75, ease: [0.23, 1, 0.32, 1] }}
           >
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#d6b89f]">
-              Filosofia
+              {dictionary.home.philosophy.eyebrow}
             </p>
             <h2 className="mt-3 max-w-3xl font-serif text-[clamp(36px,8vw,56px)] font-medium leading-[1.05] tracking-normal text-[#f4efe8]">
               {content.title}

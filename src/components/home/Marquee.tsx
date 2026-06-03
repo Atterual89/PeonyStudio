@@ -1,17 +1,10 @@
 "use client";
 
-const items = [
-  "Percorsi",
-  "Pratica",
-  "Community",
-  "Workshop",
-  "Exploration",
-  "Cultura",
-  "Shop",
-];
+import { useLanguage } from "@/components/site/LanguageProvider";
 
 export function Marquee() {
-  const text = ` ${items.join(" · ")} · `;
+  const { dictionary } = useLanguage();
+  const text = ` ${dictionary.marquee.items.join(" · ")} · `;
 
   return (
     <div className="overflow-hidden border-y border-[#211815]/10 bg-white/40 py-3.5">

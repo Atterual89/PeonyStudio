@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+import { useLanguage } from "@/components/site/LanguageProvider";
+
 import type {
   ProgramQuizAnswer,
   ProgramQuizResultKey,
@@ -27,20 +29,21 @@ type SelectedQuizAnswer = {
 
 export function ProgramsLevelQuiz({ quiz }: ProgramsLevelQuizProps) {
   const [open, setOpen] = useState(false);
+  const { dictionary } = useLanguage();
+  const prog = dictionary.programs;
 
   return (
     <section className="mx-auto max-w-6xl px-5 py-8 sm:px-6 md:py-10">
       <div className="relative overflow-hidden rounded-[14px] border border-[#211815]/10 bg-white/36 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] md:grid md:grid-cols-[1fr_0.72fr] md:items-center md:gap-6 md:p-6">
         <div className="relative">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-            Orientamento interno
+            {prog.quizEyebrow}
           </p>
           <h2 className="mt-2 font-serif text-[31px] font-medium leading-[1.08] tracking-normal text-[#211815] md:text-4xl">
-            Da dove partire nel percorso?
+            {prog.quizTitle}
           </h2>
           <p className="mt-3 max-w-2xl text-sm leading-[1.65] text-[#5f524c] md:text-base">
-            Un quiz breve per orientarti nella linea formativa: Foundation 1,
-            Foundation 2, Classe 1 o Classe 1+.
+            {prog.quizDescription}
           </p>
         </div>
         <div className="relative mt-5 flex flex-col gap-3 sm:flex-row md:mt-0 md:justify-end">
@@ -49,21 +52,37 @@ export function ProgramsLevelQuiz({ quiz }: ProgramsLevelQuizProps) {
             onClick={() => setOpen(true)}
             className="inline-flex justify-center rounded-full bg-[#211815] px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.16em] text-white shadow-[0_6px_18px_rgba(33,24,21,0.15)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(33,24,21,0.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-4 focus-visible:ring-offset-[#f4efe8]"
           >
-            Trova il tuo punto di ingresso
+            {prog.quizCta}
           </button>
         </div>
       </div>
 
-      {open ? <QuizModal quiz={quiz} onClose={() => setOpen(false)} /> : null}
+      {open ? <QuizModal quiz={quiz} prog={prog} onClose={() => setOpen(false)} /> : null}
     </section>
   );
 }
 
+type ProgQuizDict = {
+  quizCloseAria: string;
+  quizResultEyebrow: string;
+  quizResultDisclaimer: string;
+  quizViewDates: string;
+  quizRetake: string;
+  quizClose: string;
+  quizQuestion: string;
+  quizOf: string;
+  quizBack: string;
+  quizNext: string;
+  quizShowResult: string;
+};
+
 function QuizModal({
   quiz,
+  prog,
   onClose,
 }: {
   quiz: typeof programsContent.quiz;
+  prog: ProgQuizDict;
   onClose: () => void;
 }) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -162,7 +181,7 @@ function QuizModal({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Chiudi quiz"
+            aria-label={prog.quizCloseAria}
             className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#211815]/20 bg-white/70 text-lg text-[#211815] transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-4 focus-visible:ring-offset-[#f4efe8]"
           >
             x
@@ -179,7 +198,7 @@ function QuizModal({
         {result ? (
           <div aria-live="polite" className="programs-panel-in">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-              Risultato
+              {prog.quizResultEyebrow}
             </p>
             <h3 className="mt-3 font-serif text-3xl font-medium leading-[1.08] tracking-normal text-[#211815] md:text-4xl">
               {result.title}
@@ -188,35 +207,35 @@ function QuizModal({
               {result.text}
             </p>
             <p className="mt-4 text-sm leading-[1.6] text-[#5f524c]">
-              Il risultato non è vincolante: se hai dubbi, scrivici.
+              {prog.quizResultDisclaimer}
             </p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <Link
                 href="/calendario"
                 className="inline-flex justify-center rounded-full bg-[#211815] px-5 py-3 text-sm font-medium text-white shadow-[0_6px_18px_rgba(33,24,21,0.15)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(33,24,21,0.22)]"
               >
-                Vedi prossime date
+                {prog.quizViewDates}
               </Link>
               <button
                 type="button"
                 onClick={resetQuiz}
                 className="inline-flex justify-center rounded-full border border-[#211815]/20 bg-[#f4efe8]/70 px-5 py-3 text-sm font-medium text-[#211815] transition hover:-translate-y-0.5 hover:bg-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-4 focus-visible:ring-offset-[#f4efe8]"
               >
-                Rifai il quiz
+                {prog.quizRetake}
               </button>
               <button
                 type="button"
                 onClick={onClose}
                 className="inline-flex justify-center rounded-full border border-[#211815]/20 bg-white/55 px-5 py-3 text-sm font-medium text-[#211815] transition hover:-translate-y-0.5 hover:bg-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-4 focus-visible:ring-offset-[#f4efe8]"
               >
-                Chiudi
+                {prog.quizClose}
               </button>
             </div>
           </div>
         ) : (
           <div key={question.question} className="programs-panel-in">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-              Domanda {currentQuestion + 1} di {quiz.questions.length}
+              {prog.quizQuestion} {currentQuestion + 1} {prog.quizOf} {quiz.questions.length}
             </p>
             <h3 className="mt-3 font-serif text-[30px] font-medium leading-[1.08] tracking-normal text-[#211815] md:text-4xl">
               {question.question}
@@ -261,7 +280,7 @@ function QuizModal({
                 disabled={currentQuestion === 0}
                 className="rounded-full border border-[#211815]/20 px-5 py-3 text-sm font-medium text-[#211815] transition hover:bg-white/70 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Indietro
+                {prog.quizBack}
               </button>
               <button
                 type="button"
@@ -273,8 +292,8 @@ function QuizModal({
                 className="rounded-full bg-[#211815] px-5 py-3 text-sm font-medium text-white shadow-[0_6px_18px_rgba(33,24,21,0.15)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
               >
                 {currentQuestion === quiz.questions.length - 1
-                  ? "Vedi risultato"
-                  : "Avanti"}
+                  ? prog.quizShowResult
+                  : prog.quizNext}
               </button>
             </div>
           </div>

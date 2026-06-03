@@ -5,6 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
+import { useLanguage } from "@/components/site/LanguageProvider";
+
 export type FeaturedEvent = {
   slug: string;
   category: string;
@@ -78,12 +80,17 @@ function Countdown({ target }: { target?: string }) {
 export function FeaturedEventsSection({
   featured,
   events,
-  eyebrow = "Appuntamenti",
-  title = "Prossimi appuntamenti",
-  ctaLabel = "Vedi calendario →",
+  eyebrow,
+  title,
+  ctaLabel,
   ctaHref = "/calendario",
 }: FeaturedEventsSectionProps) {
   const reduceMotion = useReducedMotion();
+  const { dictionary } = useLanguage();
+  const eventsDict = dictionary.home.events;
+  const resolvedEyebrow = eyebrow ?? eventsDict.eyebrow;
+  const resolvedTitle = title ?? eventsDict.title;
+  const resolvedCtaLabel = ctaLabel ?? eventsDict.ctaLabel;
 
   return (
     <section className="py-12 md:py-20">
@@ -95,17 +102,17 @@ export function FeaturedEventsSection({
           transition={{ duration: 0.75, ease: [0.23, 1, 0.32, 1] }}
         >
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-            {eyebrow}
+            {resolvedEyebrow}
           </p>
           <h2 className="mt-2 font-serif text-[32px] font-medium leading-[1.1] tracking-normal md:text-5xl">
-            {title}
+            {resolvedTitle}
           </h2>
         </motion.div>
         <Link
           href={ctaHref}
           className="shrink-0 text-sm font-medium text-[#8b5e4a] transition hover:translate-x-1"
         >
-          {ctaLabel}
+          {resolvedCtaLabel}
         </Link>
       </div>
 
@@ -156,16 +163,16 @@ export function FeaturedEventsSection({
           ) : (
             <article className="relative flex min-h-[320px] w-[min(82vw,340px)] shrink-0 flex-col justify-between overflow-hidden rounded-[8px] border border-[#211815] bg-[#211815] p-5 text-[#f4efe8] [scroll-snap-align:start] shadow-[0_4px_16px_rgba(33,24,21,0.15)]">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#d6b89f]">
-                Calendario
+                {eventsDict.fallback.eyebrow}
               </p>
               <h3 className="mt-3 font-serif text-[34px] font-medium leading-[1.06] tracking-normal">
-                Le prossime date arrivano presto.
+                {eventsDict.fallback.title}
               </h3>
               <Link
                 href={ctaHref}
                 className="mt-8 inline-flex rounded-full border border-[#f4efe8]/20 px-4 py-2.5 text-sm font-medium text-[#f4efe8] transition hover:bg-[#f4efe8]/10"
               >
-                Vedi disponibilità su Ticket Tailor
+                {eventsDict.fallback.cta}
               </Link>
             </article>
           )}

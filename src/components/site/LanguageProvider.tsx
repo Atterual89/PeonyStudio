@@ -26,11 +26,9 @@ type LanguageContextValue = {
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(() => {
-    if (typeof window === "undefined") {
-      return defaultLocale;
-    }
+  const [locale, setLocaleState] = useState<Locale>(defaultLocale);
 
+  useEffect(() => {
     const stored =
       window.localStorage.getItem(localeCookieName) ??
       document.cookie
@@ -38,8 +36,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
         .find((row) => row.startsWith(`${localeCookieName}=`))
         ?.split("=")[1];
 
-    return isLocale(stored) ? stored : defaultLocale;
-  });
+    if (isLocale(stored)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLocaleState(stored);
+    }
+  }, []);
 
   useEffect(() => {
     document.documentElement.lang = locale;

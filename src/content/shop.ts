@@ -210,3 +210,47 @@ export const shopContent = {
     },
   },
 };
+
+export const shopContentEn = {
+  hero: {
+    eyebrow: "Shop",
+    title: "Peony Studio materials and resources.",
+    intro:
+      "Gift cards, Peony Cards, materials and selected resources to support your practice inside and outside the studio. Purchases are managed through Ticket Tailor; some products may only be available for members or with studio pickup.",
+  },
+  products: {
+    eyebrow: "Products",
+    title: "Available in the shop",
+  },
+  peonyCards: {
+    eyebrow: "Peony Card",
+    title: "Peony Card 2027",
+    intro: [
+      "Peony Cards accompany the Peony Studio season September 2026 – August 2027 with access, priority, discounts and dedicated benefits.",
+      "All details about the new Peony Cards!",
+      "You will receive your card and codes by email",
+    ],
+  },
+  giftCards: {
+    eyebrow: "Gift Card / Voucher",
+    title: "Gift Cards and vouchers",
+    intro: "Peony Studio vouchers and gift cards available on Ticket Tailor.",
+  },
+  ropes: {
+    eyebrow: "Ropes",
+    title: "Ropes",
+    intro:
+      "8m jute ropes, available at Peony Studio with in-person delivery and payment.",
+  },
+};
+
+export const shopBilingual = {
+  it: {
+    hero: shopContent.hero,
+    products: shopContent.products,
+    peonyCards: { eyebrow: shopContent.peonyCards.eyebrow, title: shopContent.peonyCards.title, intro: shopContent.peonyCards.intro },
+    giftCards: { eyebrow: shopContent.giftCards.eyebrow, title: shopContent.giftCards.title, intro: shopContent.giftCards.intro },
+    ropes: { eyebrow: shopContent.ropes.eyebrow, title: shopContent.ropes.title, intro: shopContent.ropes.intro },
+  },
+  en: shopContentEn,
+};

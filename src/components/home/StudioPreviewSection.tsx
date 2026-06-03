@@ -5,21 +5,17 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRef } from "react";
 
+import { useLanguage } from "@/components/site/LanguageProvider";
 import type { homeContent } from "@/content/home";
 
 type StudioPreviewSectionProps = {
   content: typeof homeContent.studioPreview;
 };
 
-const summaries = [
-  "Arrivare, parlare, respirare.",
-  "Una zona conviviale.",
-  "Punti di lavoro dedicati.",
-  "Comfort per studio e pratica.",
-];
-
 export function StudioPreviewSection({ content }: StudioPreviewSectionProps) {
   const reduceMotion = useReducedMotion();
+  const { dictionary } = useLanguage();
+  const studioDict = dictionary.home.studio;
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -73,7 +69,7 @@ export function StudioPreviewSection({ content }: StudioPreviewSectionProps) {
         transition={{ duration: 0.75, delay: 0.2, ease: [0.23, 1, 0.32, 1] }}
       >
         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-          Lo spazio · Torino
+          {studioDict.eyebrow}
         </p>
         <h2 className="mt-2 font-serif text-[28px] font-medium leading-[1.15] tracking-normal text-[#211815] md:text-4xl">
           {content.title}
@@ -90,7 +86,7 @@ export function StudioPreviewSection({ content }: StudioPreviewSectionProps) {
                 {feature}
               </h3>
               <p className="mt-1.5 text-xs leading-[1.55] text-[#5f524c]">
-                {summaries[index]}
+                {studioDict.summaries[index]}
               </p>
             </div>
           ))}

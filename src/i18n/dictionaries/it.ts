@@ -13,6 +13,13 @@ export const it = {
     peony: "Peony",
     shop: "Shop",
     personalArea: "Area personale",
+    bottomNav: {
+      home: "Home",
+      calendar: "Calendario",
+      programs: "Percorsi",
+      shop: "Shop",
+      profile: "Profilo",
+    },
   },
   chrome: {
     menu: "Menu",
@@ -177,6 +184,291 @@ export const it = {
       expired: "Scaduta",
       notRequired: "Non richiesta",
       dateToConfirm: "Data da confermare",
+    },
+  },
+  marquee: {
+    items: [
+      "Percorsi",
+      "Pratica",
+      "Community",
+      "Workshop",
+      "Exploration",
+      "Cultura",
+      "Shop",
+    ],
+  },
+  programs: {
+    heroEyebrow: "Percorsi strutturati",
+    heroTitle: "Il tuo percorso nella corda.",
+    heroIntro:
+      "Una progressione chiara, costruita per farti crescere nello studio del Kinbaku LuXuria, un passo alla volta.",
+    clickNodeInstruction:
+      "Clicca su uno dei nodi per approfondire di cosa si tratta.",
+    toggleShow: "Scopri tutto il percorso",
+    toggleHide: "Nascondi il percorso completo",
+    inParallel: "In parallelo",
+    inParallelToPath: "In parallelo al percorso",
+    goToPractice: "Vai alla pratica",
+    selectedProgram: "Percorso selezionato",
+    viewDates: "Vedi prossime date",
+    whatWeWork: "Cosa si lavora",
+    forWhom: "Per chi è",
+    openDetail: "Apri dettaglio",
+    program: "Percorso",
+    closeDetail: "Chiudi dettaglio",
+    dashboardEyebrow: "Area personale",
+    dashboardTitle: "Il tuo percorso, quando accedi",
+    dashboardText:
+      "Nella dashboard personale potrai ritrovare iscrizioni, eventi seguiti, storico attivita e, in prospettiva, il percorso suggerito in base alla tua esperienza.",
+    dashboardCta: "Area personale",
+    quizEyebrow: "Orientamento interno",
+    quizTitle: "Da dove partire nel percorso?",
+    quizDescription:
+      "Un quiz breve per orientarti nella linea formativa: Foundation 1, Foundation 2, Classe 1 o Classe 1+.",
+    quizCta: "Trova il tuo punto di ingresso",
+    quizResultEyebrow: "Risultato",
+    quizResultDisclaimer:
+      "Il risultato non è vincolante: se hai dubbi, scrivici.",
+    quizViewDates: "Vedi prossime date",
+    quizRetake: "Rifai il quiz",
+    quizClose: "Chiudi",
+    quizQuestion: "Domanda",
+    quizOf: "di",
+    quizBack: "Indietro",
+    quizNext: "Avanti",
+    quizShowResult: "Vedi risultato",
+    quizCloseAria: "Chiudi quiz",
+    parallelPracticeLabel: "Pratica assistita",
+    parallelClassiLabel: "Classi tematiche",
+    parallelPracticeDesc:
+      "Uno spazio per ripetere e consolidare ciò che hai incontrato nei percorsi, fare domande e ricevere supporto tecnico. Accompagna il percorso e aiuta a renderlo più solido.",
+    parallelClassiDesc:
+      "Incontri dedicati a un tema specifico, pensati per approfondire tecniche, strutture o qualità del lavoro in corda. Possono accompagnare diversi livelli del percorso, in base al tema proposto.",
+  },
+  workshop: {
+    eyebrow: "Workshop",
+    description:
+      "Approfondimenti intensivi, guest teacher e giornate di studio dedicate a temi specifici del kinbaku.",
+    note:
+      "Tutti i workshop sono pensati per coppie. Gli observer non sono ammessi, salvo diversa indicazione.",
+    upcoming: "Prossimi workshop",
+    viewCalendar: "Vedi calendario completo",
+    noWorkshopsPrefix:
+      "Nessun workshop in programma al momento. Controlla il",
+    noWorkshopsCalendar: "calendario",
+    noWorkshopsSuffix: "per gli aggiornamenti.",
+    badgeInternational: "Internazionale",
+    badgeCoupleOnly: "Solo coppie",
+    statusPreview: "In programma",
+    ctaBook: "Prenota su Ticket Tailor",
+  },
+  peony: {
+    howToGetThere: "Come arrivare",
+    goToSection: "Vai alla sezione",
+    viewWorkshops: "Vedi workshop",
+    communityLabels: [
+      "Percorsi",
+      "Pratica e socialità",
+      "Workshop",
+      "Calendario",
+    ],
+    heroOverlay: "Sala, lounge, pratica, incontri.",
+    heroBadge: "Torino",
+    studioCommunity: "Torino · Kinbaku · Community",
+    studioText:
+      "Uno spazio per studiare la corda come tecnica, relazione e presenza.",
+    heroTitle: "Scuola, venue e community di kinbaku a Torino.",
+    heroIntro:
+      "Peony Studio è uno spazio dedicato allo studio delle corde: tecnica, connessione, estetica e pratica condivisa dentro un ambiente curato e accogliente.",
+    heroPrimaryCtaLabel: "Guarda il calendario",
+    heroSecondaryCtaLabel: "Come iniziare",
+  },
+  howToStart: {
+    fewQuestions: "Poche domande",
+    oneStartingPoint: "1 punto di partenza",
+    question: "Domanda",
+    back: "Indietro",
+    next: "Avanti",
+    yourResult: "Il tuo risultato",
+    recommendedPath: "Percorso consigliato",
+    retakeQuiz: "Rifai il quiz",
+    closeQuiz: "Chiudi quiz",
+    quiz: "Quiz",
+    heroEyebrow: "Primi passi",
+    heroTitle: "Come iniziare",
+    heroIntro:
+      "Non devi sapere già quale corso scegliere. Rispondi a poche domande e trova il punto di partenza più adatto.",
+    heroPrimaryCtaLabel: "Fai il quiz",
+    heroSecondaryCtaLabel: "Guarda il calendario",
+    entryPathsEyebrow: "Orientamento",
+    entryPathsTitle: "I possibili punti di partenza",
+    previewEyebrow: "Prima di scegliere",
+    previewTitle: "Guarda prima di scegliere",
+    previewIntro:
+      "A volte il modo più semplice per capire se un luogo fa per te è guardarlo.",
+    finalCtaTitle: "Vuoi vedere le prossime date?",
+    finalCtaCtaLabel: "Guarda il calendario",
+  },
+  practice: {
+    eventsEyebrow: "Calendario",
+    branchLabel: "Ramo",
+    heroEyebrow: "Pratica e socialità",
+    heroTitle: "Pratica e socialità",
+    heroIntro:
+      "Spazi ricorrenti per allenarsi, consolidare, incontrare persone e partecipare alla vita dello studio.",
+    heroCtaLabel: "Guarda le prossime date",
+    datesTitle: "Prossime date",
+    datesCtaLabel: "Guarda il calendario completo",
+    dashboardText:
+      "Accedi alla dashboard per vedere iscrizioni, eventi salvati e attività consigliate.",
+    dashboardCtaLabel: "Vai alla dashboard",
+    branchPracticeTitle: "Pratica",
+    branchSocialTitle: "Socialità",
+  },
+  shop: {
+    ticketTailorCta: "Vai direttamente allo shop su Ticket Tailor",
+    heroEyebrow: "Shop",
+    heroTitle: "Materiali e risorse Peony Studio.",
+    heroIntro:
+      "Gift card, Peony Card, materiali e risorse selezionate per accompagnare la pratica dentro e fuori dallo studio.",
+    loading: "Caricamento prodotti...",
+    whatLooking: "Cosa stai cercando?",
+    openSection: "Apri sezione",
+    compareCards: "Confronta le Card",
+    helpChoose: "Aiutami a scegliere",
+    shopChoices: [
+      {
+        title: "Peony Card",
+        text: "Accessi, priorità, sconti e benefit per la stagione 2026/2027.",
+      },
+      {
+        title: "Gift Card",
+        text: "Voucher e gift card da acquistare tramite Ticket Tailor.",
+      },
+      {
+        title: "Corde",
+        text: "Corde in iuta disponibili in sede, con pagamento e ritiro di persona.",
+      },
+    ],
+    peonyCardEmpty:
+      "Le Peony Card disponibili verranno mostrate qui quando lo store Ticket Tailor sarà attivo.",
+    giftCardEmpty:
+      "Le Gift Card disponibili verranno mostrate qui quando lo store Ticket Tailor sarà attivo.",
+    shopComingSoon: "Shop Ticket Tailor in arrivo.",
+    buy: "Acquista",
+    whatIncludes: "Cosa include",
+    available: "Disponibili",
+  },
+  home: {
+    hero: {
+      eyebrow: "Kinbaku — Torino",
+      title: "Scuola, venue e community di kinbaku a Torino.",
+      description:
+        "Peony Studio unisce formazione, pratica e incontri in uno spazio dedicato alle corde.",
+      primaryCta: { label: "Voglio iniziare", href: "/come-iniziare" },
+      secondaryCta: { label: "Guarda il calendario", href: "/calendario" },
+    },
+    events: {
+      eyebrow: "Appuntamenti",
+      title: "Prossimi appuntamenti",
+      ctaLabel: "Vedi calendario →",
+      fallback: {
+        eyebrow: "Calendario",
+        title: "Le prossime date arrivano presto.",
+        cta: "Vedi disponibilità su Ticket Tailor",
+      },
+    },
+    doors: {
+      eyebrow: "Orientamento",
+      title: "Scegli come entrare a Peony Studio.",
+      description:
+        "Ogni persona arriva alle corde da un punto diverso: curiosità, studio, pratica, ricerca, desiderio di incontrare una community.",
+      items: [
+        {
+          mark: "?",
+          href: "/come-iniziare",
+          title: "Non so da dove iniziare",
+          content: "Guida + quiz",
+          description:
+            "Per chi è curioso/a, ma non sa ancora quale attività scegliere.",
+          cta: "Trova il punto di partenza",
+          image: "/images/home/entry-beginner.jpg",
+          gradient: "from-white/75 to-[#efe4d7]/70",
+        },
+        {
+          mark: "P",
+          href: "/percorsi",
+          title: "Voglio seguire un percorso",
+          content: "Workshop + Classi tematiche + Classe 1 / 1+",
+          description:
+            "Per lavorare con continuità dentro un ciclo strutturato di incontri.",
+          cta: "Guarda i percorsi",
+          image: "/images/home/entry-practice.jpg",
+          gradient: "from-[#f4efe8]/80 to-[#d6b89f]/40",
+        },
+        {
+          mark: "W",
+          href: "/workshop",
+          title: "Voglio approfondire con workshop",
+          content: "Ospiti + temi + ricerca",
+          description:
+            "Per appuntamenti intensivi, ospiti, temi specifici e momenti di ricerca.",
+          cta: "Scopri i workshop",
+          image: "/images/home/entry-workshop.jpg",
+          gradient: "from-white/70 to-[#d9c6b5]/55",
+        },
+        {
+          mark: "C",
+          href: "/pratica",
+          title: "Voglio conoscere la community",
+          content: "Rope Jam + Open Day + Aperibottom",
+          description:
+            "Per incontrare persone, praticare in modo più informale e vivere lo spazio.",
+          cta: "Entra nella community",
+          image: "/images/home/entry-practice.jpg",
+          gradient: "from-[#f4efe8]/80 to-[#d6b89f]/40",
+        },
+      ],
+    },
+    philosophy: {
+      eyebrow: "Filosofia",
+      title: "Basi chiare, una voce che diventa tua.",
+      concepts: [
+        {
+          word: "Tecnica",
+          desc: "Basi chiare, forma consapevole, una voce che ti guida. Il primo passo per costruire una pratica solida.",
+        },
+        {
+          word: "Estetica",
+          desc: "Ricerca della bellezza attraverso la pratica e l'attenzione al dettaglio. Ogni legatura racconta qualcosa.",
+        },
+        {
+          word: "Personalità",
+          desc: "Trovare la tua voce, il tuo modo di legare. Il percorso diventa espressione.",
+        },
+      ],
+      cta: { label: "Scopri di più", href: "/peony" },
+    },
+    studio: {
+      eyebrow: "Lo spazio · Torino",
+      title: "Uno spazio a Torino per praticare, studiare e incontrarsi.",
+      features: ["Lounge", "Cucina", "Bamboo / Hashira", "Tappeti morbidi"],
+      summaries: [
+        "Arrivare, parlare, respirare.",
+        "Una zona conviviale.",
+        "Punti di lavoro dedicati.",
+        "Comfort per studio e pratica.",
+      ],
+      cta: { label: "Scopri lo studio", href: "/peony" },
+    },
+    finalCta: {
+      title: "Pronto/a a fare il primo passo?",
+      intro: "Siamo qui per rispondere a ogni tua domanda.",
+      primaryCta: { label: "Vedi prossimo Open Day", href: "/calendario" },
+      secondaryCta: {
+        label: "Scrivici su Instagram",
+        href: "https://www.instagram.com/",
+      },
     },
   },
   calendar: {
