@@ -1,767 +1,837 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 
-import { useLanguage } from "@/components/site/LanguageProvider";
-import type { Dictionary } from "@/i18n/getDictionary";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { PersonalAreaData } from "@/lib/personal-area";
 
 type SectionId =
-  | "next"
+  | "overview"
   | "events"
-  | "membership"
-  | "info"
-  | "partner"
-  | "path";
+  | "guide"
+  | "path"
+  | "profile";
 
 type Enrollment = PersonalAreaData["enrollments"][number];
-type PersonalAreaCopy = Dictionary["personalArea"];
 
-const sectionCardConfig: Array<{
-  id: SectionId;
-  icon: string;
-}> = [
-  {
-    id: "next",
-    icon: "calendar",
-  },
-  {
-    id: "events",
-    icon: "ticket",
-  },
-  {
-    id: "membership",
-    icon: "card",
-  },
-  {
-    id: "info",
-    icon: "info",
-  },
-  {
-    id: "partner",
-    icon: "people",
-  },
-  {
-    id: "path",
-    icon: "path",
-  },
+const sections: Array<{ id: SectionId; label: string; text: string; icon: string }> = [
+  { id: "overview", label: "Home",     text: "Il colpo d'occhio sul tuo momento.",    icon: "spark"   },
+  { id: "events",   label: "Eventi",   text: "Date future, storico e dettagli utili.", icon: "ticket"  },
+  { id: "guide",    label: "Guida",    text: "La forma della tua presenza.",           icon: "eye"     },
+  { id: "path",     label: "Percorso", text: "Il tuo percorso formativo.",             icon: "path"    },
+  { id: "profile",  label: "Profilo",  text: "Dati, tessera e funzioni gestionali.",  icon: "card"    },
 ];
 
+const animalGuides = [
+  { min: 0,  max: 0,                    name: "Volpe Curiosa",       status: "Primi passi",          image: "/images/animal-guides/volpe-curiosa.png"       },
+  { min: 1,  max: 2,                    name: "Gufo Osservatore",    status: "Presenza iniziale",    image: "/images/animal-guides/gufo-osservatore.png"    },
+  { min: 3,  max: 5,                    name: "Formica Esploratrice",status: "Basi in costruzione",  image: "/images/animal-guides/formica-esploratrice.png"},
+  { min: 6,  max: 10,                   name: "Cervo Radicato",      status: "Presenza regolare",    image: "/images/animal-guides/cervo-radicato.png"      },
+  { min: 11, max: 18,                   name: "Elefante Stabile",    status: "Percorso consolidato", image: "/images/animal-guides/elefante-stabile.png"    },
+  { min: 19, max: Number.POSITIVE_INFINITY, name: "Tigre Determinata", status: "Presenza intensa",  image: "/images/animal-guides/tigre-determinata.png"   },
+];
+
+const learningSteps = ["Foundation 1", "Foundation 2", "Class 1", "Class 1+"];
+
+// ── Main dashboard ────────────────────────────────────────────────────────────
+
 export function PersonalAreaDashboard({ data }: { data: PersonalAreaData }) {
-  const { dictionary, locale } = useLanguage();
-  const copy = dictionary.personalArea;
-  const [activeSection, setActiveSection] = useState<SectionId>("next");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [selectedEnrollmentId, setSelectedEnrollmentId] = useState<
-    string | null
-  >(null);
+  const [activeSection, setActiveSection] = useState<SectionId>("overview");
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [referenceNow] = useState(() => Date.now());
-  const sortedEnrollments = useMemo(
-    () => sortEnrollmentsByDate(data.enrollments),
-    [data.enrollments],
-  );
-  const futureEnrollments = sortedEnrollments.filter((enrollment) =>
-    isFutureEnrollment(enrollment, referenceNow),
-  );
-  const pastEnrollments = sortedEnrollments.filter(
-    (enrollment) => !isFutureEnrollment(enrollment, referenceNow),
-  );
-  const nextEnrollment = futureEnrollments[0] ?? sortedEnrollments[0] ?? null;
-  const selectedEnrollment =
-    sortedEnrollments.find(
-      (enrollment) => enrollment.id === selectedEnrollmentId,
-    ) ??
-    nextEnrollment ??
-    null;
 
-  function openEvent(enrollment: Enrollment) {
-    setSelectedEnrollmentId(enrollment.id);
-    setActiveSection("events");
-  }
+  const sortedEnrollments = useMemo(() => sortEnrollmentsByDate(data.enrollments), [data.enrollments]);
+  const futureEnrollments = sortedEnrollments.filter((e) => isFutureEnrollment(e, referenceNow));
+  const pastEnrollments   = sortedEnrollments.filter((e) => !isFutureEnrollment(e, referenceNow));
+  const nextEnrollment    = futureEnrollments[0] ?? null;
+  const otherFutureEnrollments = nextEnrollment ? futureEnrollments.slice(1) : futureEnrollments;
+  const displayName = getDisplayName(data);
+  const guide       = getAnimalGuide(pastEnrollments.length);
+  const pathSteps   = getPathSteps(sortedEnrollments, pastEnrollments);
 
-  function openSection(sectionId: SectionId) {
-    setActiveSection(sectionId);
-    setSidebarOpen(false);
-  }
+  function changeSection(id: SectionId) { setActiveSection(id); setDrawerOpen(false); }
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 md:py-12">
-      <header className="relative overflow-hidden rounded-[8px] border border-[#211815]/10 bg-white/60 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.06)] md:p-7">
-        <div className="pointer-events-none absolute -right-12 -top-16 h-44 w-44 rounded-full border border-[#8b5e4a]/15" />
-        <div className="pointer-events-none absolute -right-6 top-20 h-24 w-36 rounded-[999px] border border-[#211815]/10" />
-        <div className="relative flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8b5e4a]">
-              {copy.eyebrow}
-            </p>
-            <h1 className="mt-4 font-serif text-[clamp(42px,8vw,72px)] font-medium leading-[0.98]">
-              {copy.title}
-            </h1>
-            <p className="mt-4 max-w-xl text-sm leading-6 text-[#5f524c]">
-              {copy.loggedInAs}{" "}
-              <span className="font-semibold text-[#211815]">{data.email}</span>
-              .
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              className="inline-flex rounded-full border border-[#211815]/20 px-5 py-2.5 text-sm font-semibold text-[#211815] transition hover:-translate-y-0.5 hover:border-[#8b5e4a] lg:hidden"
-              type="button"
-              onClick={() => setSidebarOpen(true)}
-            >
-              {copy.openSummary}
-            </button>
-            <Link
-              className="inline-flex w-fit rounded-full border border-[#211815]/20 px-5 py-2.5 text-sm font-semibold text-[#211815] transition hover:-translate-y-0.5 hover:border-[#8b5e4a]"
-              href="/calendario"
-            >
-              {copy.calendarCta}
-            </Link>
-          </div>
-        </div>
-      </header>
+    <>
+      <div className="flex min-h-screen w-full flex-col bg-[#251508] text-[#f8efe5] lg:flex-row">
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className="hidden lg:block">
-          <div className="sticky top-6">
-            <DashboardSidebar
-              activeSection={activeSection}
-              data={data}
-              copy={copy}
-              onSectionChange={openSection}
-            />
-          </div>
+        {/* Desktop sidebar */}
+        <aside className="hidden w-[300px] shrink-0 border-r border-[#f8efe5]/10 bg-[#2a1a0e] lg:block">
+          <DashboardMenu activeSection={activeSection} data={data} guide={guide} onSectionChange={changeSection} pastCount={pastEnrollments.length} />
         </aside>
 
-        <div className="min-w-0">
-          <div className="mb-4 flex items-center justify-between rounded-[8px] border border-[#211815]/10 bg-white/45 px-4 py-3 lg:hidden">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8b5e4a]">
-                {copy.activeSection}
-              </p>
-              <p className="font-serif text-2xl font-medium">
-                {getSectionTitle(activeSection, copy)}
-              </p>
-            </div>
-            <button
-              className="rounded-full bg-[#211815] px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#f4efe8]"
-              type="button"
-              onClick={() => setSidebarOpen(true)}
-            >
-              {copy.menu}
-            </button>
-          </div>
+        {/* Main content */}
+        <div className="min-w-0 flex-1 bg-[radial-gradient(circle_at_top_right,rgba(139,94,74,0.22),transparent_34%),linear-gradient(180deg,#2a1a0e_0%,#251508_55%,#1a0d06_100%)]">
+          <MobileTopBar displayName={displayName} guide={guide} onOpenMenu={() => setDrawerOpen(true)} />
 
-          {activeSection === "next" ? (
-            <NextEventSection
-              copy={copy}
-              enrollment={nextEnrollment}
-              locale={locale}
-              onOpen={openEvent}
-            />
-          ) : null}
-          {activeSection === "events" ? (
-            <EventsSection
-              copy={copy}
-              futureEnrollments={futureEnrollments}
-              locale={locale}
-              pastEnrollments={pastEnrollments}
-              selectedEnrollment={selectedEnrollment}
-              onOpen={openEvent}
-            />
-          ) : null}
-          {activeSection === "membership" ? (
-            <MembershipSection copy={copy} data={data} locale={locale} />
-          ) : null}
-          {activeSection === "info" ? <UsefulInfoSection copy={copy} /> : null}
-          {activeSection === "partner" ? <PartnerSection copy={copy} /> : null}
-          {activeSection === "path" ? <PathSection copy={copy} /> : null}
-        </div>
+          <main className="px-4 pb-8 pt-4 sm:px-6 lg:px-8 lg:py-8">
+              {activeSection === "overview" ? (
+                <OverviewSection
+                  guide={guide}
+                  nextEnrollment={nextEnrollment}
+                  otherFutureCount={otherFutureEnrollments.length}
+                  onSectionChange={changeSection}
+                />
+              ) : null}
+              {activeSection === "events" ? (
+                <EventsSection
+                  futureEnrollments={futureEnrollments}
+                  pastEnrollments={pastEnrollments}
+                  nextEnrollment={nextEnrollment}
+                />
+              ) : null}
+              {activeSection === "guide"   ? <AnimalGuideSection guide={guide} pastCount={pastEnrollments.length} /> : null}
+              {activeSection === "path"    ? <PathSection pathSteps={pathSteps} /> : null}
+              {activeSection === "profile" ? <ProfileSection data={data} /> : null}
+            </main>
+          </div>
       </div>
 
-      {sidebarOpen ? (
-        <div className="fixed inset-0 z-50 lg:hidden">
+      {/* Mobile drawer — opens from right */}
+      {drawerOpen ? (
+        <div className="fixed inset-0 z-[220] lg:hidden">
           <button
-            aria-label={copy.closeSummary}
-            className="absolute inset-0 bg-[#211815]/35"
+            aria-label="Chiudi menu"
+            className="absolute inset-0 bg-[#0a0503]/65 backdrop-blur-sm"
             type="button"
-            onClick={() => setSidebarOpen(false)}
+            onClick={() => setDrawerOpen(false)}
           />
-          <div className="relative h-full w-[min(88vw,360px)] overflow-y-auto bg-[#f4efe8] p-4 shadow-[18px_0_48px_rgba(33,24,21,0.18)]">
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8b5e4a]">
-                {copy.recap}
-              </p>
+          <div className="absolute right-0 top-0 h-full w-[min(82vw,320px)] overflow-y-auto bg-[#2a1a0e] shadow-[-18px_0_58px_rgba(0,0,0,0.36)]">
+            <div className="flex items-center justify-between border-b border-[#f8efe5]/10 px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">Menu</p>
               <button
-                aria-label={copy.closeSummary}
-                className="grid h-10 w-10 place-items-center rounded-full border border-[#211815]/15 bg-white/55 text-lg"
+                aria-label="Chiudi menu"
+                className="grid h-9 w-9 place-items-center rounded-full border border-[#f8efe5]/15 text-lg text-[#f8efe5]"
                 type="button"
-                onClick={() => setSidebarOpen(false)}
+                onClick={() => setDrawerOpen(false)}
               >
                 ×
               </button>
             </div>
-            <DashboardSidebar
-              activeSection={activeSection}
-              data={data}
-              copy={copy}
-              onSectionChange={openSection}
-            />
+            <nav className="grid gap-1.5 p-3" aria-label="Navigazione dashboard">
+              {sections.map((section) => (
+                <button
+                  key={section.id}
+                  type="button"
+                  onClick={() => changeSection(section.id)}
+                  className={`flex w-full items-center gap-3 rounded-[12px] border p-3 text-left transition ${
+                    activeSection === section.id
+                      ? "border-[#d8b5a5]/40 bg-[#8b5e4a]/22 text-[#f8efe5]"
+                      : "border-transparent text-[#f8efe5]/65 hover:bg-[#f8efe5]/7 hover:text-[#f8efe5]"
+                  }`}
+                >
+                  <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full border transition ${
+                    activeSection === section.id
+                      ? "border-[#d8b5a5]/30 bg-[#f8efe5]/10 text-[#f8efe5]"
+                      : "border-[#f8efe5]/10 bg-[#f8efe5]/5 text-[#d8b5a5]"
+                  }`}>
+                    <DashboardIcon name={section.icon} />
+                  </span>
+                  <span>
+                    <span className="block text-sm font-semibold">{section.label}</span>
+                    <span className="mt-0.5 block text-xs text-[#f8efe5]/48">{section.text}</span>
+                  </span>
+                </button>
+              ))}
+            </nav>
           </div>
         </div>
       ) : null}
-    </section>
+    </>
   );
 }
 
-function DashboardSidebar({
-  activeSection,
-  copy,
-  data,
-  onSectionChange,
-}: {
-  activeSection: SectionId;
-  copy: PersonalAreaCopy;
-  data: PersonalAreaData;
-  onSectionChange: (sectionId: SectionId) => void;
-}) {
-  const sectionCards = getSectionCards(copy);
+// ── Mobile top bar ────────────────────────────────────────────────────────────
 
+function MobileTopBar({ displayName, guide, onOpenMenu }: {
+  displayName: string;
+  guide: AnimalGuide;
+  onOpenMenu: () => void;
+}) {
   return (
-    <div className="rounded-[8px] border border-[#211815]/10 bg-white/55 p-4 shadow-[0_12px_36px_rgba(33,24,21,0.06)]">
-      <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/75 p-4">
+    <div className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-[#f8efe5]/10 bg-[#2a1a0e]/95 px-4 py-2.5 backdrop-blur-xl lg:hidden" style={{ paddingTop: "max(0.625rem, env(safe-area-inset-top, 0px))" }}>
+      <Link
+        href="/"
+        className="flex items-center gap-1.5 text-sm font-medium text-[#f8efe5]/65 transition hover:text-[#f8efe5]"
+      >
+        <span aria-hidden="true" className="text-base leading-none">←</span>
+        Torna al sito
+      </Link>
+
+      <div className="flex items-center gap-2.5">
+        <span className="text-xs text-[#f8efe5]/50">Ciao {displayName}</span>
+        <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg border border-[#d8b5a5]/25 bg-[#f8efe5]/8">
+          <Image src={guide.image} alt={guide.name} fill sizes="36px" className="object-cover" />
+        </div>
+        <button
+          aria-label="Apri menu"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[#f8efe5]/15 bg-[#f8efe5]/8 text-[#f8efe5]"
+          type="button"
+          onClick={onOpenMenu}
+        >
+          <span className="grid gap-[4px]" aria-hidden="true">
+            <span className="block h-px w-4 bg-current" />
+            <span className="block h-px w-4 bg-current" />
+            <span className="block h-px w-3 bg-current" />
+          </span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Desktop sidebar menu ──────────────────────────────────────────────────────
+
+function DashboardMenu({ activeSection, data, guide, onSectionChange, pastCount }: {
+  activeSection: SectionId;
+  data: PersonalAreaData;
+  guide: AnimalGuide;
+  onSectionChange: (id: SectionId) => void;
+  pastCount: number;
+}) {
+  return (
+    <div className="flex min-h-full flex-col p-4">
+      <Link
+        href="/"
+        className="mb-4 flex items-center gap-1.5 rounded-[10px] px-2 py-1.5 text-sm font-medium text-[#f8efe5]/58 transition hover:bg-[#f8efe5]/6 hover:text-[#f8efe5]"
+      >
+        <span aria-hidden="true" className="text-base leading-none">←</span>
+        Torna al sito
+      </Link>
+
+      <div className="rounded-[14px] border border-[#f8efe5]/10 bg-[#251508]/70 p-4">
         <div className="flex items-center gap-3">
-          <div className="grid h-12 w-12 place-items-center rounded-full border border-[#8b5e4a]/30 bg-white/70 font-serif text-2xl text-[#8b5e4a]">
-            {data.email.slice(0, 1).toUpperCase()}
+          <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-[10px] border border-[#d8b5a5]/25 bg-[#f8efe5]/8">
+            <Image src={guide.image} alt={guide.name} fill sizes="48px" className="object-cover" />
           </div>
           <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8b5e4a]">
-              {copy.profile}
-            </p>
-            <p className="truncate text-sm font-semibold text-[#211815]">
-              {data.email}
-            </p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">Area personale</p>
+            <p className="truncate text-sm font-semibold text-[#f8efe5]">{data.email}</p>
           </div>
         </div>
-
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          <SidebarMetric
-            label={copy.status}
-            value={data.profileLinked ? copy.profileOk : copy.profileCheck}
-          />
-          <SidebarMetric
-            label={copy.enrollmentsMetric}
-            value={String(data.claimedBuyerParticipants)}
-          />
-          <SidebarMetric
-            label={copy.eventsMetric}
-            value={String(data.enrollments.length)}
-          />
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <DarkMetric label="Presenze" value={String(pastCount)} />
+          <DarkMetric label="Guida"    value={guide.shortName}   />
         </div>
       </div>
 
-      <nav className="mt-4 space-y-2" aria-label={copy.navAria}>
-        {sectionCards.map((card) => (
+      <nav className="mt-4 grid gap-1.5" aria-label="Area personale">
+        {sections.map((section) => (
           <button
-            className={`group flex w-full items-center gap-3 rounded-[8px] border px-3 py-3 text-left transition ${
-              activeSection === card.id
-                ? "border-[#8b5e4a]/40 bg-[#8b5e4a]/10"
-                : "border-transparent hover:border-[#211815]/10 hover:bg-[#f4efe8]/70"
-            }`}
-            key={card.id}
+            key={section.id}
             type="button"
-            onClick={() => onSectionChange(card.id)}
+            onClick={() => onSectionChange(section.id)}
+            className={`group flex w-full items-center gap-3 rounded-[12px] border p-3 text-left transition duration-300 ${
+              activeSection === section.id
+                ? "border-[#d8b5a5]/40 bg-[#8b5e4a]/22 text-[#f8efe5] shadow-[0_10px_28px_rgba(0,0,0,0.16)]"
+                : "border-transparent text-[#f8efe5]/65 hover:border-[#f8efe5]/10 hover:bg-[#f8efe5]/6 hover:text-[#f8efe5]"
+            }`}
           >
-            <span
-              className={`grid h-9 w-9 shrink-0 place-items-center rounded-full border transition ${
-                activeSection === card.id
-                  ? "border-[#8b5e4a]/35 bg-white/75 text-[#8b5e4a]"
-                  : "border-[#211815]/10 bg-white/45 text-[#5f524c] group-hover:text-[#8b5e4a]"
-              }`}
-            >
-              <NavIcon name={card.icon} />
+            <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full border transition ${
+              activeSection === section.id
+                ? "border-[#d8b5a5]/30 bg-[#f8efe5]/10 text-[#f8efe5]"
+                : "border-[#f8efe5]/10 bg-[#f8efe5]/5 text-[#d8b5a5]"
+            }`}>
+              <DashboardIcon name={section.icon} />
             </span>
             <span className="min-w-0">
-              <span className="block font-serif text-[21px] leading-6">
-                {card.title}
-              </span>
-              <span className="mt-1 block text-xs leading-5 text-[#5f524c]">
-                {card.text}
-              </span>
+              <span className="block text-sm font-semibold leading-5">{section.label}</span>
+              <span className="mt-0.5 block text-xs leading-5 text-[#f8efe5]/48">{section.text}</span>
             </span>
           </button>
         ))}
       </nav>
+
+      <Link
+        href="/calendario"
+        className="mt-auto hidden rounded-full border border-[#f8efe5]/15 px-4 py-3 text-center text-sm font-semibold text-[#f8efe5]/68 transition hover:bg-[#f8efe5]/8 lg:block"
+      >
+        Guarda il calendario
+      </Link>
     </div>
   );
 }
 
-function SidebarMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-[8px] border border-[#211815]/10 bg-white/50 p-2 text-center">
-      <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#8b5e4a]">
-        {label}
-      </p>
-      <p className="mt-1 font-serif text-xl font-medium">{value}</p>
-    </div>
-  );
-}
+// ── Overview section ──────────────────────────────────────────────────────────
 
-function NavIcon({ name }: { name: string }) {
-  if (name === "calendar") {
-    return (
-      <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24">
-        <path d="M7 3v4M17 3v4M4.5 9.5h15M6 5.5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" />
-      </svg>
-    );
-  }
-
-  if (name === "ticket") {
-    return (
-      <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24">
-        <path d="M5 8.5V6.8c0-.9.7-1.6 1.6-1.6h10.8c.9 0 1.6.7 1.6 1.6v1.7a2.5 2.5 0 0 0 0 5v3.7c0 .9-.7 1.6-1.6 1.6H6.6c-.9 0-1.6-.7-1.6-1.6v-3.7a2.5 2.5 0 0 0 0-5Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.7" />
-        <path d="M12 6.2v11.6" stroke="currentColor" strokeDasharray="2 2" strokeLinecap="round" strokeWidth="1.4" />
-      </svg>
-    );
-  }
-
-  if (name === "card") {
-    return (
-      <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24">
-        <path d="M4.5 7.5c0-1 .8-1.8 1.8-1.8h11.4c1 0 1.8.8 1.8 1.8v9c0 1-.8 1.8-1.8 1.8H6.3c-1 0-1.8-.8-1.8-1.8v-9Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.7" />
-        <path d="M4.8 10h14.4M7.5 14.8h4.2" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" />
-      </svg>
-    );
-  }
-
-  if (name === "people") {
-    return (
-      <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24">
-        <path d="M9.8 11.2a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM4.5 19.2c.5-3 2.6-5 5.3-5s4.8 2 5.3 5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" />
-        <path d="M15.5 11.4a2.4 2.4 0 1 0 0-4.8M16.8 14.4c1.8.6 3 2.2 3.4 4.4" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" />
-      </svg>
-    );
-  }
-
-  if (name === "path") {
-    return (
-      <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24">
-        <path d="M5 18c6 0 3-12 9-12h5" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" />
-        <path d="M5 18a2 2 0 1 0 0 .1M19 6a2 2 0 1 0 0 .1M12 12h.1" stroke="currentColor" strokeLinecap="round" strokeWidth="2.2" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24">
-      <path d="M12 17v-6M12 7.2v.1M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" />
-    </svg>
-  );
-}
-
-function getSectionCards(copy: PersonalAreaCopy) {
-  return sectionCardConfig.map((card) => ({
-    ...card,
-    title: copy.sections[card.id].title,
-    text: copy.sections[card.id].text,
-  }));
-}
-
-function getSectionTitle(sectionId: SectionId, copy: PersonalAreaCopy) {
-  return copy.sections[sectionId]?.title ?? copy.title;
-}
-
-function SectionShell({
-  eyebrow,
-  title,
-  children,
-}: {
-  eyebrow: string;
-  title: string;
-  children: ReactNode;
+function OverviewSection({ guide, nextEnrollment, otherFutureCount, onSectionChange }: {
+  guide: AnimalGuide;
+  nextEnrollment: Enrollment | null;
+  otherFutureCount: number;
+  onSectionChange: (id: SectionId) => void;
 }) {
   return (
-    <section className="rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8b5e4a]">
-        {eyebrow}
+    <div className="grid gap-4">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#d8b5a5]">Home</p>
+
+      {/* Prossimo evento */}
+      {nextEnrollment ? (
+        <div className="rounded-[18px] border border-[#d8b5a5]/22 bg-[#f8efe5]/9 p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">Prossimo evento</p>
+          <p className="mt-2 font-serif text-xl font-medium leading-snug">
+            {nextEnrollment.events?.title ?? "Evento Peony Studio"}
+          </p>
+          <p className="mt-1.5 text-sm text-[#f8efe5]/60">{formatCompactDate(nextEnrollment.events?.starts_at)}</p>
+          <button
+            type="button"
+            className="mt-3 text-sm font-semibold text-[#d8b5a5] transition hover:text-[#f8efe5]"
+            onClick={() => onSectionChange("events")}
+          >
+            Vai agli eventi →
+          </button>
+        </div>
+      ) : (
+        <div className="rounded-[18px] border border-[#f8efe5]/10 bg-[#f8efe5]/6 p-4">
+          <p className="text-sm text-[#f8efe5]/55">Nessun evento in arrivo.</p>
+          <Link href="/calendario" className="mt-2 block text-sm font-semibold text-[#d8b5a5] hover:text-[#f8efe5]">
+            Guarda il calendario →
+          </Link>
+        </div>
+      )}
+
+      {/* Animale guida compatto */}
+      <button
+        type="button"
+        className="flex items-center gap-3 rounded-[18px] border border-[#f8efe5]/10 bg-[#f8efe5]/7 p-4 text-left transition hover:border-[#d8b5a5]/35"
+        onClick={() => onSectionChange("guide")}
+      >
+        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-[10px] border border-[#d8b5a5]/22 bg-[#f8efe5]/8">
+          <Image src={guide.image} alt={guide.name} fill sizes="48px" className="object-cover" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#d8b5a5]">Animale guida</p>
+          <p className="mt-0.5 text-sm font-semibold text-[#f8efe5]">{guide.name}</p>
+          <span className="mt-1 inline-flex rounded-full border border-[#d8b5a5]/22 bg-[#8b5e4a]/18 px-2 py-0.5 text-[11px] font-medium text-[#f8efe5]/80">
+            {guide.status}
+          </span>
+        </div>
+      </button>
+
+      {/* Link rapidi */}
+      <div className="rounded-[18px] border border-[#f8efe5]/10 bg-[#f8efe5]/6 divide-y divide-[#f8efe5]/8">
+        {(["events", "path", "profile"] as SectionId[]).map((id) => {
+          const section = sections.find((s) => s.id === id)!;
+          return (
+            <button
+              key={id}
+              type="button"
+              className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium text-[#f8efe5]/70 transition hover:text-[#f8efe5]"
+              onClick={() => onSectionChange(id)}
+            >
+              {section.label}
+              <span aria-hidden="true" className="text-[#d8b5a5]">→</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {otherFutureCount > 0 ? (
+        <p className="text-xs text-[#f8efe5]/45">
+          + {otherFutureCount} altro evento in arrivo —{" "}
+          <button type="button" className="underline" onClick={() => onSectionChange("events")}>
+            vedi tutti
+          </button>
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+// ── Events section ────────────────────────────────────────────────────────────
+
+function EventsSection({ futureEnrollments, pastEnrollments, nextEnrollment }: {
+  futureEnrollments: Enrollment[];
+  pastEnrollments: Enrollment[];
+  nextEnrollment: Enrollment | null;
+}) {
+  const [modalEnrollment, setModalEnrollment] = useState<Enrollment | null>(null);
+  const otherFuture = nextEnrollment
+    ? futureEnrollments.filter((e) => e.id !== nextEnrollment.id)
+    : futureEnrollments;
+
+  return (
+    <div className="grid gap-5">
+      <SectionIntro
+        eyebrow="Eventi"
+        title="I tuoi appuntamenti"
+        text="Date future, eventi passati e informazioni utili per ogni appuntamento."
+      />
+
+      {/* Prossimo evento */}
+      {nextEnrollment ? (
+        <EventRow enrollment={nextEnrollment} highlight onOpen={setModalEnrollment} />
+      ) : (
+        <Panel>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">Nessun evento in arrivo</p>
+          <p className="mt-2 text-sm text-[#f8efe5]/60">Quando ti iscriverai a un evento, lo troverai qui.</p>
+          <Link href="/calendario" className="mt-3 inline-flex rounded-full bg-[#f8efe5] px-4 py-2 text-xs font-semibold text-[#2a1a0e]">
+            Guarda il calendario
+          </Link>
+        </Panel>
+      )}
+
+      {otherFuture.length > 0 ? (
+        <Panel>
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">Altri eventi in arrivo</p>
+          <div className="grid gap-2">
+            {otherFuture.map((e) => <EventRow key={e.id} enrollment={e} onOpen={setModalEnrollment} />)}
+          </div>
+        </Panel>
+      ) : null}
+
+      {pastEnrollments.length > 0 ? (
+        <Panel>
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">Eventi passati</p>
+          <div className="grid gap-2">
+            {pastEnrollments.map((e) => <EventRow key={e.id} enrollment={e} onOpen={setModalEnrollment} />)}
+          </div>
+        </Panel>
+      ) : null}
+
+      {/* Card fissa informazioni spazio */}
+      <SpaceInfoCard />
+
+      {/* Modal dettagli */}
+      {modalEnrollment ? (
+        <EventDetailModal enrollment={modalEnrollment} onClose={() => setModalEnrollment(null)} />
+      ) : null}
+    </div>
+  );
+}
+
+function EventRow({ enrollment, highlight = false, onOpen }: {
+  enrollment: Enrollment;
+  highlight?: boolean;
+  onOpen: (e: Enrollment) => void;
+}) {
+  return (
+    <div className={`rounded-[14px] border p-4 ${
+      highlight
+        ? "border-[#d8b5a5]/28 bg-[#f8efe5]/10"
+        : "border-[#f8efe5]/10 bg-[#f8efe5]/6"
+    }`}>
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge>{enrollment.events?.category ?? "evento"}</Badge>
+        <span className="text-xs text-[#f8efe5]/48">{formatCompactDate(enrollment.events?.starts_at)}</span>
+      </div>
+      <p className="mt-2 font-serif text-xl font-medium leading-snug">
+        {enrollment.events?.title ?? "Evento Peony Studio"}
       </p>
-      <h2 className="mt-2 font-serif text-3xl font-medium md:text-4xl">
-        {title}
-      </h2>
+      <button
+        type="button"
+        className="mt-2 text-sm font-semibold text-[#d8b5a5] transition hover:text-[#f8efe5]"
+        onClick={() => onOpen(enrollment)}
+      >
+        Dettagli →
+      </button>
+    </div>
+  );
+}
+
+function EventDetailModal({ enrollment, onClose }: { enrollment: Enrollment; onClose: () => void }) {
+  const [spaceOpen, setSpaceOpen] = useState(false);
+
+  return (
+    <div
+      className="fixed inset-0 z-[230] flex items-end justify-center p-4 sm:items-center"
+      role="dialog"
+      aria-modal="true"
+    >
+      <button
+        aria-label="Chiudi dettagli"
+        className="absolute inset-0 bg-[#0a0503]/70 backdrop-blur-sm"
+        type="button"
+        onClick={onClose}
+      />
+      <div className="relative z-10 max-h-[90dvh] w-full max-w-xl overflow-y-auto rounded-[20px] border border-[#f8efe5]/12 bg-[#2a1a0e] p-5 shadow-[0_32px_80px_rgba(0,0,0,0.45)]">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="flex flex-wrap gap-1.5">
+              <Badge>{enrollment.events?.category ?? "evento"}</Badge>
+            </div>
+            <h2 className="mt-3 font-serif text-2xl font-medium leading-snug">
+              {enrollment.events?.title ?? "Evento Peony Studio"}
+            </h2>
+            <p className="mt-1.5 text-sm text-[#f8efe5]/60">{formatCompactDate(enrollment.events?.starts_at)}</p>
+          </div>
+          <button
+            aria-label="Chiudi"
+            className="shrink-0 grid h-9 w-9 place-items-center rounded-full border border-[#f8efe5]/15 text-lg text-[#f8efe5]"
+            type="button"
+            onClick={onClose}
+          >
+            ×
+          </button>
+        </div>
+
+        <p className="mt-4 rounded-[10px] border border-[#d8b5a5]/20 bg-[#8b5e4a]/12 px-3 py-2 text-xs text-[#d8b5a5]">
+          Verifica gli orari definitivi — potrebbero variare.
+        </p>
+
+        {enrollment.events?.booking_url ? (
+          <Link
+            href={enrollment.events.booking_url}
+            target="_blank"
+            className="mt-4 inline-flex rounded-full border border-[#f8efe5]/20 px-4 py-2 text-sm font-semibold text-[#f8efe5] transition hover:bg-[#f8efe5]/10"
+          >
+            Apri Ticket Tailor
+          </Link>
+        ) : null}
+
+        {/* Informazioni spazio — accordion */}
+        <div className="mt-4 rounded-[14px] border border-[#f8efe5]/10 bg-[#f8efe5]/5">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold text-[#f8efe5]"
+            onClick={() => setSpaceOpen((v) => !v)}
+          >
+            Informazioni spazio
+            <span aria-hidden="true" className={`text-[#d8b5a5] transition ${spaceOpen ? "rotate-45" : ""}`}>+</span>
+          </button>
+          {spaceOpen ? <SpaceInfoContent /> : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SpaceInfoCard() {
+  const [open, setOpen] = useState(false);
+  return (
+    <Panel>
+      <button
+        type="button"
+        className="flex w-full items-center justify-between text-left"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">Informazioni spazio</p>
+          <p className="mt-1 text-sm text-[#f8efe5]/62">Accesso, regole, contatti e partner.</p>
+        </div>
+        <span aria-hidden="true" className={`text-2xl text-[#d8b5a5] transition ${open ? "rotate-45" : ""}`}>+</span>
+      </button>
+      {open ? <SpaceInfoContent /> : null}
+    </Panel>
+  );
+}
+
+function SpaceInfoContent() {
+  return (
+    <div className="mt-4 grid gap-3 border-t border-[#f8efe5]/10 pt-4 text-sm leading-relaxed text-[#f8efe5]/70">
+      <div>
+        <p className="font-semibold text-[#f8efe5]">Peony Studio</p>
+        <p>Via Vandalino 85/38, Torino (Citofono: UR Expression). Piano -1.</p>
+        <a href="https://maps.app.goo.gl/CnoZpoZmgzP3Absg9" target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-[#d8b5a5] underline">
+          Aprici su Google Maps
+        </a>
+      </div>
+      <div>
+        <p className="font-semibold text-[#f8efe5]">Come accedere</p>
+        <ul className="mt-1 grid gap-0.5 list-disc pl-4">
+          <li>In metro: fermata Marche, uscita Via Eritrea — 5 minuti a piedi</li>
+          <li>In auto: parcheggio su strada nei dintorni</li>
+        </ul>
+      </div>
+      <div>
+        <p className="font-semibold text-[#f8efe5]">{"Indicazioni per l'arrivo"}</p>
+        <ul className="mt-1 grid gap-0.5 list-disc pl-4">
+          <li>{"Non sostare in gruppo davanti all'ingresso"}</li>
+          <li>Citofono: UR Expression — Piano -1</li>
+          <li>{"Silenzio nelle scale: il palazzo è abitato da persone anziane"}</li>
+        </ul>
+      </div>
+      <div>
+        <p className="font-semibold text-[#f8efe5]">Cerchi partner?</p>
+        <p>
+          <a href="https://t.me/+7a88epSRmP04MzA0" target="_blank" rel="noopener noreferrer" className="text-[#d8b5a5] underline">Canale Telegram Peony Calls</a>
+          {" "}o{" "}
+          <a href="https://forms.gle/8FtNkM9A6Phdegb26" target="_blank" rel="noopener noreferrer" className="text-[#d8b5a5] underline">modulo partner</a>
+        </p>
+      </div>
+      <div>
+        <p className="font-semibold text-[#f8efe5]">Regole dello spazio</p>
+        <ul className="mt-1 grid gap-0.5 list-disc pl-4">
+          <li>{"Spazio senza scarpe: toglile all'ingresso"}</li>
+          <li>{"Borse nell'area indicata dallo staff"}</li>
+          <li>{"Vietato fumare all'interno (incluso vape)"}</li>
+          <li>{"No drink aperti nell'area workshop/corde"}</li>
+          <li>Acqua potabile disponibile in cucina</li>
+          <li><a href="https://www.peonystudio.net/vademecum-rope-jam" target="_blank" rel="noopener noreferrer" className="text-[#d8b5a5] underline">Vademecum completo</a></li>
+        </ul>
+      </div>
+      <div>
+        <p className="font-semibold text-[#f8efe5]">Contatto emergenza</p>
+        <p>+39 320 6486577 — WhatsApp/Telegram</p>
+      </div>
+      <div>
+        <p className="font-semibold text-[#f8efe5]">Pagamento quota</p>
+        <p>
+          Sul posto oppure via{" "}
+          <a href="https://web.satispay.com/download/qrcode/S6Y-CON--992EF584-115F-4A05-8B24-E650872EB2A8?locale=it" target="_blank" rel="noopener noreferrer" className="text-[#d8b5a5] underline">Satispay</a>
+          {" "}(oggetto: nome evento + nome cognome).
+        </p>
+      </div>
+      <div>
+        <p className="font-semibold text-[#f8efe5]">Iscrizione associazione</p>
+        <p>
+          {"Se hai acquistato \"Non associati\" e non sei ancora iscritto ad UR Expression, completa l'iscrizione prima dell'evento:"}{" "}
+          <a href="https://forms.gle/f6osniuC39UhXGoV8" target="_blank" rel="noopener noreferrer" className="text-[#d8b5a5] underline">Modulo iscrizione</a>.
+          {" Se hai iscritto anche il/la partner, condividi il link del modulo."}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── Animal guide section ──────────────────────────────────────────────────────
+
+function AnimalGuideSection({ guide, pastCount }: { guide: AnimalGuide; pastCount: number }) {
+  return (
+    <div className="grid gap-5">
+      <SectionIntro
+        eyebrow="Guida"
+        title="Il tuo animale guida"
+        text="Cambia con la tua presenza nello spazio."
+      />
+      <Panel>
+        {/* Image — max 200px, no overlay text (the PNG has text embedded) */}
+        <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+          <div className="relative h-48 w-48 shrink-0 overflow-hidden rounded-[14px] border border-[#d8b5a5]/24 bg-[#f8efe5]/8">
+            <Image src={guide.image} alt={guide.name} fill sizes="192px" className="object-cover" />
+          </div>
+          <div className="flex-1">
+            {/* Name and badge — text only, below/beside image */}
+            <p className="font-serif text-2xl font-medium">{guide.name}</p>
+            <span className="mt-2 inline-flex rounded-full border border-[#d8b5a5]/25 bg-[#8b5e4a]/18 px-3 py-1 text-xs font-semibold text-[#f8efe5]">
+              {guide.status}
+            </span>
+            {/* Compact info rows */}
+            <div className="mt-4 grid gap-2">
+              <div className="flex items-center justify-between rounded-[10px] border border-[#f8efe5]/10 bg-[#f8efe5]/6 px-3 py-2">
+                <span className="text-xs text-[#f8efe5]/58">Presenze</span>
+                <span className="text-sm font-semibold text-[#f8efe5]">{pastCount}</span>
+              </div>
+              <div className="flex items-center justify-between rounded-[10px] border border-[#f8efe5]/10 bg-[#f8efe5]/6 px-3 py-2">
+                <span className="text-xs text-[#f8efe5]/58">Prossima evoluzione</span>
+                <span className="text-sm font-semibold text-[#f8efe5]">
+                  {guide.missingToNext ? `a ${guide.missingToNext} presenze` : "Intensa"}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+// ── Path section ──────────────────────────────────────────────────────────────
+
+function PathSection({ pathSteps }: { pathSteps: PathStep[] }) {
+  return (
+    <div className="grid gap-5">
+      <SectionIntro
+        eyebrow="Percorso"
+        title="Il tuo percorso"
+        text="La progressione è orientativa: l'ingresso dipende dall'esperienza e dalla pratica reale."
+      />
+      <Panel>
+        <div className="grid gap-3 md:grid-cols-4">
+          {pathSteps.map((step, index) => (
+            <div
+              key={step.name}
+              className={`rounded-[16px] border p-4 ${
+                step.status === "completato"
+                  ? "border-[#d8b5a5]/35 bg-[#8b5e4a]/20"
+                  : step.status === "suggerito"
+                    ? "border-[#f8efe5]/18 bg-[#f8efe5]/10"
+                    : "border-[#f8efe5]/10 bg-[#f8efe5]/5"
+              }`}
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#d8b5a5]">
+                {String(index + 1).padStart(2, "0")}
+              </p>
+              <h3 className="mt-2 font-serif text-2xl font-medium">{step.name}</h3>
+              <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#f8efe5]/55">
+                {step.status}
+              </p>
+            </div>
+          ))}
+        </div>
+      </Panel>
+      <Panel>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">In parallelo</p>
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          {["Pratica Assistita", "Classi Tematiche"].map((item) => (
+            <div key={item} className="rounded-[14px] border border-[#f8efe5]/10 bg-[#f8efe5]/6 p-4">
+              <h3 className="font-serif text-xl font-medium">{item}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-[#f8efe5]/60">
+                Corsia di supporto: ripetere, consolidare e approfondire.
+              </p>
+            </div>
+          ))}
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+// ── Profile section ───────────────────────────────────────────────────────────
+
+function ProfileSection({ data }: { data: PersonalAreaData }) {
+  const status    = data.profile?.association_status ?? null;
+  const expiresAt = data.profile?.association_expires_at;
+
+  async function logout() {
+    const supabase = createSupabaseBrowserClient();
+    await supabase.auth.signOut();
+    window.location.href = "/area-personale/login";
+  }
+
+  const membershipOk = status === "verified" || status === "not_required";
+  const membershipBad = status === "expired" || status === "missing" || status === "pending" || status === "unknown";
+
+  return (
+    <div className="grid gap-5">
+      {/* Membership banner */}
+      {membershipOk ? (
+        <div className="flex items-center gap-2.5 rounded-[12px] border border-emerald-500/30 bg-emerald-900/25 px-4 py-3 text-sm font-medium text-emerald-300">
+          <span>✓</span>
+          <span>Tessera aggiornata</span>
+        </div>
+      ) : membershipBad ? (
+        <div className="flex items-center gap-2.5 rounded-[12px] border border-amber-500/30 bg-amber-900/22 px-4 py-3 text-sm font-medium text-amber-300">
+          <span>⚠</span>
+          <span>Verifica la tua tessera — contattaci per aggiornarla</span>
+        </div>
+      ) : null}
+
+      <SectionIntro
+        eyebrow="Profilo"
+        title="Il tuo profilo"
+        text="Dati, tessera e funzioni di gestione."
+      />
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Panel>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">Profilo</p>
+          <h3 className="mt-2 font-serif text-3xl font-medium">{getDisplayName(data)}</h3>
+          <p className="mt-2 text-sm text-[#f8efe5]/60">{data.email}</p>
+        </Panel>
+        <Panel>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">Tessera associativa</p>
+          <h3 className="mt-2 font-serif text-3xl font-medium">{formatAssociationStatus(status)}</h3>
+          <p className="mt-2 text-sm text-[#f8efe5]/60">
+            Scadenza: {expiresAt ? formatShortDate(expiresAt) : "da verificare"}
+          </p>
+        </Panel>
+      </div>
+
+      <Panel>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">Note</p>
+        <p className="mt-2 text-sm leading-relaxed text-[#f8efe5]/65">
+          Lo stato tessera è aggiornato dallo staff Peony Studio.
+        </p>
+        <button
+          className="mt-4 rounded-full border border-[#f8efe5]/20 px-5 py-2.5 text-sm font-semibold text-[#f8efe5] transition hover:bg-[#f8efe5]/10"
+          type="button"
+          onClick={logout}
+        >
+          Esci dall&apos;area personale
+        </button>
+      </Panel>
+    </div>
+  );
+}
+
+// ── Shared UI components ──────────────────────────────────────────────────────
+
+function SectionIntro({ eyebrow, title, text }: { eyebrow: string; title: string; text: string }) {
+  return (
+    <div>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#d8b5a5]">{eyebrow}</p>
+      <h1 className="mt-2 max-w-4xl font-serif text-[clamp(24px,4.5vw,40px)] font-medium leading-[1.06]">{title}</h1>
+      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#f8efe5]/60">{text}</p>
+    </div>
+  );
+}
+
+function Panel({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <section className={`rounded-[18px] border border-[#f8efe5]/10 bg-[#f8efe5]/7 p-5 shadow-[inset_0_1px_0_rgba(248,239,229,0.04)] ${className}`}>
       {children}
     </section>
   );
 }
 
-function NextEventSection({
-  copy,
-  enrollment,
-  locale,
-  onOpen,
-}: {
-  copy: PersonalAreaCopy;
-  enrollment: Enrollment | null;
-  locale: string;
-  onOpen: (enrollment: Enrollment) => void;
-}) {
+function DarkMetric({ label, value }: { label: string; value: string }) {
   return (
-    <SectionShell eyebrow={copy.labels.nextDate} title={copy.sections.next.title}>
-      {enrollment ? (
-        <div className="mt-5 rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-5">
-          <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-            <div>
-              <div className="flex flex-wrap gap-2">
-                <Badge>{enrollment.events?.category ?? copy.labels.event}</Badge>
-                <Badge>{copy.labels.ticketTailor}</Badge>
-              </div>
-              <h3 className="mt-4 font-serif text-3xl font-medium">
-                {enrollment.events?.title ?? copy.labels.peonyEvent}
-              </h3>
-              <p className="mt-3 text-sm leading-6 text-[#5f524c]">
-                {formatEventDate(enrollment.events?.starts_at, copy, locale)}
-              </p>
-            </div>
-            <button
-              className="inline-flex w-fit rounded-full bg-[#211815] px-5 py-2.5 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5"
-              type="button"
-              onClick={() => onOpen(enrollment)}
-            >
-              {copy.labels.openEventDetails}
-            </button>
-          </div>
-        </div>
-      ) : (
-        <EmptyEventsMessage copy={copy} />
-      )}
-    </SectionShell>
-  );
-}
-
-function EventsSection({
-  copy,
-  futureEnrollments,
-  locale,
-  pastEnrollments,
-  selectedEnrollment,
-  onOpen,
-}: {
-  copy: PersonalAreaCopy;
-  futureEnrollments: Enrollment[];
-  locale: string;
-  pastEnrollments: Enrollment[];
-  selectedEnrollment: Enrollment | null;
-  onOpen: (enrollment: Enrollment) => void;
-}) {
-  return (
-    <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-      <SectionShell eyebrow={copy.labels.appointments} title={copy.sections.events.title}>
-        {futureEnrollments.length === 0 && pastEnrollments.length === 0 ? (
-          <EmptyEventsMessage copy={copy} />
-        ) : (
-          <div className="mt-5 space-y-6">
-            <EventGroup
-              copy={copy}
-              locale={locale}
-              title={copy.labels.future}
-              enrollments={futureEnrollments}
-              onOpen={onOpen}
-            />
-            <EventGroup
-              copy={copy}
-              locale={locale}
-              title={copy.labels.past}
-              enrollments={pastEnrollments}
-              onOpen={onOpen}
-            />
-          </div>
-        )}
-      </SectionShell>
-
-      <EventDetail copy={copy} enrollment={selectedEnrollment} locale={locale} />
+    <div className="rounded-[10px] border border-[#f8efe5]/10 bg-[#f8efe5]/6 p-2.5">
+      <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-[#d8b5a5]">{label}</p>
+      <p className="mt-1 truncate font-serif text-xl font-medium text-[#f8efe5]">{value}</p>
     </div>
   );
 }
 
-function EventGroup({
-  copy,
-  title,
-  enrollments,
-  locale,
-  onOpen,
-}: {
-  copy: PersonalAreaCopy;
-  title: string;
-  enrollments: Enrollment[];
-  locale: string;
-  onOpen: (enrollment: Enrollment) => void;
-}) {
-  if (enrollments.length === 0) {
-    return null;
-  }
 
+function Badge({ children }: { children: React.ReactNode }) {
   return (
-    <div>
-      <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
-        {title}
-      </h3>
-      <div className="mt-3 grid gap-3">
-        {enrollments.map((enrollment) => (
-          <button
-            className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-4 text-left transition hover:-translate-y-0.5 hover:border-[#8b5e4a]/35"
-            key={enrollment.id}
-            type="button"
-            onClick={() => onOpen(enrollment)}
-          >
-            <div className="flex flex-wrap gap-2">
-              <Badge>{enrollment.events?.category ?? copy.labels.event}</Badge>
-              <Badge>{formatEnrollmentStatus(enrollment.enrollment_status, copy)}</Badge>
-            </div>
-            <p className="mt-3 font-serif text-2xl font-medium">
-              {enrollment.events?.title ?? copy.labels.peonyEvent}
-            </p>
-            <p className="mt-2 text-sm leading-6 text-[#5f524c]">
-              {formatEventDate(enrollment.events?.starts_at, copy, locale)}
-            </p>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function EventDetail({
-  copy,
-  enrollment,
-  locale,
-}: {
-  copy: PersonalAreaCopy;
-  enrollment: Enrollment | null;
-  locale: string;
-}) {
-  return (
-    <SectionShell eyebrow={copy.labels.detail} title={copy.labels.eventDetails}>
-      {enrollment ? (
-        <div className="mt-5 space-y-4">
-          <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-4">
-            <div className="flex flex-wrap gap-2">
-              <Badge>{enrollment.events?.category ?? copy.labels.event}</Badge>
-              <Badge>{copy.labels.ticketTailor}</Badge>
-            </div>
-            <h3 className="mt-3 font-serif text-3xl font-medium">
-              {enrollment.events?.title ?? copy.labels.peonyEvent}
-            </h3>
-            <p className="mt-2 text-sm leading-6 text-[#5f524c]">
-              {formatEventDate(enrollment.events?.starts_at, copy, locale)}
-            </p>
-          </div>
-
-          <InfoGrid
-            items={[
-              {
-                title: copy.labels.program,
-                text: formatProgram(enrollment, copy, locale),
-              },
-              {
-                title: copy.labels.location,
-                text: copy.copy.location,
-              },
-              {
-                title: copy.labels.directions,
-                text: copy.copy.directions,
-              },
-              {
-                title: copy.labels.access,
-                text: copy.copy.access,
-              },
-              {
-                title: copy.labels.spaceRules,
-                text: copy.copy.rules,
-              },
-              {
-                title: copy.labels.emergency,
-                text: copy.copy.emergency,
-              },
-              {
-                title: copy.labels.ticketStatus,
-                text: formatEnrollmentStatus(enrollment.enrollment_status, copy),
-              },
-            ]}
-          />
-
-          {enrollment.events?.booking_url ? (
-            <Link
-              className="inline-flex rounded-full border border-[#211815]/20 px-5 py-2.5 text-sm font-semibold text-[#211815] transition hover:-translate-y-0.5 hover:border-[#8b5e4a]"
-              href={enrollment.events.booking_url}
-              target="_blank"
-            >
-              {copy.labels.openTicketTailor}
-            </Link>
-          ) : null}
-        </div>
-      ) : (
-        <p className="mt-5 rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-5 text-sm leading-6 text-[#5f524c]">
-          {copy.labels.chooseEvent}
-        </p>
-      )}
-    </SectionShell>
-  );
-}
-
-function MembershipSection({
-  copy,
-  data,
-  locale,
-}: {
-  copy: PersonalAreaCopy;
-  data: PersonalAreaData;
-  locale: string;
-}) {
-  const status = data.profile?.association_status ?? "unknown";
-  const expiresAt = data.profile?.association_expires_at;
-
-  return (
-    <SectionShell eyebrow={copy.labels.membership} title={copy.sections.membership.title}>
-      <div className="mt-5 grid gap-4 md:grid-cols-2">
-        <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
-            {copy.labels.membershipStatus}
-          </p>
-          <p className="mt-2 font-serif text-3xl font-medium">
-            {formatAssociationStatus(status, copy)}
-          </p>
-          <p className="mt-2 text-sm leading-6 text-[#5f524c]">
-            {status === "unknown"
-              ? copy.copy.membershipUnknown
-              : copy.copy.membershipManual}
-          </p>
-        </div>
-        <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
-            {copy.labels.expiry}
-          </p>
-          <p className="mt-2 font-serif text-3xl font-medium">
-            {expiresAt ? formatShortDate(expiresAt, locale) : copy.labels.toVerify}
-          </p>
-          <p className="mt-2 text-sm leading-6 text-[#5f524c]">
-            {copy.copy.membershipHelp}
-          </p>
-        </div>
-      </div>
-    </SectionShell>
-  );
-}
-
-function UsefulInfoSection({ copy }: { copy: PersonalAreaCopy }) {
-  return (
-    <SectionShell eyebrow="Studio" title={copy.sections.info.title}>
-      <InfoGrid
-        items={[
-          {
-            title: copy.labels.address,
-            text: copy.copy.location,
-          },
-          {
-            title: copy.labels.entrance,
-            text: copy.copy.entrance,
-          },
-          {
-            title: copy.labels.metro,
-            text: copy.copy.directions,
-          },
-          {
-            title: copy.labels.arrival,
-            text: copy.copy.arrival,
-          },
-          {
-            title: copy.labels.space,
-            text: copy.copy.space,
-          },
-          {
-            title: copy.labels.emergency,
-            text: copy.copy.emergency,
-          },
-        ]}
-      />
-    </SectionShell>
-  );
-}
-
-function PartnerSection({ copy }: { copy: PersonalAreaCopy }) {
-  return (
-    <SectionShell eyebrow="Partecipazione" title={copy.sections.partner.title}>
-      <p className="mt-5 rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-5 text-sm leading-6 text-[#5f524c]">
-        {copy.copy.partner}
-      </p>
-    </SectionShell>
-  );
-}
-
-function PathSection({ copy }: { copy: PersonalAreaCopy }) {
-  return (
-    <SectionShell eyebrow={copy.labels.path} title={copy.sections.path.title}>
-      <div className="mt-5 grid gap-3 md:grid-cols-4">
-        {["Foundation 1", "Foundation 2", "Class 1", "Class 1+"].map(
-          (step, index) => (
-            <div
-              className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-4"
-              key={step}
-            >
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
-                {String(index + 1).padStart(2, "0")}
-              </p>
-              <p className="mt-2 font-serif text-2xl font-medium">{step}</p>
-            </div>
-          ),
-        )}
-      </div>
-      <div className="mt-4 rounded-[8px] border border-[#211815]/10 bg-white/50 p-4 text-sm leading-6 text-[#5f524c]">
-        {copy.copy.path}
-      </div>
-    </SectionShell>
-  );
-}
-
-function InfoGrid({
-  items,
-}: {
-  items: Array<{
-    title: string;
-    text: string;
-  }>;
-}) {
-  return (
-    <div className="mt-5 grid gap-3 md:grid-cols-2">
-      {items.map((item) => (
-        <div
-          className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-4"
-          key={item.title}
-        >
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
-            {item.title}
-          </p>
-          <p className="mt-2 text-sm leading-6 text-[#5f524c]">{item.text}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function Badge({ children }: { children: ReactNode }) {
-  return (
-    <span className="inline-flex rounded-full border border-[#211815]/10 bg-white/60 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+    <span className="inline-flex rounded-full border border-[#f8efe5]/10 bg-[#f8efe5]/8 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#f8efe5]/60">
       {children}
     </span>
   );
 }
 
-function EmptyEventsMessage({ copy }: { copy: PersonalAreaCopy }) {
-  return (
-    <div className="mt-5 rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-5 text-sm leading-6 text-[#5f524c]">
-      {copy.copy.noEvents}
-    </div>
-  );
+function DashboardIcon({ name }: { name: string }) {
+  const common = { className: "h-4 w-4", fill: "none", viewBox: "0 0 24 24" };
+  if (name === "ticket") return <svg aria-hidden="true" {...common}><path d="M5 8.5V6.8c0-.9.7-1.6 1.6-1.6h10.8c.9 0 1.6.7 1.6 1.6v1.7a2.5 2.5 0 0 0 0 5v3.7c0 .9-.7 1.6-1.6 1.6H6.6c-.9 0-1.6-.7-1.6-1.6v-3.7a2.5 2.5 0 0 0 0-5Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.7" /></svg>;
+  if (name === "path")   return <svg aria-hidden="true" {...common}><path d="M5 18c6 0 3-12 9-12h5" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" /><path d="M5 18a2 2 0 1 0 0 .1M19 6a2 2 0 1 0 0 .1M12 12h.1" stroke="currentColor" strokeLinecap="round" strokeWidth="2" /></svg>;
+  if (name === "card")   return <svg aria-hidden="true" {...common}><path d="M4.5 7.5c0-1 .8-1.8 1.8-1.8h11.4c1 0 1.8.8 1.8 1.8v9c0 1-.8 1.8-1.8 1.8H6.3c-1 0-1.8-.8-1.8-1.8v-9Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.7" /><path d="M4.8 10h14.4" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" /></svg>;
+  if (name === "eye")    return <svg aria-hidden="true" {...common}><path d="M4 12s2.8-5 8-5 8 5 8 5-2.8 5-8 5-8-5-8-5Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.7" /><path d="M12 14.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" stroke="currentColor" strokeWidth="1.7" /></svg>;
+  return <svg aria-hidden="true" {...common}><path d="M12 3.8 14.2 9l5.6.4-4.2 3.7 1.3 5.5-4.9-2.9-4.9 2.9 1.3-5.5-4.2-3.7L9.8 9 12 3.8Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.7" /></svg>;
+}
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+type AnimalGuide = (typeof animalGuides)[number] & { missingToNext: number | null; shortName: string };
+type PathStep    = { name: string; status: "completato" | "suggerito" | "non ancora iniziato" };
+
+// ── Utility functions — unchanged logic ───────────────────────────────────────
+
+function getAnimalGuide(presences: number): AnimalGuide {
+  const current = animalGuides.find((g) => presences >= g.min && presences <= g.max) ?? animalGuides[0];
+  const next    = animalGuides.find((g) => g.min > presences);
+  return { ...current, missingToNext: next ? next.min - presences : null, shortName: current.name.split(" ")[0] };
+}
+
+function getPathSteps(enrollments: Enrollment[], pastEnrollments: Enrollment[]): PathStep[] {
+  const completedIndex = learningSteps.reduce((highest, step, index) => {
+    const done = pastEnrollments.some((e) => matchesStep(e.events?.title, step));
+    return done ? Math.max(highest, index) : highest;
+  }, -1);
+  const suggestedIndex = Math.min(completedIndex + 1, learningSteps.length - 1);
+
+  return learningSteps.map((step, index) => {
+    if (index <= completedIndex) return { name: step, status: "completato" };
+    const hasEnrollment = enrollments.some((e) => matchesStep(e.events?.title, step));
+    if (index === suggestedIndex || hasEnrollment) return { name: step, status: "suggerito" };
+    return { name: step, status: "non ancora iniziato" };
+  });
+}
+
+function matchesStep(title: string | null | undefined, step: string) {
+  const t = title?.toLowerCase() ?? "";
+  const s = step.toLowerCase();
+  if (s === "class 1+") return t.includes("class 1+") || t.includes("classe 1+");
+  if (s === "class 1")  return (t.includes("class 1") || t.includes("classe 1")) && !t.includes("1+");
+  return t.includes(s);
+}
+
+function getDisplayName(data: PersonalAreaData) {
+  const firstName = data.profile?.first_name?.trim();
+  return firstName ?? data.email.split("@")[0]?.split(/[._-]/)[0] ?? "Peony";
 }
 
 function sortEnrollmentsByDate(enrollments: Enrollment[]) {
@@ -773,87 +843,41 @@ function sortEnrollmentsByDate(enrollments: Enrollment[]) {
 }
 
 function isFutureEnrollment(enrollment: Enrollment, now: number) {
-  const eventTime = getEnrollmentTime(enrollment);
-  return eventTime !== null && eventTime >= now;
+  const t = getEnrollmentTime(enrollment);
+  return t !== null && t >= now;
 }
 
 function getEnrollmentTime(enrollment: Enrollment) {
   const value = enrollment.events?.starts_at;
-  if (!value) {
-    return null;
-  }
-
-  const time = new Date(value).getTime();
-  return Number.isNaN(time) ? null : time;
+  if (!value) return null;
+  const t = new Date(value).getTime();
+  return Number.isNaN(t) ? null : t;
 }
 
-function formatEventDate(
-  value: string | null | undefined,
-  copy: PersonalAreaCopy,
-  locale: string,
-) {
-  if (!value) {
-    return copy.statuses.dateToConfirm;
-  }
-
+function formatCompactDate(value?: string | null): string {
+  if (!value) return "Data da confermare";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "it-IT", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
+  if (Number.isNaN(date.getTime())) return value;
+  const opts = { timeZone: "Europe/Rome" } as const;
+  const weekday = new Intl.DateTimeFormat("it-IT", { weekday: "short", ...opts }).format(date);
+  const day     = new Intl.DateTimeFormat("it-IT", { day:     "numeric", ...opts }).format(date);
+  const month   = new Intl.DateTimeFormat("it-IT", { month:   "short",   ...opts }).format(date);
+  const time    = new Intl.DateTimeFormat("it-IT", { hour: "2-digit", minute: "2-digit", ...opts }).format(date);
+  return `${weekday} ${day} ${month} · ore ${time}`;
 }
 
-function formatShortDate(value: string, locale: string) {
+
+function formatShortDate(value?: string | null) {
+  if (!value) return "Non disponibile";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "it-IT", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(date);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("it-IT", { day: "2-digit", month: "short", year: "numeric" }).format(date);
 }
 
-function formatProgram(
-  enrollment: Enrollment,
-  copy: PersonalAreaCopy,
-  locale: string,
-) {
-  const start = formatEventDate(enrollment.events?.starts_at, copy, locale);
-  const end = enrollment.events?.ends_at
-    ? formatEventDate(enrollment.events.ends_at, copy, locale)
-    : null;
-
-  return end ? `${start} - ${end}` : start;
-}
-
-function formatEnrollmentStatus(status: string | null, copy: PersonalAreaCopy) {
-  if (!status || status === "active") {
-    return copy.statuses.confirmed;
-  }
-
-  return status.replaceAll("_", " ");
-}
-
-function formatAssociationStatus(status: string | null, copy: PersonalAreaCopy) {
-  const normalized = status ?? "unknown";
+function formatAssociationStatus(status: string | null) {
   const labels: Record<string, string> = {
-    unknown: copy.statuses.unknown,
-    missing: copy.statuses.missing,
-    pending: copy.statuses.pending,
-    verified: copy.statuses.verified,
-    expired: copy.statuses.expired,
-    not_required: copy.statuses.notRequired,
+    unknown: "Da verificare", missing: "Mancante", pending: "In verifica",
+    verified: "Verificata", expired: "Scaduta", not_required: "Non richiesta",
   };
-
-  return labels[normalized] ?? normalized;
+  return labels[status ?? "unknown"] ?? status ?? "Da verificare";
 }

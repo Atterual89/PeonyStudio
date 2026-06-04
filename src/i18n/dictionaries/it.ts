@@ -92,6 +92,16 @@ export const it = {
     profileOk: "OK",
     profileCheck: "Check",
     navAria: "Area personale",
+    backToSite: "Torna al sito",
+    sectionHome: "Home",
+    sectionEventi: "Eventi",
+    sectionGuida: "Guida",
+    sectionPercorso: "Percorso",
+    sectionProfilo: "Profilo",
+    membershipOk: "Tessera aggiornata",
+    membershipWarning: "Verifica la tua tessera — contattaci per aggiornarla",
+    spaceInfoTitle: "Informazioni spazio",
+    eventDetailsVerify: "Verifica gli orari definitivi — potrebbero variare.",
     sections: {
       next: {
         title: "Prossimo evento",

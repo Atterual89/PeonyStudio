@@ -93,6 +93,16 @@ export const en: typeof it = {
     profileOk: "OK",
     profileCheck: "Check",
     navAria: "Personal dashboard",
+    backToSite: "Back to site",
+    sectionHome: "Home",
+    sectionEventi: "Events",
+    sectionGuida: "Guide",
+    sectionPercorso: "Path",
+    sectionProfilo: "Profile",
+    membershipOk: "Membership up to date",
+    membershipWarning: "Check your membership — contact us to update it",
+    spaceInfoTitle: "Venue information",
+    eventDetailsVerify: "Please verify the final schedule — times may change.",
     sections: {
       next: {
         title: "Next event",

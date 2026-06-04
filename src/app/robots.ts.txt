@@ -1,0 +1,28 @@
+import type { MetadataRoute } from "next";
+
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.peonystudio.net";
+const isProduction = process.env.NEXT_PUBLIC_SITE_ENV === "production";
+
+export default function robots(): MetadataRoute.Robots {
+  if (!isProduction) {
+    return {
+      rules: {
+        userAgent: "*",
+        disallow: "/",
+      },
+    };
+  }
+
+  return {
+    rules: {
+      userAgent: "*",
+      allow: "/",
+      disallow: [
+        "/admin/",
+        "/api/",
+        "/area-personale/",
+      ],
+    },
+    sitemap: `${siteUrl}/sitemap.xml`,
+  };
+}
