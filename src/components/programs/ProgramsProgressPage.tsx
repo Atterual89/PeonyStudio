@@ -1,10 +1,13 @@
 "use client";
 
+import { BookOpen, Eye, Ribbon, Sprout, User, Users } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+
+const LEGEND_ORDER: IconName[] = ["User", "Users", "Sprout", "BookOpen", "Ribbon", "Eye"];
 
 import { ProgramsLevelQuiz } from "@/components/programs/ProgramsLevelQuiz";
-import { SectionTabSwitcher } from "@/components/layout/SectionTabSwitcher";
+import { TabsWrapper } from "@/components/layout/TabsWrapper";
 import { useLanguage } from "@/components/site/LanguageProvider";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { programsBilingual } from "@/content/programs";
@@ -14,24 +17,45 @@ import type {
   programsContent,
 } from "@/content/programs";
 
+const ICON_MAP = { User, Users, Sprout, BookOpen, Ribbon, Eye } as const;
+type IconName = keyof typeof ICON_MAP;
+
+const NODE_ICONS: Record<number, IconName[]> = {
+  0: ["User", "Sprout"],
+  1: ["User", "BookOpen"],
+  2: ["Users", "BookOpen"],
+  3: ["Users", "BookOpen"],
+};
+
+const PARALLEL_ICONS: Record<number, IconName[]> = {
+  0: ["User", "BookOpen", "Sprout"],
+  1: ["Users", "BookOpen", "Sprout"],
+};
+
+const ICON_LABEL_KEY: Record<IconName, "iconLegendUser" | "iconLegendUsers" | "iconLegendSprout" | "iconLegendBookOpen" | "iconLegendRibbon" | "iconLegendEye"> = {
+  User:     "iconLegendUser",
+  Users:    "iconLegendUsers",
+  Sprout:   "iconLegendSprout",
+  BookOpen: "iconLegendBookOpen",
+  Ribbon:   "iconLegendRibbon",
+  Eye:      "iconLegendEye",
+};
+
 type ProgramsProgressPageProps = {
   content: typeof programsContent;
 };
 
-const nodeLabels = ["Found. 1", "Found. 2", "Classe 1", "Classe 1+"];
+const NODE_LABELS_SHORT = ["F1", "F2", "C1", "C1+"];
 
 export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
   const { dictionary, locale } = useLanguage();
   const prog = dictionary.programs;
+  const prac = dictionary.practice;
   const localizedContent = programsBilingual[locale] ?? programsBilingual.it;
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  const [activeParallelIndex, setActiveParallelIndex] = useState<number | null>(
-    null,
-  );
-  const [showFullPath, setShowFullPath] = useState(false);
-  const [modalStep, setModalStep] = useState<ProgramStep | null>(null);
-  const activeStep =
-    activeIndex === null ? null : content.progression[activeIndex];
+  const [activeParallelIndex, setActiveParallelIndex] = useState<number | null>(null);
+
+  const activeStep = activeIndex === null ? null : localizedContent.progression[activeIndex];
   const progressScale =
     activeIndex !== null && content.progression.length > 1
       ? activeIndex / (content.progression.length - 1)
@@ -39,68 +63,24 @@ export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
 
   function toggleActiveIndex(index: number) {
     setActiveIndex((current) => (current === index ? null : index));
+    setActiveParallelIndex(null);
   }
-
-  useEffect(() => {
-    if (!modalStep) {
-      return;
-    }
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setModalStep(null);
-      }
-    }
-
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKeyDown);
-
-    return () => {
-      document.body.style.overflow = "";
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [modalStep]);
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#f4efe8] text-[#211815]">
       <SiteHeader />
 
-      <SectionTabSwitcher
-        tabs={[
-          { href: "/percorsi", label: dictionary.nav.programs },
-          { href: "/workshop", label: dictionary.nav.workshops },
-        ]}
-      />
+      <TabsWrapper />
 
+      {/* Hero */}
       <section className="relative mx-auto max-w-6xl px-5 pb-6 pt-12 sm:px-6 md:pb-8 md:pt-16">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute right-[-120px] top-0 hidden h-72 w-[520px] opacity-45 md:block"
-        >
+        <div aria-hidden="true" className="pointer-events-none absolute right-[-120px] top-0 hidden h-72 w-[520px] opacity-45 md:block">
           <svg viewBox="0 0 520 280" className="h-full w-full">
-            <path
-              d="M40 84 C128 8 244 176 334 70 C396 -3 494 38 458 118 C420 206 248 108 238 212 C232 272 360 254 434 208"
-              fill="none"
-              stroke="#8b5e4a"
-              strokeLinecap="round"
-              strokeWidth="10"
-              opacity="0.12"
-            />
-            <path
-              d="M42 84 C130 8 246 176 336 70 C398 -3 496 38 460 118 C422 206 250 108 240 212 C234 272 362 254 436 208"
-              fill="none"
-              stroke="#211815"
-              strokeDasharray="2 16"
-              strokeLinecap="round"
-              strokeWidth="2"
-              opacity="0.10"
-            />
+            <path d="M40 84 C128 8 244 176 334 70 C396 -3 494 38 458 118 C420 206 248 108 238 212 C232 272 360 254 434 208" fill="none" stroke="#8b5e4a" strokeLinecap="round" strokeWidth="10" opacity="0.12" />
+            <path d="M42 84 C130 8 246 176 336 70 C398 -3 496 38 460 118 C422 206 250 108 240 212 C234 272 362 254 436 208" fill="none" stroke="#211815" strokeDasharray="2 16" strokeLinecap="round" strokeWidth="2" opacity="0.10" />
           </svg>
         </div>
-
-        <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#8b5e4a]">
-          {prog.heroEyebrow}
-        </p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#8b5e4a]">{prog.heroEyebrow}</p>
         <h1 className="mt-4 max-w-3xl font-serif text-[clamp(48px,11vw,86px)] font-medium leading-[0.95] tracking-normal text-[#211815]">
           {prog.heroTitle}
         </h1>
@@ -109,22 +89,69 @@ export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
         </p>
       </section>
 
+      {/* Icon legend banner */}
+      <div className="mx-auto max-w-6xl pb-3">
+        <div className="overflow-x-auto bg-[#211815]/[0.04] px-5 py-2.5 [scrollbar-width:none] sm:px-6 [&::-webkit-scrollbar]:hidden">
+          <div className="flex gap-4 md:gap-5">
+            {LEGEND_ORDER.map((name) => {
+              const Icon = ICON_MAP[name];
+              return (
+                <div key={name} className="flex shrink-0 items-center gap-1.5">
+                  <Icon size={12} className="shrink-0 text-[#8b5e4a]/55" aria-hidden="true" />
+                  <span className="text-[10px] leading-none text-[#5f524c]/62">{prac[ICON_LABEL_KEY[name]]}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Quiz banner */}
+      <div className="mx-auto max-w-6xl px-5 pb-4 sm:px-6">
+        <div className="flex items-center justify-between gap-3 rounded-[8px] border border-[#8b5e4a]/20 bg-[#8b5e4a]/[0.06] px-4 py-2.5">
+          <p className="text-sm text-[#5f524c]">{prog.quizBannerText}</p>
+          <a
+            href="#quiz"
+            className="shrink-0 text-sm font-semibold text-[#8b5e4a] transition hover:text-[#211815]"
+          >
+            {prog.quizBannerBtn}
+          </a>
+        </div>
+      </div>
+
+      {/* Rope + nodes + parallel + detail */}
       <section className="mx-auto max-w-6xl px-5 pb-8 pt-0 sm:px-6 md:pb-12">
-        <div className="relative px-1 pb-5 pt-10 md:px-2 md:pb-6 md:pt-12">
-          <div className="relative grid grid-cols-4 gap-1">
+
+        {/* Inline hint — shown before the rope when nothing is selected */}
+        {activeStep === null && activeParallelIndex === null ? (
+          <p className="pb-2 pt-4 text-center text-[11px] text-[#5f524c]/50 md:text-xs">
+            {prog.clickNodeInstruction.split("◎").map((part, i) =>
+              i === 0 ? (
+                <span key={i}>{part}<span aria-hidden="true" className="inline-flex h-[13px] w-[13px] shrink-0 items-center justify-center rounded-full border-[1.5px] border-[#8b5e4a]/45 align-middle"><span className="h-[5px] w-[5px] rounded-full border border-[#8b5e4a]/35" /></span></span>
+              ) : (
+                <span key={i}>{part}</span>
+              )
+            )}
+          </p>
+        ) : null}
+
+        {/* ── Rope timeline ── */}
+        <div className="relative px-1 pb-2 pt-8 md:px-2 md:pt-10">
+          <div className="relative grid grid-cols-4">
+            {/* Background rope — thin, muted */}
             <div
               aria-hidden="true"
-              className="absolute left-[12.5%] right-[12.5%] top-[58px] h-[5px] rounded-full bg-[repeating-linear-gradient(105deg,rgba(139,94,74,0.22)_0_7px,rgba(33,24,21,0.08)_7px_13px)] shadow-[0_1px_0_rgba(255,255,255,0.65)] md:top-[72px]"
+              className="absolute left-[12.5%] right-[12.5%] top-[19px] h-[2px] rounded-full bg-[#211815]/14 md:top-[23px]"
             />
+            {/* Active rope — thicker, colored, scales left to selected node */}
             <div
               aria-hidden="true"
-              className="programs-rope-interactive absolute left-[12.5%] right-[12.5%] top-[58px] h-[5px] origin-left rounded-full bg-gradient-to-r from-[#d4bda3]/25 via-[#b27a58]/55 to-[#8b5e4a]/55 md:top-[72px]"
+              className="absolute left-[12.5%] right-[12.5%] top-[17px] h-[5px] origin-left rounded-full bg-gradient-to-r from-[#8b5e4a]/55 to-[#8b5e4a] transition-transform duration-500 ease-out md:top-[21px]"
               style={{ transform: `scaleX(${progressScale})` }}
             />
 
             {localizedContent.progression.map((step, index) => {
               const active = index === activeIndex;
-
               return (
                 <button
                   key={step.title}
@@ -132,177 +159,107 @@ export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
                   aria-pressed={active}
                   aria-current={active ? "step" : undefined}
                   onClick={() => toggleActiveIndex(index)}
-                  className="group relative flex min-w-0 flex-col items-center gap-3 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-4 focus-visible:ring-offset-[#f4efe8]"
+                  className="group relative flex min-w-0 flex-col items-center gap-0 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-4 focus-visible:ring-offset-[#f4efe8]"
                 >
+                  {/* Node — double-ring knot style */}
                   <span
-                    className={`font-serif text-[15px] font-medium leading-none tracking-normal text-[#211815] transition md:text-2xl ${
-                      active ? "text-[#8b5e4a]" : ""
-                    }`}
-                  >
-                    {nodeLabels[index]}
-                  </span>
-                  <span className="h-5 border-l border-dotted border-[#8b5e4a]/45" />
-                  <span
-                    className={`programs-knot relative z-10 grid h-9 w-9 place-items-center rounded-full border bg-[#f4efe8] transition duration-300 md:h-11 md:w-11 ${
+                    className={`programs-knot relative z-10 grid h-9 w-9 place-items-center rounded-full border-2 bg-[#f4efe8] transition duration-300 md:h-11 md:w-11 ${
                       active
-                        ? "border-[#8b5e4a]/75 shadow-[0_0_0_8px_rgba(139,94,74,0.10)]"
-                        : "border-[#8b5e4a]/28 shadow-[0_0_0_7px_rgba(244,239,232,0.74)] group-hover:border-[#8b5e4a]/55"
+                        ? "border-[#8b5e4a] shadow-[0_0_0_7px_rgba(139,94,74,0.12)]"
+                        : "border-[#8b5e4a]/30 shadow-[0_0_0_6px_rgba(244,239,232,0.8)] group-hover:border-[#8b5e4a]/55"
                     }`}
                   >
                     <span
                       aria-hidden="true"
-                      className={`h-5 w-5 rounded-full border bg-[radial-gradient(circle_at_35%_35%,rgba(255,255,255,0.75),rgba(139,94,74,0.28)_42%,rgba(33,24,21,0.12))] transition md:h-6 md:w-6 ${
-                        active ? "border-[#8b5e4a]/70" : "border-[#8b5e4a]/25"
+                      className={`h-4 w-4 rounded-full border-2 transition duration-300 md:h-5 md:w-5 ${
+                        active
+                          ? "border-[#8b5e4a] bg-[#8b5e4a]"
+                          : "border-[#8b5e4a]/30 bg-transparent group-hover:border-[#8b5e4a]/55"
                       }`}
                     />
                   </span>
+                  {/* Short dotted connector */}
+                  <span aria-hidden="true" className="h-3 border-l border-dotted border-[#8b5e4a]/40 md:h-4" />
+                  {/* Label below — full on md+, abbreviated on mobile */}
+                  <span
+                    className={`text-center transition duration-200 ${
+                      active ? "text-[#8b5e4a]" : "text-[#5f524c]/60 group-hover:text-[#5f524c]"
+                    }`}
+                  >
+                    <span className="block font-semibold leading-tight md:hidden" style={{ fontSize: "10px" }}>
+                      {NODE_LABELS_SHORT[index]}
+                    </span>
+                    <span className="hidden text-xs font-semibold leading-tight md:block">
+                      {step.title}
+                    </span>
+                  </span>
+                  {/* Icons */}
+                  {active ? (
+                    <span className="mt-1 flex justify-center gap-1">
+                      {(NODE_ICONS[index] ?? []).map(n => {
+                        const Icon = ICON_MAP[n];
+                        return <Icon key={n} size={12} className="text-[#8b5e4a]/70" aria-hidden="true" />;
+                      })}
+                    </span>
+                  ) : null}
                 </button>
               );
             })}
           </div>
         </div>
 
+        {/* ── Parallel activities ── */}
+        <div className="mx-auto flex justify-center pt-5 md:pt-6">
+          <span aria-hidden="true" className="h-5 border-l border-dashed border-[#8b5e4a]/35 md:h-6" />
+        </div>
         <ParallelBar
           items={localizedContent.parallelPractice.items}
           activeIndex={activeParallelIndex}
           prog={prog}
-          onToggle={(index) =>
-            setActiveParallelIndex((current) =>
-              current === index ? null : index,
-            )
-          }
+          onToggle={(index) => {
+            setActiveParallelIndex((current) => (current === index ? null : index));
+            setActiveIndex(null);
+          }}
         />
 
-        {!showFullPath ? (
-          activeStep ? (
+        {/* ── Program detail ── */}
+        {activeStep ? (
+          <div className="mt-4 md:mt-5">
             <ProgramDetail step={activeStep} prog={prog} />
-          ) : (
-            <div className="programs-panel-in mx-auto mt-1 max-w-5xl rounded-[14px] border border-[#211815]/10 bg-white/32 px-5 py-6 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] md:px-8 md:py-7">
-              <div
-                aria-hidden="true"
-                className="mx-auto mb-3 h-5 w-12 rounded-full border-t border-[#8b5e4a]/50"
-              />
-              <p className="font-serif text-lg leading-[1.5] text-[#211815] md:text-xl">
-                {prog.clickNodeInstruction}
-              </p>
-            </div>
-          )
+          </div>
         ) : null}
+      </section>
 
-        <div className="mx-auto mt-5 max-w-xl">
-          <button
-            type="button"
-            aria-expanded={showFullPath}
-            onClick={() => setShowFullPath((current) => !current)}
-            className="flex w-full items-center justify-between gap-4 rounded-full border border-[#8b5e4a]/45 bg-white/28 px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a] transition hover:bg-white/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-4 focus-visible:ring-offset-[#f4efe8]"
-          >
-            <span className="inline-flex items-center gap-3">
-              <span aria-hidden="true" className="text-lg tracking-normal">
-                ☷
-              </span>
-              {showFullPath ? prog.toggleHide : prog.toggleShow}
-            </span>
-            <span
-              aria-hidden="true"
-              className={`text-lg leading-none transition duration-300 ${
-                showFullPath ? "rotate-180" : ""
-              }`}
-            >
-              ˅
-            </span>
-          </button>
+      {/* Quiz */}
+      <div id="quiz">
+        <ProgramsLevelQuiz quiz={localizedContent.quiz} />
+      </div>
 
-          <div
-            className={`grid transition-[grid-template-rows] duration-500 ease-out motion-reduce:transition-none ${
-              showFullPath ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-            }`}
-          >
-            <div className="overflow-hidden">
-              <div className="mt-4 rounded-[12px] border border-[#211815]/10 bg-white/32 px-4 py-5 md:px-5 md:py-6">
-                <FullPathTimeline
-                  steps={localizedContent.progression}
-                  openDetail={prog.openDetail}
-                  onSelectStep={setModalStep}
-                />
-              </div>
-            </div>
+      {/* Workshop CTA */}
+      <section className="mx-auto max-w-6xl px-5 pb-12 pt-2 sm:px-6 md:pb-16 md:pt-4">
+        <div className="rounded-[8px] border border-[#211815]/10 bg-white/34 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] md:flex md:items-center md:justify-between md:gap-5 md:p-6">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#8b5e4a]">
+              {prog.workshopCtaEyebrow}
+            </p>
+            <p className="mt-2 max-w-xl text-sm leading-[1.7] text-[#5f524c] md:text-base">
+              {prog.workshopCtaText}
+            </p>
           </div>
+          <Link
+            href="/workshop"
+            className="mt-4 inline-flex rounded-full border border-[#211815]/20 bg-[#f4efe8]/70 px-5 py-3 text-sm font-medium text-[#211815] transition hover:-translate-y-0.5 hover:bg-white/70 md:mt-0 md:shrink-0"
+          >
+            {prog.workshopCtaBtn}
+          </Link>
         </div>
       </section>
 
-      <section className="hidden">
-        <div className="mx-auto max-w-6xl">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8b5e4a]">
-            Attività trasversali
-          </p>
-          <h2 className="mt-3 max-w-3xl font-serif text-[36px] font-medium leading-[1.05] tracking-normal text-[#211815] md:text-5xl">
-            Non tutto segue una linea.
-          </h2>
-          <p className="mt-5 max-w-3xl text-sm leading-[1.75] text-[#211815]/85 md:text-base">
-            {content.parallelPractice.intro}
-          </p>
-
-          <div
-            aria-hidden="true"
-            className="programs-secondary-rope mt-10 h-8 rounded-t-[28px] border-x border-t border-[#8b5e4a]/28"
-          />
-
-          <div className="grid gap-5 md:grid-cols-2">
-            {content.parallelPractice.items.map((item) => (
-              <article
-                key={item.title}
-                className="relative overflow-hidden rounded-[14px] border border-[#211815]/10 bg-white/34 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] md:p-7"
-              >
-                <div
-                  aria-hidden="true"
-                  className="mb-5 grid h-16 w-16 place-items-center rounded-full bg-[#d6b89f]/22 text-3xl text-[#8b5e4a]"
-                >
-                  ⌁
-                </div>
-                <h3 className="font-serif text-3xl font-medium leading-[1.08] tracking-normal text-[#211815] md:text-4xl">
-                  {item.title}
-                </h3>
-                <p className="mt-3 text-[11px] font-semibold uppercase leading-5 tracking-[0.14em] text-[#8b5e4a]">
-                  {item.subtitle}
-                </p>
-                <p className="mt-4 text-sm leading-[1.7] text-[#211815]/85">
-                  {item.description}
-                </p>
-                <div className="mt-6 flex flex-wrap gap-2">
-                  {item.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full border border-[#211815]/10 bg-[#f4efe8]/62 px-3 py-1.5 text-xs text-[#211815]"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-                <Link
-                  href={item.cta.href}
-                  className="mt-7 inline-flex border-b border-[#8b5e4a]/35 pb-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8b5e4a] transition hover:border-[#8b5e4a]"
-                >
-                  {item.cta.label} →
-                </Link>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <ProgramsLevelQuiz quiz={localizedContent.quiz} />
-      <DashboardTeaser prog={prog} />
-
-      {modalStep ? (
-        <ProgramStepModal
-          step={modalStep}
-          prog={prog}
-          onClose={() => setModalStep(null)}
-        />
-      ) : null}
     </main>
   );
 }
+
+// ── Parallel bar ──────────────────────────────────────────────────────────────
 
 function ParallelBar({
   items,
@@ -312,7 +269,15 @@ function ParallelBar({
 }: {
   items: ParallelPracticeItem[];
   activeIndex: number | null;
-  prog: { inParallel: string; inParallelToPath: string; parallelPracticeLabel: string; parallelClassiLabel: string; parallelPracticeDesc: string; parallelClassiDesc: string; goToPractice: string };
+  prog: {
+    inParallel: string;
+    inParallelToPath: string;
+    parallelPracticeLabel: string;
+    parallelClassiLabel: string;
+    parallelPracticeDesc: string;
+    parallelClassiDesc: string;
+    goToPractice: string;
+  };
   onToggle: (index: number) => void;
 }) {
   const activeItem = activeIndex === null ? null : items[activeIndex];
@@ -320,73 +285,68 @@ function ParallelBar({
   const labels = [prog.parallelPracticeLabel, prog.parallelClassiLabel];
 
   return (
-    <div className="mx-auto -mt-1 mb-5 max-w-5xl md:-mt-2 md:mb-6">
+    <div className="mx-auto mb-2 max-w-5xl">
       <div className="relative rounded-[8px] border border-[#211815]/10 bg-white/30 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]">
-        <div
-          aria-hidden="true"
-          className="absolute left-3 right-3 top-1/2 h-px -translate-y-1/2 bg-[#8b5e4a]/18"
-        />
-        <div className="relative grid grid-cols-3 gap-1 md:grid-cols-[0.8fr_1fr_1fr]">
-          <div className="grid min-h-12 place-items-center rounded-[7px] px-1 text-center text-[10px] font-semibold uppercase leading-[1.05] tracking-[0.13em] text-[#8b5e4a]/80 md:min-h-11 md:text-[11px] md:tracking-[0.16em]">
-            <span className="hidden md:inline">{prog.inParallel}</span>
-            <span className="md:hidden" aria-hidden="true">⌁</span>
-          </div>
+        <div aria-hidden="true" className="absolute left-3 right-3 top-1/2 h-px -translate-y-1/2 bg-[#8b5e4a]/15" />
+        <div className="relative flex items-center gap-1">
+          <span className="shrink-0 px-2 text-[10px] font-semibold uppercase tracking-[0.13em] text-[#8b5e4a]/75 md:text-[11px] md:tracking-[0.16em]">
+            {prog.inParallel}:
+          </span>
           {items.map((item, index) => {
             const active = activeIndex === index;
             const label = labels[index] ?? item.title;
-            const [first, ...rest] = label.split(" ");
-
             return (
               <button
                 key={item.title}
                 type="button"
                 aria-expanded={active}
-                aria-controls="parallel-mobile-detail"
+                aria-controls="parallel-detail"
                 onClick={() => onToggle(index)}
-                className={`grid min-h-12 place-items-center rounded-[7px] border px-1 text-center text-[10px] font-semibold uppercase leading-[1.08] tracking-[0.1em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f4efe8] md:min-h-11 md:text-[11px] md:tracking-[0.14em] ${
+                className={`grid min-h-10 flex-1 place-items-center rounded-[7px] border px-2 text-center text-[10px] font-semibold uppercase leading-tight tracking-[0.1em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f4efe8] md:min-h-11 md:text-[11px] md:tracking-[0.14em] ${
                   active
                     ? "border-[#8b5e4a]/55 bg-white/78 text-[#211815] shadow-[0_8px_20px_rgba(33,24,21,0.08)]"
                     : "border-transparent bg-[#f4efe8]/45 text-[#5f524c] active:bg-white/60"
                 }`}
               >
-                <span className="md:hidden">
-                  {first}
-                  <br />
-                  {rest.join(" ")}
-                </span>
-                <span className="hidden md:inline">{label}</span>
+                {label}
               </button>
             );
           })}
         </div>
       </div>
 
-      <div
-        className={`grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none ${
-          activeItem ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-        }`}
-      >
+      <div className={`grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none ${activeItem ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
         <div className="overflow-hidden">
           {activeItem ? (
             <article
-              id="parallel-mobile-detail"
+              id="parallel-detail"
               className="programs-panel-in mt-3 rounded-[8px] border border-[#211815]/10 bg-white/42 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] md:grid md:grid-cols-[0.7fr_1.3fr_auto] md:items-center md:gap-5"
             >
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8b5e4a]">
                 {prog.inParallelToPath}
               </p>
-              <h3 className="mt-2 font-serif text-2xl font-medium leading-[1.08] tracking-normal text-[#211815]">
-                {labels[activeIndex ?? 0] ?? activeItem.title}
-              </h3>
-              <p className="mt-3 text-sm leading-[1.65] text-[#5f524c] md:mt-0">
-                {descriptions[activeIndex ?? 0]}
-              </p>
-              <Link
-                href="/pratica"
-                className="mt-4 inline-flex rounded-full border border-[#211815]/20 bg-[#f4efe8]/70 px-4 py-2.5 text-sm font-medium text-[#211815] transition hover:-translate-y-0.5 hover:bg-white/70 active:translate-y-px md:mt-0"
-              >
-                {prog.goToPractice}
-              </Link>
+              <div>
+                <h3 className="mt-2 font-serif text-2xl font-medium leading-[1.08] tracking-normal text-[#211815]">
+                  {labels[activeIndex ?? 0] ?? activeItem.title}
+                </h3>
+                <p className="mt-2 text-sm leading-[1.65] text-[#5f524c] md:mt-1">
+                  {descriptions[activeIndex ?? 0]}
+                </p>
+              </div>
+              <div className="flex items-center gap-3 md:mt-0 mt-4">
+                <div className="flex gap-1.5">
+                  {(PARALLEL_ICONS[activeIndex ?? 0] ?? []).map(n => {
+                    const Icon = ICON_MAP[n];
+                    return <Icon key={n} size={14} className="text-[#8b5e4a]/65" aria-hidden="true" />;
+                  })}
+                </div>
+                <Link
+                  href="/percorsi/socialita"
+                  className="inline-flex rounded-full border border-[#211815]/20 bg-[#f4efe8]/70 px-4 py-2.5 text-sm font-medium text-[#211815] transition hover:-translate-y-0.5 hover:bg-white/70 active:translate-y-px"
+                >
+                  {prog.goToPractice}
+                </Link>
+              </div>
             </article>
           ) : null}
         </div>
@@ -395,73 +355,81 @@ function ParallelBar({
   );
 }
 
-function DashboardTeaser({ prog }: { prog: { dashboardEyebrow: string; dashboardTitle: string; dashboardText: string; dashboardCta: string } }) {
+// ── Program detail (inline) ───────────────────────────────────────────────────
+
+function ProgramDetail({
+  step,
+  prog,
+}: {
+  step: ProgramStep;
+  prog: {
+    selectedProgram: string;
+    viewDates: string;
+    whatWeWork: string;
+    forWhom: string;
+    detailsLink: string;
+  };
+}) {
+  const [expanded, setExpanded] = useState(false);
+
   return (
-    <section className="mx-auto max-w-6xl px-5 pb-10 sm:px-6 md:pb-12">
-      <div className="rounded-[8px] border border-[#211815]/10 bg-white/34 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] md:flex md:items-center md:justify-between md:gap-5 md:p-5">
+    <article className="programs-panel-in mx-auto max-w-5xl rounded-[14px] border border-[#211815]/10 bg-white/42 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] md:p-6">
+      <div className="grid gap-4 md:grid-cols-[0.9fr_1.1fr] md:gap-6">
+        {/* Left: always-visible info */}
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-            {prog.dashboardEyebrow}
+            {prog.selectedProgram}
           </p>
-          <h2 className="mt-2 font-serif text-3xl font-medium leading-[1.08] tracking-normal text-[#211815]">
-            {prog.dashboardTitle}
+          <h2 className="mt-3 font-serif text-[38px] font-medium leading-[1.02] tracking-normal text-[#211815] md:text-6xl">
+            {step.title}
           </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-[1.65] text-[#5f524c]">
-            {prog.dashboardText}
+          <p className="mt-3 text-sm font-semibold leading-5 text-[#8b5e4a] md:text-base">
+            {step.subtitle}
           </p>
+          <p className="mt-4 text-sm leading-[1.7] text-[#5f524c] md:text-base">
+            {step.description}
+          </p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link
+              href="/calendario"
+              className="inline-flex rounded-full border border-[#211815]/20 bg-[#f4efe8]/70 px-5 py-3 text-sm font-medium text-[#211815] transition hover:-translate-y-0.5 hover:bg-white/70"
+            >
+              {prog.viewDates}
+            </Link>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 border-b border-[#8b5e4a]/35 pb-0.5 text-sm font-medium text-[#8b5e4a] transition hover:border-[#8b5e4a]"
+              onClick={() => setExpanded((v) => !v)}
+            >
+              {prog.detailsLink} {expanded ? "↑" : "↓"}
+            </button>
+          </div>
         </div>
-        <Link
-          href="/dashboard"
-          className="mt-4 inline-flex rounded-full border border-[#211815]/20 bg-[#f4efe8]/70 px-5 py-3 text-sm font-medium text-[#211815] transition hover:-translate-y-0.5 hover:bg-white/70 md:mt-0"
-        >
-          {prog.dashboardCta}
-        </Link>
-      </div>
-    </section>
-  );
-}
 
-function ProgramDetail({ step, prog }: { step: ProgramStep; prog: { selectedProgram: string; viewDates: string; whatWeWork: string; forWhom: string } }) {
-  return (
-    <article
-      key={step.title}
-      className="programs-panel-in mx-auto mt-1 max-w-5xl rounded-[14px] border border-[#211815]/10 bg-white/42 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] md:grid md:grid-cols-[0.9fr_1.1fr] md:gap-6 md:p-6"
-    >
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-          {prog.selectedProgram}
-        </p>
-        <h2 className="mt-3 font-serif text-[38px] font-medium leading-[1.02] tracking-normal text-[#211815] md:text-6xl">
-          {step.title}
-        </h2>
-        <p className="mt-3 text-sm font-semibold leading-5 text-[#8b5e4a] md:text-base">
-          {step.subtitle}
-        </p>
-        <p className="mt-4 text-sm leading-[1.7] text-[#5f524c] md:text-base">
-          {step.description}
-        </p>
-        <Link
-          href="/calendario"
-          className="mt-5 inline-flex rounded-full border border-[#211815]/20 bg-[#f4efe8]/70 px-5 py-3 text-sm font-medium text-[#211815] transition hover:-translate-y-0.5 hover:bg-white/70"
+        {/* Right: expandable details */}
+        <div
+          className={`grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none ${
+            expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+          }`}
         >
-          {prog.viewDates}
-        </Link>
-      </div>
-
-      <div className="mt-6 grid gap-3 md:mt-0">
-        <InfoBlock title={prog.whatWeWork} items={step.work} />
-        <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/60 p-4">
-          <h3 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-            {prog.forWhom}
-          </h3>
-          <p className="mt-3 text-sm leading-[1.65] text-[#5f524c]">
-            {step.audience}
-          </p>
+          <div className="overflow-hidden">
+            <div className="grid gap-3 md:pt-0 pt-2">
+              <InfoBlock title={prog.whatWeWork} items={step.work} />
+              <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/60 p-4">
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+                  {prog.forWhom}
+                </h3>
+                <p className="mt-3 text-sm leading-[1.65] text-[#5f524c]">{step.audience}</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </article>
   );
 }
+
+// ── Shared helpers ────────────────────────────────────────────────────────────
 
 function InfoBlock({ title, items }: { title: string; items: string[] }) {
   return (
@@ -472,10 +440,7 @@ function InfoBlock({ title, items }: { title: string; items: string[] }) {
       <ul className="mt-4 grid gap-2">
         {items.map((item) => (
           <li key={item} className="flex gap-3 text-sm leading-[1.55] text-[#5f524c]">
-            <span
-              aria-hidden="true"
-              className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#8b5e4a]/55"
-            />
+            <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#8b5e4a]/55" />
             <span>{item}</span>
           </li>
         ))}
@@ -484,137 +449,3 @@ function InfoBlock({ title, items }: { title: string; items: string[] }) {
   );
 }
 
-function FullPathTimeline({
-  steps,
-  openDetail,
-  onSelectStep,
-}: {
-  steps: ProgramStep[];
-  openDetail: string;
-  onSelectStep: (step: ProgramStep) => void;
-}) {
-  return (
-    <div className="relative">
-      <div
-        aria-hidden="true"
-        className="absolute left-[13px] top-0 h-full w-px bg-[#211815]/10"
-      />
-      <div
-        aria-hidden="true"
-        className="programs-rope-fill absolute left-[13px] top-0 w-px bg-gradient-to-b from-[#8b5e4a]/15 via-[#8b5e4a]/42 to-[#8b5e4a]/18"
-      />
-
-      <div className="grid gap-5">
-        {steps.map((step, index) => (
-          <article key={step.title} className="relative pl-10">
-            <span
-              aria-hidden="true"
-              className="programs-rope-node absolute left-[5px] top-1 grid h-4 w-4 place-items-center rounded-full border border-[#8b5e4a]/45 bg-[#f4efe8] shadow-[0_0_0_6px_rgba(244,239,232,0.86)]"
-              style={{ animationDelay: `${180 + index * 120}ms` }}
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-[#8b5e4a]/55" />
-            </span>
-            <button
-              type="button"
-              onClick={() => onSelectStep(step)}
-              className="block w-full rounded-[8px] border border-[#211815]/10 bg-white/52 p-4 text-left transition hover:-translate-y-0.5 hover:border-[#8b5e4a]/35 hover:bg-white/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-4 focus-visible:ring-offset-[#f4efe8]"
-            >
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-                {String(index + 1).padStart(2, "0")}
-              </p>
-              <h3 className="mt-2 font-serif text-[26px] font-medium leading-[1.06] tracking-normal text-[#211815]">
-                {step.title}
-              </h3>
-              <p className="mt-2 text-sm font-semibold leading-5 text-[#8b5e4a]">
-                {step.subtitle}
-              </p>
-              <p className="mt-3 text-sm leading-[1.65] text-[#5f524c]">
-                {step.description}
-              </p>
-              <span className="mt-4 inline-flex border-b border-[#8b5e4a]/35 pb-1 text-sm font-medium text-[#8b5e4a]">
-                {openDetail}
-              </span>
-            </button>
-          </article>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ProgramStepModal({
-  step,
-  prog,
-  onClose,
-}: {
-  step: ProgramStep;
-  prog: { program: string; closeDetail: string; whatWeWork: string; forWhom: string; viewDates: string };
-  onClose: () => void;
-}) {
-  return (
-    <div
-      role="presentation"
-      className="fixed inset-0 z-[300] grid place-items-center bg-[#211815]/35 px-3 py-4 backdrop-blur-sm"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
-          onClose();
-        }
-      }}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="program-step-modal-title"
-        className="programs-panel-in max-h-[calc(100dvh-32px)] w-full max-w-4xl overflow-y-auto rounded-[8px] border border-[#211815]/10 bg-[#f4efe8] p-4 shadow-[0_28px_80px_rgba(33,24,21,0.24)] md:p-6"
-      >
-        <div className="mb-5 flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-              {prog.program}
-            </p>
-            <h2
-              id="program-step-modal-title"
-              className="mt-2 font-serif text-3xl font-medium leading-[1.06] tracking-normal text-[#211815] md:text-5xl"
-            >
-              {step.title}
-            </h2>
-            <p className="mt-2 text-sm font-semibold leading-5 text-[#8b5e4a]">
-              {step.subtitle}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={prog.closeDetail}
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#211815]/20 bg-white/70 text-lg text-[#211815] transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-4 focus-visible:ring-offset-[#f4efe8]"
-          >
-            x
-          </button>
-        </div>
-
-        <p className="text-sm leading-[1.75] text-[#5f524c] md:text-base">
-          {step.description}
-        </p>
-
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          <InfoBlock title={prog.whatWeWork} items={step.work} />
-          <div className="rounded-[8px] border border-[#211815]/10 bg-white/55 p-4">
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-              {prog.forWhom}
-            </h3>
-            <p className="mt-3 text-sm leading-[1.65] text-[#5f524c]">
-              {step.audience}
-            </p>
-          </div>
-        </div>
-
-        <Link
-          href="/calendario"
-          className="mt-6 inline-flex rounded-full bg-[#211815] px-5 py-3 text-sm font-medium text-white shadow-[0_6px_18px_rgba(33,24,21,0.15)] transition hover:-translate-y-0.5"
-        >
-          {prog.viewDates}
-        </Link>
-      </div>
-    </div>
-  );
-}

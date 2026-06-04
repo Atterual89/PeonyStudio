@@ -7,12 +7,15 @@ export const it = {
   nav: {
     howToStart: "Come iniziare",
     programs: "Percorsi",
-    practice: "Pratica & Community",
+    practice: "Socialità",
     workshops: "Workshop",
     calendar: "Calendario",
     peony: "Peony",
     shop: "Shop",
     personalArea: "Area personale",
+    tabInizia: "Inizia",
+    tabPercorsi: "Percorsi",
+    tabSocialita: "Socialità",
     bottomNav: {
       home: "Home",
       calendar: "Calendario",
@@ -31,27 +34,25 @@ export const it = {
   },
   footer: {
     brand: "PEONY STUDIO",
-    copyright: "Peony Studio — Kinbaku venue · Torino",
+    tagline: "Kinbaku venue · Torino",
+    copyright: "© Peony Studio · Torino",
+    contact: "Contattaci",
+    contactHref: "/peony#contatti",
     columns: [
       {
         title: "Studio",
         links: [
           { label: "Peony", href: "/peony" },
-          { label: "Come iniziare", href: "/come-iniziare" },
+          { label: "Come iniziare", href: "/percorsi" },
           { label: "Calendario", href: "/calendario" },
         ],
       },
       {
-        title: "Attivita",
+        title: "Attività",
         links: [
           { label: "Percorsi", href: "/percorsi" },
-          { label: "Pratica & Community", href: "/pratica" },
           { label: "Workshop", href: "/workshop" },
-        ],
-      },
-      {
-        title: "Area",
-        links: [
+          { label: "Socialità", href: "/percorsi/socialita" },
           { label: "Shop", href: "/shop" },
           { label: "Area personale", href: "/area-personale" },
         ],
@@ -210,10 +211,8 @@ export const it = {
   programs: {
     heroEyebrow: "Percorsi strutturati",
     heroTitle: "Il tuo percorso nella corda.",
-    heroIntro:
-      "Una progressione chiara, costruita per farti crescere nello studio del Kinbaku LuXuria, un passo alla volta.",
-    clickNodeInstruction:
-      "Clicca su uno dei nodi per approfondire di cosa si tratta.",
+    heroIntro: "Una progressione chiara, un passo alla volta, nel Kinbaku LuXuria.",
+    clickNodeInstruction: "Clicca su un ◎ per scoprire cosa si lavora",
     toggleShow: "Scopri tutto il percorso",
     toggleHide: "Nascondi il percorso completo",
     inParallel: "In parallelo",
@@ -221,7 +220,7 @@ export const it = {
     goToPractice: "Vai alla pratica",
     selectedProgram: "Percorso selezionato",
     viewDates: "Vedi prossime date",
-    whatWeWork: "Cosa si lavora",
+    whatWeWork: "Su cosa si lavora",
     forWhom: "Per chi è",
     openDetail: "Apri dettaglio",
     program: "Percorso",
@@ -254,6 +253,12 @@ export const it = {
       "Uno spazio per ripetere e consolidare ciò che hai incontrato nei percorsi, fare domande e ricevere supporto tecnico. Accompagna il percorso e aiuta a renderlo più solido.",
     parallelClassiDesc:
       "Incontri dedicati a un tema specifico, pensati per approfondire tecniche, strutture o qualità del lavoro in corda. Possono accompagnare diversi livelli del percorso, in base al tema proposto.",
+    detailsLink: "Dettagli aggiuntivi",
+    quizBannerText: "Non sai da dove partire?",
+    quizBannerBtn: "Fai il quiz →",
+    workshopCtaEyebrow: "VUOI ANDARE OLTRE?",
+    workshopCtaText: "Esplora i workshop internazionali ospitati da Peony Studio.",
+    workshopCtaBtn: "Vai ai workshop →",
   },
   workshop: {
     eyebrow: "Workshop",
@@ -506,8 +511,8 @@ export const it = {
       intro: "Siamo qui per rispondere a ogni tua domanda.",
       primaryCta: { label: "Vedi prossimo Open Day", href: "/calendario" },
       secondaryCta: {
-        label: "Scrivici su Instagram",
-        href: "https://www.instagram.com/",
+        label: "Scrivici",
+        href: "/peony#contatti",
       },
     },
   },

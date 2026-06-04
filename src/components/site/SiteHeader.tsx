@@ -12,9 +12,8 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const navItems = [
-    { href: "/come-iniziare", label: dictionary.nav.howToStart },
     { href: "/percorsi", label: dictionary.nav.programs },
-    { href: "/pratica", label: dictionary.nav.practice },
+    { href: "/percorsi/socialita", label: dictionary.nav.practice },
     { href: "/workshop", label: dictionary.nav.workshops },
     { href: "/calendario", label: dictionary.nav.calendar },
     { href: "/peony", label: dictionary.nav.peony },

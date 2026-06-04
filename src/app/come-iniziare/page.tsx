@@ -1,6 +1,6 @@
-import { HowToStartPage } from "@/components/how-to-start/HowToStartPage";
-import { howToStartContent } from "@/content/how-to-start";
+import { redirect } from "next/navigation";
 
+// Content moved to /percorsi (tab Inizia)
 export default function ComeIniziarePage() {
-  return <HowToStartPage content={howToStartContent} />;
+  redirect("/percorsi/inizia");
 }

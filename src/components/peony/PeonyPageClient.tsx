@@ -19,7 +19,7 @@ type Props = {
   galleryImages: GalleryImage[];
 };
 
-const COMMUNITY_HREFS = ["/percorsi", "/pratica", "/pratica", "/workshop"];
+const COMMUNITY_HREFS = ["/percorsi", "/percorsi/socialita", "/percorsi/socialita", "/workshop"];
 
 export function PeonyPageClient({ galleryImages }: Props) {
   const { dictionary, locale } = useLanguage();

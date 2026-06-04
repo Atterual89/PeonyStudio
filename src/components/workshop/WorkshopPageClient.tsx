@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { HomeFooter } from "@/components/home/HomeFooter";
-import { SectionTabSwitcher } from "@/components/layout/SectionTabSwitcher";
+import { TabsWrapper } from "@/components/layout/TabsWrapper";
 import { useLanguage } from "@/components/site/LanguageProvider";
 import { SiteHeader } from "@/components/site/SiteHeader";
 
@@ -33,12 +33,7 @@ export function WorkshopPageClient({ cards }: Props) {
     <main className="min-h-screen bg-[#f4efe8] text-[#211815]">
       <SiteHeader />
 
-      <SectionTabSwitcher
-        tabs={[
-          { href: "/percorsi", label: dictionary.nav.programs },
-          { href: "/workshop", label: dictionary.nav.workshops },
-        ]}
-      />
+      <TabsWrapper />
 
       <section className="mx-auto max-w-6xl px-5 pb-10 pt-12 sm:px-6 md:pb-12 md:pt-16">
         <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8b5e4a]">

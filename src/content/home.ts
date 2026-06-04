@@ -33,7 +33,7 @@ export const homeContent = {
       "Peony Studio unisce formazione, pratica e incontri in uno spazio dedicato alle corde.",
     primaryCta: {
       label: "Voglio iniziare",
-      href: "/come-iniziare",
+      href: "/percorsi",
     },
     secondaryCta: {
       label: "Guarda il calendario",
@@ -45,7 +45,7 @@ export const homeContent = {
       number: "01",
       title: "Open Day",
       summary: "Scopri Peony",
-      href: "/come-iniziare",
+      href: "/percorsi",
     },
     {
       number: "02",
@@ -57,13 +57,13 @@ export const homeContent = {
       number: "03",
       title: "Pratica assistita",
       summary: "Allena con guidance",
-      href: "/pratica",
+      href: "/percorsi/socialita",
     },
     {
       number: "04",
       title: "Community",
       summary: "Rope Jam, Peony Night",
-      href: "/pratica",
+      href: "/percorsi/socialita",
     },
     {
       number: "05",
@@ -77,7 +77,7 @@ export const homeContent = {
       title: "Non sai da dove iniziare?",
       cta: {
         label: "Inizia da qui",
-        href: "/come-iniziare",
+        href: "/percorsi",
       },
     },
     secondary: {
@@ -85,7 +85,7 @@ export const homeContent = {
       title: "Non solo principianti.",
       cta: {
         label: "Vedi attività",
-        href: "/pratica",
+        href: "/percorsi/socialita",
       },
     },
   },
@@ -98,12 +98,12 @@ export const homeContent = {
     {
       title: "Pratica",
       description: "Allenamenti guidati",
-      href: "/pratica",
+      href: "/percorsi/socialita",
     },
     {
       title: "Community",
       description: "Spazi di incontro",
-      href: "/pratica",
+      href: "/percorsi/socialita",
     },
     {
       title: "Workshop",
@@ -168,8 +168,8 @@ export const homeContent = {
       href: "/calendario",
     },
     secondaryCta: {
-      label: "Scrivici su Instagram",
-      href: "https://www.instagram.com/",
+      label: "Scrivici",
+      href: "/peony#contatti",
     },
   },
   footer: {
@@ -204,7 +204,7 @@ export const homeContent = {
       title: "Non sai da dove iniziare?",
       cta: {
         label: "Inizia da qui",
-        href: "/come-iniziare",
+        href: "/percorsi",
       },
     },
     secondary: {
@@ -212,7 +212,7 @@ export const homeContent = {
       title: "Non solo principianti.",
       cta: {
         label: "Vedi attività",
-        href: "/pratica",
+        href: "/percorsi/socialita",
       },
     },
   },
@@ -221,7 +221,7 @@ export const homeContent = {
       eyebrow: "01",
       title: "Come iniziare",
       description: "Open Day, Foundation e primi passi nello studio.",
-      href: "/come-iniziare",
+      href: "/percorsi",
     },
     {
       eyebrow: "02",
@@ -233,7 +233,7 @@ export const homeContent = {
       eyebrow: "03",
       title: "Pratica",
       description: "Pratica assistita, rope jam e momenti community.",
-      href: "/pratica",
+      href: "/percorsi/socialita",
     },
   ] satisfies HomePathCard[],
   beginnerPath: {
@@ -244,7 +244,7 @@ export const homeContent = {
     steps: ["Open Day", "Foundation", "Pratica assistita", "Rope Jam"],
     cta: {
       label: "Scopri come iniziare",
-      href: "/come-iniziare",
+      href: "/percorsi",
     },
   },
   calendarPreview: {
@@ -287,8 +287,8 @@ export const homeContent = {
       href: "/calendario",
     },
     secondaryCta: {
-      label: "Scrivici su Instagram",
-      href: "https://www.instagram.com/",
+      label: "Scrivici",
+      href: "/peony#contatti",
     },
   },
 };

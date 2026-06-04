@@ -1,49 +1,18 @@
-Leggi src/components/home/PhilosophySection.tsx per intero.
+Nella pagina /percorsi tab Percorsi, fai queste modifiche:
 
-Sostituisci il componente SOLO su mobile (md: invariato) con 
-questo layout SVG interattivo:
+1. TESTO DEFAULT — sposta "Seleziona un percorso per scoprire cosa si lavora" 
+   - Rimuovilo dalla card separata sotto il binario parallelo
+   - Mettilo direttamente sotto la corda con i nodi, subito dopo il binario "In più:", come testo inline piccolo e muted
+   - Cambia testo:
+     IT: "Clicca su un ? per scoprire cosa si lavora"
+     EN: "Tap a ? to learn more"
+   - Il simbolo ? deve essere stilizzato uguale ai nodi della corda (stesso colore e stile)
 
-STRUTTURA MOBILE (md:hidden):
-- Sfondo: bg-[#2a1e14], border-radius 12px, padding 24px
-- Eyebrow "FILOSOFIA" + titolo serif esistente
-- Layout flex orizzontale: SVG a sinistra (150px fissi) + 
-  testi a destra
+2. NODI — sostituisci le palline semplici con nodi stilizzati che ricordano un nodo di corda:
+   - Usa un cerchio con un secondo cerchio interno più piccolo (effetto doppio anello)
+   - Oppure un cerchio con una x o un punto centrale
+   - Nodo attivo: cerchio esterno colorato (accent del sito), cerchio interno pieno
+   - Nodo inattivo: cerchio esterno muted, cerchio interno vuoto o sottile
+   - Mantieni le dimensioni attuali, non ingrandire
 
-SVG (viewBox="0 0 150 170"):
-- Piramide unica, apice in alto al centro (75,6), 
-  base in basso (6,165) (144,165)
-- 3 fasce colorate:
-  · TECNICA (basso, 0-62% altezza): #3d2518
-  · ESTETICA (medio, 62-70%): #253820  
-  · PERSONALITÀ (top, 70-100%): #302040
-- 2 linee orizzontali divisorie: rgba(196,168,130,0.5)
-- Outline piramide: rgba(196,168,130,0.8) stroke 1.5px
-- Label testo nelle fasce: TECNICA, ESTETICA, PERS. 
-  font-size 7px rgba(245,240,235,0.25)
-- Defs SVG con 3 marker freccia (t/e/p) per arrowhead
-- 5 frecce diagonali basso-sinistra ? alto-destra 
-  con colori: t=rgba(212,149,106,0.55) 
-  e=rgba(122,170,106,0.55) p=rgba(170,122,196,0.55)
-- Transizioni fill 0.4s su tutte le fasce
-
-TESTI A DESTRA (3 step cliccabili):
-- Ogni step: numero tiny accent + titolo serif + 
-  descrizione (max-height 0 ? 80px quando active) + 
-  linea colorata sotto
-- Step attivo: opacity 1, inattivi: opacity 0.35
-- Usa i testi già esistenti nel componente
-
-INTERAZIONE:
-- Click su step o su fascia SVG ? attiva quel livello
-- Fascia attiva: colore bright (t=#c4845a, e=#7aaa6a, p=#aa7ac4)
-- Fasce inattive: si scuriscono leggermente
-- Frecce: mostrano solo quelle del livello attivo e inferiori
-- Default attivo: tecnica
-
-BOTTONE CTA esistente: mantienilo sotto i 3 step
-
-"use client" — useState per livello attivo.
-Nessuna libreria esterna. Desktop md: invariato.
-
-npx tsc --noEmit && npm run lint && npm run build
-Mostra file modificati + errori residui.
+Esegui tsc --noEmit, lint e build. Dimmi solo i file modificati.

@@ -1,6 +1,5 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -10,189 +9,68 @@ type HeroSectionProps = {
   content: typeof homeContent.hero;
 };
 
-function WordReveal({ text }: { text: string }) {
-  const reduceMotion = useReducedMotion();
-  const words = text.split(" ");
-
-  return (
-    <>
-      {words.map((word, index) => (
-        <motion.span
-          key={`${word}-${index}`}
-          className="inline-block pr-[0.28em]"
-          initial={reduceMotion ? false : { opacity: 0, y: 14 }}
-          animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-          transition={{
-            duration: 0.5,
-            delay: 0.7 + index * 0.06,
-            ease: [0.23, 1, 0.32, 1],
-          }}
-        >
-          {word}
-        </motion.span>
-      ))}
-    </>
-  );
-}
-
 export function HeroSection({ content }: HeroSectionProps) {
-  const reduceMotion = useReducedMotion();
-
   return (
-    <section className="relative h-[70vh] overflow-hidden md:h-auto md:bg-[#f4efe8] md:px-5 md:pb-20 md:pt-10 md:text-center">
+    <section className="relative flex min-h-[65vh] items-center justify-center overflow-hidden md:min-h-[72vh]">
 
-      {/* ── MOBILE: tre layer assoluti diretti in <section> ── */}
+      {/* Background photo */}
+      <Image
+        src="/images/home/hero-studio.jpg"
+        alt="Peony Studio a Torino"
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover saturate-[0.90]"
+      />
 
-      {/* z-0 — immagine background */}
-      <div className="absolute inset-0 z-0 md:hidden">
-        <Image
-          src="/images/home/hero-studio.jpg"
-          alt="Peony Studio a Torino"
-          width={960}
-          height={640}
-          priority
-          className="h-full w-full object-cover saturate-[0.92]"
-        />
-      </div>
+      {/* Dark overlay */}
+      <div className="absolute inset-0 bg-[#1a1510]/52" />
 
-      {/* z-10 — gradiente */}
-      <div className="absolute inset-0 z-10 bg-[linear-gradient(to_bottom,transparent_0%,rgba(245,239,234,0.75)_45%,#f5efea_85%)] md:hidden" />
-
-      {/* z-20 — testo */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 p-6 backdrop-blur-sm bg-[rgba(245,239,234,0.5)] md:hidden">
+      {/* Content */}
+      <div className="relative z-10 flex flex-col items-center px-5 py-12 text-center text-[#f4efe8]">
         <Image
           src="/brand/peony-logo.png"
           alt=""
-          width={32}
-          height={32}
-          className="mb-2 h-8 w-auto"
+          width={44}
+          height={44}
+          className="mb-5 h-10 w-auto opacity-80"
         />
-        <p className="font-serif text-xl uppercase tracking-widest text-[#1a1510]">Peony Studio</p>
-        <p className="mt-1 font-sans text-xs uppercase tracking-[0.2em] text-[#6b5c52]">Kinbaku Venue · Torino</p>
-        <div className="mt-5 flex gap-3">
+
+        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#f4efe8]/60">
+          {content.eyebrow}
+        </p>
+
+        <h1 className="mt-3 font-serif text-[clamp(36px,9vw,72px)] font-medium leading-[1.0] tracking-normal text-[#f4efe8]">
+          Peony Studio
+        </h1>
+
+        <p className="mt-2 font-sans text-[11px] font-semibold uppercase tracking-[0.24em] text-[#f4efe8]/65 md:text-xs">
+          Kinbaku Venue · Torino
+        </p>
+
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link
             href={content.primaryCta.href}
-            className="inline-flex rounded-full bg-[#211815] px-5 py-2.5 text-sm font-medium text-[#f4efe8] shadow-[0_4px_14px_rgba(33,24,21,0.15)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_22px_rgba(33,24,21,0.22)]"
+            className="inline-flex rounded-full bg-[#f4efe8] px-6 py-2.5 text-sm font-medium text-[#211815] shadow-[0_4px_18px_rgba(0,0,0,0.22)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_8px_26px_rgba(0,0,0,0.28)]"
           >
             {content.primaryCta.label}
           </Link>
           <Link
             href={content.secondaryCta.href}
-            className="inline-flex rounded-full border border-[#211815]/20 bg-transparent px-5 py-2.5 text-sm font-medium text-[#211815] transition hover:-translate-y-0.5 hover:bg-white/65"
+            className="inline-flex rounded-full border border-[#f4efe8]/30 bg-[#f4efe8]/10 px-6 py-2.5 text-sm font-medium text-[#f4efe8] backdrop-blur-sm transition hover:-translate-y-0.5 hover:bg-[#f4efe8]/20"
           >
             {content.secondaryCta.label}
           </Link>
         </div>
       </div>
 
-      {/* ── DESKTOP: grid layout invariato ── */}
-
-      {/* grid pattern */}
-      <div
-        aria-hidden="true"
-        className="hidden md:absolute md:inset-0 md:block md:bg-[linear-gradient(90deg,rgba(33,24,21,0.025)_1px,transparent_1px),linear-gradient(rgba(33,24,21,0.025)_1px,transparent_1px)] md:bg-[size:72px_72px] md:[mask-image:radial-gradient(circle_at_50%_30%,black_30%,transparent_80%)]"
-      />
-
-      <div className="hidden md:relative md:z-10 md:mx-auto md:grid md:h-auto md:max-w-6xl md:items-center md:gap-10 md:grid-cols-[2fr_3fr] md:text-left">
-
-        {/* testo — colonna sinistra */}
-        <div>
-          <motion.p
-            className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]"
-            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-            animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.5, ease: [0.23, 1, 0.32, 1] }}
-          >
-            {content.eyebrow}
-          </motion.p>
-
-          <h1 className="mt-2 font-serif text-3xl font-medium leading-tight text-[#211815]">
-            <WordReveal text={content.title} />
-          </h1>
-
-          <motion.p
-            className="mt-2 line-clamp-2 max-w-[360px] text-sm leading-[1.65] text-[#5f524c]"
-            initial={reduceMotion ? false : { opacity: 0 }}
-            animate={reduceMotion ? undefined : { opacity: 1 }}
-            transition={{ duration: 0.9, delay: 1.5 }}
-          >
-            {content.description}
-          </motion.p>
-
-          <div className="mt-4 flex gap-3">
-            <motion.div
-              initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-              animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 1.8 }}
-            >
-              <Link
-                href={content.primaryCta.href}
-                className="inline-flex rounded-full bg-[#211815] px-5 py-2.5 text-sm font-medium text-[#f4efe8] shadow-[0_4px_14px_rgba(33,24,21,0.15)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_22px_rgba(33,24,21,0.22)]"
-              >
-                {content.primaryCta.label}
-              </Link>
-            </motion.div>
-            <motion.div
-              initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-              animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 2 }}
-            >
-              <Link
-                href={content.secondaryCta.href}
-                className="inline-flex rounded-full border border-[#211815]/20 bg-transparent px-5 py-2.5 text-sm font-medium text-[#211815] transition hover:-translate-y-0.5 hover:bg-white/65"
-              >
-                {content.secondaryCta.label}
-              </Link>
-            </motion.div>
-          </div>
-        </div>
-
-        {/* immagine — colonna destra */}
-        <motion.div
-          className="relative"
-          initial={reduceMotion ? false : { opacity: 0, y: 24 }}
-          animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1.4, ease: [0.23, 1, 0.32, 1] }}
-        >
-          <div className="relative overflow-hidden rounded-[8px] border border-[#211815]/10 shadow-[0_24px_60px_rgba(33,24,21,0.12)]">
-            <Image
-              src="/images/home/hero-studio.jpg"
-              alt="Peony Studio a Torino"
-              width={960}
-              height={640}
-              priority
-              className="h-[520px] w-full object-cover saturate-[0.92]"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#211815]/35 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 flex justify-between p-5 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#f4efe8]/85">
-              <span>Studio</span>
-              <span>Torino</span>
-            </div>
-          </div>
-        </motion.div>
+      {/* Scroll hint */}
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 opacity-40">
+        <span className="text-[8px] uppercase tracking-[0.25em] text-[#f4efe8]">Scorri</span>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M3.5 6l4.5 4.5L12.5 6" stroke="#f4efe8" strokeWidth="1.2" strokeLinecap="round" />
+        </svg>
       </div>
-
-      {/* scroll indicator — solo desktop */}
-      <motion.div
-        className="relative z-10 mt-8 hidden flex-col items-center gap-1.5 opacity-45 md:flex"
-        initial={reduceMotion ? false : { opacity: 0 }}
-        animate={reduceMotion ? undefined : { opacity: 0.45 }}
-        transition={{ duration: 1, delay: 2.4 }}
-      >
-        <span className="text-[9px] uppercase tracking-[0.25em] text-[#5f524c]">
-          SCORRI
-        </span>
-        <span className={reduceMotion ? "" : "animate-[bounce_2.2s_ease-in-out_infinite]"}>
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path
-              d="M4 7l5 5 5-5"
-              stroke="#5f524c"
-              strokeWidth="1.3"
-              strokeLinecap="round"
-            />
-          </svg>
-        </span>
-      </motion.div>
     </section>
   );
 }

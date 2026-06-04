@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, DM_Sans } from "next/font/google";
 import { BottomNav } from "@/components/layout/BottomNav";
+import { GlobalFooter } from "@/components/layout/GlobalFooter";
 import { LanguageProvider } from "@/components/site/LanguageProvider";
 import { ScrollProgress } from "@/components/site/ScrollProgress";
 import { getDictionary } from "@/i18n/getDictionary";
@@ -39,6 +40,7 @@ export default function RootLayout({
           <div className="pb-16 md:pb-0">
             {children}
           </div>
+          <GlobalFooter />
           <BottomNav />
         </LanguageProvider>
       </body>

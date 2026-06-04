@@ -48,7 +48,7 @@ export const programsContent = {
     eyebrow: "Percorsi strutturati",
     title: "Il tuo percorso nella corda.",
     intro:
-      "Una progressione chiara, costruita per farti crescere nello studio del Kinbaku LuXuria, un passo alla volta.",
+      "Una progressione chiara, un passo alla volta, nel Kinbaku LuXuria.",
   },
   structuredPaths: [
     {
@@ -122,7 +122,7 @@ export const programsContent = {
         // TODO: sostituire con /pratica#pratica-assistita quando la pagina Pratica avra anchor dedicate.
         cta: {
           label: "Scopri la pratica assistita",
-          href: "/pratica",
+          href: "/percorsi/socialita",
         },
       },
       {
@@ -134,7 +134,7 @@ export const programsContent = {
         // TODO: sostituire con /pratica#classi-tematiche quando la pagina Pratica avra anchor dedicate.
         cta: {
           label: "Scopri le classi tematiche",
-          href: "/pratica",
+          href: "/percorsi/socialita",
         },
       },
     ] satisfies ParallelPracticeItem[],
@@ -342,7 +342,7 @@ const programsContentEn = {
   hero: {
     eyebrow: "Structured programs",
     title: "Your rope journey.",
-    intro: "A clear progression, built to help you grow in Kinbaku LuXuria, one step at a time.",
+    intro: "A clear progression, one step at a time, in Kinbaku LuXuria.",
   },
   structuredPaths: [
     {

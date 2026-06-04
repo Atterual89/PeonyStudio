@@ -9,12 +9,15 @@ export const en: typeof it = {
   nav: {
     howToStart: "How to start",
     programs: "Learning Programs",
-    practice: "Practice & Community",
+    practice: "Social",
     workshops: "Workshops",
     calendar: "Calendar",
     peony: "Peony",
     shop: "Shop",
     personalArea: "Personal Dashboard",
+    tabInizia: "Start",
+    tabPercorsi: "Programs",
+    tabSocialita: "Social",
     bottomNav: {
       home: "Home",
       calendar: "Calendar",
@@ -33,29 +36,27 @@ export const en: typeof it = {
   },
   footer: {
     brand: "PEONY STUDIO",
-    copyright: "Kinbaku, practice and community in Turin.",
+    tagline: "Kinbaku venue · Turin",
+    copyright: "© Peony Studio · Turin",
+    contact: "Contact us",
+    contactHref: "/peony#contatti",
     columns: [
       {
         title: "Studio",
         links: [
           { label: "Peony", href: "/peony" },
-          { label: "How to start", href: "/come-iniziare" },
+          { label: "Get started", href: "/percorsi" },
           { label: "Calendar", href: "/calendario" },
         ],
       },
       {
         title: "Activities",
         links: [
-          { label: "Learning Programs", href: "/percorsi" },
-          { label: "Practice & Community", href: "/pratica" },
+          { label: "Programs", href: "/percorsi" },
           { label: "Workshops", href: "/workshop" },
-        ],
-      },
-      {
-        title: "Area",
-        links: [
+          { label: "Social", href: "/percorsi/socialita" },
           { label: "Shop", href: "/shop" },
-          { label: "Personal Dashboard", href: "/area-personale" },
+          { label: "My account", href: "/area-personale" },
         ],
       },
     ],
@@ -207,9 +208,8 @@ export const en: typeof it = {
   programs: {
     heroEyebrow: "Structured programs",
     heroTitle: "Your rope journey.",
-    heroIntro:
-      "A clear progression, built to help you grow in Kinbaku LuXuria, one step at a time.",
-    clickNodeInstruction: "Click on a node to learn more about each program.",
+    heroIntro: "A clear progression, one step at a time, in Kinbaku LuXuria.",
+    clickNodeInstruction: "Tap a ◎ to learn more",
     toggleShow: "Discover the full path",
     toggleHide: "Hide the full path",
     inParallel: "Parallel",
@@ -217,7 +217,7 @@ export const en: typeof it = {
     goToPractice: "Go to practice",
     selectedProgram: "Selected program",
     viewDates: "View upcoming dates",
-    whatWeWork: "What we work on",
+    whatWeWork: "What you'll work on",
     forWhom: "Who it's for",
     openDetail: "Open detail",
     program: "Program",
@@ -250,6 +250,12 @@ export const en: typeof it = {
       "A space to repeat and consolidate what you have encountered in the programs, ask questions and receive technical support. It accompanies the path and helps make it more solid.",
     parallelClassiDesc:
       "Sessions dedicated to a specific topic, designed to deepen techniques, structures or the quality of rope work. They can accompany different levels of the path, depending on the theme.",
+    detailsLink: "More details",
+    quizBannerText: "Not sure where to start?",
+    quizBannerBtn: "Take the quiz →",
+    workshopCtaEyebrow: "WANT TO GO FURTHER?",
+    workshopCtaText: "Explore the international workshops hosted at Peony Studio.",
+    workshopCtaBtn: "View workshops →",
   },
   workshop: {
     eyebrow: "Workshops",
@@ -501,8 +507,8 @@ export const en: typeof it = {
       intro: "We are here to answer any question you have.",
       primaryCta: { label: "View next Open Day", href: "/calendario" },
       secondaryCta: {
-        label: "Write us on Instagram",
-        href: "https://www.instagram.com/",
+        label: "Contact us",
+        href: "/peony#contatti",
       },
     },
   },
