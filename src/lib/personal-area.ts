@@ -34,6 +34,10 @@ export type PersonalAreaData = {
   profileLinked: boolean;
   claimedBuyerParticipants: number;
   createdEnrollments: number;
+  attendanceStats: {
+    booked: number;
+    checkedIn: number;
+  };
   enrollments: Enrollment[];
 };
 
@@ -50,6 +54,7 @@ export async function getOrCreatePersonalAreaData(
   const { profile, profileLinked } = await ensureProfile(supabase, user.id, email);
   const claimResult = await claimBuyerEvents(supabase, user.id, email);
   const enrollments = await loadEnrollments(supabase, user.id);
+  const attendanceStats = await loadAttendanceStats(supabase, email);
 
   return {
     email,
@@ -57,6 +62,7 @@ export async function getOrCreatePersonalAreaData(
     profileLinked,
     claimedBuyerParticipants: claimResult.claimedBuyerParticipants,
     createdEnrollments: claimResult.createdEnrollments,
+    attendanceStats,
     enrollments,
   };
 }
@@ -300,4 +306,27 @@ async function loadEnrollments(
       ? eventsById.get(enrollment.event_id) ?? null
       : null,
   }));
+}
+
+async function loadAttendanceStats(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  email: string,
+) {
+  const { data, error } = await supabase
+    .from("event_participants")
+    .select("checked_in")
+    .eq("participant_type", "attendee")
+    .eq("email", email);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const attendees = data ?? [];
+
+  return {
+    booked: attendees.length,
+    checkedIn: attendees.filter((participant) => participant.checked_in === true)
+      .length,
+  };
 }

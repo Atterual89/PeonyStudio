@@ -77,6 +77,7 @@ export function PersonalAreaDashboard({ data }: { data: PersonalAreaData }) {
               ) : null}
               {activeSection === "events" ? (
                 <EventsSection
+                  attendanceStats={data.attendanceStats}
                   futureEnrollments={futureEnrollments}
                   pastEnrollments={pastEnrollments}
                   nextEnrollment={nextEnrollment}
@@ -341,7 +342,8 @@ function OverviewSection({ guide, nextEnrollment, otherFutureCount, onSectionCha
 
 // ── Events section ────────────────────────────────────────────────────────────
 
-function EventsSection({ futureEnrollments, pastEnrollments, nextEnrollment }: {
+function EventsSection({ attendanceStats, futureEnrollments, pastEnrollments, nextEnrollment }: {
+  attendanceStats: PersonalAreaData["attendanceStats"];
   futureEnrollments: Enrollment[];
   pastEnrollments: Enrollment[];
   nextEnrollment: Enrollment | null;
@@ -393,11 +395,46 @@ function EventsSection({ futureEnrollments, pastEnrollments, nextEnrollment }: {
       {/* Card fissa informazioni spazio */}
       <SpaceInfoCard />
 
+      <div className="grid gap-3 md:grid-cols-2">
+        <EventStatCard
+          label="EVENTI PRENOTATI"
+          value={attendanceStats.booked}
+          text="Biglietti collegati alla tua email."
+        />
+        <EventStatCard
+          label="CHECK-IN EFFETTUATI"
+          value={attendanceStats.checkedIn}
+          text="Ingressi gia validati tramite Ticket Tailor."
+        />
+      </div>
+
       {/* Modal dettagli */}
       {modalEnrollment ? (
         <EventDetailModal enrollment={modalEnrollment} onClose={() => setModalEnrollment(null)} />
       ) : null}
     </div>
+  );
+}
+
+function EventStatCard({
+  label,
+  text,
+  value,
+}: {
+  label: string;
+  text: string;
+  value: number;
+}) {
+  return (
+    <Panel>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">
+        {label}
+      </p>
+      <p className="mt-3 font-serif text-[clamp(46px,9vw,72px)] font-medium leading-none text-[#f8efe5]">
+        {value}
+      </p>
+      <p className="mt-3 text-sm leading-6 text-[#f8efe5]/60">{text}</p>
+    </Panel>
   );
 }
 
