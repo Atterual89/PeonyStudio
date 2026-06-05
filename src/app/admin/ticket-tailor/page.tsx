@@ -56,6 +56,113 @@ type ParticipantFilters = {
 
 type QuickFilterMode = "none" | "association_to_verify";
 
+type ParticipantOrderGroup = {
+  key: string;
+  orderId: string | null;
+  buyers: Participant[];
+  attendees: Participant[];
+};
+
+type ImportSociRow = {
+  lineNumber: number;
+  firstName: string;
+  lastName: string;
+};
+
+type ImportSociInvalidRow = {
+  lineNumber: number;
+  raw: string;
+  reason: string;
+};
+
+type ImportSociPreview = {
+  validRows: ImportSociRow[];
+  invalidRows: ImportSociInvalidRow[];
+};
+
+type ImportSociMatchParticipant = {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  participant_type: string | null;
+  ticket_tailor_order_id: string | null;
+  ticket_tailor_event_id: string | null;
+  association_status: string | null;
+  association_expires_at: string | null;
+  notes_admin: string | null;
+};
+
+type ImportSociMatchResult = {
+  input: {
+    first_name: string;
+    last_name: string;
+  };
+  normalized_key: string;
+  match_status: "unique" | "multiple" | "not_found";
+  matches: ImportSociMatchParticipant[];
+};
+
+type ImportSociMatchPreview = {
+  ok: boolean;
+  totalInput: number;
+  uniqueMatches: number;
+  multipleMatches: number;
+  notFound: number;
+  invalidRows: number;
+  results: ImportSociMatchResult[];
+  message?: string;
+  error?: string;
+};
+
+type AssociationMembersSyncPreviewRow = {
+  rowNumber: number;
+  first_name: string;
+  last_name: string;
+  email: string | null;
+  contact: string | null;
+  membership_starts_at: string;
+  membership_expires_at: string;
+  source_row_id: string;
+  matchMethod: "email" | "source_row_id" | "name" | "none";
+  action: "create" | "update" | "unchanged" | "invalid" | "skipped";
+  fallbackStartDate: boolean;
+  errors: string[];
+  existingMemberId: string | null;
+};
+
+type DetectedSheetColumn = {
+  index: number | null;
+  header: string | null;
+  normalizedHeader: string | null;
+};
+
+type AssociationMembersSyncReport = {
+  ok?: boolean;
+  totalRows: number;
+  validRows: number;
+  invalidRows: number;
+  skippedBeforeValidFrom: number;
+  wouldCreate: number;
+  wouldUpdate: number;
+  unchanged: number;
+  fallbackStartDateCount: number;
+  fallbackNameMatchCount: number;
+  detectedColumns?: {
+    first_name: DetectedSheetColumn;
+    last_name: DetectedSheetColumn;
+    email: DetectedSheetColumn;
+    contact: DetectedSheetColumn;
+    membership_starts_at: DetectedSheetColumn;
+    availableHeaders: string[];
+  };
+  errors: string[];
+  previewRows: AssociationMembersSyncPreviewRow[];
+  created?: number;
+  updated?: number;
+  message?: string;
+};
+
 const associationStatuses = [
   "unknown",
   "missing",
@@ -104,10 +211,29 @@ export default function TicketTailorAdminPage() {
   const [savingParticipantId, setSavingParticipantId] = useState<string | null>(
     null,
   );
+  const [editingParticipantId, setEditingParticipantId] = useState<
+    string | null
+  >(null);
   const [participantError, setParticipantError] = useState<string | null>(null);
   const [eventsError, setEventsError] = useState<string | null>(null);
   const [quickFilterMode, setQuickFilterMode] =
     useState<QuickFilterMode>("none");
+  const [importSociText, setImportSociText] = useState("");
+  const [importSociPreview, setImportSociPreview] =
+    useState<ImportSociPreview | null>(null);
+  const [importSociMatchPreview, setImportSociMatchPreview] =
+    useState<ImportSociMatchPreview | null>(null);
+  const [importSociMatchError, setImportSociMatchError] = useState<
+    string | null
+  >(null);
+  const [matchingImportSoci, setMatchingImportSoci] = useState(false);
+  const [membersSyncPreview, setMembersSyncPreview] =
+    useState<AssociationMembersSyncReport | null>(null);
+  const [membersSyncApplyReport, setMembersSyncApplyReport] =
+    useState<AssociationMembersSyncReport | null>(null);
+  const [membersSyncError, setMembersSyncError] = useState<string | null>(null);
+  const [previewingMembersSync, setPreviewingMembersSync] = useState(false);
+  const [applyingMembersSync, setApplyingMembersSync] = useState(false);
   const [filters, setFilters] = useState<ParticipantFilters>({
     ticket_tailor_event_id: "",
     participant_type: "attendee",
@@ -115,7 +241,24 @@ export default function TicketTailorAdminPage() {
     association_status: "",
   });
   const displayedParticipants = applyQuickFilter(participants, quickFilterMode);
+  const participantOrderGroups = groupParticipantsByOrder(displayedParticipants);
+  const editingParticipant = editingParticipantId
+    ? participants.find((participant) => participant.id === editingParticipantId) ??
+      null
+    : null;
   const participantSummary = getParticipantSummary(displayedParticipants);
+  const uniqueImportSociMatches =
+    importSociMatchPreview?.results.filter(
+      (result) => result.match_status === "unique",
+    ) ?? [];
+  const multipleImportSociMatches =
+    importSociMatchPreview?.results.filter(
+      (result) => result.match_status === "multiple",
+    ) ?? [];
+  const notFoundImportSociMatches =
+    importSociMatchPreview?.results.filter(
+      (result) => result.match_status === "not_found",
+    ) ?? [];
 
   async function handleSync() {
     if (!secret.trim()) {
@@ -284,29 +427,43 @@ export default function TicketTailorAdminPage() {
     field: keyof AssociationDraft,
     value: string,
   ) {
-    setParticipantDrafts((current) => ({
-      ...current,
-      [participantId]: {
-        ...(current[participantId] ?? {
+    setParticipantDrafts((current) => {
+      const currentDraft =
+        current[participantId] ?? {
           association_status: "unknown",
           association_expires_at: "",
           notes_admin: "",
-        }),
+        };
+      const nextDraft = {
+        ...currentDraft,
         [field]: value,
-      },
-    }));
+      };
+
+      if (
+        field === "association_status" &&
+        value === "verified" &&
+        currentDraft.association_status !== "verified"
+      ) {
+        nextDraft.association_expires_at = getDefaultAssociationExpiryDate();
+      }
+
+      return {
+        ...current,
+        [participantId]: nextDraft,
+      };
+    });
   }
 
   async function saveParticipantAssociation(participantId: string) {
     if (!secret.trim()) {
       setParticipantError("Inserisci l'Admin sync secret.");
-      return;
+      return false;
     }
 
     const draft = participantDrafts[participantId];
     if (!draft) {
       setParticipantError("Dati associazione non trovati per questa riga.");
-      return;
+      return false;
     }
 
     setSavingParticipantId(participantId);
@@ -334,16 +491,159 @@ export default function TicketTailorAdminPage() {
         setParticipantError(
           payload.message ?? "Errore salvataggio associazione.",
         );
-        return;
+        return false;
       }
 
       await loadParticipants();
+      return true;
     } catch (error) {
       setParticipantError(
         error instanceof Error ? error.message : "Errore sconosciuto.",
       );
+      return false;
     } finally {
       setSavingParticipantId(null);
+    }
+  }
+
+  async function saveEditingParticipantAssociation() {
+    if (!editingParticipantId) {
+      return;
+    }
+
+    const saved = await saveParticipantAssociation(editingParticipantId);
+    if (saved) {
+      setEditingParticipantId(null);
+    }
+  }
+
+  function handlePreviewImportSoci() {
+    setImportSociPreview(parseImportSociText(importSociText));
+    setImportSociMatchPreview(null);
+    setImportSociMatchError(null);
+  }
+
+  async function handleSearchImportSociMatches() {
+    if (!secret.trim()) {
+      setImportSociMatchError("Inserisci l'Admin sync secret.");
+      return;
+    }
+
+    const preview = importSociPreview ?? parseImportSociText(importSociText);
+    setImportSociPreview(preview);
+    setImportSociMatchPreview(null);
+    setImportSociMatchError(null);
+
+    if (preview.validRows.length === 0) {
+      setImportSociMatchError("Nessuna riga valida da cercare.");
+      return;
+    }
+
+    setMatchingImportSoci(true);
+
+    try {
+      const response = await fetch("/api/admin/association-import/preview", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-admin-sync-secret": secret,
+        },
+        body: JSON.stringify({
+          rows: preview.validRows.map((row) => ({
+            first_name: row.firstName,
+            last_name: row.lastName,
+          })),
+        }),
+      });
+      const payload = (await response.json()) as ImportSociMatchPreview;
+
+      if (!response.ok || payload.ok === false) {
+        setImportSociMatchError(
+          payload.message ?? payload.error ?? "Errore ricerca match.",
+        );
+        return;
+      }
+
+      setImportSociMatchPreview(payload);
+    } catch (error) {
+      setImportSociMatchError(
+        error instanceof Error ? error.message : "Errore sconosciuto.",
+      );
+    } finally {
+      setMatchingImportSoci(false);
+    }
+  }
+
+  async function handlePreviewMembersSync() {
+    if (!secret.trim()) {
+      setMembersSyncError("Inserisci l'Admin sync secret.");
+      return;
+    }
+
+    setPreviewingMembersSync(true);
+    setMembersSyncError(null);
+    setMembersSyncPreview(null);
+    setMembersSyncApplyReport(null);
+
+    try {
+      const response = await fetch("/api/admin/association-members/sync-preview", {
+        method: "POST",
+        headers: {
+          "x-admin-sync-secret": secret,
+        },
+      });
+      const payload = (await response.json()) as AssociationMembersSyncReport;
+
+      if (!response.ok || payload.ok === false) {
+        setMembersSyncError(payload.message ?? "Errore preview sync soci.");
+        return;
+      }
+
+      setMembersSyncPreview(payload);
+    } catch (error) {
+      setMembersSyncError(
+        error instanceof Error ? error.message : "Errore sconosciuto.",
+      );
+    } finally {
+      setPreviewingMembersSync(false);
+    }
+  }
+
+  async function handleApplyMembersSync() {
+    if (!secret.trim()) {
+      setMembersSyncError("Inserisci l'Admin sync secret.");
+      return;
+    }
+
+    if (!membersSyncPreview) {
+      setMembersSyncError("Esegui prima la preview sync soci.");
+      return;
+    }
+
+    setApplyingMembersSync(true);
+    setMembersSyncError(null);
+
+    try {
+      const response = await fetch("/api/admin/association-members/sync-apply", {
+        method: "POST",
+        headers: {
+          "x-admin-sync-secret": secret,
+        },
+      });
+      const payload = (await response.json()) as AssociationMembersSyncReport;
+
+      if (!response.ok || payload.ok === false) {
+        setMembersSyncError(payload.message ?? "Errore apply sync soci.");
+      }
+
+      setMembersSyncApplyReport(payload);
+      setMembersSyncPreview(payload);
+    } catch (error) {
+      setMembersSyncError(
+        error instanceof Error ? error.message : "Errore sconosciuto.",
+      );
+    } finally {
+      setApplyingMembersSync(false);
     }
   }
 
@@ -405,6 +705,328 @@ export default function TicketTailorAdminPage() {
                   </p>
                 </div>
               ))}
+            </div>
+          ) : null}
+        </section>
+
+        <section className="mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+                Soci
+              </p>
+              <h2 className="mt-2 font-serif text-3xl font-medium">
+                Sync soci da Google Sheet
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
+                Legge il Google Sheet soci e prepara la sincronizzazione verso
+                Supabase senza collegarla agli attendee Ticket Tailor.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                className="rounded-full border border-[#211815]/20 px-5 py-2.5 text-sm font-semibold text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
+                type="button"
+                disabled={previewingMembersSync || applyingMembersSync}
+                onClick={handlePreviewMembersSync}
+              >
+                {previewingMembersSync ? "Genero preview..." : "Preview sync soci"}
+              </button>
+              <button
+                className="rounded-full bg-[#211815] px-5 py-2.5 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
+                type="button"
+                disabled={
+                  !membersSyncPreview ||
+                  previewingMembersSync ||
+                  applyingMembersSync
+                }
+                onClick={handleApplyMembersSync}
+              >
+                {applyingMembersSync ? "Applico sync..." : "Applica sync soci"}
+              </button>
+            </div>
+          </div>
+
+          {membersSyncError ? (
+            <p className="mt-4 rounded-[8px] border border-[#8b2f2a]/20 bg-[#8b2f2a]/5 p-3 text-sm text-[#8b2f2a]">
+              {membersSyncError}
+            </p>
+          ) : null}
+
+          {membersSyncApplyReport ? (
+            <p className="mt-4 rounded-[8px] border border-[#2f5b3a]/20 bg-[#2f5b3a]/5 p-3 text-sm text-[#2f5b3a]">
+              Sync applicata: {membersSyncApplyReport.created ?? 0} creati,{" "}
+              {membersSyncApplyReport.updated ?? 0} aggiornati.
+            </p>
+          ) : null}
+
+          {membersSyncPreview ? (
+            <div className="mt-5 space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-7">
+                {[
+                  ["Righe lette", membersSyncPreview.totalRows],
+                  ["Da creare", membersSyncPreview.wouldCreate],
+                  ["Da aggiornare", membersSyncPreview.wouldUpdate],
+                  ["Allineate", membersSyncPreview.unchanged],
+                  ["Non valide", membersSyncPreview.invalidRows],
+                  ["Fallback data", membersSyncPreview.fallbackStartDateCount],
+                  [
+                    "Prima del 01/09/2025",
+                    membersSyncPreview.skippedBeforeValidFrom ?? 0,
+                  ],
+                ].map(([label, value]) => (
+                  <div
+                    className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3"
+                    key={label}
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
+                      {label}
+                    </p>
+                    <p className="mt-2 font-serif text-3xl text-[#211815]">
+                      {value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {membersSyncPreview.fallbackNameMatchCount > 0 ? (
+                <p className="rounded-[8px] border border-[#8b5e4a]/20 bg-[#8b5e4a]/5 p-3 text-sm text-[#5f524c]">
+                  Match fallback nome/cognome usati:{" "}
+                  {membersSyncPreview.fallbackNameMatchCount}.
+                </p>
+              ) : null}
+
+              {membersSyncPreview.detectedColumns ? (
+                <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
+                    Colonne rilevate
+                  </p>
+                  <div className="mt-3 grid gap-2 text-xs text-[#5f524c] md:grid-cols-5">
+                    {[
+                      ["Nome", membersSyncPreview.detectedColumns.first_name],
+                      ["Cognome", membersSyncPreview.detectedColumns.last_name],
+                      ["Email", membersSyncPreview.detectedColumns.email],
+                      ["Data", membersSyncPreview.detectedColumns.membership_starts_at],
+                      ["Contatto", membersSyncPreview.detectedColumns.contact],
+                    ].map(([label, column]) => (
+                      <p key={label as string}>
+                        <span className="font-semibold text-[#211815]">
+                          {label as string}:
+                        </span>{" "}
+                        {(column as DetectedSheetColumn).header ?? "-"}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {membersSyncPreview.errors.length > 0 ? (
+                <div className="rounded-[8px] border border-[#8b2f2a]/20 bg-[#8b2f2a]/5 p-3 text-sm text-[#8b2f2a]">
+                  {membersSyncPreview.errors.map((error) => (
+                    <p key={error}>{error}</p>
+                  ))}
+                </div>
+              ) : null}
+
+              <div className="overflow-x-auto rounded-[8px] border border-[#211815]/10">
+                <table className="min-w-[980px] w-full border-collapse bg-[#f4efe8]/60 text-left text-xs">
+                  <thead className="bg-[#211815]/5 uppercase tracking-[0.12em] text-[#5f524c]">
+                    <tr>
+                      {[
+                        "riga",
+                        "nome",
+                        "email",
+                        "inizio",
+                        "scadenza",
+                        "azione",
+                        "match",
+                        "note",
+                      ].map((column) => (
+                        <th
+                          className="border-b border-[#211815]/10 px-3 py-3"
+                          key={column}
+                        >
+                          {column}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {membersSyncPreview.previewRows.slice(0, 80).map((row) => (
+                      <tr className="border-b border-[#211815]/8" key={row.rowNumber}>
+                        <td className="px-3 py-3">{row.rowNumber}</td>
+                        <td className="px-3 py-3">
+                          {row.first_name} {row.last_name}
+                        </td>
+                        <td className="px-3 py-3">{row.email ?? "-"}</td>
+                        <td className="px-3 py-3">{row.membership_starts_at}</td>
+                        <td className="px-3 py-3">{row.membership_expires_at}</td>
+                        <td className="px-3 py-3">{row.action}</td>
+                        <td className="px-3 py-3">{row.matchMethod}</td>
+                        <td className="px-3 py-3">
+                          {row.action === "skipped" && row.errors.length === 0
+                            ? "Compilazione precedente al 01/09/2025: da verificare manualmente."
+                            : ""}
+                          {row.fallbackStartDate
+                            ? `${row.action === "skipped" ? " · " : ""}data fallback`
+                            : ""}
+                          {row.errors.length > 0
+                            ? `${
+                                row.fallbackStartDate || row.action === "skipped"
+                                  ? " · "
+                                  : ""
+                              }${row.errors.join(" · ")}`
+                            : ""}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
+        </section>
+
+        <section className="mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+                Soci
+              </p>
+              <h2 className="mt-2 font-serif text-3xl font-medium">
+                Import soci
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
+                Incolla una lista Nome/Cognome per verificare quali
+                partecipanti risultano gi&agrave; presenti.
+              </p>
+            </div>
+            <button
+              className="rounded-full bg-[#211815] px-5 py-2.5 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5"
+              type="button"
+              onClick={handlePreviewImportSoci}
+            >
+              Preview import soci
+            </button>
+          </div>
+
+          <label className="mt-5 block text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+            Lista Nome/Cognome
+            <textarea
+              className="mt-2 min-h-[180px] w-full rounded-[8px] border border-[#211815]/15 bg-[#f4efe8]/80 px-3 py-3 text-sm normal-case leading-6 tracking-normal text-[#211815] outline-none transition focus:border-[#8b5e4a]"
+              value={importSociText}
+              onChange={(event) => {
+                setImportSociText(event.target.value);
+                setImportSociPreview(null);
+                setImportSociMatchPreview(null);
+                setImportSociMatchError(null);
+              }}
+              placeholder={"Nome\tCognome\nMario Rossi\nAnna Maria\tSiviero\\"}
+            />
+          </label>
+
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              className="rounded-full border border-[#211815]/20 px-5 py-2.5 text-sm font-semibold text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
+              type="button"
+              onClick={handleSearchImportSociMatches}
+              disabled={matchingImportSoci}
+            >
+              {matchingImportSoci
+                ? "Cerco match..."
+                : "Cerca match in Supabase"}
+            </button>
+          </div>
+
+          {importSociPreview ? (
+            <div className="mt-5 grid gap-4 lg:grid-cols-2">
+              <div className="rounded-[8px] border border-[#2f5b3a]/20 bg-[#2f5b3a]/5 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2f5b3a]">
+                  Righe valide ({importSociPreview.validRows.length})
+                </p>
+                {importSociPreview.validRows.length > 0 ? (
+                  <ul className="mt-3 space-y-2 text-sm text-[#211815]">
+                    {importSociPreview.validRows.map((row) => (
+                      <li key={`${row.lineNumber}-${row.firstName}-${row.lastName}`}>
+                        <span className="font-semibold">Riga {row.lineNumber}:</span>{" "}
+                        {row.firstName} {row.lastName}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-3 text-sm text-[#5f524c]">
+                    Nessuna riga valida trovata.
+                  </p>
+                )}
+              </div>
+
+              <div className="rounded-[8px] border border-[#8b2f2a]/20 bg-[#8b2f2a]/5 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b2f2a]">
+                  Righe non valide ({importSociPreview.invalidRows.length})
+                </p>
+                {importSociPreview.invalidRows.length > 0 ? (
+                  <ul className="mt-3 space-y-2 text-sm text-[#211815]">
+                    {importSociPreview.invalidRows.map((row) => (
+                      <li key={`${row.lineNumber}-${row.raw}`}>
+                        <span className="font-semibold">Riga {row.lineNumber}:</span>{" "}
+                        {row.raw || "-"}{" "}
+                        <span className="text-[#8b2f2a]">({row.reason})</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-3 text-sm text-[#5f524c]">
+                    Nessuna riga non valida.
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          {importSociMatchError ? (
+            <p className="mt-4 rounded-[8px] border border-[#8b2f2a]/20 bg-[#8b2f2a]/5 p-3 text-sm text-[#8b2f2a]">
+              {importSociMatchError}
+            </p>
+          ) : null}
+
+          {importSociMatchPreview ? (
+            <div className="mt-5 space-y-4">
+              <div className="grid gap-3 sm:grid-cols-4">
+                {[
+                  ["Input validi", importSociMatchPreview.totalInput],
+                  ["Match univoci", importSociMatchPreview.uniqueMatches],
+                  ["Match multipli", importSociMatchPreview.multipleMatches],
+                  ["Non trovati", importSociMatchPreview.notFound],
+                ].map(([label, value]) => (
+                  <div
+                    className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3"
+                    key={label}
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
+                      {label}
+                    </p>
+                    <p className="mt-2 font-serif text-3xl text-[#211815]">
+                      {value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <ImportSociMatchBlock
+                title="Match univoci"
+                tone="success"
+                results={uniqueImportSociMatches}
+              />
+              <ImportSociMatchBlock
+                title="Match multipli"
+                tone="warning"
+                results={multipleImportSociMatches}
+              />
+              <ImportSociMatchBlock
+                title="Non trovati"
+                tone="danger"
+                results={notFoundImportSociMatches}
+              />
             </div>
           ) : null}
         </section>
@@ -611,7 +1233,72 @@ export default function TicketTailorAdminPage() {
             </p>
           ) : null}
 
-          <div className="mt-5 overflow-x-auto rounded-[8px] border border-[#211815]/10">
+          <div className="mt-5 space-y-4">
+            {participantOrderGroups.length > 0 ? (
+              participantOrderGroups.map((group) => (
+                <div
+                  className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/60 p-4"
+                  key={group.key}
+                >
+                  <div className="flex flex-col gap-2 border-b border-[#211815]/10 pb-3 md:flex-row md:items-end md:justify-between">
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
+                        Ordine
+                      </p>
+                      <h3 className="mt-1 font-serif text-2xl text-[#211815]">
+                        {group.orderId ?? "Senza ticket_tailor_order_id"}
+                      </h3>
+                    </div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                      {group.buyers.length} buyer · {group.attendees.length} attendee
+                    </p>
+                  </div>
+
+                  <div className="mt-4 space-y-3">
+                    {group.buyers.length > 0 ? (
+                      group.buyers.map((buyer) => (
+                        <ParticipantOrderRow
+                          key={buyer.id}
+                          participant={buyer}
+                          roleLabel="Buyer"
+                          variant="buyer"
+                          onEdit={() => setEditingParticipantId(buyer.id)}
+                        />
+                      ))
+                    ) : (
+                      <div className="rounded-[8px] border border-[#8b5e4a]/20 bg-[#8b5e4a]/5 p-3 text-sm text-[#5f524c]">
+                        Buyer esplicito non presente per questo ordine.
+                      </div>
+                    )}
+
+                    {group.attendees.length > 0 ? (
+                      <div className="space-y-2 border-l border-[#211815]/15 pl-3 md:ml-5 md:pl-5">
+                        {group.attendees.map((attendee) => (
+                          <ParticipantOrderRow
+                            key={attendee.id}
+                            participant={attendee}
+                            roleLabel="Attendee"
+                            variant="attendee"
+                            onEdit={() => setEditingParticipantId(attendee.id)}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="pl-1 text-sm text-[#5f524c]">
+                        Nessun attendee collegato a questo ordine.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/60 px-4 py-8 text-center text-sm text-[#5f524c]">
+                Nessun partecipante caricato.
+              </div>
+            )}
+          </div>
+
+          <div className="hidden">
             <table className="min-w-[1600px] w-full border-collapse bg-[#f4efe8]/60 text-left text-sm">
               <thead className="bg-[#211815]/5 text-[11px] uppercase tracking-[0.14em] text-[#5f524c]">
                 <tr>
@@ -746,8 +1433,422 @@ export default function TicketTailorAdminPage() {
           </div>
         </section>
       </div>
+
+      {editingParticipant ? (
+        <AssociationEditModal
+          participant={editingParticipant}
+          draft={participantDrafts[editingParticipant.id]}
+          saving={savingParticipantId === editingParticipant.id}
+          onClose={() => setEditingParticipantId(null)}
+          onChange={updateParticipantDraft}
+          onSave={saveEditingParticipantAssociation}
+        />
+      ) : null}
     </main>
   );
+}
+
+function ParticipantOrderRow({
+  participant,
+  roleLabel,
+  variant,
+  onEdit,
+}: {
+  participant: Participant;
+  roleLabel: string;
+  variant: "buyer" | "attendee";
+  onEdit: () => void;
+}) {
+  const showCheckIn = variant === "attendee";
+
+  return (
+    <div
+      className={`rounded-[8px] border border-[#211815]/10 bg-white/70 p-3 ${participantRowClass(participant)}`}
+    >
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)_auto] md:items-center">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${
+                variant === "buyer"
+                  ? "border-[#211815]/15 bg-[#211815]/5 text-[#211815]"
+                  : "border-[#8b5e4a]/20 bg-[#8b5e4a]/10 text-[#8b5e4a]"
+              }`}
+            >
+              {roleLabel}
+            </span>
+            <StatusBadge status={participant.association_status} />
+          </div>
+          <p className="mt-2 text-sm font-semibold text-[#211815]">
+            {participant.first_name ?? "-"} {participant.last_name ?? "-"}
+          </p>
+          <p className="mt-1 text-xs text-[#5f524c]">
+            {participant.email ?? "-"}
+          </p>
+        </div>
+
+        <div className="grid gap-2 text-xs text-[#5f524c] sm:grid-cols-2">
+          <p>
+            <span className="font-semibold text-[#211815]">Evento:</span>{" "}
+            {participant.ticket_tailor_event_id ?? "-"}
+          </p>
+          <p>
+            <span className="font-semibold text-[#211815]">Scadenza:</span>{" "}
+            {participant.association_expires_at ?? "-"}
+          </p>
+          <p>
+            <span className="font-semibold text-[#211815]">Check-in:</span>{" "}
+            {showCheckIn ? (
+              <CheckedInBadge checkedIn={participant.checked_in} />
+            ) : (
+              "—"
+            )}
+          </p>
+          <p>
+            <span className="font-semibold text-[#211815]">Origine:</span>{" "}
+            {showCheckIn ? participant.checked_in_source ?? "-" : "—"}
+          </p>
+        </div>
+
+        <button
+          className="rounded-full bg-[#211815] px-4 py-2 text-xs font-semibold text-[#f4efe8] transition hover:-translate-y-0.5"
+          type="button"
+          onClick={onEdit}
+        >
+          Modifica tessera
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AssociationEditModal({
+  participant,
+  draft,
+  saving,
+  onClose,
+  onChange,
+  onSave,
+}: {
+  participant: Participant;
+  draft: AssociationDraft | undefined;
+  saving: boolean;
+  onClose: () => void;
+  onChange: (
+    participantId: string,
+    field: keyof AssociationDraft,
+    value: string,
+  ) => void;
+  onSave: () => void;
+}) {
+  const currentDraft =
+    draft ??
+    ({
+      association_status: participant.association_status ?? "unknown",
+      association_expires_at: participant.association_expires_at ?? "",
+      notes_admin: participant.notes_admin ?? "",
+    } satisfies AssociationDraft);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#211815]/45 px-4 py-6">
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[8px] border border-[#211815]/10 bg-[#f4efe8] p-5 shadow-[0_24px_80px_rgba(33,24,21,0.28)] md:p-7">
+        <div className="flex flex-col gap-3 border-b border-[#211815]/10 pb-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+              Tessera associativa
+            </p>
+            <h2 className="mt-2 font-serif text-3xl font-medium text-[#211815]">
+              {participant.first_name ?? "-"} {participant.last_name ?? "-"}
+            </h2>
+            <p className="mt-2 text-sm text-[#5f524c]">
+              {participant.email ?? "-"} · {participant.participant_type ?? "-"}
+            </p>
+          </div>
+          <button
+            className="rounded-full border border-[#211815]/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c] transition hover:border-[#8b5e4a] hover:text-[#211815]"
+            type="button"
+            onClick={onClose}
+          >
+            Chiudi
+          </button>
+        </div>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+            Association status
+            <select
+              className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/70 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+              value={currentDraft.association_status}
+              onChange={(event) =>
+                onChange(
+                  participant.id,
+                  "association_status",
+                  event.target.value,
+                )
+              }
+            >
+              {associationStatuses.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+            Association expires at
+            <input
+              className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/70 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+              type="date"
+              value={currentDraft.association_expires_at}
+              onChange={(event) =>
+                onChange(
+                  participant.id,
+                  "association_expires_at",
+                  event.target.value,
+                )
+              }
+            />
+          </label>
+        </div>
+
+        <label className="mt-4 block text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+          Notes admin · nota interna admin
+          <textarea
+            className="mt-2 min-h-[120px] w-full rounded-[8px] border border-[#211815]/15 bg-white/70 px-3 py-3 text-sm normal-case leading-6 tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+            value={currentDraft.notes_admin}
+            onChange={(event) =>
+              onChange(participant.id, "notes_admin", event.target.value)
+            }
+            placeholder="Nota visibile solo agli admin"
+          />
+        </label>
+
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button
+            className="rounded-full border border-[#211815]/20 px-5 py-2.5 text-sm font-semibold text-[#211815] transition hover:-translate-y-0.5"
+            type="button"
+            onClick={onClose}
+          >
+            Annulla
+          </button>
+          <button
+            className="rounded-full bg-[#211815] px-5 py-2.5 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
+            type="button"
+            disabled={saving}
+            onClick={onSave}
+          >
+            {saving ? "Salvo..." : "Salva tessera"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ImportSociMatchBlock({
+  title,
+  tone,
+  results,
+}: {
+  title: string;
+  tone: "success" | "warning" | "danger";
+  results: ImportSociMatchResult[];
+}) {
+  const toneClass =
+    tone === "success"
+      ? "border-[#2f5b3a]/20 bg-[#2f5b3a]/5 text-[#2f5b3a]"
+      : tone === "warning"
+        ? "border-[#8b5e4a]/25 bg-[#8b5e4a]/5 text-[#8b5e4a]"
+        : "border-[#8b2f2a]/20 bg-[#8b2f2a]/5 text-[#8b2f2a]";
+
+  return (
+    <div className={`rounded-[8px] border p-4 ${toneClass}`}>
+      <p className="text-xs font-semibold uppercase tracking-[0.16em]">
+        {title} ({results.length})
+      </p>
+      {results.length > 0 ? (
+        <div className="mt-3 space-y-3">
+          {results.map((result) => (
+            <div
+              className="rounded-[8px] border border-[#211815]/10 bg-white/65 p-3 text-[#211815]"
+              key={`${result.normalized_key}-${result.match_status}`}
+            >
+              <p className="text-sm font-semibold">
+                {result.input.first_name} {result.input.last_name}
+              </p>
+              <p className="mt-1 text-xs text-[#5f524c]">
+                Key normalizzata: {result.normalized_key || "-"}
+              </p>
+
+              {result.matches.length > 0 ? (
+                <div className="mt-3 grid gap-2">
+                  {result.matches.map((match) => (
+                    <div
+                      className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3"
+                      key={match.id}
+                    >
+                      <div className="grid gap-2 text-xs text-[#5f524c] md:grid-cols-3">
+                        <p>
+                          <span className="font-semibold text-[#211815]">
+                            Nome:
+                          </span>{" "}
+                          {match.first_name ?? "-"} {match.last_name ?? "-"}
+                        </p>
+                        <p>
+                          <span className="font-semibold text-[#211815]">
+                            Email:
+                          </span>{" "}
+                          {match.email ?? "-"}
+                        </p>
+                        <p>
+                          <span className="font-semibold text-[#211815]">
+                            Tipo:
+                          </span>{" "}
+                          {match.participant_type ?? "-"}
+                        </p>
+                        <p>
+                          <span className="font-semibold text-[#211815]">
+                            Order:
+                          </span>{" "}
+                          {match.ticket_tailor_order_id ?? "-"}
+                        </p>
+                        <p>
+                          <span className="font-semibold text-[#211815]">
+                            Evento:
+                          </span>{" "}
+                          {match.ticket_tailor_event_id ?? "-"}
+                        </p>
+                        <p>
+                          <span className="font-semibold text-[#211815]">
+                            Tessera:
+                          </span>{" "}
+                          {match.association_status ?? "-"}
+                        </p>
+                        <p>
+                          <span className="font-semibold text-[#211815]">
+                            Scadenza:
+                          </span>{" "}
+                          {match.association_expires_at ?? "-"}
+                        </p>
+                        <p className="md:col-span-2">
+                          <span className="font-semibold text-[#211815]">
+                            Note:
+                          </span>{" "}
+                          {match.notes_admin ?? "-"}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-[#5f524c]">
+                  Nessun partecipante trovato in Supabase.
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-3 text-sm text-[#5f524c]">Nessun risultato.</p>
+      )}
+    </div>
+  );
+}
+
+function parseImportSociText(text: string): ImportSociPreview {
+  return text.split(/\r?\n/).reduce<ImportSociPreview>(
+    (preview, rawLine, index) => {
+      const lineNumber = index + 1;
+      const cleanedLine = rawLine
+        .replace(/\\+$/g, "")
+        .trim()
+        .replace(/\s+/g, " ");
+
+      if (!cleanedLine) {
+        return preview;
+      }
+
+      if (cleanedLine.toLowerCase() === "nome cognome") {
+        return preview;
+      }
+
+      const tabParts = rawLine
+        .replace(/\\+$/g, "")
+        .split("\t")
+        .map((part) => part.trim().replace(/\s+/g, " "))
+        .filter(Boolean);
+
+      if (tabParts.length >= 2) {
+        preview.validRows.push({
+          lineNumber,
+          firstName: tabParts[0],
+          lastName: tabParts.slice(1).join(" "),
+        });
+        return preview;
+      }
+
+      const nameParts = cleanedLine.split(" ");
+
+      if (nameParts.length >= 2) {
+        preview.validRows.push({
+          lineNumber,
+          firstName: nameParts[0],
+          lastName: nameParts.slice(1).join(" "),
+        });
+        return preview;
+      }
+
+      preview.invalidRows.push({
+        lineNumber,
+        raw: cleanedLine,
+        reason: "Inserisci nome e cognome.",
+      });
+
+      return preview;
+    },
+    {
+      validRows: [],
+      invalidRows: [],
+    },
+  );
+}
+
+function getDefaultAssociationExpiryDate(referenceDate = new Date()) {
+  const referenceMonth = referenceDate.getMonth();
+  const expiryYear =
+    referenceMonth >= 9
+      ? referenceDate.getFullYear() + 1
+      : referenceDate.getFullYear();
+
+  return `${expiryYear}-12-31`;
+}
+
+function groupParticipantsByOrder(participants: Participant[]) {
+  const groups = new Map<string, ParticipantOrderGroup>();
+
+  for (const participant of participants) {
+    const orderId = participant.ticket_tailor_order_id?.trim() || null;
+    const key = orderId ?? `participant-without-order-${participant.id}`;
+    const group =
+      groups.get(key) ??
+      ({
+        key,
+        orderId,
+        buyers: [],
+        attendees: [],
+      } satisfies ParticipantOrderGroup);
+
+    if (participant.participant_type === "buyer") {
+      group.buyers.push(participant);
+    } else {
+      group.attendees.push(participant);
+    }
+
+    groups.set(key, group);
+  }
+
+  return Array.from(groups.values());
 }
 
 function createParticipantDrafts(participants: Participant[]) {
@@ -787,10 +1888,12 @@ function getParticipantSummary(participants: Participant[]) {
 
       summary.total += 1;
 
-      if (participant.checked_in === true) {
-        summary.checkedIn += 1;
-      } else {
-        summary.notCheckedIn += 1;
+      if (participant.participant_type === "attendee") {
+        if (participant.checked_in === true) {
+          summary.checkedIn += 1;
+        } else {
+          summary.notCheckedIn += 1;
+        }
       }
 
       if (["unknown", "missing", "expired"].includes(status)) {
