@@ -10,6 +10,8 @@ const ALLOWED_ASSOCIATION_STATUSES = [
   "pending",
   "verified",
   "expired",
+  "manual_review",
+  "not_found",
   "not_required",
 ] as const;
 

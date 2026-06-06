@@ -128,6 +128,7 @@ type AssociationMembersSyncPreviewRow = {
   action: "create" | "update" | "unchanged" | "invalid" | "skipped";
   fallbackStartDate: boolean;
   errors: string[];
+  notes: string[];
   existingMemberId: string | null;
 };
 
@@ -163,12 +164,117 @@ type AssociationMembersSyncReport = {
   message?: string;
 };
 
+type OfficialMembersBookPreviewRow = {
+  rowNumber: number;
+  first_name: string;
+  last_name: string;
+  fiscal_code: string | null;
+  birth_date: string | null;
+  membership_status: "verified" | "expired";
+  membership_starts_at: string | null;
+  membership_expires_at: string;
+  membership_card_number: string | null;
+  action: "create" | "update" | "unchanged" | "invalid";
+  matchMethod: "fiscal_code" | "email" | "name_birth" | "name" | "none";
+  notes: string[];
+  errors: string[];
+};
+
+type OfficialMembersBookSyncReport = {
+  ok?: boolean;
+  totalRows: number;
+  validRows: number;
+  invalidRows: number;
+  wouldCreate: number;
+  wouldUpdate: number;
+  unchanged: number;
+  expiredRows: number;
+  verifiedRows: number;
+  fallbackNameMatchCount: number;
+  errors: string[];
+  detectedColumns?: {
+    first_name: DetectedSheetColumn;
+    last_name: DetectedSheetColumn;
+    fiscal_code: DetectedSheetColumn;
+    birth_date: DetectedSheetColumn;
+    email: DetectedSheetColumn;
+    accepted_at: DetectedSheetColumn;
+    ceased_at: DetectedSheetColumn;
+    current_year_quota: DetectedSheetColumn;
+    current_year_card_number: DetectedSheetColumn;
+    availableHeaders: string[];
+  };
+  previewRows: OfficialMembersBookPreviewRow[];
+  created?: number;
+  updated?: number;
+  message?: string;
+};
+
+type ParticipantAssociationCheckPreviewRow = {
+  participant_id: string;
+  participant_name: string;
+  participant_email: string | null;
+  event_id: string | null;
+  ticket_tailor_event_id: string | null;
+  current_association_status: string | null;
+  suggested_association_status:
+    | "verified"
+    | "pending"
+    | "expired"
+    | "not_found"
+    | "manual_review";
+  matched_member_id: string | null;
+  matched_member_expires_at: string | null;
+  match_method: "email" | "name" | "multiple" | "none";
+  reason: string;
+};
+
+type ParticipantAssociationCheckReport = {
+  ok?: boolean;
+  totalAttendees: number;
+  verified: number;
+  pending: number;
+  expired: number;
+  notFound: number;
+  manualReview: number;
+  multipleMatches: number;
+  previewRows: ParticipantAssociationCheckPreviewRow[];
+  updated?: number;
+  errors?: string[];
+  message?: string;
+};
+
+type ParticipantCheckStatusFilter =
+  | "all"
+  | "verified"
+  | "pending"
+  | "expired"
+  | "not_found"
+  | "manual_review"
+  | "multiple";
+
+type ParticipantCheckMatchFilter =
+  | "all"
+  | "email"
+  | "name"
+  | "none"
+  | "multiple";
+
+type MembersSyncPreviewFilter =
+  | "all"
+  | "create"
+  | "update"
+  | "unchanged"
+  | "invalid";
+
 const associationStatuses = [
   "unknown",
   "missing",
   "pending",
   "verified",
   "expired",
+  "manual_review",
+  "not_found",
   "not_required",
 ];
 
@@ -177,7 +283,12 @@ const associationStatusesToVerify = new Set([
   "missing",
   "pending",
   "expired",
+  "manual_review",
+  "not_found",
 ]);
+
+const membersSyncPreviewPageSize = 50;
+const membershipValidFrom = "2025-09-01";
 
 const syncSteps: SyncStep[] = [
   {
@@ -234,6 +345,33 @@ export default function TicketTailorAdminPage() {
   const [membersSyncError, setMembersSyncError] = useState<string | null>(null);
   const [previewingMembersSync, setPreviewingMembersSync] = useState(false);
   const [applyingMembersSync, setApplyingMembersSync] = useState(false);
+  const [membersSyncPreviewFilter, setMembersSyncPreviewFilter] =
+    useState<MembersSyncPreviewFilter>("all");
+  const [membersSyncPreviewPage, setMembersSyncPreviewPage] = useState(1);
+  const [bookSyncPreview, setBookSyncPreview] =
+    useState<OfficialMembersBookSyncReport | null>(null);
+  const [bookSyncApplyReport, setBookSyncApplyReport] =
+    useState<OfficialMembersBookSyncReport | null>(null);
+  const [bookSyncError, setBookSyncError] = useState<string | null>(null);
+  const [previewingBookSync, setPreviewingBookSync] = useState(false);
+  const [applyingBookSync, setApplyingBookSync] = useState(false);
+  const [bookSyncPreviewPage, setBookSyncPreviewPage] = useState(1);
+  const [participantCheckPreview, setParticipantCheckPreview] =
+    useState<ParticipantAssociationCheckReport | null>(null);
+  const [participantCheckApplyReport, setParticipantCheckApplyReport] =
+    useState<ParticipantAssociationCheckReport | null>(null);
+  const [participantCheckError, setParticipantCheckError] = useState<string | null>(
+    null,
+  );
+  const [previewingParticipantCheck, setPreviewingParticipantCheck] =
+    useState(false);
+  const [applyingParticipantCheck, setApplyingParticipantCheck] = useState(false);
+  const [participantCheckPage, setParticipantCheckPage] = useState(1);
+  const [participantCheckStatusFilter, setParticipantCheckStatusFilter] =
+    useState<ParticipantCheckStatusFilter>("all");
+  const [participantCheckMatchFilter, setParticipantCheckMatchFilter] =
+    useState<ParticipantCheckMatchFilter>("all");
+  const [participantCheckSearch, setParticipantCheckSearch] = useState("");
   const [filters, setFilters] = useState<ParticipantFilters>({
     ticket_tailor_event_id: "",
     participant_type: "attendee",
@@ -259,6 +397,112 @@ export default function TicketTailorAdminPage() {
     importSociMatchPreview?.results.filter(
       (result) => result.match_status === "not_found",
     ) ?? [];
+  const currentSeasonMembersSyncRows =
+    membersSyncPreview?.previewRows.filter(
+      (row) =>
+        row.action !== "skipped" &&
+        row.membership_starts_at >= membershipValidFrom,
+    ) ?? [];
+  const filteredMembersSyncRows =
+    membersSyncPreviewFilter === "all"
+      ? currentSeasonMembersSyncRows
+      : currentSeasonMembersSyncRows.filter(
+          (row) => row.action === membersSyncPreviewFilter,
+        );
+  const membersSyncTotalPages = Math.max(
+    1,
+    Math.ceil(filteredMembersSyncRows.length / membersSyncPreviewPageSize),
+  );
+  const safeMembersSyncPreviewPage = Math.min(
+    membersSyncPreviewPage,
+    membersSyncTotalPages,
+  );
+  const membersSyncPageStart =
+    (safeMembersSyncPreviewPage - 1) * membersSyncPreviewPageSize;
+  const pagedMembersSyncRows = filteredMembersSyncRows.slice(
+    membersSyncPageStart,
+    membersSyncPageStart + membersSyncPreviewPageSize,
+  );
+  const membersSyncDisplayStart =
+    filteredMembersSyncRows.length > 0 ? membersSyncPageStart + 1 : 0;
+  const membersSyncDisplayEnd = Math.min(
+    membersSyncPageStart + pagedMembersSyncRows.length,
+    filteredMembersSyncRows.length,
+  );
+  const bookSyncTotalPages = Math.max(
+    1,
+    Math.ceil((bookSyncPreview?.previewRows.length ?? 0) / membersSyncPreviewPageSize),
+  );
+  const safeBookSyncPreviewPage = Math.min(
+    bookSyncPreviewPage,
+    bookSyncTotalPages,
+  );
+  const bookSyncPageStart =
+    (safeBookSyncPreviewPage - 1) * membersSyncPreviewPageSize;
+  const pagedBookSyncRows =
+    bookSyncPreview?.previewRows.slice(
+      bookSyncPageStart,
+      bookSyncPageStart + membersSyncPreviewPageSize,
+    ) ?? [];
+  const bookSyncDisplayStart =
+    (bookSyncPreview?.previewRows.length ?? 0) > 0 ? bookSyncPageStart + 1 : 0;
+  const bookSyncDisplayEnd = Math.min(
+    bookSyncPageStart + pagedBookSyncRows.length,
+    bookSyncPreview?.previewRows.length ?? 0,
+  );
+  const normalizedParticipantCheckSearch = participantCheckSearch
+    .trim()
+    .toLowerCase();
+  const filteredParticipantCheckRows =
+    participantCheckPreview?.previewRows.filter((row) => {
+      const statusMatches =
+        participantCheckStatusFilter === "all"
+          ? true
+          : participantCheckStatusFilter === "multiple"
+            ? row.match_method === "multiple"
+            : row.suggested_association_status === participantCheckStatusFilter;
+      const matchMethodMatches =
+        participantCheckMatchFilter === "all"
+          ? true
+          : row.match_method === participantCheckMatchFilter;
+      const searchMatches = normalizedParticipantCheckSearch
+        ? [
+            row.participant_name,
+            row.participant_email ?? "",
+            row.event_id ?? "",
+            row.ticket_tailor_event_id ?? "",
+            row.reason,
+          ]
+            .join(" ")
+            .toLowerCase()
+            .includes(normalizedParticipantCheckSearch)
+        : true;
+
+      return statusMatches && matchMethodMatches && searchMatches;
+    }) ?? [];
+  const participantCheckTotalPages = Math.max(
+    1,
+    Math.ceil(filteredParticipantCheckRows.length / membersSyncPreviewPageSize),
+  );
+  const safeParticipantCheckPage = Math.min(
+    participantCheckPage,
+    participantCheckTotalPages,
+  );
+  const participantCheckPageStart =
+    (safeParticipantCheckPage - 1) * membersSyncPreviewPageSize;
+  const pagedParticipantCheckRows =
+    filteredParticipantCheckRows.slice(
+    participantCheckPageStart,
+    participantCheckPageStart + membersSyncPreviewPageSize,
+  );
+  const participantCheckDisplayStart =
+    filteredParticipantCheckRows.length > 0
+      ? participantCheckPageStart + 1
+      : 0;
+  const participantCheckDisplayEnd = Math.min(
+    participantCheckPageStart + pagedParticipantCheckRows.length,
+    filteredParticipantCheckRows.length,
+  );
 
   async function handleSync() {
     if (!secret.trim()) {
@@ -600,6 +844,8 @@ export default function TicketTailorAdminPage() {
       }
 
       setMembersSyncPreview(payload);
+      setMembersSyncPreviewFilter("all");
+      setMembersSyncPreviewPage(1);
     } catch (error) {
       setMembersSyncError(
         error instanceof Error ? error.message : "Errore sconosciuto.",
@@ -638,6 +884,8 @@ export default function TicketTailorAdminPage() {
 
       setMembersSyncApplyReport(payload);
       setMembersSyncPreview(payload);
+      setMembersSyncPreviewFilter("all");
+      setMembersSyncPreviewPage(1);
     } catch (error) {
       setMembersSyncError(
         error instanceof Error ? error.message : "Errore sconosciuto.",
@@ -647,19 +895,208 @@ export default function TicketTailorAdminPage() {
     }
   }
 
+  function updateMembersSyncPreviewFilter(filter: MembersSyncPreviewFilter) {
+    setMembersSyncPreviewFilter(filter);
+    setMembersSyncPreviewPage(1);
+  }
+
+  async function handlePreviewBookSync() {
+    if (!secret.trim()) {
+      setBookSyncError("Inserisci l'Admin sync secret.");
+      return;
+    }
+
+    setPreviewingBookSync(true);
+    setBookSyncError(null);
+    setBookSyncPreview(null);
+    setBookSyncApplyReport(null);
+
+    try {
+      const response = await fetch("/api/admin/association-members/book-sync-preview", {
+        method: "POST",
+        headers: {
+          "x-admin-sync-secret": secret,
+        },
+      });
+      const payload = (await response.json()) as OfficialMembersBookSyncReport;
+
+      if (!response.ok || payload.ok === false) {
+        setBookSyncError(payload.message ?? "Errore preview libro soci.");
+        return;
+      }
+
+      setBookSyncPreview(payload);
+      setBookSyncPreviewPage(1);
+    } catch (error) {
+      setBookSyncError(
+        error instanceof Error ? error.message : "Errore sconosciuto.",
+      );
+    } finally {
+      setPreviewingBookSync(false);
+    }
+  }
+
+  async function handleApplyBookSync() {
+    if (!secret.trim()) {
+      setBookSyncError("Inserisci l'Admin sync secret.");
+      return;
+    }
+
+    if (!bookSyncPreview) {
+      setBookSyncError("Esegui prima la preview libro soci.");
+      return;
+    }
+
+    setApplyingBookSync(true);
+    setBookSyncError(null);
+
+    try {
+      const response = await fetch("/api/admin/association-members/book-sync-apply", {
+        method: "POST",
+        headers: {
+          "x-admin-sync-secret": secret,
+        },
+      });
+      const payload = (await response.json()) as OfficialMembersBookSyncReport;
+
+      if (!response.ok || payload.ok === false) {
+        setBookSyncError(payload.message ?? "Errore apply libro soci.");
+      }
+
+      setBookSyncApplyReport(payload);
+      setBookSyncPreview(payload);
+      setBookSyncPreviewPage(1);
+    } catch (error) {
+      setBookSyncError(
+        error instanceof Error ? error.message : "Errore sconosciuto.",
+      );
+    } finally {
+      setApplyingBookSync(false);
+    }
+  }
+
+  async function handlePreviewParticipantAssociationCheck() {
+    if (!secret.trim()) {
+      setParticipantCheckError("Inserisci l'Admin sync secret.");
+      return;
+    }
+
+    setPreviewingParticipantCheck(true);
+    setParticipantCheckError(null);
+    setParticipantCheckPreview(null);
+    setParticipantCheckApplyReport(null);
+
+    try {
+      const response = await fetch(
+        "/api/admin/participants/association-check-preview",
+        {
+          method: "POST",
+          headers: {
+            "x-admin-sync-secret": secret,
+          },
+        },
+      );
+      const payload = (await response.json()) as ParticipantAssociationCheckReport;
+
+      if (!response.ok || payload.ok === false) {
+        setParticipantCheckError(
+          payload.message ?? "Errore preview verifica tessere.",
+        );
+        return;
+      }
+
+      setParticipantCheckPreview(payload);
+      setParticipantCheckPage(1);
+      setParticipantCheckStatusFilter("all");
+      setParticipantCheckMatchFilter("all");
+      setParticipantCheckSearch("");
+    } catch (error) {
+      setParticipantCheckError(
+        error instanceof Error ? error.message : "Errore sconosciuto.",
+      );
+    } finally {
+      setPreviewingParticipantCheck(false);
+    }
+  }
+
+  async function handleApplyParticipantAssociationCheck() {
+    if (!secret.trim()) {
+      setParticipantCheckError("Inserisci l'Admin sync secret.");
+      return;
+    }
+
+    if (!participantCheckPreview) {
+      setParticipantCheckError("Esegui prima la preview verifica tessere.");
+      return;
+    }
+
+    setApplyingParticipantCheck(true);
+    setParticipantCheckError(null);
+
+    try {
+      const response = await fetch(
+        "/api/admin/participants/association-check-apply",
+        {
+          method: "POST",
+          headers: {
+            "x-admin-sync-secret": secret,
+          },
+        },
+      );
+      const payload = (await response.json()) as ParticipantAssociationCheckReport;
+
+      if (!response.ok || payload.ok === false) {
+        setParticipantCheckError(
+          payload.message ?? "Errore apply verifica tessere.",
+        );
+      }
+
+      setParticipantCheckApplyReport(payload);
+      setParticipantCheckPreview(payload);
+      setParticipantCheckPage(1);
+      setParticipantCheckStatusFilter("all");
+      setParticipantCheckMatchFilter("all");
+      setParticipantCheckSearch("");
+      await loadParticipants();
+    } catch (error) {
+      setParticipantCheckError(
+        error instanceof Error ? error.message : "Errore sconosciuto.",
+      );
+    } finally {
+      setApplyingParticipantCheck(false);
+    }
+  }
+
+  function updateParticipantCheckStatusFilter(
+    filter: ParticipantCheckStatusFilter,
+  ) {
+    setParticipantCheckStatusFilter(filter);
+    setParticipantCheckPage(1);
+  }
+
+  function updateParticipantCheckMatchFilter(filter: ParticipantCheckMatchFilter) {
+    setParticipantCheckMatchFilter(filter);
+    setParticipantCheckPage(1);
+  }
+
+  function updateParticipantCheckSearch(value: string) {
+    setParticipantCheckSearch(value);
+    setParticipantCheckPage(1);
+  }
+
   return (
     <main className="min-h-screen bg-[#f4efe8] px-5 py-8 text-[#211815] sm:px-6">
-      <div className="mx-auto max-w-7xl">
-        <section className="rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.06)] md:p-7">
+      <div className="mx-auto flex max-w-7xl flex-col">
+        <section className="order-1 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.06)] md:p-7">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
             Admin
           </p>
           <h1 className="mt-3 font-serif text-4xl font-medium md:text-5xl">
-            Ticket Tailor sync
+            Admin Ticket Tailor
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
-            Strumento tecnico minimo per sincronizzare eventi, ordini, ticket e
-            partecipanti. Nessun secret viene salvato nel client.
+            Procedura guidata per aggiornare soci, Ticket Tailor e verifica
+            tessere partecipanti. Nessun secret viene salvato nel client.
           </p>
 
           <div className="mt-6 flex flex-col gap-3 md:flex-row md:items-end">
@@ -673,6 +1110,74 @@ export default function TicketTailorAdminPage() {
                 autoComplete="off"
               />
             </label>
+            <button
+              className="hidden rounded-full bg-[#211815] px-5 py-2.5 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
+              type="button"
+              disabled={syncing}
+              onClick={handleSync}
+            >
+              {syncing ? "Sincronizzo..." : "Sincronizza Ticket Tailor"}
+            </button>
+          </div>
+
+          {false && syncResults.length > 0 ? (
+            <div className="mt-5 grid gap-3 md:grid-cols-4">
+              {syncResults.map((result) => (
+                <div
+                  className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3"
+                  key={result.label}
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
+                    {result.label}
+                  </p>
+                  <p
+                    className={`mt-2 text-sm font-medium ${
+                      result.ok ? "text-[#2f5b3a]" : "text-[#8b2f2a]"
+                    }`}
+                  >
+                    {result.ok ? "OK" : "Errore"}
+                  </p>
+                  <p className="mt-2 text-xs leading-5 text-[#5f524c]">
+                    {result.summary}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </section>
+
+        <section className="order-1 mt-6 rounded-[8px] border border-[#8b5e4a]/20 bg-[#8b5e4a]/5 p-5 md:p-6">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+            Flusso consigliato
+          </p>
+          <ol className="mt-3 grid gap-2 text-sm leading-6 text-[#5f524c] md:grid-cols-5">
+            <li>1. Aggiorna libro soci ufficiale</li>
+            <li>2. Aggiorna nuove iscrizioni da Google Form</li>
+            <li>3. Sincronizza Ticket Tailor</li>
+            <li>4. Esegui preview verifica tessere</li>
+            <li>5. Applica verifica tessere e controlla i partecipanti</li>
+          </ol>
+        </section>
+
+        <section className="order-4 mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div className="flex gap-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#211815] font-serif text-2xl text-[#f4efe8]">
+                3
+              </span>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+                  Step 3
+                </p>
+                <h2 className="mt-2 font-serif text-3xl font-medium">
+                  Sync Ticket Tailor
+                </h2>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
+                  Importa eventi, ordini, biglietti e partecipanti da Ticket
+                  Tailor. Non verifica la tessera.
+                </p>
+              </div>
+            </div>
             <button
               className="rounded-full bg-[#211815] px-5 py-2.5 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
               type="button"
@@ -709,19 +1214,493 @@ export default function TicketTailorAdminPage() {
           ) : null}
         </section>
 
-        <section className="mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
+        <section className="order-5 mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-                Soci
-              </p>
-              <h2 className="mt-2 font-serif text-3xl font-medium">
-                Sync soci da Google Sheet
-              </h2>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
-                Legge il Google Sheet soci e prepara la sincronizzazione verso
-                Supabase senza collegarla agli attendee Ticket Tailor.
-              </p>
+            <div className="flex gap-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#211815] font-serif text-2xl text-[#f4efe8]">
+                4
+              </span>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+                  Step 4
+                </p>
+                <h2 className="mt-2 font-serif text-3xl font-medium">
+                  Verifica tessere partecipanti
+                </h2>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
+                  Confronta gli attendee con i soci importati e suggerisce lo
+                  stato tessera per ogni partecipante.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                className="rounded-full border border-[#211815]/20 px-5 py-2.5 text-sm font-semibold text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
+                type="button"
+                disabled={previewingParticipantCheck || applyingParticipantCheck}
+                onClick={handlePreviewParticipantAssociationCheck}
+              >
+                {previewingParticipantCheck
+                  ? "Genero preview..."
+                  : "Preview verifica tessere"}
+              </button>
+              <button
+                className="rounded-full bg-[#211815] px-5 py-2.5 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
+                type="button"
+                disabled={
+                  !participantCheckPreview ||
+                  previewingParticipantCheck ||
+                  applyingParticipantCheck
+                }
+                onClick={handleApplyParticipantAssociationCheck}
+              >
+                {applyingParticipantCheck
+                  ? "Applico verifica..."
+                  : "Applica verifica tessere"}
+              </button>
+            </div>
+          </div>
+
+          {participantCheckError ? (
+            <p className="mt-4 rounded-[8px] border border-[#8b2f2a]/20 bg-[#8b2f2a]/5 p-3 text-sm text-[#8b2f2a]">
+              {participantCheckError}
+            </p>
+          ) : null}
+
+          {participantCheckApplyReport ? (
+            <p className="mt-4 rounded-[8px] border border-[#2f5b3a]/20 bg-[#2f5b3a]/5 p-3 text-sm text-[#2f5b3a]">
+              Verifica applicata: {participantCheckApplyReport.updated ?? 0}{" "}
+              attendee aggiornati.
+            </p>
+          ) : null}
+
+          {participantCheckPreview ? (
+            <div className="mt-5 space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-7">
+                {[
+                  ["Attendee analizzati", participantCheckPreview.totalAttendees],
+                  ["Verified", participantCheckPreview.verified],
+                  ["Pending", participantCheckPreview.pending],
+                  ["Expired", participantCheckPreview.expired],
+                  ["Non trovati", participantCheckPreview.notFound],
+                  ["Manual review", participantCheckPreview.manualReview],
+                  ["Match multipli", participantCheckPreview.multipleMatches],
+                ].map(([label, value]) => (
+                  <div
+                    className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3"
+                    key={label}
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
+                      {label}
+                    </p>
+                    <p className="mt-2 font-serif text-3xl text-[#211815]">
+                      {value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {participantCheckPreview.errors &&
+              participantCheckPreview.errors.length > 0 ? (
+                <div className="rounded-[8px] border border-[#8b2f2a]/20 bg-[#8b2f2a]/5 p-3 text-sm text-[#8b2f2a]">
+                  {participantCheckPreview.errors.map((error) => (
+                    <p key={error}>{error}</p>
+                  ))}
+                </div>
+              ) : null}
+
+              <div className="space-y-3 rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3">
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    ["Tutte", "all"],
+                    ["Verified", "verified"],
+                    ["Pending", "pending"],
+                    ["Expired", "expired"],
+                    ["Not found", "not_found"],
+                    ["Manual review", "manual_review"],
+                    ["Match multipli", "multiple"],
+                  ].map(([label, filter]) => (
+                    <button
+                      className={quickFilterButtonClass(
+                        participantCheckStatusFilter === filter,
+                      )}
+                      key={filter}
+                      type="button"
+                      onClick={() =>
+                        updateParticipantCheckStatusFilter(
+                          filter as ParticipantCheckStatusFilter,
+                        )
+                      }
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.55fr)] md:items-end">
+                  <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                    Metodo match
+                    <select
+                      className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/70 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+                      value={participantCheckMatchFilter}
+                      onChange={(event) =>
+                        updateParticipantCheckMatchFilter(
+                          event.target.value as ParticipantCheckMatchFilter,
+                        )
+                      }
+                    >
+                      <option value="all">Tutti i match</option>
+                      <option value="email">Email</option>
+                      <option value="name">Nome</option>
+                      <option value="none">Nessun match</option>
+                      <option value="multiple">Multiplo</option>
+                    </select>
+                  </label>
+                  <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                    Cerca
+                    <input
+                      className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/70 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+                      value={participantCheckSearch}
+                      onChange={(event) =>
+                        updateParticipantCheckSearch(event.target.value)
+                      }
+                      placeholder="Nome, email, evento, motivo"
+                    />
+                  </label>
+                </div>
+
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                  {participantCheckDisplayStart}-{participantCheckDisplayEnd} di{" "}
+                  {filteredParticipantCheckRows.length} · Pagina{" "}
+                  {safeParticipantCheckPage} di {participantCheckTotalPages}
+                </p>
+              </div>
+
+              <div className="overflow-x-auto rounded-[8px] border border-[#211815]/10">
+                <table className="min-w-[1200px] w-full border-collapse bg-[#f4efe8]/60 text-left text-xs">
+                  <thead className="bg-[#211815]/5 uppercase tracking-[0.12em] text-[#5f524c]">
+                    <tr>
+                      {[
+                        "attendee",
+                        "email",
+                        "evento",
+                        "attuale",
+                        "suggerito",
+                        "match",
+                        "socio",
+                        "scadenza",
+                        "motivo",
+                      ].map((column) => (
+                        <th className="border-b border-[#211815]/10 px-3 py-3" key={column}>
+                          {column}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagedParticipantCheckRows.length > 0 ? (
+                      pagedParticipantCheckRows.map((row) => (
+                        <tr className="border-b border-[#211815]/8" key={row.participant_id}>
+                          <td className="px-3 py-3">{row.participant_name}</td>
+                          <td className="px-3 py-3">{row.participant_email ?? "-"}</td>
+                          <td className="px-3 py-3">
+                            {row.ticket_tailor_event_id ?? row.event_id ?? "-"}
+                          </td>
+                          <td className="px-3 py-3">
+                            {formatAssociationStatusLabel(
+                              row.current_association_status,
+                            )}
+                          </td>
+                          <td className="px-3 py-3">
+                            {formatAssociationStatusLabel(
+                              row.suggested_association_status,
+                            )}
+                          </td>
+                          <td className="px-3 py-3">{row.match_method}</td>
+                          <td className="px-3 py-3">{row.matched_member_id ?? "-"}</td>
+                          <td className="px-3 py-3">
+                            {row.matched_member_expires_at ?? "-"}
+                          </td>
+                          <td className="px-3 py-3">{row.reason}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td className="px-3 py-8 text-center text-[#5f524c]" colSpan={9}>
+                          Nessuna riga da mostrare.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                  {participantCheckDisplayStart}-{participantCheckDisplayEnd} di{" "}
+                  {filteredParticipantCheckRows.length}
+                </p>
+                <div className="flex items-center gap-3">
+                  <button
+                    className="rounded-full border border-[#211815]/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
+                    type="button"
+                    disabled={safeParticipantCheckPage <= 1}
+                    onClick={() =>
+                      setParticipantCheckPage((page) => Math.max(1, page - 1))
+                    }
+                  >
+                    Precedente
+                  </button>
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                    Pagina {safeParticipantCheckPage} di{" "}
+                    {participantCheckTotalPages}
+                  </span>
+                  <button
+                    className="rounded-full border border-[#211815]/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
+                    type="button"
+                    disabled={safeParticipantCheckPage >= participantCheckTotalPages}
+                    onClick={() =>
+                      setParticipantCheckPage((page) =>
+                        Math.min(participantCheckTotalPages, page + 1),
+                      )
+                    }
+                  >
+                    Successiva
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </section>
+
+        <section className="order-2 mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div className="flex gap-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#211815] font-serif text-2xl text-[#f4efe8]">
+                1
+              </span>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+                  Step 1
+                </p>
+                <h2 className="mt-2 font-serif text-3xl font-medium">
+                  Sync libro soci ufficiale
+                </h2>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
+                  Legge il tab &lsquo;libro soci&rsquo; e aggiorna lo stato
+                  ufficiale delle tessere.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                className="rounded-full border border-[#211815]/20 px-5 py-2.5 text-sm font-semibold text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
+                type="button"
+                disabled={previewingBookSync || applyingBookSync}
+                onClick={handlePreviewBookSync}
+              >
+                {previewingBookSync ? "Genero preview..." : "Preview libro soci"}
+              </button>
+              <button
+                className="rounded-full bg-[#211815] px-5 py-2.5 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
+                type="button"
+                disabled={!bookSyncPreview || previewingBookSync || applyingBookSync}
+                onClick={handleApplyBookSync}
+              >
+                {applyingBookSync ? "Applico sync..." : "Applica libro soci"}
+              </button>
+            </div>
+          </div>
+
+          {bookSyncError ? (
+            <p className="mt-4 rounded-[8px] border border-[#8b2f2a]/20 bg-[#8b2f2a]/5 p-3 text-sm text-[#8b2f2a]">
+              {bookSyncError}
+            </p>
+          ) : null}
+
+          {bookSyncApplyReport ? (
+            <p className="mt-4 rounded-[8px] border border-[#2f5b3a]/20 bg-[#2f5b3a]/5 p-3 text-sm text-[#2f5b3a]">
+              Libro soci applicato: {bookSyncApplyReport.created ?? 0} creati,{" "}
+              {bookSyncApplyReport.updated ?? 0} aggiornati.
+            </p>
+          ) : null}
+
+          {bookSyncPreview ? (
+            <div className="mt-5 space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-7">
+                {[
+                  ["Righe lette", bookSyncPreview.totalRows],
+                  ["Validi", bookSyncPreview.verifiedRows],
+                  ["Scaduti", bookSyncPreview.expiredRows],
+                  ["Da creare", bookSyncPreview.wouldCreate],
+                  ["Da aggiornare", bookSyncPreview.wouldUpdate],
+                  ["Allineati", bookSyncPreview.unchanged],
+                  ["Non validi", bookSyncPreview.invalidRows],
+                ].map(([label, value]) => (
+                  <div
+                    className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3"
+                    key={label}
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
+                      {label}
+                    </p>
+                    <p className="mt-2 font-serif text-3xl text-[#211815]">
+                      {value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {bookSyncPreview.fallbackNameMatchCount > 0 ? (
+                <p className="rounded-[8px] border border-[#8b5e4a]/20 bg-[#8b5e4a]/5 p-3 text-sm text-[#5f524c]">
+                  Match fallback nome/cognome usati:{" "}
+                  {bookSyncPreview.fallbackNameMatchCount}.
+                </p>
+              ) : null}
+
+              {bookSyncPreview.detectedColumns ? (
+                <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
+                    Colonne rilevate
+                  </p>
+                  <div className="mt-3 grid gap-2 text-xs text-[#5f524c] md:grid-cols-4">
+                    {[
+                      ["Nome", bookSyncPreview.detectedColumns.first_name],
+                      ["Cognome", bookSyncPreview.detectedColumns.last_name],
+                      ["Codice fiscale", bookSyncPreview.detectedColumns.fiscal_code],
+                      ["Data nascita", bookSyncPreview.detectedColumns.birth_date],
+                      ["Data accettazione", bookSyncPreview.detectedColumns.accepted_at],
+                      ["Data cessazione", bookSyncPreview.detectedColumns.ceased_at],
+                      ["Quota 2026", bookSyncPreview.detectedColumns.current_year_quota],
+                      ["N. tessera 2026", bookSyncPreview.detectedColumns.current_year_card_number],
+                    ].map(([label, column]) => (
+                      <p key={label as string}>
+                        <span className="font-semibold text-[#211815]">
+                          {label as string}:
+                        </span>{" "}
+                        {(column as DetectedSheetColumn).header ?? "-"}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {bookSyncPreview.errors.length > 0 ? (
+                <div className="rounded-[8px] border border-[#8b2f2a]/20 bg-[#8b2f2a]/5 p-3 text-sm text-[#8b2f2a]">
+                  {bookSyncPreview.errors.map((error) => (
+                    <p key={error}>{error}</p>
+                  ))}
+                </div>
+              ) : null}
+
+              <div className="overflow-x-auto rounded-[8px] border border-[#211815]/10">
+                <table className="min-w-[1100px] w-full border-collapse bg-[#f4efe8]/60 text-left text-xs">
+                  <thead className="bg-[#211815]/5 uppercase tracking-[0.12em] text-[#5f524c]">
+                    <tr>
+                      {[
+                        "riga",
+                        "nome",
+                        "codice fiscale",
+                        "nascita",
+                        "status",
+                        "scadenza",
+                        "tessera",
+                        "azione",
+                        "match",
+                        "note",
+                      ].map((column) => (
+                        <th className="border-b border-[#211815]/10 px-3 py-3" key={column}>
+                          {column}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagedBookSyncRows.length > 0 ? (
+                      pagedBookSyncRows.map((row) => (
+                        <tr className="border-b border-[#211815]/8" key={row.rowNumber}>
+                          <td className="px-3 py-3">{row.rowNumber}</td>
+                          <td className="px-3 py-3">
+                            {row.first_name} {row.last_name}
+                          </td>
+                          <td className="px-3 py-3">{row.fiscal_code ?? "-"}</td>
+                          <td className="px-3 py-3">{row.birth_date ?? "-"}</td>
+                          <td className="px-3 py-3">{row.membership_status}</td>
+                          <td className="px-3 py-3">{row.membership_expires_at}</td>
+                          <td className="px-3 py-3">{row.membership_card_number ?? "-"}</td>
+                          <td className="px-3 py-3">{row.action}</td>
+                          <td className="px-3 py-3">{row.matchMethod}</td>
+                          <td className="px-3 py-3">
+                            {[...row.notes, ...row.errors].join(" · ")}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td className="px-3 py-8 text-center text-[#5f524c]" colSpan={10}>
+                          Nessuna riga da mostrare.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                  {bookSyncDisplayStart}-{bookSyncDisplayEnd} di{" "}
+                  {bookSyncPreview.previewRows.length}
+                </p>
+                <div className="flex items-center gap-3">
+                  <button
+                    className="rounded-full border border-[#211815]/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
+                    type="button"
+                    disabled={safeBookSyncPreviewPage <= 1}
+                    onClick={() =>
+                      setBookSyncPreviewPage((page) => Math.max(1, page - 1))
+                    }
+                  >
+                    Precedente
+                  </button>
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                    Pagina {safeBookSyncPreviewPage} di {bookSyncTotalPages}
+                  </span>
+                  <button
+                    className="rounded-full border border-[#211815]/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
+                    type="button"
+                    disabled={safeBookSyncPreviewPage >= bookSyncTotalPages}
+                    onClick={() =>
+                      setBookSyncPreviewPage((page) =>
+                        Math.min(bookSyncTotalPages, page + 1),
+                      )
+                    }
+                  >
+                    Successiva
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </section>
+
+        <section className="order-3 mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div className="flex gap-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#211815] font-serif text-2xl text-[#f4efe8]">
+                2
+              </span>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+                  Step 2
+                </p>
+                <h2 className="mt-2 font-serif text-3xl font-medium">
+                  Sync nuove iscrizioni da Google Form
+                </h2>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
+                  Legge il Google Sheet collegato al form associativo e importa
+                  le nuove iscrizioni dal 01/09/2025 in poi.
+                </p>
+              </div>
             </div>
             <div className="flex flex-wrap gap-3">
               <button
@@ -730,7 +1709,9 @@ export default function TicketTailorAdminPage() {
                 disabled={previewingMembersSync || applyingMembersSync}
                 onClick={handlePreviewMembersSync}
               >
-                {previewingMembersSync ? "Genero preview..." : "Preview sync soci"}
+                {previewingMembersSync
+                  ? "Genero preview..."
+                  : "Preview nuove iscrizioni"}
               </button>
               <button
                 className="rounded-full bg-[#211815] px-5 py-2.5 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
@@ -742,7 +1723,9 @@ export default function TicketTailorAdminPage() {
                 }
                 onClick={handleApplyMembersSync}
               >
-                {applyingMembersSync ? "Applico sync..." : "Applica sync soci"}
+                {applyingMembersSync
+                  ? "Applico sync..."
+                  : "Applica nuove iscrizioni"}
               </button>
             </div>
           </div>
@@ -769,11 +1752,11 @@ export default function TicketTailorAdminPage() {
                   ["Da aggiornare", membersSyncPreview.wouldUpdate],
                   ["Allineate", membersSyncPreview.unchanged],
                   ["Non valide", membersSyncPreview.invalidRows],
-                  ["Fallback data", membersSyncPreview.fallbackStartDateCount],
                   [
-                    "Prima del 01/09/2025",
+                    "Escluse prima del 01/09/2025",
                     membersSyncPreview.skippedBeforeValidFrom ?? 0,
                   ],
+                  ["Fallback data", membersSyncPreview.fallbackStartDateCount],
                 ].map(([label, value]) => (
                   <div
                     className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3"
@@ -828,6 +1811,38 @@ export default function TicketTailorAdminPage() {
                 </div>
               ) : null}
 
+              <div className="flex flex-col gap-3 rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    ["Tutte", "all"],
+                    ["Da creare", "create"],
+                    ["Da aggiornare", "update"],
+                    ["Allineate", "unchanged"],
+                    ["Non valide", "invalid"],
+                  ].map(([label, filter]) => (
+                    <button
+                      className={quickFilterButtonClass(
+                        membersSyncPreviewFilter === filter,
+                      )}
+                      key={filter}
+                      type="button"
+                      onClick={() =>
+                        updateMembersSyncPreviewFilter(
+                          filter as MembersSyncPreviewFilter,
+                        )
+                      }
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <div className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                  {membersSyncDisplayStart}-{membersSyncDisplayEnd} di{" "}
+                  {filteredMembersSyncRows.length} · Pagina{" "}
+                  {safeMembersSyncPreviewPage} di {membersSyncTotalPages}
+                </div>
+              </div>
+
               <div className="overflow-x-auto rounded-[8px] border border-[#211815]/10">
                 <table className="min-w-[980px] w-full border-collapse bg-[#f4efe8]/60 text-left text-xs">
                   <thead className="bg-[#211815]/5 uppercase tracking-[0.12em] text-[#5f524c]">
@@ -852,7 +1867,8 @@ export default function TicketTailorAdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {membersSyncPreview.previewRows.slice(0, 80).map((row) => (
+                    {pagedMembersSyncRows.length > 0 ? (
+                    pagedMembersSyncRows.map((row) => (
                       <tr className="border-b border-[#211815]/8" key={row.rowNumber}>
                         <td className="px-3 py-3">{row.rowNumber}</td>
                         <td className="px-3 py-3">
@@ -864,6 +1880,11 @@ export default function TicketTailorAdminPage() {
                         <td className="px-3 py-3">{row.action}</td>
                         <td className="px-3 py-3">{row.matchMethod}</td>
                         <td className="px-3 py-3">
+                          {row.notes.length > 0 ? row.notes.join(" · ") : ""}
+                          {row.notes.length > 0 &&
+                          (row.fallbackStartDate || row.errors.length > 0)
+                            ? " · "
+                            : ""}
                           {row.action === "skipped" && row.errors.length === 0
                             ? "Compilazione precedente al 01/09/2025: da verificare manualmente."
                             : ""}
@@ -879,26 +1900,79 @@ export default function TicketTailorAdminPage() {
                             : ""}
                         </td>
                       </tr>
-                    ))}
+                    ))
+                    ) : (
+                      <tr>
+                        <td className="px-3 py-8 text-center text-[#5f524c]" colSpan={8}>
+                          Nessuna riga per questo filtro.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
+              </div>
+
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                  {membersSyncDisplayStart}-{membersSyncDisplayEnd} di{" "}
+                  {filteredMembersSyncRows.length}
+                </p>
+                <div className="flex items-center gap-3">
+                  <button
+                    className="rounded-full border border-[#211815]/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
+                    type="button"
+                    disabled={safeMembersSyncPreviewPage <= 1}
+                    onClick={() =>
+                      setMembersSyncPreviewPage((page) => Math.max(1, page - 1))
+                    }
+                  >
+                    Precedente
+                  </button>
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                    Pagina {safeMembersSyncPreviewPage} di{" "}
+                    {membersSyncTotalPages}
+                  </span>
+                  <button
+                    className="rounded-full border border-[#211815]/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
+                    type="button"
+                    disabled={safeMembersSyncPreviewPage >= membersSyncTotalPages}
+                    onClick={() =>
+                      setMembersSyncPreviewPage((page) =>
+                        Math.min(membersSyncTotalPages, page + 1),
+                      )
+                    }
+                  >
+                    Successiva
+                  </button>
+                </div>
               </div>
             </div>
           ) : null}
         </section>
 
-        <section className="mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
+        <section className="order-7 mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+            Strumenti avanzati
+          </p>
+          <h2 className="mt-2 font-serif text-3xl font-medium">
+            Strumenti avanzati
+          </h2>
+          <details className="mt-5 rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/60 p-4">
+            <summary className="cursor-pointer text-sm font-semibold text-[#211815]">
+              Mostra strumenti avanzati
+            </summary>
+            <div className="mt-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
                 Soci
               </p>
               <h2 className="mt-2 font-serif text-3xl font-medium">
-                Import soci
+                Verifica manuale soci
               </h2>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
-                Incolla una lista Nome/Cognome per verificare quali
-                partecipanti risultano gi&agrave; presenti.
+                Strumento precedente per verifiche manuali su nominativi. Usare
+                solo per casi storici, controlli puntuali o debug.
               </p>
             </div>
             <button
@@ -1029,17 +2103,28 @@ export default function TicketTailorAdminPage() {
               />
             </div>
           ) : null}
+            </div>
+          </details>
         </section>
 
-        <section className="mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
+        <section className="order-6 mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-                Partecipanti
-              </p>
-              <h2 className="mt-2 font-serif text-3xl font-medium">
-                Event participants
-              </h2>
+            <div className="flex gap-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#211815] font-serif text-2xl text-[#f4efe8]">
+                5
+              </span>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+                  Step 5
+                </p>
+                <h2 className="mt-2 font-serif text-3xl font-medium">
+                  Lista partecipanti evento
+                </h2>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
+                  Mostra i partecipanti importati da Ticket Tailor. Il check-in
+                  riguarda solo gli attendee.
+                </p>
+              </div>
             </div>
           </div>
 
@@ -1918,6 +3003,20 @@ function getParticipantSummary(participants: Participant[]) {
 
 function normalizeAssociationStatus(status: string | null) {
   return status?.trim() || "unknown";
+}
+
+function formatAssociationStatusLabel(status: string | null) {
+  const normalized = normalizeAssociationStatus(status);
+  const labels: Record<string, string> = {
+    verified: "Tessera valida",
+    pending: "Da validare",
+    expired: "Scaduta",
+    not_found: "Non trovata",
+    manual_review: "Controllo manuale",
+    unknown: "Da verificare",
+  };
+
+  return labels[normalized] ?? normalized;
 }
 
 function quickFilterButtonClass(active: boolean) {

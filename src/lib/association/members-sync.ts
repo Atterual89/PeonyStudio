@@ -34,7 +34,9 @@ export type AssociationMemberPreviewRow = {
   action: "create" | "update" | "unchanged" | "invalid" | "skipped";
   fallbackStartDate: boolean;
   errors: string[];
+  notes: string[];
   existingMemberId: string | null;
+  preserveManualStatus: boolean;
 };
 
 export type AssociationMembersSyncPreview = {
@@ -71,6 +73,7 @@ const ASSOCIATION_MEMBER_FIELDS = [
 const MEMBERSHIP_VALID_FROM = "2025-09-01";
 const SKIPPED_BEFORE_VALID_FROM_REASON =
   "Compilazione precedente al 01/09/2025: da verificare manualmente.";
+const MANUAL_STATUS_VALUES = new Set(["pending", "manual_review", "expired"]);
 
 export async function buildAssociationMembersSyncPreview(
   supabase: SupabaseClient,
@@ -107,7 +110,9 @@ export async function applyAssociationMembersSync(supabase: SupabaseClient) {
       continue;
     }
 
-    const payload = mapSheetRowToMemberPayload(sourceRow);
+    const payload = previewRow.existingMemberId
+      ? mapSheetRowToMemberUpdatePayload(sourceRow, previewRow.preserveManualStatus)
+      : mapSheetRowToMemberInsertPayload(sourceRow);
 
     if (previewRow.existingMemberId) {
       const { error } = await supabase
@@ -212,7 +217,9 @@ function buildPreview(
         matchMethod: "none",
         action: "invalid",
         errors: row.errors,
+        notes: [],
         existingMemberId: null,
+        preserveManualStatus: false,
       };
     }
 
@@ -222,7 +229,9 @@ function buildPreview(
         matchMethod: "none",
         action: "skipped",
         errors: [...row.errors, SKIPPED_BEFORE_VALID_FROM_REASON],
+        notes: [],
         existingMemberId: null,
+        preserveManualStatus: false,
       };
     }
 
@@ -243,7 +252,11 @@ function buildPreview(
       matchMethod: match.method,
       action,
       errors: row.errors,
+      notes: match.member ? getManualStatusNotes(match.member) : [],
       existingMemberId: match.member?.id ?? null,
+      preserveManualStatus: match.member
+        ? shouldPreserveManualStatus(match.member.membership_status)
+        : false,
     };
   });
   const validSourceRows = sheetResult.rows.filter((row) =>
@@ -315,7 +328,7 @@ function mapBasePreviewRow(row: GoogleSheetMemberRow) {
   };
 }
 
-function mapSheetRowToMemberPayload(row: GoogleSheetMemberRow) {
+function mapSheetRowToMemberInsertPayload(row: GoogleSheetMemberRow) {
   return {
     first_name: row.first_name,
     last_name: row.last_name,
@@ -328,6 +341,39 @@ function mapSheetRowToMemberPayload(row: GoogleSheetMemberRow) {
     source_row_id: row.source_row_id,
     source_hash: row.source_hash,
   };
+}
+
+function mapSheetRowToMemberUpdatePayload(
+  row: GoogleSheetMemberRow,
+  preserveManualStatus: boolean,
+) {
+  const payload: Record<string, string | null> = {
+    first_name: row.first_name,
+    last_name: row.last_name,
+    email: row.email,
+    contact: row.contact,
+    membership_starts_at: row.membership_starts_at,
+    membership_expires_at: row.membership_expires_at,
+    source: row.source,
+    source_row_id: row.source_row_id,
+    source_hash: row.source_hash,
+  };
+
+  if (!preserveManualStatus) {
+    payload.membership_status = row.membership_status;
+  }
+
+  return payload;
+}
+
+function shouldPreserveManualStatus(status: string | null) {
+  return MANUAL_STATUS_VALUES.has(status?.trim() ?? "");
+}
+
+function getManualStatusNotes(member: AssociationMemberRecord) {
+  return shouldPreserveManualStatus(member.membership_status)
+    ? [`Status manuale conservato: ${member.membership_status}`]
+    : [];
 }
 
 function normalizeNameKey(firstName: string | null, lastName: string | null) {
