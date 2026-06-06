@@ -54,6 +54,19 @@ type ParticipantFilters = {
   association_status: string;
 };
 
+type ParticipantListFilters = {
+  search: string;
+  associationStatus: string;
+  checkedIn: string;
+  participantType: string;
+};
+
+type BookSyncPreviewFilters = {
+  search: string;
+  status: "all" | "verified" | "expired" | "invalid";
+  action: "all" | "create" | "update" | "unchanged" | "invalid";
+};
+
 type QuickFilterMode = "none" | "association_to_verify";
 
 type ParticipantOrderGroup = {
@@ -61,6 +74,7 @@ type ParticipantOrderGroup = {
   orderId: string | null;
   buyers: Participant[];
   attendees: Participant[];
+  hiddenRows: number;
 };
 
 type ImportSociRow = {
@@ -244,6 +258,61 @@ type ParticipantAssociationCheckReport = {
   message?: string;
 };
 
+type MembershipRecapRow = {
+  participant_id: string;
+  event_id: string | null;
+  ticket_tailor_event_id: string | null;
+  event_title: string | null;
+  ticket_tailor_order_id: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  checked_in: boolean | null;
+  members_book_status:
+    | "valid"
+    | "expired"
+    | "pending"
+    | "not_present"
+    | "manual_review";
+  members_book_expires_at: string | null;
+  members_book_match_method: "email" | "name" | "multiple" | "none";
+  google_form_status: "present" | "not_present" | "manual_review";
+  google_form_expires_at: string | null;
+  google_form_match_method: "email" | "name" | "multiple" | "none";
+  suggested_final_status:
+    | "verified"
+    | "pending"
+    | "expired"
+    | "not_found"
+    | "manual_review"
+    | "unknown";
+  suggested_expires_at: string | null;
+  current_association_status: string | null;
+  current_association_expires_at: string | null;
+  notes_admin: string | null;
+};
+
+type MembershipRecapDraft = {
+  association_status: string;
+  association_expires_at: string;
+  notes_admin: string;
+};
+
+type MembershipRecapFilters = {
+  search: string;
+  associationStatus: string;
+  membersBookStatus: string;
+  googleFormStatus: string;
+  checkedIn: string;
+};
+
+type MembershipRecapResponse = {
+  ok?: boolean;
+  total: number;
+  rows: MembershipRecapRow[];
+  message?: string;
+};
+
 type ParticipantCheckStatusFilter =
   | "all"
   | "verified"
@@ -278,6 +347,15 @@ const associationStatuses = [
   "not_required",
 ];
 
+const associationStatusesForEditing = [
+  "verified",
+  "pending",
+  "expired",
+  "not_found",
+  "manual_review",
+  "unknown",
+];
+
 const associationStatusesToVerify = new Set([
   "unknown",
   "missing",
@@ -289,6 +367,51 @@ const associationStatusesToVerify = new Set([
 
 const membersSyncPreviewPageSize = 50;
 const membershipValidFrom = "2025-09-01";
+
+const processSummaryRows = [
+  {
+    phase: "1. Libro soci ufficiale",
+    updates: "Stato ufficiale delle tessere",
+    source: "Tab Google Sheet 'libro soci'",
+    action: "Controlla libro soci → Conferma aggiornamento",
+    result: "Soci validi, scaduti o da controllare aggiornati",
+  },
+  {
+    phase: "2. Nuove iscrizioni",
+    updates: "Persone che hanno compilato il form associativo",
+    source: "Google Form / tab risposte",
+    action: "Controlla nuove iscrizioni → Conferma nuove iscrizioni",
+    result: "Nuovi soci importati dal 01/09/2025 in poi",
+  },
+  {
+    phase: "3. Biglietti Ticket Tailor",
+    updates: "Eventi, ordini, biglietti, acquirenti, partecipanti e check-in",
+    source: "Ticket Tailor",
+    action: "Aggiorna dati Ticket Tailor",
+    result: "Partecipanti evento aggiornati",
+  },
+  {
+    phase: "4. Verifica tessere",
+    updates: "Stato tessera dei partecipanti",
+    source: "Soci + partecipanti Ticket Tailor",
+    action: "Controlla tessere partecipanti → Conferma verifica tessere",
+    result: "Tessera valida, scaduta, non trovata o da controllare",
+  },
+  {
+    phase: "5. Partecipanti evento",
+    updates: "Vista finale operativa",
+    source: "Ticket Tailor + verifica tessere",
+    action: "Carica partecipanti",
+    result: "Lista acquirenti e partecipanti con check-in e stato tessera",
+  },
+  {
+    phase: "6. Recap tessere partecipanti",
+    updates: "Correzioni manuali finali sulle tessere",
+    source: "Partecipanti + libro soci + Google Form",
+    action: "Carica recap tessere -> Salva le singole righe",
+    result: "Stato tessera finale aggiornato sui partecipanti effettivi",
+  },
+];
 
 const syncSteps: SyncStep[] = [
   {
@@ -356,6 +479,12 @@ export default function TicketTailorAdminPage() {
   const [previewingBookSync, setPreviewingBookSync] = useState(false);
   const [applyingBookSync, setApplyingBookSync] = useState(false);
   const [bookSyncPreviewPage, setBookSyncPreviewPage] = useState(1);
+  const [bookSyncPreviewFilters, setBookSyncPreviewFilters] =
+    useState<BookSyncPreviewFilters>({
+      search: "",
+      status: "all",
+      action: "all",
+    });
   const [participantCheckPreview, setParticipantCheckPreview] =
     useState<ParticipantAssociationCheckReport | null>(null);
   const [participantCheckApplyReport, setParticipantCheckApplyReport] =
@@ -372,19 +501,84 @@ export default function TicketTailorAdminPage() {
   const [participantCheckMatchFilter, setParticipantCheckMatchFilter] =
     useState<ParticipantCheckMatchFilter>("all");
   const [participantCheckSearch, setParticipantCheckSearch] = useState("");
+  const [showParticipantCheckAdvancedFilters, setShowParticipantCheckAdvancedFilters] =
+    useState(false);
   const [filters, setFilters] = useState<ParticipantFilters>({
     ticket_tailor_event_id: "",
     participant_type: "attendee",
     checked_in: "",
     association_status: "",
   });
-  const displayedParticipants = applyQuickFilter(participants, quickFilterMode);
-  const participantOrderGroups = groupParticipantsByOrder(displayedParticipants);
+  const [participantListFilters, setParticipantListFilters] =
+    useState<ParticipantListFilters>({
+      search: "",
+      associationStatus: "",
+      checkedIn: "",
+      participantType: "",
+    });
+  const [membershipRecapRows, setMembershipRecapRows] = useState<
+    MembershipRecapRow[]
+  >([]);
+  const [membershipRecapDrafts, setMembershipRecapDrafts] = useState<
+    Record<string, MembershipRecapDraft>
+  >({});
+  const [membershipRecapFilters, setMembershipRecapFilters] =
+    useState<MembershipRecapFilters>({
+      search: "",
+      associationStatus: "",
+      membersBookStatus: "",
+      googleFormStatus: "",
+      checkedIn: "",
+    });
+  const [membershipRecapPage, setMembershipRecapPage] = useState(1);
+  const [loadingMembershipRecap, setLoadingMembershipRecap] = useState(false);
+  const [membershipRecapError, setMembershipRecapError] = useState<string | null>(
+    null,
+  );
+  const [savingMembershipRecapId, setSavingMembershipRecapId] = useState<
+    string | null
+  >(null);
+  const [membershipRecapSavedIds, setMembershipRecapSavedIds] = useState<
+    Record<string, boolean>
+  >({});
+  const quickFilteredParticipants = applyQuickFilter(participants, quickFilterMode);
+  const displayedParticipants = applyParticipantListFilters(
+    quickFilteredParticipants,
+    participantListFilters,
+    events,
+  );
+  const participantOrderGroups = groupParticipantsByOrder(
+    displayedParticipants,
+    quickFilteredParticipants,
+  );
   const editingParticipant = editingParticipantId
     ? participants.find((participant) => participant.id === editingParticipantId) ??
       null
     : null;
   const participantSummary = getParticipantSummary(displayedParticipants);
+  const filteredMembershipRecapRows = membershipRecapRows.filter((row) =>
+    matchesMembershipRecapFilters(row, membershipRecapFilters, membershipRecapDrafts),
+  );
+  const membershipRecapTotalPages = Math.max(
+    1,
+    Math.ceil(filteredMembershipRecapRows.length / membersSyncPreviewPageSize),
+  );
+  const safeMembershipRecapPage = Math.min(
+    membershipRecapPage,
+    membershipRecapTotalPages,
+  );
+  const membershipRecapPageStart =
+    (safeMembershipRecapPage - 1) * membersSyncPreviewPageSize;
+  const pagedMembershipRecapRows = filteredMembershipRecapRows.slice(
+    membershipRecapPageStart,
+    membershipRecapPageStart + membersSyncPreviewPageSize,
+  );
+  const membershipRecapDisplayStart =
+    filteredMembershipRecapRows.length > 0 ? membershipRecapPageStart + 1 : 0;
+  const membershipRecapDisplayEnd = Math.min(
+    membershipRecapPageStart + pagedMembershipRecapRows.length,
+    filteredMembershipRecapRows.length,
+  );
   const uniqueImportSociMatches =
     importSociMatchPreview?.results.filter(
       (result) => result.match_status === "unique",
@@ -429,9 +623,13 @@ export default function TicketTailorAdminPage() {
     membersSyncPageStart + pagedMembersSyncRows.length,
     filteredMembersSyncRows.length,
   );
+  const filteredBookSyncRows =
+    bookSyncPreview?.previewRows.filter((row) =>
+      matchesBookSyncPreviewFilters(row, bookSyncPreviewFilters),
+    ) ?? [];
   const bookSyncTotalPages = Math.max(
     1,
-    Math.ceil((bookSyncPreview?.previewRows.length ?? 0) / membersSyncPreviewPageSize),
+    Math.ceil(filteredBookSyncRows.length / membersSyncPreviewPageSize),
   );
   const safeBookSyncPreviewPage = Math.min(
     bookSyncPreviewPage,
@@ -439,16 +637,15 @@ export default function TicketTailorAdminPage() {
   );
   const bookSyncPageStart =
     (safeBookSyncPreviewPage - 1) * membersSyncPreviewPageSize;
-  const pagedBookSyncRows =
-    bookSyncPreview?.previewRows.slice(
-      bookSyncPageStart,
-      bookSyncPageStart + membersSyncPreviewPageSize,
-    ) ?? [];
+  const pagedBookSyncRows = filteredBookSyncRows.slice(
+    bookSyncPageStart,
+    bookSyncPageStart + membersSyncPreviewPageSize,
+  );
   const bookSyncDisplayStart =
-    (bookSyncPreview?.previewRows.length ?? 0) > 0 ? bookSyncPageStart + 1 : 0;
+    filteredBookSyncRows.length > 0 ? bookSyncPageStart + 1 : 0;
   const bookSyncDisplayEnd = Math.min(
     bookSyncPageStart + pagedBookSyncRows.length,
-    bookSyncPreview?.previewRows.length ?? 0,
+    filteredBookSyncRows.length,
   );
   const normalizedParticipantCheckSearch = participantCheckSearch
     .trim()
@@ -510,7 +707,7 @@ export default function TicketTailorAdminPage() {
         {
           label: "Errore",
           ok: false,
-          summary: "Inserisci l'Admin sync secret.",
+          summary: "Inserisci il codice admin.",
         },
       ]);
       return;
@@ -554,7 +751,7 @@ export default function TicketTailorAdminPage() {
 
   async function loadEvents() {
     if (!secret.trim()) {
-      setEventsError("Inserisci l'Admin sync secret.");
+      setEventsError("Inserisci il codice admin.");
       return [];
     }
 
@@ -604,7 +801,7 @@ export default function TicketTailorAdminPage() {
 
   async function fetchParticipants(nextFilters = filters) {
     if (!secret.trim()) {
-      setParticipantError("Inserisci l'Admin sync secret.");
+      setParticipantError("Inserisci il codice admin.");
       return;
     }
 
@@ -657,15 +854,6 @@ export default function TicketTailorAdminPage() {
     }
   }
 
-  async function applyFilters(
-    nextFilters: ParticipantFilters,
-    nextQuickFilterMode: QuickFilterMode = "none",
-  ) {
-    setFilters(nextFilters);
-    setQuickFilterMode(nextQuickFilterMode);
-    await fetchParticipants(nextFilters);
-  }
-
   function updateParticipantDraft(
     participantId: string,
     field: keyof AssociationDraft,
@@ -700,7 +888,7 @@ export default function TicketTailorAdminPage() {
 
   async function saveParticipantAssociation(participantId: string) {
     if (!secret.trim()) {
-      setParticipantError("Inserisci l'Admin sync secret.");
+      setParticipantError("Inserisci il codice admin.");
       return false;
     }
 
@@ -769,7 +957,7 @@ export default function TicketTailorAdminPage() {
 
   async function handleSearchImportSociMatches() {
     if (!secret.trim()) {
-      setImportSociMatchError("Inserisci l'Admin sync secret.");
+      setImportSociMatchError("Inserisci il codice admin.");
       return;
     }
 
@@ -803,7 +991,7 @@ export default function TicketTailorAdminPage() {
 
       if (!response.ok || payload.ok === false) {
         setImportSociMatchError(
-          payload.message ?? payload.error ?? "Errore ricerca match.",
+          payload.message ?? payload.error ?? "Errore ricerca corrispondenze.",
         );
         return;
       }
@@ -820,7 +1008,7 @@ export default function TicketTailorAdminPage() {
 
   async function handlePreviewMembersSync() {
     if (!secret.trim()) {
-      setMembersSyncError("Inserisci l'Admin sync secret.");
+      setMembersSyncError("Inserisci il codice admin.");
       return;
     }
 
@@ -839,7 +1027,7 @@ export default function TicketTailorAdminPage() {
       const payload = (await response.json()) as AssociationMembersSyncReport;
 
       if (!response.ok || payload.ok === false) {
-        setMembersSyncError(payload.message ?? "Errore preview sync soci.");
+        setMembersSyncError(payload.message ?? "Errore controllo nuove iscrizioni.");
         return;
       }
 
@@ -857,12 +1045,12 @@ export default function TicketTailorAdminPage() {
 
   async function handleApplyMembersSync() {
     if (!secret.trim()) {
-      setMembersSyncError("Inserisci l'Admin sync secret.");
+      setMembersSyncError("Inserisci il codice admin.");
       return;
     }
 
     if (!membersSyncPreview) {
-      setMembersSyncError("Esegui prima la preview sync soci.");
+      setMembersSyncError("Esegui prima il controllo delle nuove iscrizioni.");
       return;
     }
 
@@ -879,7 +1067,7 @@ export default function TicketTailorAdminPage() {
       const payload = (await response.json()) as AssociationMembersSyncReport;
 
       if (!response.ok || payload.ok === false) {
-        setMembersSyncError(payload.message ?? "Errore apply sync soci.");
+        setMembersSyncError(payload.message ?? "Errore conferma nuove iscrizioni.");
       }
 
       setMembersSyncApplyReport(payload);
@@ -902,7 +1090,7 @@ export default function TicketTailorAdminPage() {
 
   async function handlePreviewBookSync() {
     if (!secret.trim()) {
-      setBookSyncError("Inserisci l'Admin sync secret.");
+      setBookSyncError("Inserisci il codice admin.");
       return;
     }
 
@@ -927,6 +1115,11 @@ export default function TicketTailorAdminPage() {
 
       setBookSyncPreview(payload);
       setBookSyncPreviewPage(1);
+      setBookSyncPreviewFilters({
+        search: "",
+        status: "all",
+        action: "all",
+      });
     } catch (error) {
       setBookSyncError(
         error instanceof Error ? error.message : "Errore sconosciuto.",
@@ -938,7 +1131,7 @@ export default function TicketTailorAdminPage() {
 
   async function handleApplyBookSync() {
     if (!secret.trim()) {
-      setBookSyncError("Inserisci l'Admin sync secret.");
+      setBookSyncError("Inserisci il codice admin.");
       return;
     }
 
@@ -966,6 +1159,11 @@ export default function TicketTailorAdminPage() {
       setBookSyncApplyReport(payload);
       setBookSyncPreview(payload);
       setBookSyncPreviewPage(1);
+      setBookSyncPreviewFilters({
+        search: "",
+        status: "all",
+        action: "all",
+      });
     } catch (error) {
       setBookSyncError(
         error instanceof Error ? error.message : "Errore sconosciuto.",
@@ -977,7 +1175,7 @@ export default function TicketTailorAdminPage() {
 
   async function handlePreviewParticipantAssociationCheck() {
     if (!secret.trim()) {
-      setParticipantCheckError("Inserisci l'Admin sync secret.");
+      setParticipantCheckError("Inserisci il codice admin.");
       return;
     }
 
@@ -1021,7 +1219,7 @@ export default function TicketTailorAdminPage() {
 
   async function handleApplyParticipantAssociationCheck() {
     if (!secret.trim()) {
-      setParticipantCheckError("Inserisci l'Admin sync secret.");
+      setParticipantCheckError("Inserisci il codice admin.");
       return;
     }
 
@@ -1067,6 +1265,139 @@ export default function TicketTailorAdminPage() {
     }
   }
 
+  async function loadMembershipRecap() {
+    if (!secret.trim()) {
+      setMembershipRecapError("Inserisci il codice admin.");
+      return;
+    }
+
+    setLoadingMembershipRecap(true);
+    setMembershipRecapError(null);
+    setMembershipRecapSavedIds({});
+
+    try {
+      const response = await fetch("/api/admin/participants/membership-recap", {
+        headers: {
+          "x-admin-sync-secret": secret,
+        },
+      });
+      const payload = (await response.json()) as MembershipRecapResponse;
+
+      if (!response.ok || payload.ok === false) {
+        setMembershipRecapRows([]);
+        setMembershipRecapDrafts({});
+        setMembershipRecapError(payload.message ?? "Errore caricamento recap.");
+        return;
+      }
+
+      const rows = payload.rows ?? [];
+      setMembershipRecapRows(rows);
+      setMembershipRecapDrafts(createMembershipRecapDrafts(rows));
+      setMembershipRecapPage(1);
+    } catch (error) {
+      setMembershipRecapRows([]);
+      setMembershipRecapDrafts({});
+      setMembershipRecapError(
+        error instanceof Error ? error.message : "Errore sconosciuto.",
+      );
+    } finally {
+      setLoadingMembershipRecap(false);
+    }
+  }
+
+  function updateMembershipRecapDraft(
+    participantId: string,
+    field: keyof MembershipRecapDraft,
+    value: string,
+  ) {
+    setMembershipRecapDrafts((current) => ({
+      ...current,
+      [participantId]: {
+        ...(current[participantId] ?? {
+          association_status: "unknown",
+          association_expires_at: "",
+          notes_admin: "",
+        }),
+        [field]: value,
+      },
+    }));
+    setMembershipRecapSavedIds((current) => ({
+      ...current,
+      [participantId]: false,
+    }));
+  }
+
+  function applyMembershipRecapSuggestion(row: MembershipRecapRow) {
+    setMembershipRecapDrafts((current) => ({
+      ...current,
+      [row.participant_id]: {
+        association_status: row.suggested_final_status,
+        association_expires_at: row.suggested_expires_at ?? "",
+        notes_admin: current[row.participant_id]?.notes_admin ?? row.notes_admin ?? "",
+      },
+    }));
+    setMembershipRecapSavedIds((current) => ({
+      ...current,
+      [row.participant_id]: false,
+    }));
+  }
+
+  async function saveMembershipRecapRow(row: MembershipRecapRow) {
+    const draft = membershipRecapDrafts[row.participant_id];
+    if (!draft || !isMembershipRecapRowModified(row, draft)) return;
+
+    setSavingMembershipRecapId(row.participant_id);
+    setMembershipRecapError(null);
+
+    try {
+      const response = await fetch(`/api/admin/participants/${row.participant_id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-sync-secret": secret,
+        },
+        body: JSON.stringify({
+          association_status: draft.association_status,
+          association_expires_at: draft.association_expires_at || null,
+          notes_admin: draft.notes_admin || null,
+        }),
+      });
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        message?: string;
+      };
+
+      if (!response.ok || payload.ok === false) {
+        setMembershipRecapError(payload.message ?? "Errore salvataggio recap.");
+        return;
+      }
+
+      setMembershipRecapRows((current) =>
+        current.map((currentRow) =>
+          currentRow.participant_id === row.participant_id
+            ? {
+                ...currentRow,
+                current_association_status: draft.association_status,
+                current_association_expires_at:
+                  draft.association_expires_at || null,
+                notes_admin: draft.notes_admin || null,
+              }
+            : currentRow,
+        ),
+      );
+      setMembershipRecapSavedIds((current) => ({
+        ...current,
+        [row.participant_id]: true,
+      }));
+    } catch (error) {
+      setMembershipRecapError(
+        error instanceof Error ? error.message : "Errore sconosciuto.",
+      );
+    } finally {
+      setSavingMembershipRecapId(null);
+    }
+  }
+
   function updateParticipantCheckStatusFilter(
     filter: ParticipantCheckStatusFilter,
   ) {
@@ -1092,16 +1423,16 @@ export default function TicketTailorAdminPage() {
             Admin
           </p>
           <h1 className="mt-3 font-serif text-4xl font-medium md:text-5xl">
-            Admin Ticket Tailor
+            Gestione eventi e tessere
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
-            Procedura guidata per aggiornare soci, Ticket Tailor e verifica
-            tessere partecipanti. Nessun secret viene salvato nel client.
+            Segui gli step in ordine. Quando uno step ha due bottoni, il primo
+            controlla i dati senza salvare, il secondo conferma l&apos;aggiornamento.
           </p>
 
           <div className="mt-6 flex flex-col gap-3 md:flex-row md:items-end">
             <label className="flex-1 text-sm font-medium text-[#5f524c]">
-              Admin sync secret
+              Codice admin
               <input
                 className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-[#f4efe8]/80 px-3 py-2 text-[#211815] outline-none transition focus:border-[#8b5e4a]"
                 type="password"
@@ -1109,6 +1440,9 @@ export default function TicketTailorAdminPage() {
                 onChange={(event) => setSecret(event.target.value)}
                 autoComplete="off"
               />
+              <span className="mt-2 block text-xs font-normal leading-5 text-[#5f524c]">
+                Serve per autorizzare le operazioni di sincronizzazione.
+              </span>
             </label>
             <button
               className="hidden rounded-full bg-[#211815] px-5 py-2.5 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
@@ -1148,15 +1482,96 @@ export default function TicketTailorAdminPage() {
 
         <section className="order-1 mt-6 rounded-[8px] border border-[#8b5e4a]/20 bg-[#8b5e4a]/5 p-5 md:p-6">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-            Flusso consigliato
+            Riepilogo del processo
           </p>
-          <ol className="mt-3 grid gap-2 text-sm leading-6 text-[#5f524c] md:grid-cols-5">
-            <li>1. Aggiorna libro soci ufficiale</li>
-            <li>2. Aggiorna nuove iscrizioni da Google Form</li>
-            <li>3. Sincronizza Ticket Tailor</li>
-            <li>4. Esegui preview verifica tessere</li>
-            <li>5. Applica verifica tessere e controlla i partecipanti</li>
+          <h2 className="mt-2 font-serif text-3xl font-medium">
+            Riepilogo del processo
+          </h2>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-[#5f524c]">
+            Segui le fasi in ordine. Le fasi con due azioni prevedono prima un
+            controllo senza salvataggio e poi una conferma.
+          </p>
+
+          <ol className="mt-5 grid gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c] md:grid-cols-6">
+            {[
+              "Soci ufficiali",
+              "Nuove iscrizioni",
+              "Biglietti",
+              "Verifica tessere",
+              "Partecipanti",
+              "Recap tessere",
+            ].map((label, index) => (
+              <li
+                className="flex items-center gap-2 rounded-full border border-[#211815]/10 bg-white/55 px-3 py-2"
+                key={label}
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#211815] text-[#f4efe8]">
+                  {index + 1}
+                </span>
+                {label}
+              </li>
+            ))}
           </ol>
+
+          <div className="mt-5 hidden overflow-x-auto rounded-[8px] border border-[#211815]/10 md:block">
+            <table className="min-w-[1100px] w-full border-collapse bg-white/60 text-left text-sm">
+              <thead className="bg-[#211815]/5 text-[11px] uppercase tracking-[0.12em] text-[#5f524c]">
+                <tr>
+                  {[
+                    "Fase",
+                    "Cosa aggiorna",
+                    "Fonte dati",
+                    "Azione da fare",
+                    "Risultato",
+                  ].map((column) => (
+                    <th className="border-b border-[#211815]/10 px-4 py-3" key={column}>
+                      {column}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {processSummaryRows.map((row) => (
+                  <tr className="border-b border-[#211815]/8" key={row.phase}>
+                    <td className="px-4 py-4 font-semibold text-[#211815]">
+                      {row.phase}
+                    </td>
+                    <td className="px-4 py-4 text-[#5f524c]">{row.updates}</td>
+                    <td className="px-4 py-4 text-[#5f524c]">{row.source}</td>
+                    <td className="px-4 py-4 text-[#5f524c]">{row.action}</td>
+                    <td className="px-4 py-4 text-[#5f524c]">{row.result}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-5 grid gap-3 md:hidden">
+            {processSummaryRows.map((row) => (
+              <div
+                className="rounded-[8px] border border-[#211815]/10 bg-white/60 p-4"
+                key={row.phase}
+              >
+                <p className="font-semibold text-[#211815]">{row.phase}</p>
+                <p className="mt-2 text-sm text-[#5f524c]">
+                  <span className="font-semibold text-[#211815]">Cosa aggiorna:</span>{" "}
+                  {row.updates}
+                </p>
+                <p className="mt-2 text-sm text-[#5f524c]">
+                  <span className="font-semibold text-[#211815]">Fonte dati:</span>{" "}
+                  {row.source}
+                </p>
+                <p className="mt-2 text-sm text-[#5f524c]">
+                  <span className="font-semibold text-[#211815]">Azione da fare:</span>{" "}
+                  {row.action}
+                </p>
+                <p className="mt-2 text-sm text-[#5f524c]">
+                  <span className="font-semibold text-[#211815]">Risultato:</span>{" "}
+                  {row.result}
+                </p>
+              </div>
+            ))}
+          </div>
         </section>
 
         <section className="order-4 mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
@@ -1167,14 +1582,15 @@ export default function TicketTailorAdminPage() {
               </span>
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-                  Step 3
+                  Fase 3
                 </p>
                 <h2 className="mt-2 font-serif text-3xl font-medium">
-                  Sync Ticket Tailor
+                  3. Aggiorna biglietti Ticket Tailor
                 </h2>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
-                  Importa eventi, ordini, biglietti e partecipanti da Ticket
-                  Tailor. Non verifica la tessera.
+                  Importa eventi, ordini, biglietti, acquirenti, partecipanti e
+                  check-in da Ticket Tailor. Questo step non verifica le
+                  tessere.
                 </p>
               </div>
             </div>
@@ -1184,7 +1600,7 @@ export default function TicketTailorAdminPage() {
               disabled={syncing}
               onClick={handleSync}
             >
-              {syncing ? "Sincronizzo..." : "Sincronizza Ticket Tailor"}
+              {syncing ? "Aggiorno..." : "Aggiorna dati Ticket Tailor"}
             </button>
           </div>
 
@@ -1222,14 +1638,15 @@ export default function TicketTailorAdminPage() {
               </span>
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-                  Step 4
+                  Fase 4
                 </p>
                 <h2 className="mt-2 font-serif text-3xl font-medium">
-                  Verifica tessere partecipanti
+                  4. Verifica tessere dei partecipanti
                 </h2>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
-                  Confronta gli attendee con i soci importati e suggerisce lo
-                  stato tessera per ogni partecipante.
+                  Confronta i partecipanti importati da Ticket Tailor con i soci
+                  presenti nel sistema. Prima controlla il risultato, poi
+                  conferma l&apos;aggiornamento.
                 </p>
               </div>
             </div>
@@ -1241,8 +1658,8 @@ export default function TicketTailorAdminPage() {
                 onClick={handlePreviewParticipantAssociationCheck}
               >
                 {previewingParticipantCheck
-                  ? "Genero preview..."
-                  : "Preview verifica tessere"}
+                  ? "Controllo..."
+                  : "Controlla tessere partecipanti"}
               </button>
               <button
                 className="rounded-full bg-[#211815] px-5 py-2.5 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
@@ -1255,8 +1672,8 @@ export default function TicketTailorAdminPage() {
                 onClick={handleApplyParticipantAssociationCheck}
               >
                 {applyingParticipantCheck
-                  ? "Applico verifica..."
-                  : "Applica verifica tessere"}
+                  ? "Confermo..."
+                  : "Conferma verifica tessere"}
               </button>
             </div>
           </div>
@@ -1269,21 +1686,26 @@ export default function TicketTailorAdminPage() {
 
           {participantCheckApplyReport ? (
             <p className="mt-4 rounded-[8px] border border-[#2f5b3a]/20 bg-[#2f5b3a]/5 p-3 text-sm text-[#2f5b3a]">
-              Verifica applicata: {participantCheckApplyReport.updated ?? 0}{" "}
-              attendee aggiornati.
+              Verifica tessere confermata: {participantCheckApplyReport.updated ?? 0}{" "}
+              partecipanti aggiornati.
             </p>
           ) : null}
 
           {participantCheckPreview ? (
             <div className="mt-5 space-y-4">
+              {!participantCheckApplyReport ? (
+                <p className="rounded-[8px] border border-[#8b5e4a]/20 bg-[#8b5e4a]/5 p-3 text-sm text-[#5f524c]">
+                  Controllo completato. Nessun dato è stato ancora salvato.
+                </p>
+              ) : null}
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-7">
                 {[
-                  ["Attendee analizzati", participantCheckPreview.totalAttendees],
-                  ["Verified", participantCheckPreview.verified],
-                  ["Pending", participantCheckPreview.pending],
-                  ["Expired", participantCheckPreview.expired],
-                  ["Non trovati", participantCheckPreview.notFound],
-                  ["Manual review", participantCheckPreview.manualReview],
+                  ["Partecipanti analizzati", participantCheckPreview.totalAttendees],
+                  ["Tessere valide", participantCheckPreview.verified],
+                  ["Da validare", participantCheckPreview.pending],
+                  ["Scadute", participantCheckPreview.expired],
+                  ["Non trovate", participantCheckPreview.notFound],
+                  ["Da controllare", participantCheckPreview.manualReview],
                   ["Match multipli", participantCheckPreview.multipleMatches],
                 ].map(([label, value]) => (
                   <div
@@ -1312,13 +1734,11 @@ export default function TicketTailorAdminPage() {
               <div className="space-y-3 rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3">
                 <div className="flex flex-wrap gap-2">
                   {[
-                    ["Tutte", "all"],
-                    ["Verified", "verified"],
-                    ["Pending", "pending"],
-                    ["Expired", "expired"],
-                    ["Not found", "not_found"],
-                    ["Manual review", "manual_review"],
-                    ["Match multipli", "multiple"],
+                    ["Tutti", "all"],
+                    ["Da controllare", "manual_review"],
+                    ["Non trovati", "not_found"],
+                    ["Scaduti", "expired"],
+                    ["Validi", "verified"],
                   ].map(([label, filter]) => (
                     <button
                       className={quickFilterButtonClass(
@@ -1337,9 +1757,21 @@ export default function TicketTailorAdminPage() {
                   ))}
                 </div>
 
-                <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.55fr)] md:items-end">
-                  <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-                    Metodo match
+                <button
+                  className="w-fit rounded-full border border-[#211815]/15 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c] transition hover:border-[#8b5e4a] hover:text-[#211815]"
+                  type="button"
+                  onClick={() =>
+                    setShowParticipantCheckAdvancedFilters((current) => !current)
+                  }
+                >
+                  {showParticipantCheckAdvancedFilters
+                    ? "Nascondi filtri avanzati"
+                    : "Mostra filtri avanzati"}
+                </button>
+
+                {showParticipantCheckAdvancedFilters ? (
+                  <label className="block max-w-sm text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                    Tipo di corrispondenza
                     <select
                       className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/70 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
                       value={participantCheckMatchFilter}
@@ -1356,6 +1788,9 @@ export default function TicketTailorAdminPage() {
                       <option value="multiple">Multiplo</option>
                     </select>
                   </label>
+                ) : null}
+
+                <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)] md:items-end">
                   <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
                     Cerca
                     <input
@@ -1381,13 +1816,13 @@ export default function TicketTailorAdminPage() {
                   <thead className="bg-[#211815]/5 uppercase tracking-[0.12em] text-[#5f524c]">
                     <tr>
                       {[
-                        "attendee",
+                        "partecipante",
                         "email",
                         "evento",
                         "attuale",
                         "suggerito",
-                        "match",
-                        "socio",
+                        "corrispondenza",
+                        "socio trovato",
                         "scadenza",
                         "motivo",
                       ].map((column) => (
@@ -1416,7 +1851,9 @@ export default function TicketTailorAdminPage() {
                               row.suggested_association_status,
                             )}
                           </td>
-                          <td className="px-3 py-3">{row.match_method}</td>
+                          <td className="px-3 py-3">
+                            {formatMatchMethodLabel(row.match_method)}
+                          </td>
                           <td className="px-3 py-3">{row.matched_member_id ?? "-"}</td>
                           <td className="px-3 py-3">
                             {row.matched_member_expires_at ?? "-"}
@@ -1481,14 +1918,14 @@ export default function TicketTailorAdminPage() {
               </span>
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-                  Step 1
+                  Fase 1
                 </p>
                 <h2 className="mt-2 font-serif text-3xl font-medium">
-                  Sync libro soci ufficiale
+                  1. Aggiorna libro soci ufficiale
                 </h2>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
                   Legge il tab &lsquo;libro soci&rsquo; e aggiorna lo stato
-                  ufficiale delle tessere.
+                  ufficiale delle tessere: valide, scadute o da controllare.
                 </p>
               </div>
             </div>
@@ -1499,7 +1936,7 @@ export default function TicketTailorAdminPage() {
                 disabled={previewingBookSync || applyingBookSync}
                 onClick={handlePreviewBookSync}
               >
-                {previewingBookSync ? "Genero preview..." : "Preview libro soci"}
+                {previewingBookSync ? "Controllo..." : "Controlla libro soci"}
               </button>
               <button
                 className="rounded-full bg-[#211815] px-5 py-2.5 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
@@ -1507,7 +1944,9 @@ export default function TicketTailorAdminPage() {
                 disabled={!bookSyncPreview || previewingBookSync || applyingBookSync}
                 onClick={handleApplyBookSync}
               >
-                {applyingBookSync ? "Applico sync..." : "Applica libro soci"}
+                {applyingBookSync
+                  ? "Confermo..."
+                  : "Conferma aggiornamento libro soci"}
               </button>
             </div>
           </div>
@@ -1520,13 +1959,17 @@ export default function TicketTailorAdminPage() {
 
           {bookSyncApplyReport ? (
             <p className="mt-4 rounded-[8px] border border-[#2f5b3a]/20 bg-[#2f5b3a]/5 p-3 text-sm text-[#2f5b3a]">
-              Libro soci applicato: {bookSyncApplyReport.created ?? 0} creati,{" "}
-              {bookSyncApplyReport.updated ?? 0} aggiornati.
+              Libro soci aggiornato.
             </p>
           ) : null}
 
           {bookSyncPreview ? (
             <div className="mt-5 space-y-4">
+              {!bookSyncApplyReport ? (
+                <p className="rounded-[8px] border border-[#8b5e4a]/20 bg-[#8b5e4a]/5 p-3 text-sm text-[#5f524c]">
+                  Controllo completato. Nessun dato è stato ancora salvato.
+                </p>
+              ) : null}
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-7">
                 {[
                   ["Righe lette", bookSyncPreview.totalRows],
@@ -1534,8 +1977,8 @@ export default function TicketTailorAdminPage() {
                   ["Scaduti", bookSyncPreview.expiredRows],
                   ["Da creare", bookSyncPreview.wouldCreate],
                   ["Da aggiornare", bookSyncPreview.wouldUpdate],
-                  ["Allineati", bookSyncPreview.unchanged],
-                  ["Non validi", bookSyncPreview.invalidRows],
+                  ["Già allineati", bookSyncPreview.unchanged],
+                  ["Non valide", bookSyncPreview.invalidRows],
                 ].map(([label, value]) => (
                   <div
                     className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3"
@@ -1553,7 +1996,7 @@ export default function TicketTailorAdminPage() {
 
               {bookSyncPreview.fallbackNameMatchCount > 0 ? (
                 <p className="rounded-[8px] border border-[#8b5e4a]/20 bg-[#8b5e4a]/5 p-3 text-sm text-[#5f524c]">
-                  Match fallback nome/cognome usati:{" "}
+                  Corrispondenze per nome/cognome usate:{" "}
                   {bookSyncPreview.fallbackNameMatchCount}.
                 </p>
               ) : null}
@@ -1593,6 +2036,86 @@ export default function TicketTailorAdminPage() {
                 </div>
               ) : null}
 
+              <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-4">
+                <div className="grid gap-3 lg:grid-cols-[minmax(240px,1.4fr)_minmax(160px,0.65fr)_minmax(180px,0.75fr)_auto] lg:items-end">
+                  <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                    Cerca
+                    <input
+                      className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+                      value={bookSyncPreviewFilters.search}
+                      onChange={(event) => {
+                        setBookSyncPreviewFilters((current) => ({
+                          ...current,
+                          search: event.target.value,
+                        }));
+                        setBookSyncPreviewPage(1);
+                      }}
+                      placeholder="Cerca nome, cognome, codice fiscale o tessera"
+                    />
+                  </label>
+
+                  <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                    Stato
+                    <select
+                      className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+                      value={bookSyncPreviewFilters.status}
+                      onChange={(event) => {
+                        setBookSyncPreviewFilters((current) => ({
+                          ...current,
+                          status: event.target.value as BookSyncPreviewFilters["status"],
+                        }));
+                        setBookSyncPreviewPage(1);
+                      }}
+                    >
+                      <option value="all">Tutti</option>
+                      <option value="verified">Validi</option>
+                      <option value="expired">Scaduti</option>
+                      <option value="invalid">Non validi</option>
+                    </select>
+                  </label>
+
+                  <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                    Azione
+                    <select
+                      className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+                      value={bookSyncPreviewFilters.action}
+                      onChange={(event) => {
+                        setBookSyncPreviewFilters((current) => ({
+                          ...current,
+                          action: event.target.value as BookSyncPreviewFilters["action"],
+                        }));
+                        setBookSyncPreviewPage(1);
+                      }}
+                    >
+                      <option value="all">Tutte</option>
+                      <option value="create">Da creare</option>
+                      <option value="update">Da aggiornare</option>
+                      <option value="unchanged">Già allineate</option>
+                      <option value="invalid">Non valide</option>
+                    </select>
+                  </label>
+
+                  <button
+                    className="rounded-full border border-[#211815]/20 px-5 py-2.5 text-sm font-semibold text-[#211815] transition hover:-translate-y-0.5"
+                    type="button"
+                    onClick={() => {
+                      setBookSyncPreviewFilters({
+                        search: "",
+                        status: "all",
+                        action: "all",
+                      });
+                      setBookSyncPreviewPage(1);
+                    }}
+                  >
+                    Reset filtri
+                  </button>
+                </div>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                  Mostrati {filteredBookSyncRows.length} di{" "}
+                  {bookSyncPreview.previewRows.length} soci
+                </p>
+              </div>
+
               <div className="overflow-x-auto rounded-[8px] border border-[#211815]/10">
                 <table className="min-w-[1100px] w-full border-collapse bg-[#f4efe8]/60 text-left text-xs">
                   <thead className="bg-[#211815]/5 uppercase tracking-[0.12em] text-[#5f524c]">
@@ -1602,11 +2125,11 @@ export default function TicketTailorAdminPage() {
                         "nome",
                         "codice fiscale",
                         "nascita",
-                        "status",
+                        "stato",
                         "scadenza",
                         "tessera",
                         "azione",
-                        "match",
+                        "corrispondenza",
                         "note",
                       ].map((column) => (
                         <th className="border-b border-[#211815]/10 px-3 py-3" key={column}>
@@ -1625,11 +2148,17 @@ export default function TicketTailorAdminPage() {
                           </td>
                           <td className="px-3 py-3">{row.fiscal_code ?? "-"}</td>
                           <td className="px-3 py-3">{row.birth_date ?? "-"}</td>
-                          <td className="px-3 py-3">{row.membership_status}</td>
+                          <td className="px-3 py-3">
+                            {formatMembershipStatusLabel(row.membership_status)}
+                          </td>
                           <td className="px-3 py-3">{row.membership_expires_at}</td>
                           <td className="px-3 py-3">{row.membership_card_number ?? "-"}</td>
-                          <td className="px-3 py-3">{row.action}</td>
-                          <td className="px-3 py-3">{row.matchMethod}</td>
+                          <td className="px-3 py-3">
+                            {formatPreviewActionLabel(row.action)}
+                          </td>
+                          <td className="px-3 py-3">
+                            {formatMatchMethodLabel(row.matchMethod)}
+                          </td>
                           <td className="px-3 py-3">
                             {[...row.notes, ...row.errors].join(" · ")}
                           </td>
@@ -1649,7 +2178,7 @@ export default function TicketTailorAdminPage() {
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
                   {bookSyncDisplayStart}-{bookSyncDisplayEnd} di{" "}
-                  {bookSyncPreview.previewRows.length}
+                  {filteredBookSyncRows.length}
                 </p>
                 <div className="flex items-center gap-3">
                   <button
@@ -1691,14 +2220,15 @@ export default function TicketTailorAdminPage() {
               </span>
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-                  Step 2
+                  Fase 2
                 </p>
                 <h2 className="mt-2 font-serif text-3xl font-medium">
-                  Sync nuove iscrizioni da Google Form
+                  2. Aggiorna nuove iscrizioni
                 </h2>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
                   Legge il Google Sheet collegato al form associativo e importa
-                  le nuove iscrizioni dal 01/09/2025 in poi.
+                  le nuove iscrizioni dal 01/09/2025 in poi. Le compilazioni
+                  precedenti vengono ignorate.
                 </p>
               </div>
             </div>
@@ -1710,8 +2240,8 @@ export default function TicketTailorAdminPage() {
                 onClick={handlePreviewMembersSync}
               >
                 {previewingMembersSync
-                  ? "Genero preview..."
-                  : "Preview nuove iscrizioni"}
+                  ? "Controllo..."
+                  : "Controlla nuove iscrizioni"}
               </button>
               <button
                 className="rounded-full bg-[#211815] px-5 py-2.5 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
@@ -1724,8 +2254,8 @@ export default function TicketTailorAdminPage() {
                 onClick={handleApplyMembersSync}
               >
                 {applyingMembersSync
-                  ? "Applico sync..."
-                  : "Applica nuove iscrizioni"}
+                  ? "Confermo..."
+                  : "Conferma nuove iscrizioni"}
               </button>
             </div>
           </div>
@@ -1738,25 +2268,33 @@ export default function TicketTailorAdminPage() {
 
           {membersSyncApplyReport ? (
             <p className="mt-4 rounded-[8px] border border-[#2f5b3a]/20 bg-[#2f5b3a]/5 p-3 text-sm text-[#2f5b3a]">
-              Sync applicata: {membersSyncApplyReport.created ?? 0} creati,{" "}
-              {membersSyncApplyReport.updated ?? 0} aggiornati.
+              Nuove iscrizioni confermate: {membersSyncApplyReport.created ?? 0}{" "}
+              nuove, {membersSyncApplyReport.updated ?? 0} aggiornate.
             </p>
           ) : null}
 
           {membersSyncPreview ? (
             <div className="mt-5 space-y-4">
+              {!membersSyncApplyReport ? (
+                <p className="rounded-[8px] border border-[#8b5e4a]/20 bg-[#8b5e4a]/5 p-3 text-sm text-[#5f524c]">
+                  Controllo completato. Nessun dato è stato ancora salvato.
+                </p>
+              ) : null}
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-7">
                 {[
                   ["Righe lette", membersSyncPreview.totalRows],
                   ["Da creare", membersSyncPreview.wouldCreate],
                   ["Da aggiornare", membersSyncPreview.wouldUpdate],
-                  ["Allineate", membersSyncPreview.unchanged],
+                  ["Già allineate", membersSyncPreview.unchanged],
                   ["Non valide", membersSyncPreview.invalidRows],
                   [
-                    "Escluse prima del 01/09/2025",
+                    "Escluse perché precedenti al 01/09/2025",
                     membersSyncPreview.skippedBeforeValidFrom ?? 0,
                   ],
-                  ["Fallback data", membersSyncPreview.fallbackStartDateCount],
+                  [
+                    "Data mancante ricostruita",
+                    membersSyncPreview.fallbackStartDateCount,
+                  ],
                 ].map(([label, value]) => (
                   <div
                     className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3"
@@ -1774,7 +2312,7 @@ export default function TicketTailorAdminPage() {
 
               {membersSyncPreview.fallbackNameMatchCount > 0 ? (
                 <p className="rounded-[8px] border border-[#8b5e4a]/20 bg-[#8b5e4a]/5 p-3 text-sm text-[#5f524c]">
-                  Match fallback nome/cognome usati:{" "}
+                  Corrispondenze per nome/cognome usate:{" "}
                   {membersSyncPreview.fallbackNameMatchCount}.
                 </p>
               ) : null}
@@ -1817,7 +2355,7 @@ export default function TicketTailorAdminPage() {
                     ["Tutte", "all"],
                     ["Da creare", "create"],
                     ["Da aggiornare", "update"],
-                    ["Allineate", "unchanged"],
+                    ["Già allineate", "unchanged"],
                     ["Non valide", "invalid"],
                   ].map(([label, filter]) => (
                     <button
@@ -1854,7 +2392,7 @@ export default function TicketTailorAdminPage() {
                         "inizio",
                         "scadenza",
                         "azione",
-                        "match",
+                        "corrispondenza",
                         "note",
                       ].map((column) => (
                         <th
@@ -1877,8 +2415,12 @@ export default function TicketTailorAdminPage() {
                         <td className="px-3 py-3">{row.email ?? "-"}</td>
                         <td className="px-3 py-3">{row.membership_starts_at}</td>
                         <td className="px-3 py-3">{row.membership_expires_at}</td>
-                        <td className="px-3 py-3">{row.action}</td>
-                        <td className="px-3 py-3">{row.matchMethod}</td>
+                        <td className="px-3 py-3">
+                          {formatPreviewActionLabel(row.action)}
+                        </td>
+                        <td className="px-3 py-3">
+                          {formatMatchMethodLabel(row.matchMethod)}
+                        </td>
                         <td className="px-3 py-3">
                           {row.notes.length > 0 ? row.notes.join(" · ") : ""}
                           {row.notes.length > 0 &&
@@ -1950,13 +2492,17 @@ export default function TicketTailorAdminPage() {
           ) : null}
         </section>
 
-        <section className="order-7 mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
+        <section className="order-8 mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
             Strumenti avanzati
           </p>
           <h2 className="mt-2 font-serif text-3xl font-medium">
             Strumenti avanzati
           </h2>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
+            Funzioni di controllo manuale o debug. Non servono nel flusso
+            ordinario.
+          </p>
           <details className="mt-5 rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/60 p-4">
             <summary className="cursor-pointer text-sm font-semibold text-[#211815]">
               Mostra strumenti avanzati
@@ -1980,7 +2526,7 @@ export default function TicketTailorAdminPage() {
               type="button"
               onClick={handlePreviewImportSoci}
             >
-              Preview import soci
+              Controlla lista manuale
             </button>
           </div>
 
@@ -2008,7 +2554,7 @@ export default function TicketTailorAdminPage() {
             >
               {matchingImportSoci
                 ? "Cerco match..."
-                : "Cerca match in Supabase"}
+                : "Cerca corrispondenze"}
             </button>
           </div>
 
@@ -2068,8 +2614,8 @@ export default function TicketTailorAdminPage() {
               <div className="grid gap-3 sm:grid-cols-4">
                 {[
                   ["Input validi", importSociMatchPreview.totalInput],
-                  ["Match univoci", importSociMatchPreview.uniqueMatches],
-                  ["Match multipli", importSociMatchPreview.multipleMatches],
+                  ["Corrispondenze univoche", importSociMatchPreview.uniqueMatches],
+                  ["Corrispondenze multiple", importSociMatchPreview.multipleMatches],
                   ["Non trovati", importSociMatchPreview.notFound],
                 ].map(([label, value]) => (
                   <div
@@ -2087,12 +2633,12 @@ export default function TicketTailorAdminPage() {
               </div>
 
               <ImportSociMatchBlock
-                title="Match univoci"
+                title="Corrispondenze univoche"
                 tone="success"
                 results={uniqueImportSociMatches}
               />
               <ImportSociMatchBlock
-                title="Match multipli"
+                title="Corrispondenze multiple"
                 tone="warning"
                 results={multipleImportSociMatches}
               />
@@ -2115,14 +2661,14 @@ export default function TicketTailorAdminPage() {
               </span>
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-                  Step 5
+                  Fase 5
                 </p>
                 <h2 className="mt-2 font-serif text-3xl font-medium">
-                  Lista partecipanti evento
+                  5. Controlla partecipanti evento
                 </h2>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
-                  Mostra i partecipanti importati da Ticket Tailor. Il check-in
-                  riguarda solo gli attendee.
+                  Mostra acquirenti, partecipanti, check-in e stato tessera
+                  dopo la verifica. Il check-in riguarda solo i partecipanti.
                 </p>
               </div>
             </div>
@@ -2170,8 +2716,8 @@ export default function TicketTailorAdminPage() {
                 }
               >
                 <option value="">Tutti</option>
-                <option value="attendee">attendee</option>
-                <option value="buyer">buyer</option>
+                <option value="attendee">Partecipanti</option>
+                <option value="buyer">Acquirenti</option>
               </select>
             </label>
             <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
@@ -2192,8 +2738,8 @@ export default function TicketTailorAdminPage() {
               </select>
             </label>
             <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-              Associazione
-              <input
+              Stato tessera
+              <select
                 className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-[#f4efe8]/80 px-3 py-2 text-sm normal-case tracking-normal outline-none focus:border-[#8b5e4a]"
                 value={filters.association_status}
                 onChange={(event) =>
@@ -2202,8 +2748,14 @@ export default function TicketTailorAdminPage() {
                     association_status: event.target.value,
                   }))
                 }
-                placeholder="unknown"
-              />
+              >
+                <option value="">Tutti</option>
+                {associationStatuses.map((status) => (
+                  <option key={status} value={status}>
+                    {formatAssociationStatusLabel(status)}
+                  </option>
+                ))}
+              </select>
             </label>
             <button
               className="rounded-full border border-[#211815]/20 px-5 py-2.5 text-sm font-semibold text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55 md:self-end"
@@ -2217,10 +2769,10 @@ export default function TicketTailorAdminPage() {
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             {[
               ["Righe mostrate", participantSummary.total],
-              ["Checked-in", participantSummary.checkedIn],
-              ["Non checked-in", participantSummary.notCheckedIn],
+              ["Check-in fatto", participantSummary.checkedIn],
+              ["Check-in mancante", participantSummary.notCheckedIn],
               ["Da verificare", participantSummary.toVerify],
-              ["Verified", participantSummary.verified],
+              ["Tessere valide", participantSummary.verified],
             ].map(([label, value]) => (
               <div
                 className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3"
@@ -2236,74 +2788,102 @@ export default function TicketTailorAdminPage() {
             ))}
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              className={quickFilterButtonClass(filters.participant_type === "attendee")}
-              type="button"
-              onClick={() =>
-                applyFilters({
-                  ...filters,
-                  participant_type: "attendee",
-                })
-              }
-            >
-              Solo attendee
-            </button>
-            <button
-              className={quickFilterButtonClass(filters.participant_type === "buyer")}
-              type="button"
-              onClick={() =>
-                applyFilters({
-                  ...filters,
-                  participant_type: "buyer",
-                })
-              }
-            >
-              Solo buyer
-            </button>
-            <button
-              className={quickFilterButtonClass(filters.checked_in === "false")}
-              type="button"
-              onClick={() =>
-                applyFilters({
-                  ...filters,
-                  checked_in: "false",
-                })
-              }
-            >
-              Solo non checked-in
-            </button>
-            <button
-              className={quickFilterButtonClass(
-                quickFilterMode === "association_to_verify",
-              )}
-              type="button"
-              onClick={() =>
-                applyFilters(
-                  {
-                    ...filters,
-                    association_status: "",
-                  },
-                  "association_to_verify",
-                )
-              }
-            >
-              Solo tessera da verificare
-            </button>
-            <button
-              className="rounded-full border border-[#211815]/15 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c] transition hover:border-[#8b5e4a] hover:text-[#211815]"
-              type="button"
-              onClick={() =>
-                applyFilters({
-                  ticket_tailor_event_id: "",
-                  participant_type: "",
-                  checked_in: "",
-                  association_status: "",
-                })
-              }
-            >
-              Reset filtri
-            </button>
+          <div className="mt-5 rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-4">
+            <div className="grid gap-3 lg:grid-cols-[minmax(220px,1.4fr)_repeat(3,minmax(160px,0.8fr))_auto] lg:items-end">
+              <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                Cerca
+                <input
+                  className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+                  value={participantListFilters.search}
+                  onChange={(event) =>
+                    setParticipantListFilters((current) => ({
+                      ...current,
+                      search: event.target.value,
+                    }))
+                  }
+                  placeholder="Cerca nome, email, ordine o evento"
+                />
+              </label>
+
+              <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                Stato tessera
+                <select
+                  className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+                  value={participantListFilters.associationStatus}
+                  onChange={(event) =>
+                    setParticipantListFilters((current) => ({
+                      ...current,
+                      associationStatus: event.target.value,
+                    }))
+                  }
+                >
+                  <option value="">Tutte</option>
+                  <option value="verified">Tessera valida</option>
+                  <option value="pending">Da validare</option>
+                  <option value="expired">Scaduta</option>
+                  <option value="not_found">Non trovata</option>
+                  <option value="manual_review">Da controllare</option>
+                  <option value="unknown">Da verificare</option>
+                </select>
+              </label>
+
+              <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                Check-in
+                <select
+                  className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+                  value={participantListFilters.checkedIn}
+                  onChange={(event) =>
+                    setParticipantListFilters((current) => ({
+                      ...current,
+                      checkedIn: event.target.value,
+                    }))
+                  }
+                >
+                  <option value="">Tutti</option>
+                  <option value="true">Check-in effettuato</option>
+                  <option value="false">Check-in non effettuato</option>
+                </select>
+              </label>
+
+              <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                Tipo
+                <select
+                  className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+                  value={participantListFilters.participantType}
+                  onChange={(event) =>
+                    setParticipantListFilters((current) => ({
+                      ...current,
+                      participantType: event.target.value,
+                    }))
+                  }
+                >
+                  <option value="">Tutti</option>
+                  <option value="attendee">Solo partecipanti</option>
+                  <option value="buyer">Solo acquirenti</option>
+                </select>
+              </label>
+
+              <button
+                className="rounded-full border border-[#211815]/20 px-5 py-2.5 text-sm font-semibold text-[#211815] transition hover:-translate-y-0.5"
+                type="button"
+                onClick={() => {
+                  setParticipantListFilters({
+                    search: "",
+                    associationStatus: "",
+                    checkedIn: "",
+                    participantType: "",
+                  });
+                  setQuickFilterMode("none");
+                }}
+              >
+                Reset filtri
+              </button>
+            </div>
+
+            <p className="mt-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+              Mostrati {displayedParticipants.length} di{" "}
+              {quickFilteredParticipants.length} partecipanti
+            </p>
           </div>
 
           {eventsError ? (
@@ -2331,13 +2911,19 @@ export default function TicketTailorAdminPage() {
                         Ordine
                       </p>
                       <h3 className="mt-1 font-serif text-2xl text-[#211815]">
-                        {group.orderId ?? "Senza ticket_tailor_order_id"}
+                        {group.orderId ?? "Senza codice ordine"}
                       </h3>
                     </div>
                     <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-                      {group.buyers.length} buyer · {group.attendees.length} attendee
+                      {group.buyers.length} acquirenti · {group.attendees.length} partecipanti
                     </p>
                   </div>
+
+                  {group.hiddenRows > 0 ? (
+                    <p className="mt-3 rounded-[8px] border border-[#8b5e4a]/20 bg-[#8b5e4a]/5 p-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                      Alcune righe dell&apos;ordine sono nascoste dai filtri.
+                    </p>
+                  ) : null}
 
                   <div className="mt-4 space-y-3">
                     {group.buyers.length > 0 ? (
@@ -2345,14 +2931,14 @@ export default function TicketTailorAdminPage() {
                         <ParticipantOrderRow
                           key={buyer.id}
                           participant={buyer}
-                          roleLabel="Buyer"
+                          roleLabel="Acquirente"
                           variant="buyer"
                           onEdit={() => setEditingParticipantId(buyer.id)}
                         />
                       ))
                     ) : (
                       <div className="rounded-[8px] border border-[#8b5e4a]/20 bg-[#8b5e4a]/5 p-3 text-sm text-[#5f524c]">
-                        Buyer esplicito non presente per questo ordine.
+                        Acquirente esplicito non presente per questo ordine.
                       </div>
                     )}
 
@@ -2362,7 +2948,7 @@ export default function TicketTailorAdminPage() {
                           <ParticipantOrderRow
                             key={attendee.id}
                             participant={attendee}
-                            roleLabel="Attendee"
+                            roleLabel="Partecipante"
                             variant="attendee"
                             onEdit={() => setEditingParticipantId(attendee.id)}
                           />
@@ -2370,7 +2956,7 @@ export default function TicketTailorAdminPage() {
                       </div>
                     ) : (
                       <p className="pl-1 text-sm text-[#5f524c]">
-                        Nessun attendee collegato a questo ordine.
+                        Nessun partecipante collegato a questo ordine.
                       </p>
                     )}
                   </div>
@@ -2517,6 +3103,372 @@ export default function TicketTailorAdminPage() {
             </table>
           </div>
         </section>
+
+        <section className="order-7 mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div className="flex gap-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#211815] font-serif text-2xl text-[#f4efe8]">
+                6
+              </span>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+                  Fase 6
+                </p>
+                <h2 className="mt-2 font-serif text-3xl font-medium">
+                  6. Recap tessere partecipanti
+                </h2>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
+                  Tabella finale di controllo. Mostra solo i partecipanti
+                  effettivi e permette di correggere manualmente stato tessera,
+                  scadenza e note.
+                </p>
+              </div>
+            </div>
+            <button
+              className="rounded-full bg-[#211815] px-5 py-2.5 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
+              type="button"
+              disabled={loadingMembershipRecap}
+              onClick={loadMembershipRecap}
+            >
+              {loadingMembershipRecap ? "Carico..." : "Carica recap tessere"}
+            </button>
+          </div>
+
+          {membershipRecapError ? (
+            <p className="mt-4 rounded-[8px] border border-[#8b2f2a]/20 bg-[#8b2f2a]/5 p-3 text-sm text-[#8b2f2a]">
+              {membershipRecapError}
+            </p>
+          ) : null}
+
+          {membershipRecapRows.length > 0 ? (
+            <div className="mt-5 space-y-4">
+              <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-4">
+                <div className="grid gap-3 lg:grid-cols-[minmax(220px,1.4fr)_repeat(4,minmax(150px,0.75fr))_auto] lg:items-end">
+                  <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                    Cerca
+                    <input
+                      className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+                      value={membershipRecapFilters.search}
+                      onChange={(event) => {
+                        setMembershipRecapFilters((current) => ({
+                          ...current,
+                          search: event.target.value,
+                        }));
+                        setMembershipRecapPage(1);
+                      }}
+                      placeholder="Cerca nome, email, ordine o evento"
+                    />
+                  </label>
+
+                  <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                    Stato tessera finale
+                    <select
+                      className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+                      value={membershipRecapFilters.associationStatus}
+                      onChange={(event) => {
+                        setMembershipRecapFilters((current) => ({
+                          ...current,
+                          associationStatus: event.target.value,
+                        }));
+                        setMembershipRecapPage(1);
+                      }}
+                    >
+                      <option value="">Tutte</option>
+                      {associationStatusesForEditing.map((status) => (
+                        <option key={status} value={status}>
+                          {formatAssociationStatusLabel(status)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                    Libro soci
+                    <select
+                      className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+                      value={membershipRecapFilters.membersBookStatus}
+                      onChange={(event) => {
+                        setMembershipRecapFilters((current) => ({
+                          ...current,
+                          membersBookStatus: event.target.value,
+                        }));
+                        setMembershipRecapPage(1);
+                      }}
+                    >
+                      <option value="">Tutti</option>
+                      <option value="valid">Valido</option>
+                      <option value="expired">Scaduto</option>
+                      <option value="pending">Da validare</option>
+                      <option value="not_present">Non presente</option>
+                      <option value="manual_review">Da controllare</option>
+                    </select>
+                  </label>
+
+                  <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                    Google Form
+                    <select
+                      className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+                      value={membershipRecapFilters.googleFormStatus}
+                      onChange={(event) => {
+                        setMembershipRecapFilters((current) => ({
+                          ...current,
+                          googleFormStatus: event.target.value,
+                        }));
+                        setMembershipRecapPage(1);
+                      }}
+                    >
+                      <option value="">Tutti</option>
+                      <option value="present">Presente</option>
+                      <option value="not_present">Non presente</option>
+                      <option value="manual_review">Da controllare</option>
+                    </select>
+                  </label>
+
+                  <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                    Check-in
+                    <select
+                      className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+                      value={membershipRecapFilters.checkedIn}
+                      onChange={(event) => {
+                        setMembershipRecapFilters((current) => ({
+                          ...current,
+                          checkedIn: event.target.value,
+                        }));
+                        setMembershipRecapPage(1);
+                      }}
+                    >
+                      <option value="">Tutti</option>
+                      <option value="true">Check-in effettuato</option>
+                      <option value="false">Check-in non effettuato</option>
+                    </select>
+                  </label>
+
+                  <button
+                    className="rounded-full border border-[#211815]/20 px-5 py-2.5 text-sm font-semibold text-[#211815] transition hover:-translate-y-0.5"
+                    type="button"
+                    onClick={() => {
+                      setMembershipRecapFilters({
+                        search: "",
+                        associationStatus: "",
+                        membersBookStatus: "",
+                        googleFormStatus: "",
+                        checkedIn: "",
+                      });
+                      setMembershipRecapPage(1);
+                    }}
+                  >
+                    Reset filtri
+                  </button>
+                </div>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                  Mostrati {filteredMembershipRecapRows.length} di{" "}
+                  {membershipRecapRows.length} partecipanti
+                </p>
+              </div>
+
+              <div className="overflow-x-auto rounded-[8px] border border-[#211815]/10">
+                <table className="min-w-[1700px] w-full border-collapse bg-[#f4efe8]/60 text-left text-xs">
+                  <thead className="bg-[#211815]/5 uppercase tracking-[0.12em] text-[#5f524c]">
+                    <tr>
+                      {[
+                        "Evento",
+                        "Ordine",
+                        "Partecipante",
+                        "Email",
+                        "Check-in",
+                        "Libro soci",
+                        "Google Form",
+                        "Scadenza prevista",
+                        "Stato tessera finale",
+                        "Note admin",
+                        "Azione",
+                      ].map((column) => (
+                        <th className="border-b border-[#211815]/10 px-3 py-3" key={column}>
+                          {column}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagedMembershipRecapRows.length > 0 ? (
+                      pagedMembershipRecapRows.map((row) => {
+                        const draft = membershipRecapDrafts[row.participant_id] ?? {
+                          association_status:
+                            row.current_association_status ?? "unknown",
+                          association_expires_at:
+                            row.current_association_expires_at ?? "",
+                          notes_admin: row.notes_admin ?? "",
+                        };
+                        const modified = isMembershipRecapRowModified(row, draft);
+
+                        return (
+                          <tr
+                            className={`border-b border-[#211815]/8 ${
+                              modified ? "bg-[#8b5e4a]/10" : ""
+                            }`}
+                            key={row.participant_id}
+                          >
+                            <td className="px-3 py-3">
+                              {row.event_title ??
+                                row.ticket_tailor_event_id ??
+                                row.event_id ??
+                                "-"}
+                            </td>
+                            <td className="px-3 py-3">
+                              {row.ticket_tailor_order_id ?? "-"}
+                            </td>
+                            <td className="px-3 py-3 font-semibold text-[#211815]">
+                              {row.first_name ?? "-"} {row.last_name ?? ""}
+                            </td>
+                            <td className="px-3 py-3">{row.email ?? "-"}</td>
+                            <td className="px-3 py-3">
+                              <CheckedInBadge checkedIn={row.checked_in} />
+                            </td>
+                            <td className="px-3 py-3">
+                              <RecapStatusBadge
+                                label={formatMembersBookStatusLabel(
+                                  row.members_book_status,
+                                )}
+                              />
+                            </td>
+                            <td className="px-3 py-3">
+                              <RecapStatusBadge
+                                label={formatGoogleFormStatusLabel(
+                                  row.google_form_status,
+                                )}
+                              />
+                            </td>
+                            <td className="px-3 py-3">
+                              <input
+                                className="w-full min-w-[145px] rounded-[8px] border border-[#211815]/15 bg-white/80 px-2 py-2 text-sm outline-none focus:border-[#8b5e4a]"
+                                type="date"
+                                value={draft.association_expires_at}
+                                onChange={(event) =>
+                                  updateMembershipRecapDraft(
+                                    row.participant_id,
+                                    "association_expires_at",
+                                    event.target.value,
+                                  )
+                                }
+                              />
+                            </td>
+                            <td className="px-3 py-3">
+                              <select
+                                className="w-full min-w-[160px] rounded-[8px] border border-[#211815]/15 bg-white/80 px-2 py-2 text-sm outline-none focus:border-[#8b5e4a]"
+                                value={draft.association_status}
+                                onChange={(event) =>
+                                  updateMembershipRecapDraft(
+                                    row.participant_id,
+                                    "association_status",
+                                    event.target.value,
+                                  )
+                                }
+                              >
+                                {associationStatusesForEditing.map((status) => (
+                                  <option key={status} value={status}>
+                                    {formatAssociationStatusLabel(status)}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="px-3 py-3">
+                              <textarea
+                                className="min-h-[76px] w-full min-w-[220px] rounded-[8px] border border-[#211815]/15 bg-white/80 px-2 py-2 text-sm leading-5 outline-none focus:border-[#8b5e4a]"
+                                value={draft.notes_admin}
+                                onChange={(event) =>
+                                  updateMembershipRecapDraft(
+                                    row.participant_id,
+                                    "notes_admin",
+                                    event.target.value,
+                                  )
+                                }
+                                placeholder="Nota interna admin"
+                              />
+                            </td>
+                            <td className="px-3 py-3">
+                              <div className="flex min-w-[170px] flex-col gap-2">
+                                <button
+                                  className="rounded-full border border-[#211815]/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#211815] transition hover:-translate-y-0.5"
+                                  type="button"
+                                  onClick={() => applyMembershipRecapSuggestion(row)}
+                                >
+                                  Applica suggerimento
+                                </button>
+                                <button
+                                  className="rounded-full bg-[#211815] px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
+                                  type="button"
+                                  disabled={
+                                    !modified ||
+                                    savingMembershipRecapId === row.participant_id
+                                  }
+                                  onClick={() => saveMembershipRecapRow(row)}
+                                >
+                                  {savingMembershipRecapId === row.participant_id
+                                    ? "Salvo..."
+                                    : "Salva"}
+                                </button>
+                                {membershipRecapSavedIds[row.participant_id] ? (
+                                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#2f5b3a]">
+                                    Salvato
+                                  </span>
+                                ) : null}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td className="px-3 py-8 text-center text-[#5f524c]" colSpan={11}>
+                          Nessun partecipante da mostrare.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                  {membershipRecapDisplayStart}-{membershipRecapDisplayEnd} di{" "}
+                  {filteredMembershipRecapRows.length}
+                </p>
+                <div className="flex items-center gap-3">
+                  <button
+                    className="rounded-full border border-[#211815]/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
+                    type="button"
+                    disabled={safeMembershipRecapPage <= 1}
+                    onClick={() =>
+                      setMembershipRecapPage((page) => Math.max(1, page - 1))
+                    }
+                  >
+                    Precedente
+                  </button>
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                    Pagina {safeMembershipRecapPage} di{" "}
+                    {membershipRecapTotalPages}
+                  </span>
+                  <button
+                    className="rounded-full border border-[#211815]/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
+                    type="button"
+                    disabled={safeMembershipRecapPage >= membershipRecapTotalPages}
+                    onClick={() =>
+                      setMembershipRecapPage((page) =>
+                        Math.min(membershipRecapTotalPages, page + 1),
+                      )
+                    }
+                  >
+                    Successiva
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-5 rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/60 px-4 py-8 text-center text-sm text-[#5f524c]">
+              Carica il recap per controllare solo i partecipanti effettivi.
+            </div>
+          )}
+        </section>
       </div>
 
       {editingParticipant ? (
@@ -2646,7 +3598,12 @@ function AssociationEditModal({
               {participant.first_name ?? "-"} {participant.last_name ?? "-"}
             </h2>
             <p className="mt-2 text-sm text-[#5f524c]">
-              {participant.email ?? "-"} · {participant.participant_type ?? "-"}
+              {participant.email ?? "-"} ·{" "}
+              {participant.participant_type === "buyer"
+                ? "Acquirente"
+                : participant.participant_type === "attendee"
+                  ? "Partecipante"
+                  : "-"}
             </p>
           </div>
           <button
@@ -2660,7 +3617,7 @@ function AssociationEditModal({
 
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-            Association status
+            Stato tessera
             <select
               className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/70 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
               value={currentDraft.association_status}
@@ -2674,14 +3631,14 @@ function AssociationEditModal({
             >
               {associationStatuses.map((status) => (
                 <option key={status} value={status}>
-                  {status}
+                  {formatAssociationStatusLabel(status)}
                 </option>
               ))}
             </select>
           </label>
 
           <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-            Association expires at
+            Scadenza tessera
             <input
               className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/70 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
               type="date"
@@ -2698,7 +3655,7 @@ function AssociationEditModal({
         </div>
 
         <label className="mt-4 block text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-          Notes admin · nota interna admin
+          Nota interna admin
           <textarea
             className="mt-2 min-h-[120px] w-full rounded-[8px] border border-[#211815]/15 bg-white/70 px-3 py-3 text-sm normal-case leading-6 tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
             value={currentDraft.notes_admin}
@@ -2763,7 +3720,7 @@ function ImportSociMatchBlock({
                 {result.input.first_name} {result.input.last_name}
               </p>
               <p className="mt-1 text-xs text-[#5f524c]">
-                Key normalizzata: {result.normalized_key || "-"}
+                Chiave di confronto: {result.normalized_key || "-"}
               </p>
 
               {result.matches.length > 0 ? (
@@ -2790,11 +3747,15 @@ function ImportSociMatchBlock({
                           <span className="font-semibold text-[#211815]">
                             Tipo:
                           </span>{" "}
-                          {match.participant_type ?? "-"}
+                          {match.participant_type === "buyer"
+                            ? "Acquirente"
+                            : match.participant_type === "attendee"
+                              ? "Partecipante"
+                              : "-"}
                         </p>
                         <p>
                           <span className="font-semibold text-[#211815]">
-                            Order:
+                            Ordine:
                           </span>{" "}
                           {match.ticket_tailor_order_id ?? "-"}
                         </p>
@@ -2808,7 +3769,7 @@ function ImportSociMatchBlock({
                           <span className="font-semibold text-[#211815]">
                             Tessera:
                           </span>{" "}
-                          {match.association_status ?? "-"}
+                          {formatAssociationStatusLabel(match.association_status)}
                         </p>
                         <p>
                           <span className="font-semibold text-[#211815]">
@@ -2909,8 +3870,21 @@ function getDefaultAssociationExpiryDate(referenceDate = new Date()) {
   return `${expiryYear}-12-31`;
 }
 
-function groupParticipantsByOrder(participants: Participant[]) {
+function groupParticipantsByOrder(
+  participants: Participant[],
+  sourceParticipants = participants,
+) {
   const groups = new Map<string, ParticipantOrderGroup>();
+  const sourceCounts = sourceParticipants.reduce<Record<string, number>>(
+    (counts, participant) => {
+      const orderId = participant.ticket_tailor_order_id?.trim() || null;
+      const key = orderId ?? `participant-without-order-${participant.id}`;
+      counts[key] = (counts[key] ?? 0) + 1;
+
+      return counts;
+    },
+    {},
+  );
 
   for (const participant of participants) {
     const orderId = participant.ticket_tailor_order_id?.trim() || null;
@@ -2922,6 +3896,7 @@ function groupParticipantsByOrder(participants: Participant[]) {
         orderId,
         buyers: [],
         attendees: [],
+        hiddenRows: 0,
       } satisfies ParticipantOrderGroup);
 
     if (participant.participant_type === "buyer") {
@@ -2933,7 +3908,13 @@ function groupParticipantsByOrder(participants: Participant[]) {
     groups.set(key, group);
   }
 
-  return Array.from(groups.values());
+  return Array.from(groups.values()).map((group) => ({
+    ...group,
+    hiddenRows: Math.max(
+      0,
+      (sourceCounts[group.key] ?? 0) - group.buyers.length - group.attendees.length,
+    ),
+  }));
 }
 
 function createParticipantDrafts(participants: Participant[]) {
@@ -2951,6 +3932,80 @@ function createParticipantDrafts(participants: Participant[]) {
   );
 }
 
+function createMembershipRecapDrafts(rows: MembershipRecapRow[]) {
+  return rows.reduce<Record<string, MembershipRecapDraft>>((drafts, row) => {
+    drafts[row.participant_id] = {
+      association_status:
+        row.current_association_status ?? row.suggested_final_status ?? "unknown",
+      association_expires_at:
+        row.current_association_expires_at ?? row.suggested_expires_at ?? "",
+      notes_admin: row.notes_admin ?? "",
+    };
+
+    return drafts;
+  }, {});
+}
+
+function matchesMembershipRecapFilters(
+  row: MembershipRecapRow,
+  filters: MembershipRecapFilters,
+  drafts: Record<string, MembershipRecapDraft>,
+) {
+  const draft = drafts[row.participant_id];
+  const status = normalizeAssociationStatus(
+    draft?.association_status ?? row.current_association_status,
+  );
+  const search = filters.search.trim().toLowerCase();
+  const searchMatches = search
+    ? [
+        row.first_name ?? "",
+        row.last_name ?? "",
+        row.email ?? "",
+        row.ticket_tailor_order_id ?? "",
+        row.ticket_tailor_event_id ?? "",
+        row.event_title ?? "",
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(search)
+    : true;
+  const statusMatches = filters.associationStatus
+    ? status === filters.associationStatus
+    : true;
+  const membersBookMatches = filters.membersBookStatus
+    ? row.members_book_status === filters.membersBookStatus
+    : true;
+  const googleFormMatches = filters.googleFormStatus
+    ? row.google_form_status === filters.googleFormStatus
+    : true;
+  const checkInMatches = filters.checkedIn
+    ? filters.checkedIn === "true"
+      ? row.checked_in === true
+      : row.checked_in !== true
+    : true;
+
+  return (
+    searchMatches &&
+    statusMatches &&
+    membersBookMatches &&
+    googleFormMatches &&
+    checkInMatches
+  );
+}
+
+function isMembershipRecapRowModified(
+  row: MembershipRecapRow,
+  draft: MembershipRecapDraft,
+) {
+  return (
+    draft.association_status !==
+      normalizeAssociationStatus(row.current_association_status) ||
+    (draft.association_expires_at || "") !==
+      (row.current_association_expires_at ?? "") ||
+    (draft.notes_admin || "") !== (row.notes_admin ?? "")
+  );
+}
+
 function applyQuickFilter(
   participants: Participant[],
   quickFilterMode: QuickFilterMode,
@@ -2964,6 +4019,101 @@ function applyQuickFilter(
   }
 
   return participants;
+}
+
+function matchesBookSyncPreviewFilters(
+  row: OfficialMembersBookPreviewRow,
+  filters: BookSyncPreviewFilters,
+) {
+  const search = filters.search.trim().toLowerCase();
+  const rowText = [
+    row.first_name,
+    row.last_name,
+    row.fiscal_code ?? "",
+    row.birth_date ?? "",
+    row.membership_card_number ?? "",
+    ...row.notes,
+    ...row.errors,
+  ]
+    .join(" ")
+    .toLowerCase();
+  const searchMatches = search ? rowText.includes(search) : true;
+  const statusMatches =
+    filters.status === "all"
+      ? true
+      : filters.status === "invalid"
+        ? row.action === "invalid" || row.errors.length > 0
+        : row.membership_status === filters.status;
+  const actionMatches =
+    filters.action === "all" ? true : row.action === filters.action;
+
+  return searchMatches && statusMatches && actionMatches;
+}
+
+function applyParticipantListFilters(
+  participants: Participant[],
+  filters: ParticipantListFilters,
+  events: AdminEvent[],
+) {
+  const search = filters.search.trim().toLowerCase();
+
+  return participants.filter((participant) => {
+    const status = normalizeParticipantListStatus(
+      participant.association_status,
+    );
+    const eventTitle = findParticipantEventTitle(participant, events);
+
+    const searchMatches = search
+      ? [
+          participant.first_name ?? "",
+          participant.last_name ?? "",
+          participant.email ?? "",
+          participant.ticket_tailor_order_id ?? "",
+          participant.ticket_tailor_event_id ?? "",
+          eventTitle ?? "",
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(search)
+      : true;
+
+    const statusMatches = filters.associationStatus
+      ? status === filters.associationStatus
+      : true;
+    const typeMatches = filters.participantType
+      ? participant.participant_type === filters.participantType
+      : true;
+    const checkInMatches = filters.checkedIn
+      ? participant.participant_type === "attendee" &&
+        (filters.checkedIn === "true"
+          ? participant.checked_in === true
+          : participant.checked_in !== true)
+      : true;
+
+    return searchMatches && statusMatches && typeMatches && checkInMatches;
+  });
+}
+
+function normalizeParticipantListStatus(status: string | null) {
+  const normalized = normalizeAssociationStatus(status);
+
+  if (normalized === "missing") {
+    return "not_found";
+  }
+
+  return normalized || "unknown";
+}
+
+function findParticipantEventTitle(
+  participant: Participant,
+  events: AdminEvent[],
+) {
+  const event = events.find(
+    (candidate) =>
+      candidate.ticket_tailor_event_id === participant.ticket_tailor_event_id,
+  );
+
+  return event?.title ?? event?.slug ?? null;
 }
 
 function getParticipantSummary(participants: Participant[]) {
@@ -3012,11 +4162,72 @@ function formatAssociationStatusLabel(status: string | null) {
     pending: "Da validare",
     expired: "Scaduta",
     not_found: "Non trovata",
-    manual_review: "Controllo manuale",
+    manual_review: "Da controllare",
     unknown: "Da verificare",
+    missing: "Non trovata",
+    not_required: "Non richiesta",
   };
 
   return labels[normalized] ?? normalized;
+}
+
+function formatPreviewActionLabel(action: string | null | undefined) {
+  const labels: Record<string, string> = {
+    create: "Da creare",
+    update: "Da aggiornare",
+    unchanged: "Già allineata",
+    invalid: "Non valida",
+    skipped: "Esclusa",
+  };
+
+  return action ? labels[action] ?? action : "-";
+}
+
+function formatMatchMethodLabel(method: string | null | undefined) {
+  const labels: Record<string, string> = {
+    email: "Email",
+    name: "Nome",
+    multiple: "Multiplo",
+    none: "Nessuna corrispondenza",
+    fiscal_code: "Codice fiscale",
+    name_birth: "Nome e data nascita",
+    fiscal_code_birth: "Codice fiscale e nascita",
+  };
+
+  return method ? labels[method] ?? method : "-";
+}
+
+function formatMembershipStatusLabel(status: string | null | undefined) {
+  const labels: Record<string, string> = {
+    verified: "Valida",
+    expired: "Scaduta",
+    pending: "Da validare",
+    manual_review: "Da controllare",
+  };
+
+  return status ? labels[status] ?? status : "-";
+}
+
+function formatMembersBookStatusLabel(status: MembershipRecapRow["members_book_status"]) {
+  const labels: Record<MembershipRecapRow["members_book_status"], string> = {
+    valid: "Valido",
+    expired: "Scaduto",
+    pending: "Da validare",
+    not_present: "Non presente",
+    manual_review: "Da controllare",
+  };
+
+  return labels[status];
+}
+
+function formatGoogleFormStatusLabel(status: MembershipRecapRow["google_form_status"]) {
+  const labels: Record<MembershipRecapRow["google_form_status"], string> = {
+    present: "Presente",
+    not_present: "Non presente",
+    manual_review: "Da controllare",
+  };
+
+  return labels[status];
 }
 
 function quickFilterButtonClass(active: boolean) {
@@ -3050,7 +4261,24 @@ function StatusBadge({ status }: { status: string | null }) {
     <span
       className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] ${className}`}
     >
-      {normalized}
+      {formatAssociationStatusLabel(normalized)}
+    </span>
+  );
+}
+
+function RecapStatusBadge({ label }: { label: string }) {
+  const className =
+    label === "Valido" || label === "Presente"
+      ? "border-[#2f5b3a]/25 bg-[#2f5b3a]/10 text-[#2f5b3a]"
+      : label === "Scaduto" || label === "Non presente"
+        ? "border-[#8b2f2a]/25 bg-[#8b2f2a]/10 text-[#8b2f2a]"
+        : "border-[#8b5e4a]/25 bg-[#8b5e4a]/10 text-[#8b5e4a]";
+
+  return (
+    <span
+      className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] ${className}`}
+    >
+      {label}
     </span>
   );
 }
