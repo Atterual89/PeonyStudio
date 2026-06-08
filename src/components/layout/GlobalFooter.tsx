@@ -14,16 +14,14 @@ export function GlobalFooter() {
   if (pathname.startsWith("/area-personale")) return null;
 
   return (
-    <footer className="border-t border-[#211815]/10 bg-[#efe4d7] px-5 py-10 sm:px-6">
+    <footer className="border-t border-[#211815]/10 bg-[#efe4d7] px-5 py-6 pb-24 sm:px-6">
       <div className="mx-auto max-w-6xl">
-        <div className="grid gap-8 md:grid-cols-[1fr_1fr_1fr]">
-          {/* Col 1 — Brand */}
+        <div className="grid grid-cols-2 gap-6">
+          {/* Col sinistra — Brand + social */}
           <div>
-            <p className="font-serif text-lg font-medium tracking-[0.08em] text-[#211815]">
-              {footer.brand}
-            </p>
-            <p className="mt-1 text-sm text-[#5f524c]">{footer.tagline}</p>
-            <div className="mt-4 flex gap-3">
+            <p className="text-xs font-medium uppercase tracking-widest text-[#211815] mb-1">{footer.brand}</p>
+            <p className="text-xs text-[#9a8a7e] mb-4">{footer.tagline}</p>
+            <div className="flex gap-3">
               <a
                 href="https://www.instagram.com/peony.studio.turin"
                 target="_blank"
@@ -51,36 +49,36 @@ export function GlobalFooter() {
             </div>
           </div>
 
-          {/* Cols 2-3 — Links */}
-          {footer.columns.map((column) => (
-            <div key={column.title}>
-              <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8b5e4a]">
-                {column.title}
-              </h2>
-              <div className="grid gap-2">
-                {column.links.map((link) => (
-                  <Link
-                    key={`${column.title}-${link.label}`}
-                    href={link.href}
-                    className="text-sm text-[#5f524c] transition hover:text-[#211815]"
-                  >
-                    {link.label}
-                  </Link>
-                ))}
+          {/* Col destra — Link gruppi */}
+          <div className="space-y-4">
+            {footer.columns.map((column) => (
+              <div key={column.title}>
+                <p className="text-xs font-semibold uppercase tracking-widest text-[#b07a5a] mb-2">{column.title}</p>
+                <div className="grid gap-1.5">
+                  {column.links.map((link) => (
+                    <Link
+                      key={`${column.title}-${link.label}`}
+                      href={link.href}
+                      className="text-sm text-[#5f524c] transition hover:text-[#211815]"
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
-        {/* Bottom bar */}
-        <div className="mt-8 flex flex-col items-start justify-between gap-3 border-t border-[#211815]/10 pt-5 sm:flex-row sm:items-center">
-          <Link
-            href={footer.contactHref}
-            className="text-sm font-medium text-[#8b5e4a] transition hover:text-[#211815]"
+        {/* Bottom — email + copyright */}
+        <div className="mt-6 border-t border-[#211815]/10 pt-5">
+          <a
+            href="mailto:peony.studio.turin@gmail.com"
+            className="text-sm text-[#c9a98a] underline underline-offset-2 mt-6 block"
           >
-            {footer.contact}
-          </Link>
-          <p className="text-xs text-[#5f524c]/65">{footer.copyright}</p>
+            peony.studio.turin@gmail.com
+          </a>
+          <p className="mt-2 text-xs text-[#5f524c]/65">{footer.copyright}</p>
         </div>
       </div>
     </footer>

@@ -22,7 +22,11 @@
       "Bash(grep -n \"come-iniziare\\\\|\\\\/pratica\\\\|Scrivici su Instagram\\\\|instagram.com\\\\|secondaryCta\" D:/peony_studio/PeonyStudio/src/content/home.ts D:/peony_studio/PeonyStudio/src/i18n/dictionaries/it.ts)",
       "Bash(NODE_OPTIONS=\"--max-old-space-size=4096\" npm.cmd run build)",
       "Bash(wmic logicaldisk *)",
-      "Bash(npx.cmd next *)"
+      "Bash(npx.cmd next *)",
+      "Bash(ping -n 6 127.0.0.1)",
+      "Bash(curl *)",
+      "Bash(taskkill /PID 3464 /F)",
+      "PowerShell(Stop-Process *)"
     ]
   }
 }

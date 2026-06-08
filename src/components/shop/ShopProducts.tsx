@@ -685,10 +685,6 @@ function RopeCard({ rope }: { rope: RopeProduct }) {
       <h3 className="mt-2 font-serif text-3xl font-medium leading-[1.04]">
         {rope.diameter}
       </h3>
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <PriceBox label="Grezza" value={rope.rawPrice} />
-        <PriceBox label="Trattata" value={rope.treatedPrice} />
-      </div>
       <div className="mt-4 flex flex-wrap gap-2">
         <UseChip active={rope.floorwork} label="Terra" />
         <UseChip active={rope.suspensionHarness} label="Harness" />
@@ -1158,16 +1154,6 @@ function Chip({
   );
 }
 
-function PriceBox({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
-        {label}
-      </p>
-      <p className="mt-1 text-lg font-medium text-[#211815]">{value}</p>
-    </div>
-  );
-}
 
 function UseChip({ active, label }: { active: boolean; label: string }) {
   return (

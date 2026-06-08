@@ -81,6 +81,17 @@ export function ProgramsProgressPage({ content, percorsoEvents = [] }: ProgramsP
   const localizedContent = programsBilingual[locale] ?? programsBilingual.it;
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [activeParallelIndex, setActiveParallelIndex] = useState<number | null>(null);
+  const [contactModalOpen, setContactModalOpen] = useState(false);
+  const [contactName, setContactName] = useState("");
+  const [contactProgram, setContactProgram] = useState("");
+  const [contactMessage, setContactMessage] = useState("");
+
+  const closeModal = () => {
+    setContactModalOpen(false);
+    setContactName("");
+    setContactProgram("");
+    setContactMessage("");
+  };
 
   const activeStep = activeIndex === null ? null : localizedContent.progression[activeIndex];
   const progressScale =
@@ -89,8 +100,14 @@ export function ProgramsProgressPage({ content, percorsoEvents = [] }: ProgramsP
       : 0;
 
   function toggleActiveIndex(index: number) {
-    setActiveIndex((current) => (current === index ? null : index));
+    const next = activeIndex === index ? null : index;
+    setActiveIndex(next);
     setActiveParallelIndex(null);
+    if (next !== null) {
+      setTimeout(() => {
+        document.getElementById("program-detail")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 80);
+    }
   }
 
   return (
@@ -196,6 +213,9 @@ export function ProgramsProgressPage({ content, percorsoEvents = [] }: ProgramsP
                         : "border-[#8b5e4a]/30 shadow-[0_0_0_6px_rgba(244,239,232,0.8)] group-hover:border-[#8b5e4a]/55"
                     }`}
                   >
+                    {active && (
+                      <span aria-hidden="true" className="absolute inset-0 rounded-full border-2 border-[#8b5e4a]/55 animate-ping" />
+                    )}
                     <span
                       aria-hidden="true"
                       className={`h-4 w-4 rounded-full border-2 transition duration-300 md:h-5 md:w-5 ${
@@ -252,10 +272,24 @@ export function ProgramsProgressPage({ content, percorsoEvents = [] }: ProgramsP
 
         {/* ── Program detail ── */}
         {activeStep ? (
-          <div className="mt-4 md:mt-5">
+          <div id="program-detail" className="mt-4 md:mt-5">
             <ProgramDetail step={activeStep} prog={prog} matchedEvents={matchPercorso(percorsoEvents, activeIndex ?? 0)} />
           </div>
         ) : null}
+
+        {/* ── Contatto ── */}
+        <div className="mt-10 px-4 pb-4">
+          <p className="mb-3 text-xs text-[#6b5a4e]">
+            Hai domande sui percorsi? Scrivici direttamente.
+          </p>
+          <button
+            type="button"
+            onClick={() => setContactModalOpen(true)}
+            className="w-full rounded-full border border-[#2a1f1a] py-3 text-sm text-[#2a1f1a]"
+          >
+            Chiedi informazioni
+          </button>
+        </div>
       </section>
 
       {/* Quiz */}
@@ -283,6 +317,84 @@ export function ProgramsProgressPage({ content, percorsoEvents = [] }: ProgramsP
         </div>
       </section>
 
+      {contactModalOpen ? (
+        <div
+          className="fixed inset-0 z-[90] grid place-items-center bg-[#211815]/45 px-4 py-5 backdrop-blur-sm"
+          role="presentation"
+          onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
+        >
+          <div
+            className="relative w-full max-w-md rounded-[8px] border border-[#211815]/10 bg-[#f4efe8] p-5 shadow-[0_24px_80px_rgba(33,24,21,0.28)] md:p-7"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="contact-modal-title"
+          >
+            <button
+              type="button"
+              aria-label="Chiudi"
+              className="absolute right-3 top-3 grid h-10 w-10 place-items-center rounded-full border border-[#211815]/10 bg-[#f4efe8]/85 text-xl leading-none text-[#211815] transition hover:bg-white"
+              onClick={closeModal}
+            >
+              ×
+            </button>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">Percorsi</p>
+            <h2 id="contact-modal-title" className="mt-2 font-serif text-3xl font-medium leading-[1.06]">
+              Chiedi informazioni
+            </h2>
+            <div className="mt-5 grid gap-4">
+              <div>
+                <label className="mb-1 block text-xs uppercase tracking-widest text-[#b07a5a]">
+                  Nome o nickname
+                </label>
+                <input
+                  type="text"
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                  placeholder="Come ti chiami?"
+                  className="w-full rounded-xl border border-[#c4a888] bg-white px-4 py-3 text-sm text-[#2a1f1a] outline-none focus:border-[#8b5e4a]"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs uppercase tracking-widest text-[#b07a5a]">
+                  Percorso
+                </label>
+                <select
+                  value={contactProgram}
+                  onChange={(e) => setContactProgram(e.target.value)}
+                  className="w-full rounded-xl border border-[#c4a888] bg-white px-4 py-3 text-sm text-[#2a1f1a] outline-none focus:border-[#8b5e4a]"
+                >
+                  <option value="">Seleziona un percorso...</option>
+                  <option value="Foundation 1">Foundation 1</option>
+                  <option value="Foundation 2">Foundation 2</option>
+                  <option value="Classe 1">Classe 1</option>
+                  <option value="Classe 1+">Classe 1+</option>
+                  <option value="Pratica Assistita">Pratica Assistita</option>
+                  <option value="Classi Tematiche">Classi Tematiche</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs uppercase tracking-widest text-[#b07a5a]">
+                  Note o domande
+                </label>
+                <textarea
+                  value={contactMessage}
+                  onChange={(e) => setContactMessage(e.target.value)}
+                  placeholder="Scrivi qui le tue domande o note..."
+                  rows={4}
+                  className="w-full rounded-xl border border-[#c4a888] bg-white px-4 py-3 text-sm text-[#2a1f1a] outline-none focus:border-[#8b5e4a]"
+                />
+              </div>
+            </div>
+            <a
+              href={`mailto:peony.studio.turin@gmail.com?subject=${encodeURIComponent(`Informazioni percorso: ${contactProgram}`)}&body=${encodeURIComponent(`Ciao,\n\nMi chiamo ${contactName}.\n\nPercorso di interesse: ${contactProgram}\n\n${contactMessage}\n\nGrazie`)}`}
+              onClick={closeModal}
+              className="mt-5 inline-flex w-full justify-center rounded-full bg-[#211815] px-5 py-3 text-sm font-medium text-white shadow-[0_6px_18px_rgba(33,24,21,0.15)] transition hover:-translate-y-0.5"
+            >
+              Invia email →
+            </a>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

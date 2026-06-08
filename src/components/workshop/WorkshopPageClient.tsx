@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import { HomeFooter } from "@/components/home/HomeFooter";
 import { TabsWrapper } from "@/components/layout/TabsWrapper";
 import { EventImage } from "@/components/shared/EventImage";
 import { useLanguage } from "@/components/site/LanguageProvider";
@@ -116,7 +115,6 @@ export function WorkshopPageClient({ cards }: Props) {
         )}
       </section>
 
-      <HomeFooter content={dictionary.footer} />
     </main>
   );
 }

@@ -28,7 +28,7 @@ export function PhilosophySection({ content }: PhilosophySectionProps) {
     <section className="mx-auto max-w-6xl px-5 py-12 sm:px-6 md:py-20">
       <div
         ref={ref}
-        className="relative overflow-hidden rounded-[8px] bg-[#211815] px-6 py-10 text-[#f4efe8] shadow-[0_20px_50px_rgba(33,24,21,0.18)] md:px-10 md:py-14"
+        className="relative overflow-hidden rounded-[8px] bg-[#e0d0c0] px-6 py-10 text-[#2a1a10] shadow-[0_4px_24px_rgba(33,24,21,0.07)] md:px-10 md:py-14"
       >
         <div
           aria-hidden="true"
@@ -55,10 +55,10 @@ export function PhilosophySection({ content }: PhilosophySectionProps) {
             viewport={{ once: true }}
             transition={{ duration: 0.75, ease: [0.23, 1, 0.32, 1] }}
           >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#d6b89f]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8a5a3a]">
               {dictionary.home.philosophy.eyebrow}
             </p>
-            <h2 className="mt-3 max-w-3xl font-serif text-[clamp(36px,8vw,56px)] font-medium leading-[1.05] tracking-normal text-[#f4efe8]">
+            <h2 className="mt-3 max-w-3xl font-serif text-[clamp(36px,8vw,56px)] font-medium leading-[1.05] tracking-normal text-[#2a1a10]">
               {content.title}
             </h2>
           </motion.div>
@@ -78,7 +78,7 @@ export function PhilosophySection({ content }: PhilosophySectionProps) {
                     delay: index * 0.1,
                     ease: [0.23, 1, 0.32, 1],
                   }}
-                  className="border-t border-[#f4efe8]/15 last:border-b"
+                  className="border-t border-[#c4a888] last:border-b"
                 >
                   <button
                     type="button"
@@ -86,14 +86,14 @@ export function PhilosophySection({ content }: PhilosophySectionProps) {
                     className="flex w-full items-center justify-between gap-3 py-4 text-left"
                   >
                     <span className="flex items-baseline gap-3">
-                      <span className="text-[11px] font-semibold tracking-[0.2em] text-[#f4efe8]/35">
+                      <span className="text-[11px] font-semibold tracking-[0.2em] text-[#8a5a3a]">
                         {String(index + 1).padStart(2, "0")}
                       </span>
                       <span
                         className={`font-serif text-3xl font-medium transition duration-500 ${
                           active
-                            ? "italic text-[#d6b89f]"
-                            : "text-[#f4efe8]"
+                            ? "italic text-[#8a5a3a]"
+                            : "text-[#2a1a10]"
                         }`}
                       >
                         {concept.word}
@@ -104,8 +104,8 @@ export function PhilosophySection({ content }: PhilosophySectionProps) {
                         active ? "rotate-45" : ""
                       }`}
                     >
-                      <span className="absolute left-1/2 top-1/2 h-3.5 w-px -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#f4efe8]/45" />
-                      <span className="absolute left-1/2 top-1/2 h-px w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#f4efe8]/45" />
+                      <span className="absolute left-1/2 top-1/2 h-3.5 w-px -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#8a5a3a]" />
+                      <span className="absolute left-1/2 top-1/2 h-px w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#8a5a3a]" />
                     </span>
                   </button>
                   <motion.div
@@ -117,7 +117,7 @@ export function PhilosophySection({ content }: PhilosophySectionProps) {
                     transition={{ duration: 0.55, ease: [0.23, 1, 0.32, 1] }}
                     className="overflow-hidden"
                   >
-                    <p className="mb-5 ml-8 max-w-xl text-sm leading-[1.7] text-[#f4efe8]/70">
+                    <p className="mb-5 ml-8 max-w-xl text-sm leading-[1.7] text-[#5a4030]">
                       {concept.desc}
                     </p>
                   </motion.div>
@@ -134,7 +134,7 @@ export function PhilosophySection({ content }: PhilosophySectionProps) {
           >
             <Link
               href={content.cta.href}
-              className="mt-7 inline-flex rounded-full border border-[#f4efe8]/30 px-6 py-3.5 text-sm font-medium text-[#f4efe8] transition hover:-translate-y-0.5 hover:bg-[#f4efe8]/10"
+              className="mt-7 inline-flex rounded-full border border-[#2a1a10] px-6 py-3 text-sm font-medium text-[#2a1a10] transition hover:-translate-y-0.5 hover:bg-[#2a1a10]/5"
             >
               {content.cta.label} →
             </Link>

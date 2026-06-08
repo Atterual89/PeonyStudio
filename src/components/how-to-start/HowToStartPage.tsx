@@ -6,7 +6,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-import { HomeFooter } from "@/components/home/HomeFooter";
 import { useLanguage } from "@/components/site/LanguageProvider";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import {
@@ -234,8 +233,6 @@ export function HowToStartPage({ content }: HowToStartPageProps) {
         </div>
       </section>
 
-      <HomeFooter content={homeContent.footer} />
-
       {quizOpen ? (
         <QuizDialog quiz={localizedContent.quiz} onClose={() => setQuizOpen(false)} />
       ) : null}
@@ -266,7 +263,7 @@ function QuizDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[300] grid place-items-center bg-[#211815]/35 px-3 py-4 backdrop-blur-sm sm:px-5"
+      className="fixed inset-0 z-[300] grid place-items-center bg-[#211815]/45 px-4 py-5 backdrop-blur-sm"
       role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
@@ -278,7 +275,7 @@ function QuizDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="quiz-dialog-title"
-        className="max-h-[calc(100vh-32px)] w-full max-w-5xl overflow-y-auto rounded-[8px] border border-[#211815]/10 bg-[#f4efe8] p-4 shadow-[0_28px_80px_rgba(33,24,21,0.24)] sm:p-5 md:p-6"
+        className="max-h-[calc(100dvh-40px)] w-full max-w-5xl overflow-y-auto rounded-[8px] border border-[#211815]/10 bg-[#f4efe8] p-5 shadow-[0_24px_80px_rgba(33,24,21,0.28)] md:p-7"
         initial={{ opacity: 0, y: 22, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.32, ease: [0.23, 1, 0.32, 1] }}
@@ -365,7 +362,7 @@ function QuizBlock({ quiz }: { quiz: LocaleQuiz }) {
 
   if (result) {
     return (
-      <div className="mx-auto mt-8 max-w-3xl">
+      <div className="mx-auto max-w-3xl">
         <article
           aria-live="polite"
           className="rounded-[8px] border border-[#211815]/10 bg-gradient-to-br from-white/75 to-[#efe4d7]/65 p-5 shadow-[0_14px_34px_rgba(33,24,21,0.08)] md:p-6"
@@ -377,90 +374,88 @@ function QuizBlock({ quiz }: { quiz: LocaleQuiz }) {
   }
 
   return (
-    <div className="mx-auto mt-8 max-w-3xl">
-      <article className="rounded-[8px] border border-[#211815]/10 bg-white/65 p-5 shadow-[0_2px_0_rgba(33,24,21,0.03)] md:p-6">
-        <div className="flex items-center justify-between gap-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-            {hts.question} {currentStep + 1} / {totalQuestions}
-          </p>
-          <div className="flex gap-1.5" aria-hidden="true">
-            {Array.from({ length: totalQuestions }).map((_, index) => (
-              <span
-                key={index}
-                className={`h-2 w-7 rounded-full transition ${
-                  index === 0
-                    ? firstAnswer
-                      ? "bg-[#8b5e4a]"
-                      : "bg-[#211815]/10"
-                    : branchAnswers[index - 1]
-                      ? "bg-[#8b5e4a]"
-                      : "bg-[#211815]/10"
-                }`}
-              />
-            ))}
-          </div>
+    <div className="grid gap-5">
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+          {hts.question} {currentStep + 1} / {totalQuestions}
+        </p>
+        <div className="flex gap-1.5" aria-hidden="true">
+          {Array.from({ length: totalQuestions }).map((_, index) => (
+            <span
+              key={index}
+              className={`h-2 w-7 rounded-full transition ${
+                index === 0
+                  ? firstAnswer
+                    ? "bg-[#8b5e4a]"
+                    : "bg-[#211815]/10"
+                  : branchAnswers[index - 1]
+                    ? "bg-[#8b5e4a]"
+                    : "bg-[#211815]/10"
+              }`}
+            />
+          ))}
         </div>
+      </div>
 
-        <h2 className="mt-5 font-serif text-[30px] font-medium leading-[1.1] tracking-normal text-[#211815] md:text-4xl">
-          {question.question}
-        </h2>
+      <h2 className="font-serif text-xl font-medium leading-[1.1] tracking-normal text-[#211815]">
+        {question.question}
+      </h2>
 
-        <div className="mt-6 grid gap-3">
-          {question.answers.map((answer) => {
-            const selected = selectedAnswer === answer.key;
+      <div className="grid gap-2">
+        {question.answers.map((answer) => {
+          const selected = selectedAnswer === answer.key;
 
-            return (
-              <button
-                key={answer.key}
-                type="button"
-                aria-pressed={selected}
-                onClick={() => chooseAnswer(answer.key)}
-                className={`flex w-full items-start gap-3 rounded-[8px] border p-4 text-left transition duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-4 focus-visible:ring-offset-[#f4efe8] ${
+          return (
+            <button
+              key={answer.key}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => chooseAnswer(answer.key)}
+              className={`flex w-full items-start gap-3 rounded-[8px] border px-4 py-3 text-left transition duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-4 focus-visible:ring-offset-[#f4efe8] ${
+                selected
+                  ? "border-[#8b5e4a] bg-[#f4efe8] shadow-[0_10px_26px_rgba(33,24,21,0.08)]"
+                  : "border-[#211815]/10 bg-[#f4efe8]/55 hover:border-[#8b5e4a]/35 hover:bg-white/80"
+              }`}
+            >
+              <span
+                className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-semibold ${
                   selected
-                    ? "border-[#8b5e4a] bg-[#f4efe8] shadow-[0_10px_26px_rgba(33,24,21,0.08)]"
-                    : "border-[#211815]/10 bg-[#f4efe8]/55 hover:border-[#8b5e4a]/35 hover:bg-white/80"
+                    ? "bg-[#211815] text-[#f4efe8]"
+                    : "border border-[#211815]/15 text-[#8b5e4a]"
                 }`}
               >
-                <span
-                  className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-semibold ${
-                    selected
-                      ? "bg-[#211815] text-[#f4efe8]"
-                      : "border border-[#211815]/15 text-[#8b5e4a]"
-                  }`}
-                >
-                  {answer.key}
-                </span>
-                <span className="pt-0.5 text-sm leading-[1.6] text-[#5f524c]">
-                  {answer.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+                {answer.key}
+              </span>
+              <span className="pt-0.5 text-sm leading-[1.6] text-[#5f524c]">
+                {answer.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <button
-            type="button"
-            onClick={() => setCurrentStep((current) => Math.max(0, current - 1))}
-            disabled={currentStep === 0}
-            className="rounded-full border border-[#211815]/20 px-5 py-3 text-sm font-medium text-[#211815] transition hover:bg-white/70 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {hts.back}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (currentStep < totalQuestions - 1) {
-                setCurrentStep((current) => current + 1);
-              }
-            }}
-            disabled={!selectedAnswer || currentStep === totalQuestions - 1}
-            className="rounded-full bg-[#211815] px-5 py-3 text-sm font-medium text-white shadow-[0_6px_18px_rgba(33,24,21,0.15)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(33,24,21,0.22)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
-          >
-            {hts.next}
-          </button>
-        </div>
-      </article>
+      <div className="flex justify-between gap-2">
+        <button
+          type="button"
+          onClick={() => setCurrentStep((current) => Math.max(0, current - 1))}
+          disabled={currentStep === 0}
+          className="rounded-full border border-[#211815]/15 px-4 py-2.5 text-sm font-medium text-[#211815] transition hover:bg-white/70 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {hts.back}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (currentStep < totalQuestions - 1) {
+              setCurrentStep((current) => current + 1);
+            }
+          }}
+          disabled={!selectedAnswer || currentStep === totalQuestions - 1}
+          className="rounded-full bg-[#211815] px-4 py-2.5 text-sm font-medium text-white shadow-[0_6px_18px_rgba(33,24,21,0.15)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(33,24,21,0.22)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
+        >
+          {hts.next}
+        </button>
+      </div>
     </div>
   );
 }

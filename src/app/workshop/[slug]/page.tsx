@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { HomeFooter } from "@/components/home/HomeFooter";
 import { EventImage } from "@/components/shared/EventImage";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { homeContent } from "@/content/home";
@@ -225,7 +224,6 @@ export default async function WorkshopDetailPage({ params }: Props) {
         </div>
       </section>
 
-      <HomeFooter content={homeContent.footer} />
     </main>
   );
 }

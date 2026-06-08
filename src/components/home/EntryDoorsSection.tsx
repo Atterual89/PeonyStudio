@@ -10,10 +10,10 @@ import { useLanguage } from "@/components/site/LanguageProvider";
 const S = "rgba(245,240,235,0.65)";
 
 const CARD_COLORS = [
-  { bg: "#3a2e24", accent: "#f0c070" },
-  { bg: "#2e3828", accent: "#a0d060" },
-  { bg: "#2a2838", accent: "#a088d8" },
-  { bg: "#382030", accent: "#d880a8" },
+  { bg: "#e8ddd4", text: "#2a1f1a" },
+  { bg: "#dde4d8", text: "#1e2a1e" },
+  { bg: "#d8d4e8", text: "#1e1a2a" },
+  { bg: "#e8d4de", text: "#2a1a20" },
 ] as const;
 
 function renderMobileIcon(index: number, stroke: string) {
@@ -99,11 +99,11 @@ export function EntryDoorsSection() {
       </motion.div>
 
       {/* ── MOBILE: accordion verticale ── */}
-      <div className="mt-8 overflow-hidden rounded-[16px] bg-[#1a1410] px-4 py-6 md:hidden">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#a08060]">
+      <div className="mt-8 overflow-hidden rounded-[16px] bg-[#f0ebe4] px-4 py-6 md:hidden">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#b07a5a]">
           {doors.eyebrow}
         </p>
-        <h2 className="mt-1.5 font-serif text-[22px] font-medium leading-[1.2] text-[#f0e8d8]">
+        <h2 className="mt-1.5 font-serif text-[22px] font-medium leading-[1.2] text-[#2a1f1a]">
           {doors.title}
         </h2>
         <div className="mt-5 flex flex-col gap-[6px]">
@@ -123,27 +123,28 @@ export function EntryDoorsSection() {
                 >
                   <span
                     className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-                    style={{ backgroundColor: `${colors?.accent}26` }}
+                    style={{ backgroundColor: `${colors?.text}1a` }}
                   >
-                    {renderMobileIcon(index, colors?.accent ?? S)}
+                    {renderMobileIcon(index, colors?.text ?? S)}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="font-serif text-[15px] font-normal leading-tight text-[#f5efea]">
+                    <p className="font-serif text-[15px] font-normal leading-tight" style={{ color: colors?.text }}>
                       {door.title}
                     </p>
-                    <p className="mt-0.5 text-[9px] uppercase tracking-widest text-white/60">
+                    <p className="mt-0.5 text-[9px] uppercase tracking-widest" style={{ color: `${colors?.text}99` }}>
                       {door.content}
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-0.5">
                     <span
                       className="font-mono text-[11px] tabular-nums"
-                      style={{ color: colors?.accent, opacity: 0.35 }}
+                      style={{ color: colors?.text, opacity: 0.6 }}
                     >
                       {String(index + 1).padStart(2, "0")}
                     </span>
                     <span
-                      className={`text-[18px] leading-none text-white/50 transition-transform duration-200 ${isOpen ? "rotate-45" : ""}`}
+                      className={`text-[18px] leading-none transition-transform duration-200 ${isOpen ? "rotate-45" : ""}`}
+                      style={{ color: colors?.text }}
                     >
                       +
                     </span>
@@ -155,7 +156,7 @@ export function EntryDoorsSection() {
                   }`}
                 >
                   <div className="pb-[18px] pl-[66px] pr-[14px]">
-                    <p className="text-[13px] leading-[1.6] text-white/80">
+                    <p className="text-[13px] leading-[1.6]" style={{ color: `${colors?.text}cc` }}>
                       {door.description}
                     </p>
                     <div className="mt-4">
@@ -163,9 +164,9 @@ export function EntryDoorsSection() {
                         href={door.href}
                         className="inline-flex rounded-[100px] px-[16px] py-[8px] text-[12px] transition hover:opacity-80"
                         style={{
-                          border: `1px solid ${colors?.accent}`,
-                          color: colors?.accent,
-                          backgroundColor: `${colors?.accent}14`,
+                          border: `1px solid ${colors?.text}`,
+                          color: colors?.text,
+                          backgroundColor: `${colors?.text}14`,
                         }}
                       >
                         {door.cta}

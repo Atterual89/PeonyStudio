@@ -35,7 +35,7 @@ export const peonyAboutContent = {
       {
         title: "Main workshop area",
         text:
-          "Una sala di circa 100 m² per classi, workshop e rope jam, fino a 16 coppie.",
+          "Una sala di circa 100 m² per classi, workshop e rope jam, fino a 16 coppie. La sala principale è dotata di aria condizionata e ventilazione.",
       },
       {
         title: "Lounge & kitchen",
@@ -74,7 +74,7 @@ export const peonyAboutContent = {
     ],
     travel: [
       {
-        title: "By Plane",
+        title: "In aereo",
         items: [
           "Turin Caselle Airport",
           "Milan Airports: Malpensa, Linate",
@@ -82,11 +82,11 @@ export const peonyAboutContent = {
         ],
       },
       {
-        title: "By Train",
+        title: "In treno",
         items: ["Turin Porta Nuova", "Turin Porta Susa"],
       },
       {
-        title: "Public Transportation",
+        title: "Mezzi pubblici",
         items: [
           "Metro: Turin Metro Line, Marche Station",
           "Bus Line 33, Eritrea Stop",
@@ -194,7 +194,7 @@ const peonyAboutContentEn = {
     cards: [
       {
         title: "Main workshop area",
-        text: "A room of about 100 m² for classes, workshops and rope jams, accommodating up to 16 couples.",
+        text: "A room of about 100 m² for classes, workshops and rope jams, accommodating up to 16 couples. The main hall is equipped with air conditioning and ventilation.",
       },
       {
         title: "Lounge & kitchen",

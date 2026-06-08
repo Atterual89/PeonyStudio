@@ -7,7 +7,6 @@ import { EntryDoorsSection } from "@/components/home/EntryDoorsSection";
 import { FeaturedEventsSection, type FeaturedEvent } from "@/components/home/FeaturedEventsSection";
 import { FinalHomeCta } from "@/components/home/FinalHomeCta";
 import { HeroSection } from "@/components/home/HeroSection";
-import { HomeFooter } from "@/components/home/HomeFooter";
 import { Marquee } from "@/components/home/Marquee";
 import { PhilosophySection } from "@/components/home/PhilosophySection";
 import { StudioPreviewSection } from "@/components/home/StudioPreviewSection";
@@ -36,7 +35,7 @@ export function HomeContentClient({ featured, events }: Props) {
 
       {/* mobile: scroll eventi */}
       <div className="md:hidden pb-2 pt-6">
-        <p className="mb-3 px-5 font-sans text-[9px] uppercase tracking-widest text-[#8b5e4a]">
+        <p className="mb-3 px-5 font-sans text-sm uppercase tracking-widest text-[#8b5e4a]">
           Prossimi Appuntamenti
         </p>
         <div className="flex gap-3 overflow-x-auto px-5 pb-2 [scroll-snap-type:x_mandatory] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -44,7 +43,7 @@ export function HomeContentClient({ featured, events }: Props) {
             <a
               key={`${event.slug}-${i}`}
               href={event.bookingUrl ?? event.eventUrl}
-              className="min-w-[180px] shrink-0 overflow-hidden rounded-[12px] border border-[#211815]/8 [scroll-snap-align:start]"
+              className="min-w-[200px] shrink-0 overflow-hidden rounded-[12px] border border-[#211815]/8 [scroll-snap-align:start]"
             >
               <EventImage
                 src={event.image ?? FALLBACK_IMAGE}
@@ -53,14 +52,14 @@ export function HomeContentClient({ featured, events }: Props) {
               />
               <div className="bg-[#f5ede2] px-3 pb-3 pt-2.5">
                 <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-[#8b5e4a]/10 px-2 py-0.5 text-[10px] font-medium text-[#8b5e4a]">
+                  <span className="rounded-full bg-[#8b5e4a]/10 px-2 py-0.5 text-sm font-medium text-[#8b5e4a]">
                     {event.category}
                   </span>
-                  <span className="text-[10px] text-[#6b5c52]">
+                  <span className="text-sm text-[#6b5c52]">
                     {event.date}
                   </span>
                 </div>
-                <p className="mt-1 font-serif text-[13px] leading-tight text-[#211815] line-clamp-2">
+                <p className="mt-1 font-serif text-lg font-medium leading-tight text-[#211815] line-clamp-2">
                   {event.title}
                 </p>
               </div>
@@ -89,7 +88,6 @@ export function HomeContentClient({ featured, events }: Props) {
       <PhilosophySection content={h.philosophy} />
       <StudioPreviewSection content={h.studio} />
       <FinalHomeCta content={h.finalCta} />
-      <HomeFooter content={dictionary.footer} />
     </main>
   );
 }

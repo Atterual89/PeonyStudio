@@ -5,7 +5,6 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { useRef, useState } from "react";
 
-import { HomeFooter } from "@/components/home/HomeFooter";
 import { TeacherDuosGrid } from "@/components/peony/TeacherDuosGrid";
 import { useLanguage } from "@/components/site/LanguageProvider";
 import { SiteHeader } from "@/components/site/SiteHeader";
@@ -50,17 +49,17 @@ export function PeonyPageClient({ galleryImages }: Props) {
       <SiteHeader />
 
       {/* Tab navigation — sticky below header */}
-      <div className="sticky top-14 z-40 border-b border-[#211815]/10 bg-[#f4efe8]/95 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-6xl overflow-x-auto px-5 [scrollbar-width:none] sm:px-6 [&::-webkit-scrollbar]:hidden">
+      <div className="sticky z-40 border-b border-[#211815]/12 bg-[#f4efe8]" style={{ top: "57px" }}>
+        <div className="mx-auto flex max-w-6xl items-end gap-0.5 px-2 pt-2 sm:gap-1 sm:px-6">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               type="button"
               onClick={() => handleTabChange(tab.key)}
-              className={`-mb-px shrink-0 border-b-2 px-4 py-3 text-sm font-medium transition ${
+              className={`min-w-0 flex-1 rounded-t-[8px] px-2 py-1.5 text-center text-[10px] font-semibold uppercase tracking-[0.1em] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-2 sm:px-3 sm:py-2 sm:text-[11px] sm:tracking-[0.14em] ${
                 activeTab === tab.key
-                  ? "border-[#8b5e4a] text-[#8b5e4a]"
-                  : "border-transparent text-[#5f524c] hover:text-[#211815]"
+                  ? "-mb-px border border-b-[#f4efe8] border-[#211815]/12 bg-[#f4efe8] text-[#211815]"
+                  : "border border-transparent bg-[#e8e3db]/80 text-[#5f524c]/60 hover:text-[#5f524c]"
               }`}
             >
               {tab.label}
@@ -314,63 +313,20 @@ export function PeonyPageClient({ galleryImages }: Props) {
       </div>
 
       {/* ── Sezione Contatti — sempre visibile ── */}
-      <section className="mx-auto max-w-6xl px-5 py-10 sm:px-6 md:py-16">
-        <div className="rounded-[8px] border border-[#211815]/10 bg-white/38 p-6 md:p-8">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-            {p.contactEyebrow}
-          </p>
-          <h2 className="mt-2 font-serif text-4xl font-medium leading-[1.02] md:text-5xl">
-            {p.contactTitle}
-          </h2>
-          <p className="mt-3 max-w-2xl text-[15px] leading-[1.7] text-[#5f524c]">
-            {p.contactSubtitle}
-          </p>
-
-          {/* Google Form */}
-          <div className="mt-6 overflow-hidden rounded-[8px] border border-[#211815]/10">
-            <iframe
-              src="https://docs.google.com/forms/d/e/1FAIpQLScR80C5RIYTCPjXp9Y8QuAk9BGl5KoTERbSRMqcfRdNzAVxSg/viewform?embedded=true"
-              width="100%"
-              height="912"
-              frameBorder={0}
-              title="Contatti Peony Studio"
-              className="block w-full"
-            >
-              Caricamento…
-            </iframe>
-          </div>
-
-          {/* Social links */}
-          <div className="mt-6 flex flex-wrap gap-4">
-            <a
-              href="https://www.instagram.com/peony.studio.turin"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full border border-[#211815]/15 bg-white/55 px-4 py-2.5 text-sm font-medium text-[#211815] transition hover:bg-white/80"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect x="2" y="2" width="20" height="20" rx="5" />
-                <circle cx="12" cy="12" r="4" />
-                <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none" />
-              </svg>
-              {p.contactInstagram}
-            </a>
-            <a
-              href="https://t.me/peony_studio_turin"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full border border-[#211815]/15 bg-white/55 px-4 py-2.5 text-sm font-medium text-[#211815] transition hover:bg-white/80"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M22 3L2 10l7 3 2 7 4-5 5 4L22 3z" />
-              </svg>
-              {p.contactTelegram}
-            </a>
-          </div>
-        </div>
+      <section id="contatti" className="mx-auto max-w-6xl px-5 py-10 sm:px-6">
+        <p className="text-xs tracking-widest uppercase text-[#b07a5a] mb-2">Contatti</p>
+        <h2 className="font-serif text-3xl mb-4">Scrivici.</h2>
+        <p className="text-sm text-[#6b5a4e] mb-6">
+          Hai domande? Scrivici direttamente via email.
+        </p>
+        <a
+          href="mailto:peony.studio.turin@gmail.com"
+          className="inline-block w-full text-center bg-[#2a1f1a] text-white text-sm font-medium py-4 rounded-full"
+        >
+          peony.studio.turin@gmail.com
+        </a>
       </section>
 
-      <HomeFooter content={dictionary.footer} />
     </main>
   );
 }
