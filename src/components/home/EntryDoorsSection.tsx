@@ -7,34 +7,49 @@ import { useState } from "react";
 
 import { useLanguage } from "@/components/site/LanguageProvider";
 
-const S = "rgba(245,240,235,0.65)"; // stroke colore SVG
+const S = "rgba(245,240,235,0.65)";
 
-function IconCompass() {
+const CARD_COLORS = [
+  { bg: "#3a2e24", accent: "#f0c070" },
+  { bg: "#2e3828", accent: "#a0d060" },
+  { bg: "#2a2838", accent: "#a088d8" },
+  { bg: "#382030", accent: "#d880a8" },
+] as const;
+
+function renderMobileIcon(index: number, stroke: string) {
+  if (index === 0) return <IconCompass stroke={stroke} />;
+  if (index === 1) return <IconCircles stroke={stroke} />;
+  if (index === 2) return <IconStar stroke={stroke} />;
+  if (index === 3) return <IconPeople stroke={stroke} />;
+  return null;
+}
+
+function IconCompass({ stroke = S }: { stroke?: string }) {
   return (
     <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
-      <circle cx="15" cy="15" r="11" stroke={S} strokeWidth="1.3" />
-      <circle cx="15" cy="15" r="2" stroke={S} strokeWidth="1.3" />
-      <path d="M19.5 10.5l-5 4-4 5 5-4 4-5z" stroke={S} strokeWidth="1.3" strokeLinejoin="round" />
+      <circle cx="15" cy="15" r="11" stroke={stroke} strokeWidth="1.3" />
+      <circle cx="15" cy="15" r="2" stroke={stroke} strokeWidth="1.3" />
+      <path d="M19.5 10.5l-5 4-4 5 5-4 4-5z" stroke={stroke} strokeWidth="1.3" strokeLinejoin="round" />
     </svg>
   );
 }
 
-function IconCircles() {
+function IconCircles({ stroke = S }: { stroke?: string }) {
   return (
     <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-      <circle cx="14" cy="14" r="3" stroke={S} strokeWidth="1.3" />
-      <circle cx="14" cy="14" r="6.5" stroke={S} strokeWidth="1.3" />
-      <circle cx="14" cy="14" r="11" stroke={S} strokeWidth="1.3" />
+      <circle cx="14" cy="14" r="3" stroke={stroke} strokeWidth="1.3" />
+      <circle cx="14" cy="14" r="6.5" stroke={stroke} strokeWidth="1.3" />
+      <circle cx="14" cy="14" r="11" stroke={stroke} strokeWidth="1.3" />
     </svg>
   );
 }
 
-function IconStar() {
+function IconStar({ stroke = S }: { stroke?: string }) {
   return (
     <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
       <path
         d="M14 2l2.8 8.5H25l-6.8 5 2.6 8.5L14 19.5l-6.8 4.5 2.6-8.5L3 10.5h8.2L14 2z"
-        stroke={S}
+        stroke={stroke}
         strokeWidth="1.3"
         strokeLinejoin="round"
       />
@@ -42,13 +57,13 @@ function IconStar() {
   );
 }
 
-function IconPeople() {
+function IconPeople({ stroke = S }: { stroke?: string }) {
   return (
     <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-      <circle cx="9" cy="9" r="4" stroke={S} strokeWidth="1.3" />
-      <circle cx="19" cy="9" r="4" stroke={S} strokeWidth="1.3" />
-      <path d="M1 26c0-4.5 3.5-8 8-8s8 3.5 8 8" stroke={S} strokeWidth="1.3" strokeLinecap="round" />
-      <path d="M19 18c4.5 0 8 3.5 8 8" stroke={S} strokeWidth="1.3" strokeLinecap="round" />
+      <circle cx="9" cy="9" r="4" stroke={stroke} strokeWidth="1.3" />
+      <circle cx="19" cy="9" r="4" stroke={stroke} strokeWidth="1.3" />
+      <path d="M1 26c0-4.5 3.5-8 8-8s8 3.5 8 8" stroke={stroke} strokeWidth="1.3" strokeLinecap="round" />
+      <path d="M19 18c4.5 0 8 3.5 8 8" stroke={stroke} strokeWidth="1.3" strokeLinecap="round" />
     </svg>
   );
 }
@@ -60,24 +75,13 @@ export function EntryDoorsSection() {
   const d = doors.items;
 
   const [openIndex, setOpenIndex] = useState<number | null>(null);
-  // panelIndex NON si azzera al close: mantiene il contenuto visibile durante la transizione di chiusura
-  const [panelIndex, setPanelIndex] = useState(0);
-  const panelItem = d[panelIndex] ?? d[0];
-
-  function tap(index: number) {
-    if (openIndex === index) {
-      setOpenIndex(null); // chiude — panelIndex rimane invariato
-    } else {
-      setPanelIndex(index);
-      setOpenIndex(index);
-    }
-  }
 
   return (
     <section className="mx-auto max-w-6xl px-5 py-14 sm:px-6 md:py-24">
 
-      {/* intestazione sezione */}
+      {/* intestazione sezione — solo desktop */}
       <motion.div
+        className="hidden md:block"
         initial={reduceMotion ? false : { opacity: 0, y: 28 }}
         whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
         viewport={{ once: true }}
@@ -94,134 +98,84 @@ export function EntryDoorsSection() {
         </p>
       </motion.div>
 
-      {/* ── MOBILE: collage card scure ── */}
-      <div className="mt-8 md:hidden">
-
-        {/* Card 1 — full width, 180px */}
-        <button
-          type="button"
-          onClick={() => tap(0)}
-          className="relative mb-3 flex h-[180px] w-full flex-col justify-between overflow-hidden rounded-[12px] p-4 text-left"
-          style={{ background: "#3a2e24" }}
-        >
-          <div className="relative flex justify-center">
-            <span className="absolute left-0 font-sans text-[9px] tracking-wide text-white/35">
-              01
-            </span>
-            <IconCompass />
-          </div>
-          <div>
-            <p className="font-sans text-[9px] uppercase tracking-widest text-white/45">
-              {d[0]?.content}
-            </p>
-            <p className="mt-1 font-serif text-lg font-medium leading-tight text-[#f5efea]">
-              {d[0]?.title}
-            </p>
-            <p className="mt-1.5 font-sans text-xs text-[#8b5e4a]">
-              {d[0]?.cta} →
-            </p>
-          </div>
-        </button>
-
-        {/* Riga 2 — Card 2 + Card 3, grid 2 col, 110px */}
-        <div className="mb-3 grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => tap(1)}
-            className="flex h-[110px] flex-col justify-between overflow-hidden rounded-[12px] p-3.5 text-left"
-            style={{ background: "#2e3828" }}
-          >
-            <div className="flex items-start justify-between">
-              <span className="font-sans text-[9px] tracking-wide text-white/35">02</span>
-              <IconCircles />
-            </div>
-            <div>
-              <p className="font-serif text-sm font-medium leading-tight text-[#f5efea] line-clamp-1">
-                {d[1]?.title}
-              </p>
-              <p className="mt-0.5 font-sans text-[9px] uppercase tracking-widest text-white/45">
-                {d[1]?.content}
-              </p>
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => tap(2)}
-            className="flex h-[110px] flex-col justify-between overflow-hidden rounded-[12px] p-3.5 text-left"
-            style={{ background: "#2a2838" }}
-          >
-            <div className="flex items-start justify-between">
-              <span className="font-sans text-[9px] tracking-wide text-white/35">03</span>
-              <IconStar />
-            </div>
-            <div>
-              <p className="font-serif text-sm font-medium leading-tight text-[#f5efea] line-clamp-1">
-                {d[2]?.title}
-              </p>
-              <p className="mt-0.5 font-sans text-[9px] uppercase tracking-widest text-white/45">
-                {d[2]?.content}
-              </p>
-            </div>
-          </button>
-        </div>
-
-        {/* Card 4 — orizzontale full width, 72px */}
-        <button
-          type="button"
-          onClick={() => tap(3)}
-          className="flex h-[72px] w-full items-center gap-3 overflow-hidden rounded-[12px] px-4 text-left"
-          style={{ background: "#382030" }}
-        >
-          <IconPeople />
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              <span className="h-[6px] w-[6px] animate-pulse rounded-full bg-[#8b5e4a]" />
-              <span className="font-sans text-[9px] uppercase tracking-widest text-[#8b5e4a]">
-                {d[3]?.content}
-              </span>
-            </div>
-            <p className="mt-0.5 truncate font-serif text-sm font-medium leading-tight text-[#f5efea]">
-              {d[3]?.title}
-            </p>
-          </div>
-          <span className="font-sans text-[9px] tracking-wide text-white/35">04</span>
-        </button>
-
-        {/* Pannello inline espandibile — sempre renderizzato per la close transition */}
-        <div
-          className={`overflow-hidden transition-[max-height] duration-300 ease-in-out ${
-            openIndex !== null ? "max-h-[400px]" : "max-h-0"
-          }`}
-        >
-          <div className="pt-3">
-            <div className="rounded-[12px] bg-[#2e2418] p-4">
-              <p className="font-sans text-[9px] uppercase tracking-widest text-white/45">
-                {panelItem.content}
-              </p>
-              <p className="mt-2 font-serif text-xl font-medium leading-tight text-[#f5efea]">
-                {panelItem.title}
-              </p>
-              <p className="mt-2 text-sm leading-[1.65] text-white/60">
-                {panelItem.description}
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Link
-                  href={panelItem.href}
-                  className="inline-flex rounded-full bg-[#8b5e4a] px-4 py-2 font-sans text-sm font-medium text-[#f5efea] transition hover:bg-[#7a5241]"
-                >
-                  {panelItem.cta}
-                </Link>
+      {/* ── MOBILE: accordion verticale ── */}
+      <div className="mt-8 overflow-hidden rounded-[16px] bg-[#1a1410] px-4 py-6 md:hidden">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#a08060]">
+          {doors.eyebrow}
+        </p>
+        <h2 className="mt-1.5 font-serif text-[22px] font-medium leading-[1.2] text-[#f0e8d8]">
+          {doors.title}
+        </h2>
+        <div className="mt-5 flex flex-col gap-[6px]">
+          {d.map((door, index) => {
+            const isOpen = openIndex === index;
+            const colors = CARD_COLORS[index];
+            return (
+              <div
+                key={door.title}
+                className="overflow-hidden rounded-[12px]"
+                style={{ background: colors?.bg }}
+              >
                 <button
                   type="button"
-                  onClick={() => setOpenIndex(null)}
-                  className="inline-flex rounded-full border border-white/20 px-4 py-2 font-sans text-sm font-medium text-white/60 transition hover:bg-white/10"
+                  onClick={() => setOpenIndex(isOpen ? null : index)}
+                  className="flex w-full items-center gap-[14px] px-[14px] py-[16px] text-left"
                 >
-                  Chiudi
+                  <span
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                    style={{ backgroundColor: `${colors?.accent}26` }}
+                  >
+                    {renderMobileIcon(index, colors?.accent ?? S)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-serif text-[15px] font-normal leading-tight text-[#f5efea]">
+                      {door.title}
+                    </p>
+                    <p className="mt-0.5 text-[9px] uppercase tracking-widest text-white/60">
+                      {door.content}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-0.5">
+                    <span
+                      className="font-mono text-[11px] tabular-nums"
+                      style={{ color: colors?.accent, opacity: 0.35 }}
+                    >
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <span
+                      className={`text-[18px] leading-none text-white/50 transition-transform duration-200 ${isOpen ? "rotate-45" : ""}`}
+                    >
+                      +
+                    </span>
+                  </div>
                 </button>
+                <div
+                  className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out ${
+                    isOpen ? "max-h-[300px] opacity-100" : "max-h-0 opacity-0"
+                  }`}
+                >
+                  <div className="pb-[18px] pl-[66px] pr-[14px]">
+                    <p className="text-[13px] leading-[1.6] text-white/80">
+                      {door.description}
+                    </p>
+                    <div className="mt-4">
+                      <Link
+                        href={door.href}
+                        className="inline-flex rounded-[100px] px-[16px] py-[8px] text-[12px] transition hover:opacity-80"
+                        style={{
+                          border: `1px solid ${colors?.accent}`,
+                          color: colors?.accent,
+                          backgroundColor: `${colors?.accent}14`,
+                        }}
+                      >
+                        {door.cta}
+                      </Link>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            );
+          })}
         </div>
       </div>
 

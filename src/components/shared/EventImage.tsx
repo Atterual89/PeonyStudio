@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-type EventImageVariant = "card" | "hero" | "compact" | "mobile";
+type EventImageVariant = "card" | "hero" | "compact" | "mobile" | "netflix";
 
 type EventImageProps = {
   src: string;
@@ -15,6 +15,7 @@ const variantClasses: Record<EventImageVariant, string> = {
   hero: "aspect-[16/9]",
   compact: "aspect-square",
   mobile: "aspect-[10/11]",
+  netflix: "aspect-[3/1]",
 };
 
 const imageClasses: Record<EventImageVariant, string> = {
@@ -22,6 +23,7 @@ const imageClasses: Record<EventImageVariant, string> = {
   hero: "object-cover",
   compact: "object-contain p-1.5",
   mobile: "object-contain p-2",
+  netflix: "object-cover",
 };
 
 const sizes: Record<EventImageVariant, string> = {
@@ -29,6 +31,7 @@ const sizes: Record<EventImageVariant, string> = {
   hero: "(min-width: 1024px) 640px, 90vw",
   compact: "72px",
   mobile: "200px",
+  netflix: "180px",
 };
 
 export function EventImage({

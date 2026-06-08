@@ -44,23 +44,23 @@ export function HomeContentClient({ featured, events }: Props) {
             <a
               key={`${event.slug}-${i}`}
               href={event.bookingUrl ?? event.eventUrl}
-              className="relative block h-[220px] min-w-[200px] shrink-0 overflow-hidden rounded-[12px] [scroll-snap-align:start]"
+              className="min-w-[180px] shrink-0 overflow-hidden rounded-[12px] border border-[#211815]/8 [scroll-snap-align:start]"
             >
               <EventImage
                 src={event.image ?? FALLBACK_IMAGE}
                 alt={event.title}
-                variant="mobile"
-                className="absolute inset-0 h-full w-full"
+                variant="netflix"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#1a1510]/80 via-[#1a1510]/15 to-transparent" />
-              <span className="absolute left-3 top-3 rounded-full bg-[#8b5e4a]/90 px-2 py-1 text-[9px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
-                {event.category}
-              </span>
-              <div className="absolute bottom-0 left-0 right-0 p-3">
-                <p className="mb-1 font-sans text-[10px] text-[#f4efe8]/70">
-                  {event.date}
-                </p>
-                <p className="font-serif text-sm font-medium leading-tight text-[#f4efe8] line-clamp-2">
+              <div className="bg-[#f5ede2] px-3 pb-3 pt-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-[#8b5e4a]/10 px-2 py-0.5 text-[10px] font-medium text-[#8b5e4a]">
+                    {event.category}
+                  </span>
+                  <span className="text-[10px] text-[#6b5c52]">
+                    {event.date}
+                  </span>
+                </div>
+                <p className="mt-1 font-serif text-[13px] leading-tight text-[#211815] line-clamp-2">
                   {event.title}
                 </p>
               </div>

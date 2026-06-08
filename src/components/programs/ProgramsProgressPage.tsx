@@ -16,6 +16,7 @@ import type {
   ProgramStep,
   programsContent,
 } from "@/content/programs";
+import type { PeonyEvent } from "@/lib/events";
 
 const ICON_MAP = { User, Users, Sprout, BookOpen, Ribbon, Eye } as const;
 type IconName = keyof typeof ICON_MAP;
@@ -27,10 +28,6 @@ const NODE_ICONS: Record<number, IconName[]> = {
   3: ["Users", "BookOpen"],
 };
 
-const PARALLEL_ICONS: Record<number, IconName[]> = {
-  0: ["User", "BookOpen", "Sprout"],
-  1: ["Users", "BookOpen", "Sprout"],
-};
 
 const ICON_LABEL_KEY: Record<IconName, "iconLegendUser" | "iconLegendUsers" | "iconLegendSprout" | "iconLegendBookOpen" | "iconLegendRibbon" | "iconLegendEye"> = {
   User:     "iconLegendUser",
@@ -43,11 +40,41 @@ const ICON_LABEL_KEY: Record<IconName, "iconLegendUser" | "iconLegendUsers" | "i
 
 type ProgramsProgressPageProps = {
   content: typeof programsContent;
+  percorsoEvents?: PeonyEvent[];
 };
 
 const NODE_LABELS_SHORT = ["F1", "F2", "C1", "C1+"];
 
-export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
+const PERCORSO_PATTERNS: Record<number, string[]> = {
+  0: ["foundation lv.1", "foundation lv 1", "foundation lev.1", "foundation 1"],
+  1: ["foundation lv.2", "foundation lv 2", "foundation lev.2", "foundation 2"],
+  2: ["classe 1", "class 1", "classe #1"],
+  3: ["classe 1+", "classe 1 +", "class 1+", "classe1+"],
+};
+
+function matchPercorso(events: PeonyEvent[], percorsoIndex: number): PeonyEvent[] {
+  const keywords = PERCORSO_PATTERNS[percorsoIndex] ?? [];
+  return events.filter((e) => {
+    const title = e.title.toLowerCase();
+    if (percorsoIndex === 2 && (title.includes("1+") || title.includes("1 +"))) return false;
+    return keywords.some((k) => title.includes(k));
+  });
+}
+
+const PARALLELO_PATTERNS: Record<"pratica" | "tematica", string[]> = {
+  pratica: ["pratica assistita"],
+  tematica: ["classe tematica", "classi tematiche"],
+};
+
+function matchParallelo(events: PeonyEvent[], key: "pratica" | "tematica"): PeonyEvent[] {
+  const keywords = PARALLELO_PATTERNS[key];
+  return events.filter((e) => {
+    const title = e.title.toLowerCase();
+    return keywords.some((k) => title.includes(k));
+  });
+}
+
+export function ProgramsProgressPage({ content, percorsoEvents = [] }: ProgramsProgressPageProps) {
   const { dictionary, locale } = useLanguage();
   const prog = dictionary.programs;
   const prac = dictionary.practice;
@@ -216,6 +243,7 @@ export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
           items={localizedContent.parallelPractice.items}
           activeIndex={activeParallelIndex}
           prog={prog}
+          percorsoEvents={percorsoEvents}
           onToggle={(index) => {
             setActiveParallelIndex((current) => (current === index ? null : index));
             setActiveIndex(null);
@@ -225,7 +253,7 @@ export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
         {/* ── Program detail ── */}
         {activeStep ? (
           <div className="mt-4 md:mt-5">
-            <ProgramDetail step={activeStep} prog={prog} />
+            <ProgramDetail step={activeStep} prog={prog} matchedEvents={matchPercorso(percorsoEvents, activeIndex ?? 0)} />
           </div>
         ) : null}
       </section>
@@ -259,12 +287,114 @@ export function ProgramsProgressPage({ content }: ProgramsProgressPageProps) {
   );
 }
 
+// ── Parallel detail panel ────────────────────────────────────────────────────
+
+function ParallelDetailPanel({
+  item,
+  label,
+  description,
+  matchedEvents,
+  prog,
+}: {
+  item: ParallelPracticeItem;
+  label: string;
+  description: string;
+  matchedEvents: PeonyEvent[];
+  prog: {
+    inParallelToPath: string;
+    whatWeWork: string;
+    forWhom: string;
+    detailsLink: string;
+  };
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <article
+      id="parallel-detail"
+      className="programs-panel-in mt-3 rounded-[8px] border border-[#211815]/10 bg-white/42 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] md:grid md:grid-cols-[0.7fr_1.3fr] md:items-start md:gap-5"
+    >
+      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8b5e4a]">
+        {prog.inParallelToPath}
+      </p>
+      <div>
+        <h3 className="mt-2 font-serif text-2xl font-medium leading-[1.08] tracking-normal text-[#211815]">
+          {label}
+        </h3>
+        <p className="mt-2 text-sm leading-[1.65] text-[#5f524c] md:mt-1">
+          {description}
+        </p>
+        {matchedEvents.length > 0 ? (
+          <div className="mt-4 rounded-[10px] border border-[#211815]/10 bg-[#f4efe8]/50 p-4">
+            <p className="mb-3 text-[10px] font-medium uppercase tracking-widest text-[#8b5e4a]">
+              Prossime date
+            </p>
+            <div className="flex flex-col gap-2">
+              {matchedEvents.slice(0, 4).map((event) => (
+                <div key={event.id} className="flex items-center justify-between">
+                  <span className="text-sm text-[#211815]">
+                    {event.dateLabel ?? event.date}
+                    {event.timeLabel ? ` · ${event.timeLabel}` : ""}
+                  </span>
+                  {event.bookingUrl ? (
+                    <a
+                      href={event.bookingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-full bg-[#211815] px-3 py-1.5 text-xs font-medium text-white"
+                    >
+                      Prenota
+                    </a>
+                  ) : (
+                    <span className="rounded-full border border-[#211815]/20 px-3 py-1.5 text-xs text-[#6b5c52]">
+                      In programma
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="mt-4 text-sm text-[#6b5c52]">
+            Nessuna data in programma al momento.
+          </p>
+        )}
+        <div className="mt-3">
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 border-b border-[#8b5e4a]/35 pb-0.5 text-sm font-medium text-[#8b5e4a] transition hover:border-[#8b5e4a]"
+            onClick={() => setExpanded((v) => !v)}
+          >
+            {prog.detailsLink} {expanded ? "↑" : "↓"}
+          </button>
+        </div>
+        <div className={`grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none ${expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+          <div className="overflow-hidden">
+            <div className="grid gap-3 pt-3">
+              <InfoBlock title={prog.whatWeWork} items={item.tags} />
+              <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/60 p-4">
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+                  {prog.forWhom}
+                </h3>
+                <p className="mt-3 text-sm leading-[1.65] text-[#5f524c]">{item.subtitle}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 // ── Parallel bar ──────────────────────────────────────────────────────────────
+
+const PARALLELO_KEYS: ("pratica" | "tematica")[] = ["pratica", "tematica"];
 
 function ParallelBar({
   items,
   activeIndex,
   prog,
+  percorsoEvents,
   onToggle,
 }: {
   items: ParallelPracticeItem[];
@@ -276,13 +406,18 @@ function ParallelBar({
     parallelClassiLabel: string;
     parallelPracticeDesc: string;
     parallelClassiDesc: string;
-    goToPractice: string;
+    whatWeWork: string;
+    forWhom: string;
+    detailsLink: string;
   };
+  percorsoEvents: PeonyEvent[];
   onToggle: (index: number) => void;
 }) {
   const activeItem = activeIndex === null ? null : items[activeIndex];
   const descriptions = [prog.parallelPracticeDesc, prog.parallelClassiDesc];
   const labels = [prog.parallelPracticeLabel, prog.parallelClassiLabel];
+  const parallelKey = activeIndex !== null ? (PARALLELO_KEYS[activeIndex] ?? "pratica") : "pratica";
+  const matchedParallelEvents = activeIndex !== null ? matchParallelo(percorsoEvents, parallelKey) : [];
 
   return (
     <div className="mx-auto mb-2 max-w-5xl">
@@ -318,36 +453,14 @@ function ParallelBar({
       <div className={`grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none ${activeItem ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
         <div className="overflow-hidden">
           {activeItem ? (
-            <article
-              id="parallel-detail"
-              className="programs-panel-in mt-3 rounded-[8px] border border-[#211815]/10 bg-white/42 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] md:grid md:grid-cols-[0.7fr_1.3fr_auto] md:items-center md:gap-5"
-            >
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8b5e4a]">
-                {prog.inParallelToPath}
-              </p>
-              <div>
-                <h3 className="mt-2 font-serif text-2xl font-medium leading-[1.08] tracking-normal text-[#211815]">
-                  {labels[activeIndex ?? 0] ?? activeItem.title}
-                </h3>
-                <p className="mt-2 text-sm leading-[1.65] text-[#5f524c] md:mt-1">
-                  {descriptions[activeIndex ?? 0]}
-                </p>
-              </div>
-              <div className="flex items-center gap-3 md:mt-0 mt-4">
-                <div className="flex gap-1.5">
-                  {(PARALLEL_ICONS[activeIndex ?? 0] ?? []).map(n => {
-                    const Icon = ICON_MAP[n];
-                    return <Icon key={n} size={14} className="text-[#8b5e4a]/65" aria-hidden="true" />;
-                  })}
-                </div>
-                <Link
-                  href="/percorsi/socialita"
-                  className="inline-flex rounded-full border border-[#211815]/20 bg-[#f4efe8]/70 px-4 py-2.5 text-sm font-medium text-[#211815] transition hover:-translate-y-0.5 hover:bg-white/70 active:translate-y-px"
-                >
-                  {prog.goToPractice}
-                </Link>
-              </div>
-            </article>
+            <ParallelDetailPanel
+              key={activeIndex ?? -1}
+              item={activeItem}
+              label={labels[activeIndex ?? 0] ?? activeItem.title}
+              description={descriptions[activeIndex ?? 0] ?? ""}
+              matchedEvents={matchedParallelEvents}
+              prog={prog}
+            />
           ) : null}
         </div>
       </div>
@@ -360,15 +473,16 @@ function ParallelBar({
 function ProgramDetail({
   step,
   prog,
+  matchedEvents,
 }: {
   step: ProgramStep;
   prog: {
     selectedProgram: string;
-    viewDates: string;
     whatWeWork: string;
     forWhom: string;
     detailsLink: string;
   };
+  matchedEvents: PeonyEvent[];
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -389,13 +503,42 @@ function ProgramDetail({
           <p className="mt-4 text-sm leading-[1.7] text-[#5f524c] md:text-base">
             {step.description}
           </p>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link
-              href="/calendario"
-              className="inline-flex rounded-full border border-[#211815]/20 bg-[#f4efe8]/70 px-5 py-3 text-sm font-medium text-[#211815] transition hover:-translate-y-0.5 hover:bg-white/70"
-            >
-              {prog.viewDates}
-            </Link>
+          {matchedEvents.length > 0 ? (
+            <div className="mt-4 rounded-[10px] border border-[#211815]/10 bg-[#f4efe8]/50 p-4">
+              <p className="mb-3 text-[10px] font-medium uppercase tracking-widest text-[#8b5e4a]">
+                Prossime date
+              </p>
+              <div className="flex flex-col gap-2">
+                {matchedEvents.slice(0, 4).map((event) => (
+                  <div key={event.id} className="flex items-center justify-between">
+                    <span className="text-sm text-[#211815]">
+                      {event.dateLabel ?? event.date}
+                      {event.timeLabel ? ` · ${event.timeLabel}` : ""}
+                    </span>
+                    {event.bookingUrl ? (
+                      <a
+                        href={event.bookingUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded-full bg-[#211815] px-3 py-1.5 text-xs font-medium text-white"
+                      >
+                        Prenota
+                      </a>
+                    ) : (
+                      <span className="rounded-full border border-[#211815]/20 px-3 py-1.5 text-xs text-[#6b5c52]">
+                        In programma
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="mt-4 text-sm text-[#6b5c52]">
+              Nessuna data in programma al momento.
+            </p>
+          )}
+          <div className="mt-3">
             <button
               type="button"
               className="inline-flex items-center gap-1 border-b border-[#8b5e4a]/35 pb-0.5 text-sm font-medium text-[#8b5e4a] transition hover:border-[#8b5e4a]"

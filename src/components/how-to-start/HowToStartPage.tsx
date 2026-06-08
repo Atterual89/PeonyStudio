@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
+import { BookOpen, Eye, Ribbon, Sprout, User, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -21,6 +22,29 @@ import {
   type howToStartContent,
 } from "@/content/how-to-start";
 import { homeContent } from "@/content/home";
+
+const HTS_ICON_MAP = { User, Users, Sprout, BookOpen, Ribbon, Eye } as const;
+type HtsIconName = keyof typeof HTS_ICON_MAP;
+
+const HTS_LEGEND_ORDER: HtsIconName[] = ["User", "Users", "Sprout", "BookOpen", "Ribbon", "Eye"];
+
+const HTS_ICON_LABEL_KEY: Record<HtsIconName, "iconLegendUser" | "iconLegendUsers" | "iconLegendSprout" | "iconLegendBookOpen" | "iconLegendRibbon" | "iconLegendEye"> = {
+  User:     "iconLegendUser",
+  Users:    "iconLegendUsers",
+  Sprout:   "iconLegendSprout",
+  BookOpen: "iconLegendBookOpen",
+  Ribbon:   "iconLegendRibbon",
+  Eye:      "iconLegendEye",
+};
+
+const HTS_STEP_ICONS: HtsIconName[][] = [
+  ["User", "Users", "Sprout", "Eye"],
+  ["Ribbon"],
+  ["Users", "Sprout"],
+  ["Users", "BookOpen"],
+  ["Users", "BookOpen"],
+  ["Users", "BookOpen"],
+];
 
 type HowToStartPageProps = {
   content: typeof howToStartContent;
@@ -45,6 +69,8 @@ export function HowToStartPage({ content }: HowToStartPageProps) {
   const hts = dictionary.howToStart;
   const localizedContent = howToStartBilingual[locale] ?? howToStartBilingual.it;
   const [quizOpen, setQuizOpen] = useState(false);
+  const [activePathIndex, setActivePathIndex] = useState<number>(0);
+  const prac = dictionary.practice;
 
   useEffect(() => {
     document.body.style.overflow = quizOpen ? "hidden" : "";
@@ -124,31 +150,56 @@ export function HowToStartPage({ content }: HowToStartPageProps) {
           eyebrow={hts.entryPathsEyebrow}
           title={hts.entryPathsTitle}
         />
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {localizedContent.entryPaths.cards.map((card, index) => (
-            <motion.article
-              key={card.title}
-              initial={reduceMotion ? false : { opacity: 0, y: 22 }}
-              whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{
-                duration: 0.62,
-                delay: index * 0.08,
-                ease: [0.23, 1, 0.32, 1],
-              }}
-              className="rounded-[8px] border border-[#211815]/10 bg-white/55 p-4 shadow-[0_1px_0_rgba(33,24,21,0.03)]"
-            >
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-                {String(index + 1).padStart(2, "0")}
-              </p>
-              <h3 className="mt-2 text-lg font-semibold leading-tight text-[#211815]">
-                {card.title}
-              </h3>
-              <p className="mt-2 text-sm leading-[1.45] text-[#5f524c]">
-                {card.text}
-              </p>
-            </motion.article>
-          ))}
+        <div className="mt-4 overflow-x-auto rounded-[6px] bg-[#211815]/[0.04] px-4 py-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex gap-4 md:gap-5">
+            {HTS_LEGEND_ORDER.map((name) => {
+              const Icon = HTS_ICON_MAP[name];
+              return (
+                <div key={name} className="flex shrink-0 items-center gap-1.5">
+                  <Icon size={12} className="shrink-0 text-[#8b5e4a]/55" aria-hidden="true" />
+                  <span className="text-[10px] leading-none text-[#5f524c]/62">{prac[HTS_ICON_LABEL_KEY[name]]}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <div className="relative mt-5 pl-6">
+          <div aria-hidden="true" className="absolute bottom-3 left-[9px] top-3 w-px bg-[#c8b49a]" />
+          <div className="flex flex-col gap-1.5">
+            {localizedContent.entryPaths.cards.map((card, index) => {
+              const active = index === activePathIndex;
+              return (
+                <button
+                  key={card.title}
+                  type="button"
+                  onClick={() => setActivePathIndex(index)}
+                  className="relative text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f4efe8]"
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`absolute -left-[15px] top-[14px] h-2 w-2 rounded-full transition duration-200 ${active ? "bg-[#8b5e4a]" : "bg-[#c8b49a]"}`}
+                  />
+                  <div className={`rounded-[10px] border p-3 transition duration-200 ${active ? "border-[#211815] bg-[#211815]" : "border-[#211815]/10 bg-white"}`}>
+                    <p className={`text-[10px] font-semibold uppercase tracking-[0.18em] ${active ? "text-[#8b5e4a]" : "text-[#8b5e4a]/70"}`}>
+                      {String(index + 1).padStart(2, "0")}
+                    </p>
+                    <h3 className={`mt-1 font-serif text-base font-medium leading-tight ${active ? "text-[#f5ede2]" : "text-[#211815]"}`}>
+                      {card.title}
+                    </h3>
+                    <p className={`mt-0.5 text-xs leading-[1.45] ${active ? "text-[#c8b49a]" : "text-[#5f524c]"}`}>
+                      {card.text}
+                    </p>
+                    <div className="mt-2 flex gap-1.5">
+                      {(HTS_STEP_ICONS[index] ?? []).map((n) => {
+                        const Icon = HTS_ICON_MAP[n];
+                        return <Icon key={n} size={12} className={active ? "text-[#c8b49a]/60" : "text-[#8b5e4a]/50"} aria-hidden="true" />;
+                      })}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </section>
 

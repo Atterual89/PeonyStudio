@@ -388,14 +388,6 @@ export const howToStartContent = {
           href: "/peony",
         },
       },
-      {
-        title: "Social",
-        text: "Aggiornamenti e prossimi appuntamenti.",
-        cta: {
-          label: "Esplora i social",
-          href: "https://www.instagram.com/",
-        },
-      },
     ] satisfies SimpleCard[],
   },
   finalCta: {
@@ -634,11 +626,6 @@ const howToStartContentEn = {
         title: "Gallery",
         text: "The space, the atmosphere, the practice.",
         cta: { label: "View the gallery", href: "/peony" },
-      },
-      {
-        title: "Social",
-        text: "Updates and upcoming dates.",
-        cta: { label: "Explore social media", href: "https://www.instagram.com/" },
       },
     ] satisfies SimpleCard[],
   },

@@ -30,6 +30,7 @@ function buildLiveCard(event: PeonyEvent): WorkshopCardData {
     international: enrichment?.international ?? true,
     coupleOnly: enrichment?.coupleOnly ?? true,
     imageUrl: event.imageUrl ?? enrichment?.image,
+    description: event.shortDescription ?? event.description,
   };
 }
 

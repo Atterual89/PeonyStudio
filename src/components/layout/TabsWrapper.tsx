@@ -10,10 +10,11 @@ export function TabsWrapper() {
   return (
     <SectionTabSwitcher
       tabs={[
-        { href: "/percorsi/inizia", label: nav.tabInizia },
-        { href: "/percorsi",        label: nav.tabPercorsi },
-        { href: "/workshop",        label: nav.workshops   },
-        { href: "/percorsi/socialita", label: nav.tabSocialita },
+        { href: "/percorsi/inizia",          label: nav.tabInizia },
+        { href: "/percorsi",                 label: nav.tabPercorsi },
+        { href: "/workshop",                 label: nav.workshops },
+        { href: "/percorsi/socialita",       label: nav.tabSocialita },
+        { href: "/percorsi/lezioni-private", label: nav.tabLezioniPrivate },
       ]}
     />
   );

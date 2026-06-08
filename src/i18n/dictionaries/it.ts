@@ -16,6 +16,7 @@ export const it = {
     tabInizia: "Inizia",
     tabPercorsi: "Percorsi",
     tabSocialita: "Socialità",
+    tabLezioniPrivate: "Altro",
     bottomNav: {
       home: "Home",
       calendar: "Calendario",
@@ -276,6 +277,7 @@ export const it = {
     badgeCoupleOnly: "Solo coppie",
     statusPreview: "In programma",
     ctaBook: "Prenota su Ticket Tailor",
+    searchPlaceholder: "Cerca workshop...",
   },
   peony: {
     howToGetThere: "Come arrivare",
@@ -464,7 +466,7 @@ export const it = {
         },
         {
           mark: "C",
-          href: "/pratica",
+          href: "/percorsi/socialita",
           title: "Voglio conoscere la community",
           content: "Rope Jam + Open Day + Aperibottom",
           description:

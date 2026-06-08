@@ -18,6 +18,7 @@ export const en: typeof it = {
     tabInizia: "Start",
     tabPercorsi: "Programs",
     tabSocialita: "Social",
+    tabLezioniPrivate: "Other",
     bottomNav: {
       home: "Home",
       calendar: "Calendar",
@@ -272,6 +273,7 @@ export const en: typeof it = {
     badgeCoupleOnly: "Couples only",
     statusPreview: "Scheduled",
     ctaBook: "Book on Ticket Tailor",
+    searchPlaceholder: "Search workshops...",
   },
   peony: {
     howToGetThere: "How to get here",
@@ -460,7 +462,7 @@ export const en: typeof it = {
         },
         {
           mark: "C",
-          href: "/pratica",
+          href: "/percorsi/socialita",
           title: "I want to meet the community",
           content: "Rope Jam + Open Day + Aperibottom",
           description:

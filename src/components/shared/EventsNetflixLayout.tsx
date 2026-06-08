@@ -140,27 +140,27 @@ function NetflixCard({ event }: { event: PeonyEventCard }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="relative block h-[240px] min-w-[200px] shrink-0 overflow-hidden rounded-[12px] [scroll-snap-align:start]"
+      className="min-w-[180px] shrink-0 overflow-hidden rounded-[12px] border border-[#211815]/8 [scroll-snap-align:start]"
     >
       <EventImage
         src={image}
         alt={event.title}
-        variant="mobile"
-        className="absolute inset-0 h-full w-full"
+        variant="netflix"
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-[#1a1510]/85 via-[#1a1510]/20 to-transparent" />
-      <span className="absolute left-3 top-3 rounded-full bg-[#8b5e4a]/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
-        {CATEGORY_LABELS[event.category] ?? event.category}
-      </span>
-      <div className="absolute bottom-0 left-0 right-0 p-3">
-        <p className="mb-1 font-sans text-[10px] text-white/60">
-          {tryFormatDate(event.date)}
-        </p>
-        <p className="pr-16 font-serif text-sm font-medium leading-tight text-white line-clamp-2">
+      <div className="bg-[#f5ede2] px-3 pb-3 pt-2.5">
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-[#8b5e4a]/10 px-2 py-0.5 text-[10px] font-medium text-[#8b5e4a]">
+            {CATEGORY_LABELS[event.category] ?? event.category}
+          </span>
+          <span className="text-[10px] text-[#6b5c52]">
+            {tryFormatDate(event.date)}
+          </span>
+        </div>
+        <p className="mt-1 font-serif text-[13px] leading-tight text-[#211815] line-clamp-2">
           {event.title}
         </p>
         {event.bookingUrl ? (
-          <span className="absolute bottom-3 right-3 rounded-full border border-white/25 bg-white/15 px-2.5 py-1 text-[10px] font-medium text-white backdrop-blur-sm">
+          <span className="mt-2 inline-block rounded-full bg-[#211815] px-2.5 py-1 text-[10px] font-medium text-white">
             Prenota
           </span>
         ) : null}

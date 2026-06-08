@@ -21,7 +21,8 @@
       "Bash(grep -r \"come-iniziare\\\\|\\\\/pratica\\\\|Scrivici\\\\|pratica.*community\\\\|Practice.*Community\" D:/peony_studio/PeonyStudio/src --include=\"*.tsx\" --include=\"*.ts\" -l)",
       "Bash(grep -n \"come-iniziare\\\\|\\\\/pratica\\\\|Scrivici su Instagram\\\\|instagram.com\\\\|secondaryCta\" D:/peony_studio/PeonyStudio/src/content/home.ts D:/peony_studio/PeonyStudio/src/i18n/dictionaries/it.ts)",
       "Bash(NODE_OPTIONS=\"--max-old-space-size=4096\" npm.cmd run build)",
-      "Bash(wmic logicaldisk *)"
+      "Bash(wmic logicaldisk *)",
+      "Bash(npx.cmd next *)"
     ]
   }
 }
