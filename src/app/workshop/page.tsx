@@ -4,7 +4,6 @@ import {
 } from "@/components/workshop/WorkshopPageClient";
 import { getWorkshopBySlug } from "@/content/workshops";
 import { getWorkshopEvents, type PeonyEvent } from "@/lib/events";
-import { TICKET_TAILOR_PUBLIC_URL } from "@/lib/ticketTailor";
 
 export default async function WorkshopPage() {
   const liveEvents = await getWorkshopEvents();
@@ -18,11 +17,6 @@ function buildLiveCard(event: PeonyEvent): WorkshopCardData {
     ? getWorkshopBySlug(event.workshopSlug)
     : undefined;
 
-  const hasTTBooking =
-    event.source === "ticket-tailor" &&
-    Boolean(event.bookingUrl) &&
-    event.bookingUrl !== TICKET_TAILOR_PUBLIC_URL;
-
   return {
     id: event.id,
     detailHref: event.workshopSlug
@@ -32,7 +26,7 @@ function buildLiveCard(event: PeonyEvent): WorkshopCardData {
     teachers: enrichment?.teachers ?? teachersFromTags(event.tags ?? []),
     dateLabel: event.dateLabel ?? enrichment?.dateLabel,
     timeLabel: event.timeLabel ?? enrichment?.timeLabel,
-    isPreview: !hasTTBooking,
+    isPreview: false,
     international: enrichment?.international ?? true,
     coupleOnly: enrichment?.coupleOnly ?? true,
     imageUrl: event.imageUrl ?? enrichment?.image,

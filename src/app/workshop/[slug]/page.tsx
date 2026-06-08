@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { HomeFooter } from "@/components/home/HomeFooter";
+import { EventImage } from "@/components/shared/EventImage";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { homeContent } from "@/content/home";
 import { getWorkshopBySlug } from "@/content/workshops";
@@ -68,9 +69,12 @@ export default async function WorkshopDetailPage({ params }: Props) {
       <section className="mx-auto max-w-6xl px-5 pb-8 pt-8 sm:px-6 md:pb-10 md:pt-12">
         <div className="grid gap-5 rounded-[8px] border border-[#211815]/10 bg-white/38 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] md:grid-cols-[0.96fr_1.04fr] md:items-stretch md:p-4">
           {imageUrl ? (
-            <div
-              className="relative min-h-[200px] overflow-hidden rounded-[8px] border border-[#211815]/10 bg-[#efe4d7] md:min-h-[320px]"
-              style={{ backgroundImage: `url(${imageUrl})`, backgroundSize: "cover", backgroundPosition: "center" }}
+            <EventImage
+              src={imageUrl}
+              alt={title}
+              variant={liveEvent?.imageUrl ? "hero" : "card"}
+              className="min-h-[200px] rounded-[8px] border border-[#211815]/10 md:min-h-[320px]"
+              priority
             />
           ) : (
             <div className="h-[200px] rounded-[8px] border border-[#211815]/10 bg-gradient-to-br from-[#efe4d7] to-[#d6b89f]/30 md:h-auto md:min-h-[320px]" />

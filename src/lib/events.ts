@@ -1,4 +1,3 @@
-import localEvents from "@/content/events.json";
 import {
   getTicketTailorEvents,
   inferEventCategory,
@@ -43,13 +42,6 @@ export type PeonyEvent = {
   rawTicketTailorPayload?: Record<string, unknown>;
 };
 
-type LocalEventsFile =
-  | PeonyEvent[]
-  | {
-      events: PeonyEvent[];
-      fallbackBookingUrl?: string;
-    };
-
 export type EventsByMonth = {
   key: string;
   label: string;
@@ -72,35 +64,15 @@ const fallbackBookingUrl = TICKET_TAILOR_PUBLIC_URL;
 
 export async function getAllEvents(): Promise<PeonyEvent[]> {
   const [ticketTailorEvents] = await Promise.all([getTicketTailorEvents()]);
-  const localEventsFile = localEvents as unknown as LocalEventsFile;
-  const localEventItems = Array.isArray(localEventsFile)
-    ? localEventsFile
-    : localEventsFile.events;
-  const localFallbackBookingUrl = Array.isArray(localEventsFile)
-    ? fallbackBookingUrl
-    : localEventsFile.fallbackBookingUrl ?? fallbackBookingUrl;
-  const normalizedLocalEvents = localEventItems.map((event) =>
-    finalizeEvent({
-      ...event,
-      bookingUrl: event.bookingUrl ?? localFallbackBookingUrl,
-      category: event.category ?? inferEventCategory(event.title),
-    }),
-  );
   const normalizedTicketTailorEvents = ticketTailorEvents.map(finalizeEvent);
-  const combinedEvents = [
-    ...normalizedTicketTailorEvents,
-    ...normalizedLocalEvents,
-  ];
-  const dedupedEvents = dedupeEvents(combinedEvents).sort(compareEventsByDate);
+  const events = normalizedTicketTailorEvents.sort(compareEventsByDate);
 
   debugEvents("getAllEvents", {
-    local: normalizedLocalEvents.length,
     ticketTailor: normalizedTicketTailorEvents.length,
-    combined: combinedEvents.length,
-    deduped: dedupedEvents.length,
+    publicSource: events.length,
   });
 
-  return dedupedEvents;
+  return events;
 }
 
 export async function getWorkshopEvents(): Promise<PeonyEvent[]> {
@@ -183,25 +155,6 @@ export async function getEventsByMonth(): Promise<EventsByMonth[]> {
   }));
 }
 
-function dedupeEvents(events: PeonyEvent[]) {
-  return events.reduce<PeonyEvent[]>((uniqueEvents, event) => {
-    const duplicateIndex = uniqueEvents.findIndex((existing) =>
-      isDuplicateEvent(existing, event),
-    );
-
-    if (duplicateIndex === -1) {
-      uniqueEvents.push(event);
-      return uniqueEvents;
-    }
-
-    if (event.source === "ticket-tailor") {
-      uniqueEvents[duplicateIndex] = event;
-    }
-
-    return uniqueEvents;
-  }, []);
-}
-
 function finalizeEvent(event: PeonyEvent): PeonyEvent {
   const rawDescription = event.description
     ? stripHtmlToText(event.description)
@@ -238,19 +191,6 @@ function finalizeEvent(event: PeonyEvent): PeonyEvent {
     ...baseEvent,
     tags: inferEventTags(baseEvent),
   };
-}
-
-function isDuplicateEvent(a: PeonyEvent, b: PeonyEvent) {
-  return a.date === b.date && normalizeTitle(a.title) === normalizeTitle(b.title);
-}
-
-function normalizeTitle(title: string) {
-  return title
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/gi, " ")
-    .trim();
 }
 
 export function createEventSlug(title: string, date: string) {

@@ -114,10 +114,20 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const candidates = (data ?? [])
+  const rawParticipants = (data ?? []) as unknown[];
+  const candidates = rawParticipants
     .filter(isEventParticipantMatch)
     .map<EventParticipantCandidate>((participant) => ({
-      ...participant,
+      id: participant.id,
+      first_name: participant.first_name,
+      last_name: participant.last_name,
+      email: participant.email,
+      participant_type: participant.participant_type,
+      ticket_tailor_order_id: participant.ticket_tailor_order_id,
+      ticket_tailor_event_id: participant.ticket_tailor_event_id,
+      association_status: participant.association_status,
+      association_expires_at: participant.association_expires_at,
+      notes_admin: participant.notes_admin,
       normalized_key: createNameKey(
         participant.first_name ?? "",
         participant.last_name ?? "",

@@ -710,21 +710,26 @@ function findPreferredImageUrl(record: TicketTailorRecord): string | null {
 }
 
 function findNestedImageUrl(record: TicketTailorRecord): string | null {
+  const candidates: { key: string; value: string }[] = [];
+
   for (const [key, value] of Object.entries(record)) {
     const stringValue = getString(value);
     if (stringValue && looksLikeImageField(key) && isImageUrl(stringValue)) {
-      return stringValue;
+      candidates.push({ key, value: stringValue });
     }
 
     if (isRecord(value)) {
       const nestedValue = findNestedImageUrl(value);
       if (nestedValue) {
-        return nestedValue;
+        candidates.push({ key, value: nestedValue });
       }
     }
   }
 
-  return null;
+  return (
+    candidates.sort((a, b) => imageFieldScore(b.key) - imageFieldScore(a.key))[0]
+      ?.value ?? null
+  );
 }
 
 function findTimestampMs(record: TicketTailorRecord, keys: string[]): number | null {
@@ -888,6 +893,17 @@ function looksLikeImageField(key: string) {
   return /image|thumbnail|cover|banner|poster/i.test(key);
 }
 
+function imageFieldScore(key: string) {
+  const normalized = key.toLowerCase();
+
+  if (/header|cover|banner|hero/.test(normalized)) return 4;
+  if (/event.*image|image.*event|poster/.test(normalized)) return 3;
+  if (/square|thumb|thumbnail/.test(normalized)) return 2;
+  if (/image/.test(normalized)) return 1;
+
+  return 0;
+}
+
 function looksLikeMediaOrTicketUrl(value: string) {
   const normalized = value.toLowerCase();
   return (
@@ -1019,27 +1035,51 @@ const urlKeys = [
 ];
 const imageKeys = [
   "header_image",
+  "header_image_url",
   "cover_image",
+  "cover_image_url",
   "banner",
+  "banner_image",
+  "hero_image",
   "event_image",
+  "event_image_url",
   "image_url",
   "image",
   "images.header",
   "images.cover",
   "images.banner",
+  "images.hero",
   "images.original",
+  "images.event",
+  "images.event_image",
+  "square_image",
+  "square_image_url",
   "images.thumbnail",
+  "images.square",
+  "thumbnail_url",
   "thumbnail",
   "event.header_image",
+  "event.header_image_url",
   "event.cover_image",
+  "event.cover_image_url",
   "event.banner",
+  "event.banner_image",
+  "event.hero_image",
   "event.event_image",
+  "event.event_image_url",
   "event.image_url",
   "event.image",
   "event.images.header",
   "event.images.cover",
   "event.images.banner",
+  "event.images.hero",
   "event.images.original",
+  "event.images.event",
+  "event.images.event_image",
+  "event.square_image",
+  "event.square_image_url",
+  "event.images.square",
+  "event.thumbnail_url",
   "event.thumbnail",
   "event.images.thumbnail",
 ];

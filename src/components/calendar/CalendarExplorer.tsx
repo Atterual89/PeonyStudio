@@ -1,10 +1,10 @@
 ﻿"use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { useLanguage } from "@/components/site/LanguageProvider";
+import { EventImage } from "@/components/shared/EventImage";
 import { EventsNetflixLayout } from "@/components/shared/EventsNetflixLayout";
 import type { Dictionary } from "@/i18n/getDictionary";
 import {
@@ -786,14 +786,13 @@ function EventCard({
         href={detailHref}
         className="relative block overflow-hidden bg-[#efe4d7]"
       >
-        <Image
+        <EventImage
           src={image}
           alt={event.title}
-          width={640}
-          height={360}
-          className={`w-full object-cover saturate-[0.92] transition duration-700 group-hover:scale-105 ${
+          variant={compact ? "compact" : "card"}
+          className={
             compact ? "h-32 md:h-full md:min-h-36" : "h-32 md:h-40"
-          }`}
+          }
         />
       </Link>
       <div className="flex min-w-0 flex-col p-4">

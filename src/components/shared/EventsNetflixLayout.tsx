@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { useMemo } from "react";
 
+import { EventImage } from "@/components/shared/EventImage";
 import type { PeonyEventCard } from "@/lib/events";
 
 type Props = {
@@ -142,12 +142,11 @@ function NetflixCard({ event }: { event: PeonyEventCard }) {
       rel="noopener noreferrer"
       className="relative block h-[240px] min-w-[200px] shrink-0 overflow-hidden rounded-[12px] [scroll-snap-align:start]"
     >
-      <Image
+      <EventImage
         src={image}
         alt={event.title}
-        fill
-        sizes="200px"
-        className="object-cover saturate-[0.9]"
+        variant="mobile"
+        className="absolute inset-0 h-full w-full"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-[#1a1510]/85 via-[#1a1510]/20 to-transparent" />
       <span className="absolute left-3 top-3 rounded-full bg-[#8b5e4a]/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
@@ -179,12 +178,11 @@ function SearchCard({ event }: { event: PeonyEventCard }) {
       className="flex items-center gap-3 rounded-[8px] border border-[#1a1510]/10 bg-white/60 p-3 transition hover:bg-white/80"
     >
       <div className="relative h-[60px] w-[60px] shrink-0 overflow-hidden rounded-[6px]">
-        <Image
+        <EventImage
           src={image}
           alt={event.title}
-          fill
-          sizes="60px"
-          className="object-cover"
+          variant="compact"
+          className="h-full w-full"
         />
       </div>
       <div className="min-w-0 flex-1">

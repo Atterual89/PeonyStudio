@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 
 import { HomeFooter } from "@/components/home/HomeFooter";
 import { TabsWrapper } from "@/components/layout/TabsWrapper";
+import { EventImage } from "@/components/shared/EventImage";
 import { useLanguage } from "@/components/site/LanguageProvider";
 import { SiteHeader } from "@/components/site/SiteHeader";
 
@@ -95,11 +95,11 @@ function WorkshopCard({ card }: { card: WorkshopCardData }) {
     >
       {card.imageUrl ? (
         <div className="relative h-28 overflow-hidden bg-[#efe4d7]">
-          <Image
+          <EventImage
             src={card.imageUrl}
             alt={card.title}
-            fill
-            className="object-cover saturate-[0.92] transition duration-700 group-hover:scale-105"
+            variant="card"
+            className="h-full w-full"
           />
         </div>
       ) : (

@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 
 import { useLanguage } from "@/components/site/LanguageProvider";
@@ -12,6 +11,7 @@ import { HomeFooter } from "@/components/home/HomeFooter";
 import { Marquee } from "@/components/home/Marquee";
 import { PhilosophySection } from "@/components/home/PhilosophySection";
 import { StudioPreviewSection } from "@/components/home/StudioPreviewSection";
+import { EventImage } from "@/components/shared/EventImage";
 import { SiteHeader } from "@/components/site/SiteHeader";
 
 const FALLBACK_IMAGE = "/images/home/event-class.jpg";
@@ -46,12 +46,11 @@ export function HomeContentClient({ featured, events }: Props) {
               href={event.bookingUrl ?? event.eventUrl}
               className="relative block h-[220px] min-w-[200px] shrink-0 overflow-hidden rounded-[12px] [scroll-snap-align:start]"
             >
-              <Image
+              <EventImage
                 src={event.image ?? FALLBACK_IMAGE}
                 alt={event.title}
-                fill
-                sizes="200px"
-                className="object-cover"
+                variant="mobile"
+                className="absolute inset-0 h-full w-full"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#1a1510]/80 via-[#1a1510]/15 to-transparent" />
               <span className="absolute left-3 top-3 rounded-full bg-[#8b5e4a]/90 px-2 py-1 text-[9px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">

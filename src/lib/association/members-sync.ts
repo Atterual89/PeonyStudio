@@ -180,7 +180,7 @@ async function loadExistingAssociationMembers(supabase: SupabaseClient) {
     throw new Error(error.message);
   }
 
-  return (data ?? []).filter(isAssociationMemberRecord);
+  return ((data ?? []) as unknown[]).filter(isAssociationMemberRecord);
 }
 
 function buildPreview(

@@ -166,7 +166,7 @@ async function loadAttendees(supabase: SupabaseClient) {
 
   if (error) throw new Error(error.message);
 
-  return (data ?? []).filter(isEventParticipantRecapRow);
+  return ((data ?? []) as unknown[]).filter(isEventParticipantRecapRow);
 }
 
 async function loadEvents(supabase: SupabaseClient) {
@@ -177,7 +177,7 @@ async function loadEvents(supabase: SupabaseClient) {
 
   if (error) throw new Error(error.message);
 
-  return (data ?? []).filter(isAdminEventRecapRow);
+  return ((data ?? []) as unknown[]).filter(isAdminEventRecapRow);
 }
 
 async function loadMembers(supabase: SupabaseClient) {
@@ -189,7 +189,7 @@ async function loadMembers(supabase: SupabaseClient) {
 
   if (error) throw new Error(error.message);
 
-  return (data ?? []).filter(isAssociationMemberRecapRow);
+  return ((data ?? []) as unknown[]).filter(isAssociationMemberRecapRow);
 }
 
 function matchMemberSource(

@@ -1,10 +1,10 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
+import { EventImage } from "@/components/shared/EventImage";
 import { useLanguage } from "@/components/site/LanguageProvider";
 
 export type FeaturedEvent = {
@@ -134,12 +134,11 @@ export function FeaturedEventsSection({
                 className="absolute -right-8 -top-8 h-[120px] w-[120px] rounded-full bg-[#d6b89f]/15"
               />
               <div className="relative mb-4 overflow-hidden rounded-[6px] border border-[#f4efe8]/10">
-                <Image
+                <EventImage
                   src={featured.image ?? "/images/home/event-rope-jam.jpg"}
                   alt={featured.title}
-                  width={640}
-                  height={400}
-                  className="h-36 w-full object-cover saturate-[0.9] transition duration-700 group-hover:scale-105 md:h-40"
+                  variant="hero"
+                  className="h-36 w-full md:h-40"
                 />
               </div>
               <p className="relative text-[10px] font-semibold uppercase tracking-[0.2em] text-[#d6b89f]">
@@ -188,12 +187,11 @@ export function FeaturedEventsSection({
                 className="absolute -right-8 -top-8 h-[110px] w-[110px] rounded-full bg-[#d6b89f]/20"
               />
               <div className="relative mb-3.5 overflow-hidden rounded-[6px] border border-[#211815]/10">
-                <Image
+                <EventImage
                   src={event.image ?? "/images/home/event-foundation.jpg"}
                   alt={event.title}
-                  width={570}
-                  height={360}
-                  className="h-32 w-full object-cover saturate-[0.9] transition duration-700 group-hover:scale-105 md:h-36"
+                  variant="card"
+                  className="h-32 w-full md:h-36"
                 />
               </div>
               <p className="relative text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8b5e4a]">

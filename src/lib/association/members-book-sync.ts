@@ -169,7 +169,7 @@ async function loadExistingMembers(supabase: SupabaseClient) {
 
   if (error) throw new Error(error.message);
 
-  return (data ?? []).filter(isOfficialMemberRecord);
+  return ((data ?? []) as unknown[]).filter(isOfficialMemberRecord);
 }
 
 function buildPreview(
