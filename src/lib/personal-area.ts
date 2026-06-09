@@ -20,12 +20,15 @@ type Enrollment = {
   ticket_tailor_order_id: string | null;
   ticket_tailor_event_id: string | null;
   enrollment_status: string | null;
+  partner_email: string | null;
+  partner_name: string | null;
   events: {
     title: string | null;
     starts_at: string | null;
     ends_at: string | null;
     category: string | null;
     booking_url: string | null;
+    requires_partner: boolean | null;
   } | null;
 };
 
@@ -259,7 +262,7 @@ async function loadEnrollments(
   const { data: enrollmentRows, error: enrollmentError } = await supabase
     .from("user_event_enrollments")
     .select(
-      "id,event_id,ticket_tailor_order_id,ticket_tailor_event_id,enrollment_status",
+      "id,event_id,ticket_tailor_order_id,ticket_tailor_event_id,enrollment_status,partner_email,partner_name",
     )
     .eq("profile_id", profileId)
     .order("created_at", { ascending: false });
@@ -290,7 +293,7 @@ async function loadEnrollments(
 
   const { data: eventRows, error: eventsError } = await supabase
     .from("events")
-    .select("id,title,starts_at,ends_at,category,booking_url")
+    .select("id,title,starts_at,ends_at,category,booking_url,requires_partner")
     .in("id", eventIds);
 
   if (eventsError) {

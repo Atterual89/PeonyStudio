@@ -26,7 +26,8 @@
       "Bash(ping -n 6 127.0.0.1)",
       "Bash(curl *)",
       "Bash(taskkill /PID 3464 /F)",
-      "PowerShell(Stop-Process *)"
+      "PowerShell(Stop-Process *)",
+      "PowerShell(cd D:\\\\peony_studio\\\\PeonyStudio; $env:NODE_OPTIONS=\"--max-old-space-size=4096\"; npm.cmd run build 2>&1 | Select-Object -Last 8)"
     ]
   }
 }

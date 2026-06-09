@@ -411,7 +411,11 @@ function EventsSection({ attendanceStats, futureEnrollments, pastEnrollments, ne
 
       {/* Modal dettagli */}
       {modalEnrollment ? (
-        <EventDetailModal enrollment={modalEnrollment} onClose={() => setModalEnrollment(null)} />
+        <EventDetailModal
+          enrollment={modalEnrollment}
+          onClose={() => setModalEnrollment(null)}
+          onEnrollmentUpdate={setModalEnrollment}
+        />
       ) : null}
     </div>
   );
@@ -468,8 +472,41 @@ function EventRow({ enrollment, highlight = false, onOpen }: {
   );
 }
 
-function EventDetailModal({ enrollment, onClose }: { enrollment: Enrollment; onClose: () => void }) {
+function EventDetailModal({
+  enrollment,
+  onClose,
+  onEnrollmentUpdate,
+}: {
+  enrollment: Enrollment;
+  onClose: () => void;
+  onEnrollmentUpdate: (updated: Enrollment) => void;
+}) {
   const [spaceOpen, setSpaceOpen] = useState(false);
+  const [partnerEmail, setPartnerEmail] = useState(enrollment.partner_email ?? "");
+  const [partnerName, setPartnerName] = useState(enrollment.partner_name ?? "");
+  const [editingPartner, setEditingPartner] = useState(false);
+  const [savingPartner, setSavingPartner] = useState(false);
+  const [partnerSavedOk, setPartnerSavedOk] = useState(false);
+
+  const hasPartner = Boolean(enrollment.partner_email || enrollment.partner_name);
+
+  async function savePartner() {
+    setSavingPartner(true);
+    const supabase = createSupabaseBrowserClient();
+    const newEmail = partnerEmail.trim() || null;
+    const newName = partnerName.trim() || null;
+    const { error } = await supabase
+      .from("user_event_enrollments")
+      .update({ partner_email: newEmail, partner_name: newName })
+      .eq("id", enrollment.id);
+    setSavingPartner(false);
+    if (!error) {
+      onEnrollmentUpdate({ ...enrollment, partner_email: newEmail, partner_name: newName });
+      setEditingPartner(false);
+      setPartnerSavedOk(true);
+      setTimeout(() => setPartnerSavedOk(false), 2000);
+    }
+  }
 
   return (
     <div
@@ -507,6 +544,84 @@ function EventDetailModal({ enrollment, onClose }: { enrollment: Enrollment; onC
         <p className="mt-4 rounded-[10px] border border-[#d8b5a5]/20 bg-[#8b5e4a]/12 px-3 py-2 text-xs text-[#d8b5a5]">
           Verifica gli orari definitivi — potrebbero variare.
         </p>
+
+        {/* Blocco partner */}
+        {enrollment.events?.requires_partner ? (
+          <div className="mt-4 rounded-[14px] border border-[#f8efe5]/10 bg-[#f8efe5]/5 p-4">
+            <div className="flex items-center gap-2">
+              <span aria-hidden="true">👥</span>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">Il tuo partner</p>
+            </div>
+            {!editingPartner && hasPartner ? (
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <p className="text-sm text-[#f8efe5]">
+                  ✓ {enrollment.partner_name || enrollment.partner_email}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setEditingPartner(true)}
+                  className="text-xs text-[#d8b5a5] underline"
+                >
+                  Modifica
+                </button>
+              </div>
+            ) : !editingPartner ? (
+              <div className="mt-2">
+                <p className="text-xs text-amber-400/80">⚠️ Non hai ancora indicato il tuo partner per questo evento.</p>
+                <button
+                  type="button"
+                  onClick={() => setEditingPartner(true)}
+                  className="mt-2 text-xs font-semibold text-[#d8b5a5] underline"
+                >
+                  Aggiungi partner
+                </button>
+              </div>
+            ) : (
+              <div className="mt-3 grid gap-2">
+                <div>
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#d8b5a5]/70">Email partner</label>
+                  <input
+                    type="email"
+                    value={partnerEmail}
+                    onChange={(e) => setPartnerEmail(e.target.value)}
+                    placeholder="email@esempio.com"
+                    className="mt-1 w-full rounded-lg border border-[#f8efe5]/15 bg-[#f8efe5]/8 px-3 py-2 text-sm text-[#f8efe5] outline-none placeholder:text-[#f8efe5]/30 focus:border-[#d8b5a5]/50"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#d8b5a5]/70">Nome partner</label>
+                  <input
+                    type="text"
+                    value={partnerName}
+                    onChange={(e) => setPartnerName(e.target.value)}
+                    placeholder="Nome e cognome"
+                    className="mt-1 w-full rounded-lg border border-[#f8efe5]/15 bg-[#f8efe5]/8 px-3 py-2 text-sm text-[#f8efe5] outline-none placeholder:text-[#f8efe5]/30 focus:border-[#d8b5a5]/50"
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={savePartner}
+                    disabled={savingPartner}
+                    className="rounded-full border border-[#f8efe5]/20 px-4 py-2 text-sm font-semibold text-[#f8efe5] transition hover:bg-[#f8efe5]/10 disabled:opacity-50"
+                  >
+                    {savingPartner ? "…" : "Salva"}
+                  </button>
+                  {partnerSavedOk ? <span className="text-xs text-emerald-400">Salvato ✓</span> : null}
+                  {hasPartner ? (
+                    <button
+                      type="button"
+                      onClick={() => setEditingPartner(false)}
+                      className="text-xs text-[#f8efe5]/50"
+                    >
+                      Annulla
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : null}
 
         {enrollment.events?.booking_url ? (
           <Link
