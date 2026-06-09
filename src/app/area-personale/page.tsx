@@ -5,6 +5,7 @@ import { getOrCreatePersonalAreaData } from "@/lib/personal-area";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function PersonalAreaPage() {
   const supabase = await createSupabaseServerClient();
