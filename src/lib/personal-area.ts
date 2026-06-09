@@ -11,6 +11,7 @@ type Profile = {
   last_name: string | null;
   association_status: string | null;
   association_expires_at: string | null;
+nickname: string | null;
 };
 
 type Enrollment = {
