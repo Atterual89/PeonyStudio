@@ -140,27 +140,27 @@ function NetflixCard({ event }: { event: PeonyEventCard }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="min-w-[180px] shrink-0 overflow-hidden rounded-[12px] border border-[#211815]/8 [scroll-snap-align:start]"
+      className="w-[calc((100vw-48px)/1.25)] max-w-[300px] shrink-0 overflow-hidden rounded-[8px] border bg-white/65 [scroll-snap-align:start] transition-transform hover:-translate-y-[3px]"
     >
       <EventImage
         src={image}
         alt={event.title}
         variant="netflix"
       />
-      <div className="bg-[#f5ede2] px-3 pb-3 pt-2.5">
+      <div className="px-3 pb-3 pt-2.5">
         <div className="flex items-center gap-2">
-          <span className="rounded-full bg-[#8b5e4a]/10 px-2 py-0.5 text-[10px] font-medium text-[#8b5e4a]">
+          <span className="rounded-full bg-[#8b5e4a]/10 px-2.5 py-1 text-[10px] uppercase tracking-wide text-[#5f524c]">
             {CATEGORY_LABELS[event.category] ?? event.category}
           </span>
           <span className="text-[10px] text-[#6b5c52]">
             {tryFormatDate(event.date)}
           </span>
         </div>
-        <p className="mt-1 font-serif text-[13px] leading-tight text-[#211815] line-clamp-2">
+        <p className="mt-1 font-serif text-lg font-medium leading-tight text-[#211815] line-clamp-2">
           {event.title}
         </p>
         {event.bookingUrl ? (
-          <span className="mt-2 inline-block rounded-full bg-[#211815] px-2.5 py-1 text-[10px] font-medium text-white">
+          <span className="mt-2 inline-block rounded-full bg-[#211815] px-4 py-2 text-[13px] font-medium text-white">
             Prenota
           </span>
         ) : null}

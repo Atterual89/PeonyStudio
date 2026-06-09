@@ -594,7 +594,7 @@ export function CalendarExplorer({
                     <h3 className="mt-2 font-serif text-3xl font-medium leading-[1.06] md:text-4xl">
                       {copy.eventsOf} {formatDayTitle(effectiveSelectedDay, locale)}
                     </h3>
-                    <div className="mt-4 grid gap-3">
+                    <div className="mt-4 flex gap-3 overflow-x-auto pb-2 [scroll-snap-type:x_mandatory] [scrollbar-width:thin] [scrollbar-color:#8b5e4a33_transparent]">
                       {selectedDayEvents.length ? (
                         selectedDayEvents.map((event) => (
                           <EventCard
@@ -603,7 +603,6 @@ export function CalendarExplorer({
                             copy={copy}
                             locale={locale}
                             ticketTailorUrl={ticketTailorUrl}
-                            compact
                           />
                         ))
                       ) : (
@@ -739,7 +738,7 @@ function EventRail({
         }`}
       >
         <div className="overflow-hidden">
-          <div className="mt-4 flex gap-3 overflow-x-auto pb-2 [scroll-snap-type:x_mandatory] [scrollbar-width:thin] [scrollbar-color:#8b5e4a33_transparent]">
+          <div className="mt-4 flex gap-3 overflow-x-auto px-4 pb-2 scroll-px-4 [scroll-snap-type:x_mandatory] [scrollbar-width:thin] [scrollbar-color:#8b5e4a33_transparent]">
             {events.map((event) => (
               <EventCard
                 key={event.id}
@@ -761,13 +760,11 @@ function EventCard({
   ticketTailorUrl,
   copy,
   locale,
-  compact = false,
 }: {
   event: PeonyEvent;
   ticketTailorUrl: string;
   copy: CalendarCopy;
   locale: string;
-  compact?: boolean;
 }) {
   const image = event.imageUrl ?? getFallbackImage(event);
   const detailHref = event.workshopSlug
@@ -775,13 +772,7 @@ function EventCard({
     : `/eventi/${event.slug}`;
 
   return (
-    <article
-      className={`group shrink-0 overflow-hidden rounded-[8px] border border-[#211815]/10 bg-white/70 shadow-[0_1px_0_rgba(33,24,21,0.04)] transition hover:-translate-y-[2px] hover:shadow-[0_10px_24px_rgba(33,24,21,0.08)] ${
-        compact
-          ? "grid gap-3 md:grid-cols-[180px_1fr]"
-          : "w-[min(78vw,300px)] [scroll-snap-align:start]"
-      }`}
-    >
+    <article className="group w-[min(calc((100vw-32px)/1.25),340px)] shrink-0 overflow-hidden rounded-[8px] border border-[#211815]/10 bg-white/65 shadow-[0_1px_0_rgba(33,24,21,0.04)] transition hover:-translate-y-[3px] hover:shadow-[0_12px_30px_rgba(33,24,21,0.10)] [scroll-snap-align:start]">
       <Link
         href={detailHref}
         className="relative block overflow-hidden bg-[#efe4d7]"
@@ -789,15 +780,13 @@ function EventCard({
         <EventImage
           src={image}
           alt={event.title}
-          variant={compact ? "compact" : "card"}
-          className={
-            compact ? "h-32 md:h-full md:min-h-36" : "h-32 md:h-40"
-          }
+          variant="card"
+          className="h-28"
         />
       </Link>
       <div className="flex min-w-0 flex-col p-4">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full border border-[#211815]/10 bg-[#f4efe8]/70 px-2.5 py-1 text-[11px] font-medium capitalize text-[#8b5e4a]">
+          <span className="rounded-full bg-[#8b5e4a]/10 px-2.5 py-1 text-[10px] uppercase tracking-wide text-[#5f524c]">
             {categoryLabel(event.category, copy)}
           </span>
           <span className="text-xs font-semibold text-[#5f524c]">
