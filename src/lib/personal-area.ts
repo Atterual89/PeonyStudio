@@ -9,6 +9,7 @@ type Profile = {
   email: string | null;
   first_name: string | null;
   last_name: string | null;
+  nickname: string | null;
   association_status: string | null;
   association_expires_at: string | null;
 };
@@ -51,7 +52,8 @@ export async function getOrCreatePersonalAreaData(
   }
 
   const supabase = createSupabaseAdminClient();
-  const { profile, profileLinked } = await ensureProfile(supabase, user.id, email);
+  const { profile: rawProfile, profileLinked } = await ensureProfile(supabase, user.id, email);
+  const profile = await ensureNickname(supabase, rawProfile, email);
   const claimResult = await claimBuyerEvents(supabase, user.id, email);
   const enrollments = await loadEnrollments(supabase, user.id);
   const attendanceStats = await loadAttendanceStats(supabase, email);
@@ -79,7 +81,7 @@ async function ensureProfile(
   const { data: existingById, error: existingByIdError } = await supabase
     .from("profiles")
     .select(
-      "id,email,first_name,last_name,association_status,association_expires_at",
+      "id,email,first_name,last_name,nickname,association_status,association_expires_at",
     )
     .eq("id", userId)
     .maybeSingle();
@@ -103,7 +105,7 @@ async function ensureProfile(
         })
         .eq("id", userId)
         .select(
-          "id,email,first_name,last_name,association_status,association_expires_at",
+          "id,email,first_name,last_name,nickname,association_status,association_expires_at",
         )
         .single();
 
@@ -126,7 +128,7 @@ async function ensureProfile(
   const { data: existingByEmail } = await supabase
     .from("profiles")
     .select(
-      "id,email,first_name,last_name,association_status,association_expires_at",
+      "id,email,first_name,last_name,nickname,association_status,association_expires_at",
     )
     .eq("email", email)
     .maybeSingle();
@@ -146,7 +148,7 @@ async function ensureProfile(
       role: "user",
     })
     .select(
-      "id,email,first_name,last_name,association_status,association_expires_at",
+      "id,email,first_name,last_name,nickname,association_status,association_expires_at",
     )
     .single();
 
@@ -158,6 +160,39 @@ async function ensureProfile(
     profile: insertedProfile as Profile,
     profileLinked: true,
   };
+}
+
+async function ensureNickname(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  profile: Profile,
+  email: string,
+): Promise<Profile> {
+  if (profile.nickname?.trim()) return profile;
+
+  const { data: orders } = await supabase
+    .from("ticket_tailor_orders")
+    .select("raw_payload")
+    .eq("buyer_email", email)
+    .not("raw_payload", "is", null)
+    .limit(5);
+
+  for (const order of orders ?? []) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const questions: any[] = (order.raw_payload as any)?.buyer_details?.custom_questions ?? [];
+    const nicknameQ = questions.find(
+      (q) => typeof q.question === "string" && q.question.toLowerCase().includes("nickname"),
+    );
+    const nickname = typeof nicknameQ?.answer === "string" ? nicknameQ.answer.trim() : "";
+    if (nickname) {
+      await supabase
+        .from("profiles")
+        .update({ nickname, updated_at: new Date().toISOString() })
+        .eq("id", profile.id);
+      return { ...profile, nickname };
+    }
+  }
+
+  return profile;
 }
 
 async function claimBuyerEvents(

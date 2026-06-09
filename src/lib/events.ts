@@ -212,7 +212,10 @@ export function inferEventTags(
   >,
 ) {
   const tags = new Set<string>();
-  const text = normalizeSearchText(
+  const primaryText = normalizeSearchText(
+    [event.title, event.code, event.category].filter(Boolean).join(" "),
+  );
+  const fullText = normalizeSearchText(
     [
       event.title,
       event.code,
@@ -231,7 +234,7 @@ export function inferEventTags(
     }
   }
 
-  if (text.includes("open day")) {
+  if (primaryText.includes("open day")) {
     addTags(tags, [
       "principianti",
       "observer ammessi",
@@ -240,71 +243,80 @@ export function inferEventTags(
     ]);
   }
 
-  if (text.includes("rope jam")) {
+  if (primaryText.includes("rope jam")) {
     addTags(tags, ["community", "anche per single", "pratica libera"]);
   }
 
   if (
-    text.includes("aperibottom") ||
-    text.includes("aperi bottom") ||
-    text.includes("aperi-bottom")
+    primaryText.includes("aperibottom") ||
+    primaryText.includes("aperi bottom") ||
+    primaryText.includes("aperi-bottom")
   ) {
-    addTags(tags, ["bottom", "community"]);
+    addTags(tags, ["bottom", "community", "anche per single"]);
   }
 
-  if (text.includes("pratica assistita") || text.includes("pratica guidata")) {
+  if (
+    primaryText.includes("pratica assistita") ||
+    primaryText.includes("pratica guidata")
+  ) {
     addTags(tags, ["percorso", "pratica", "richiede basi", "anche per single"]);
   }
 
-  if (text.includes("classe tematica") || text.includes("classi tematiche")) {
+  if (
+    primaryText.includes("classe tematica") ||
+    primaryText.includes("classi tematiche")
+  ) {
     addTags(tags, ["pratica", "con demo", "richiede basi"]);
   }
 
   if (
-    text.includes("foundation 1") ||
-    text.includes("base 1") ||
-    text.includes(" b1 ")
+    primaryText.includes("foundation 1") ||
+    primaryText.includes("base 1") ||
+    primaryText.includes(" b1 ")
   ) {
-    addTags(tags, ["percorso", "principianti", "anche per single"]);
+    addTags(tags, ["percorso", "principianti"]);
   }
 
   if (
-    text.includes("foundation 2") ||
-    text.includes("base 2") ||
-    text.includes(" b2 ")
+    primaryText.includes("foundation 2") ||
+    primaryText.includes("base 2") ||
+    primaryText.includes(" b2 ")
   ) {
     addTags(tags, ["percorso", "richiede basi"]);
   }
 
   if (
-    text.includes("class 1+") ||
-    text.includes("classe 1+") ||
-    text.includes("classe #1+") ||
-    text.includes("class #1+")
+    primaryText.includes("class 1+") ||
+    primaryText.includes("classe 1+") ||
+    primaryText.includes("classe #1+") ||
+    primaryText.includes("class #1+")
   ) {
     addTags(tags, ["percorso", "avanzato", "ricerca personale"]);
   } else if (
-    text.includes("class 1") ||
-    text.includes("classe 1") ||
-    text.includes("classe #1") ||
-    text.includes("class #1")
+    primaryText.includes("class 1") ||
+    primaryText.includes("classe 1") ||
+    primaryText.includes("classe #1") ||
+    primaryText.includes("class #1")
   ) {
     addTags(tags, ["percorso", "richiede basi", "sospensioni"]);
   }
 
-  if (text.includes("neck rope")) {
+  if (fullText.includes("neck rope")) {
     addTags(tags, ["workshop", "neck rope", "peter soptik", "sansei"]);
   }
 
   if (
-    text.includes("workshop kinbaku luxuria") ||
-    text.includes("kinbaku luxuria") ||
-    text.includes(" kl ")
+    fullText.includes("workshop kinbaku luxuria") ||
+    fullText.includes("kinbaku luxuria") ||
+    fullText.includes(" kl ")
   ) {
     addTags(tags, ["workshop", "kinbaku luxuria"]);
-  } else if (text.includes("3 dimensions") || text.includes("three dimensions")) {
+  } else if (
+    fullText.includes("3 dimensions") ||
+    fullText.includes("three dimensions")
+  ) {
     addTags(tags, ["workshop", "3 dimensions"]);
-  } else if (text.includes("workshop")) {
+  } else if (fullText.includes("workshop")) {
     addTags(tags, ["workshop"]);
   }
 
