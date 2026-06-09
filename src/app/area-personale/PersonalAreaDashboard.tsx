@@ -785,30 +785,6 @@ function ProfileSection({ data, nicknameOverride, onNicknameUpdate }: {
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">Profilo</p>
           <h3 className="mt-2 font-serif text-3xl font-medium">{getDisplayName(data, nicknameOverride)}</h3>
           <p className="mt-2 text-sm text-[#f8efe5]/60">{data.email}</p>
-          <div className="mt-4">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]/70">Nickname</p>
-            <div className="mt-2 flex items-center gap-2">
-              <input
-                type="text"
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                placeholder="Come vuoi essere chiamato/a?"
-                className="min-w-0 flex-1 rounded-lg border border-[#f8efe5]/15 bg-[#f8efe5]/8 px-3 py-2 text-sm text-[#f8efe5] outline-none placeholder:text-[#f8efe5]/30 focus:border-[#d8b5a5]/50"
-              />
-              <button
-                type="button"
-                onClick={saveNickname}
-                disabled={saving}
-                className="shrink-0 rounded-full border border-[#f8efe5]/20 px-4 py-2 text-sm font-semibold text-[#f8efe5] transition hover:bg-[#f8efe5]/10 disabled:opacity-50"
-              >
-                {saving ? "…" : "Salva"}
-              </button>
-            </div>
-            <div className="mt-1.5 min-h-[1rem]">
-              {savedOk ? <span className="text-xs text-emerald-400">Salvato ✓</span> : null}
-              {saveError ? <span className="text-xs text-red-400">{saveError}</span> : null}
-            </div>
-          </div>
         </Panel>
         <Panel>
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">Tessera associativa</p>
@@ -818,6 +794,29 @@ function ProfileSection({ data, nicknameOverride, onNicknameUpdate }: {
           </p>
         </Panel>
       </div>
+
+      <Panel>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">Nickname</p>
+        <p className="mt-1 text-xs text-[#f8efe5]/50">Come vuoi essere chiamato/a nel tuo profilo</p>
+        <div className="mt-3 flex gap-2">
+          <input
+            type="text"
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
+            placeholder="Come vuoi essere chiamato/a?"
+            className="flex-1 rounded-full border border-[#f8efe5]/15 bg-[#f8efe5]/8 px-4 py-2 text-sm text-[#f8efe5] outline-none placeholder:text-[#f8efe5]/30 focus:border-[#d8b5a5]/50"
+          />
+          <button
+            type="button"
+            onClick={saveNickname}
+            disabled={saving}
+            className="rounded-full border border-[#d8b5a5]/30 bg-[#f8efe5]/10 px-5 py-2 text-sm font-semibold text-[#f8efe5] transition hover:bg-[#f8efe5]/15 disabled:opacity-50"
+          >
+            {saving ? "…" : savedOk ? "Salvato ✓" : "Salva"}
+          </button>
+        </div>
+        {saveError ? <p className="mt-2 text-xs text-red-400">{saveError}</p> : null}
+      </Panel>
 
       <Panel>
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">Note</p>
