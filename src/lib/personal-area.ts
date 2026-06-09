@@ -80,7 +80,7 @@ async function ensureProfile(
   const { data: existingById, error: existingByIdError } = await supabase
     .from("profiles")
     .select(
-      "id,email,first_name,last_name,association_status,association_expires_at",
+      "id,email,first_name,last_name,nickname,association_status,association_expires_at",
     )
     .eq("id", userId)
     .maybeSingle();
@@ -104,7 +104,7 @@ async function ensureProfile(
         })
         .eq("id", userId)
         .select(
-          "id,email,first_name,last_name,association_status,association_expires_at",
+          "id,email,first_name,last_name,nickname,association_status,association_expires_at",
         )
         .single();
 
@@ -127,7 +127,7 @@ async function ensureProfile(
   const { data: existingByEmail } = await supabase
     .from("profiles")
     .select(
-      "id,email,first_name,last_name,association_status,association_expires_at",
+      "id,email,first_name,last_name,nickname,association_status,association_expires_at",
     )
     .eq("email", email)
     .maybeSingle();
@@ -147,7 +147,7 @@ async function ensureProfile(
       role: "user",
     })
     .select(
-      "id,email,first_name,last_name,association_status,association_expires_at",
+      "id,email,first_name,last_name,nickname,association_status,association_expires_at",
     )
     .single();
 
