@@ -41,14 +41,13 @@ export function PersonalAreaDashboard({ data }: { data: PersonalAreaData }) {
   const [activeSection, setActiveSection] = useState<SectionId>("overview");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [referenceNow] = useState(() => Date.now());
-  const [nicknameOverride, setNicknameOverride] = useState<string | null>(data.profile?.nickname ?? null);
 
   const sortedEnrollments = useMemo(() => sortEnrollmentsByDate(data.enrollments), [data.enrollments]);
   const futureEnrollments = sortedEnrollments.filter((e) => isFutureEnrollment(e, referenceNow));
   const pastEnrollments   = sortedEnrollments.filter((e) => !isFutureEnrollment(e, referenceNow));
   const nextEnrollment    = futureEnrollments[0] ?? null;
   const otherFutureEnrollments = nextEnrollment ? futureEnrollments.slice(1) : futureEnrollments;
-  const displayName = getDisplayName(data, nicknameOverride);
+  const displayName = getDisplayName(data);
   const guide       = getAnimalGuide(pastEnrollments.length);
   const pathSteps   = getPathSteps(sortedEnrollments, pastEnrollments);
 
@@ -86,7 +85,7 @@ export function PersonalAreaDashboard({ data }: { data: PersonalAreaData }) {
               ) : null}
               {activeSection === "guide"   ? <AnimalGuideSection guide={guide} pastCount={pastEnrollments.length} /> : null}
               {activeSection === "path"    ? <PathSection pathSteps={pathSteps} /> : null}
-              {activeSection === "profile" ? <ProfileSection data={data} nicknameOverride={nicknameOverride} onNicknameUpdate={setNicknameOverride} /> : null}
+              {activeSection === "profile" ? <ProfileSection data={data} /> : null}
             </main>
           </div>
       </div>
@@ -718,41 +717,9 @@ function PathSection({ pathSteps }: { pathSteps: PathStep[] }) {
 
 // ── Profile section ───────────────────────────────────────────────────────────
 
-function ProfileSection({ data, nicknameOverride, onNicknameUpdate }: {
-  data: PersonalAreaData;
-  nicknameOverride: string | null;
-  onNicknameUpdate: (v: string | null) => void;
-}) {
+function ProfileSection({ data }: { data: PersonalAreaData }) {
   const status    = data.profile?.association_status ?? null;
   const expiresAt = data.profile?.association_expires_at;
-  const membershipOk  = status === "verified" || status === "not_required";
-  const membershipBad = status === "expired" || status === "missing" || status === "pending" || status === "unknown";
-
-  const [nickname, setNickname] = useState(nicknameOverride ?? "");
-  const [saving,   setSaving]   = useState(false);
-  const [savedOk,  setSavedOk]  = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-
-  async function saveNickname() {
-    if (!data.profile?.id) return;
-    setSaving(true);
-    setSavedOk(false);
-    setSaveError(null);
-    const supabase = createSupabaseBrowserClient();
-    const newNickname = nickname.trim() || null;
-    const { error } = await supabase
-      .from("profiles")
-      .update({ nickname: newNickname })
-      .eq("id", data.profile.id);
-    setSaving(false);
-    if (error) {
-      setSaveError("Errore nel salvataggio. Riprova.");
-    } else {
-      setSavedOk(true);
-      onNicknameUpdate(newNickname);
-      setTimeout(() => setSavedOk(false), 2000);
-    }
-  }
 
   async function logout() {
     const supabase = createSupabaseBrowserClient();
@@ -760,8 +727,12 @@ function ProfileSection({ data, nicknameOverride, onNicknameUpdate }: {
     window.location.href = "/area-personale/login";
   }
 
+  const membershipOk = status === "verified" || status === "not_required";
+  const membershipBad = status === "expired" || status === "missing" || status === "pending" || status === "unknown";
+
   return (
     <div className="grid gap-5">
+      {/* Membership banner */}
       {membershipOk ? (
         <div className="flex items-center gap-2.5 rounded-[12px] border border-emerald-500/30 bg-emerald-900/25 px-4 py-3 text-sm font-medium text-emerald-300">
           <span>✓</span>
@@ -783,7 +754,7 @@ function ProfileSection({ data, nicknameOverride, onNicknameUpdate }: {
       <div className="grid gap-4 md:grid-cols-2">
         <Panel>
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">Profilo</p>
-          <h3 className="mt-2 font-serif text-3xl font-medium">{getDisplayName(data, nicknameOverride)}</h3>
+          <h3 className="mt-2 font-serif text-3xl font-medium">{getDisplayName(data)}</h3>
           <p className="mt-2 text-sm text-[#f8efe5]/60">{data.email}</p>
         </Panel>
         <Panel>
@@ -794,29 +765,6 @@ function ProfileSection({ data, nicknameOverride, onNicknameUpdate }: {
           </p>
         </Panel>
       </div>
-
-      <Panel>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">Nickname</p>
-        <p className="mt-1 text-xs text-[#f8efe5]/50">Come vuoi essere chiamato/a nel tuo profilo</p>
-        <div className="mt-3 flex gap-2">
-          <input
-            type="text"
-            value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-            placeholder="Come vuoi essere chiamato/a?"
-            className="flex-1 rounded-full border border-[#f8efe5]/15 bg-[#f8efe5]/8 px-4 py-2 text-sm text-[#f8efe5] outline-none placeholder:text-[#f8efe5]/30 focus:border-[#d8b5a5]/50"
-          />
-          <button
-            type="button"
-            onClick={saveNickname}
-            disabled={saving}
-            className="rounded-full border border-[#d8b5a5]/30 bg-[#f8efe5]/10 px-5 py-2 text-sm font-semibold text-[#f8efe5] transition hover:bg-[#f8efe5]/15 disabled:opacity-50"
-          >
-            {saving ? "…" : savedOk ? "Salvato ✓" : "Salva"}
-          </button>
-        </div>
-        {saveError ? <p className="mt-2 text-xs text-red-400">{saveError}</p> : null}
-      </Panel>
 
       <Panel>
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">Note</p>
@@ -918,9 +866,7 @@ function matchesStep(title: string | null | undefined, step: string) {
   return t.includes(s);
 }
 
-function getDisplayName(data: PersonalAreaData, nicknameOverride?: string | null) {
-  const nickname = (nicknameOverride !== undefined ? nicknameOverride : data.profile?.nickname)?.trim();
-  if (nickname) return nickname;
+function getDisplayName(data: PersonalAreaData) {
   const firstName = data.profile?.first_name?.trim();
   return firstName ?? data.email.split("@")[0]?.split(/[._-]/)[0] ?? "Peony";
 }
