@@ -57,7 +57,8 @@ export async function getOrCreatePersonalAreaData(
   const supabase = createSupabaseAdminClient();
   const { profile, profileLinked } = await ensureProfile(supabase, user.id, email);
   const claimResult = await claimBuyerEvents(supabase, user.id, email);
-  const enrollments = await loadEnrollments(supabase, user.id);
+  const rawEnrollments = await loadEnrollments(supabase, user.id);
+  const enrollments = await ensurePartnerData(supabase, rawEnrollments);
   const attendanceStats = await loadAttendanceStats(supabase, email);
 
   return {
@@ -310,6 +311,68 @@ async function loadEnrollments(
       ? eventsById.get(enrollment.event_id) ?? null
       : null,
   }));
+}
+
+async function ensurePartnerData(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  enrollments: Enrollment[],
+): Promise<Enrollment[]> {
+  const needsPartner = enrollments.filter(
+    (e) =>
+      e.events?.requires_partner === true &&
+      !e.partner_email?.trim() &&
+      e.ticket_tailor_order_id,
+  );
+
+  if (needsPartner.length === 0) return enrollments;
+
+  const orderIds = needsPartner.map((e) => e.ticket_tailor_order_id as string);
+
+  const { data: orders } = await supabase
+    .from("ticket_tailor_orders")
+    .select("ticket_tailor_order_id,raw_payload")
+    .in("ticket_tailor_order_id", orderIds)
+    .not("raw_payload", "is", null);
+
+  if (!orders || orders.length === 0) return enrollments;
+
+  const answerByOrderId = new Map<string, string>();
+  for (const order of orders) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const questions: any[] = (order.raw_payload as any)?.buyer_details?.custom_questions ?? [];
+    const partnerQ = questions.find((q) => {
+      if (typeof q.question !== "string") return false;
+      const lower = q.question.toLowerCase();
+      return lower.includes("partner") || lower.includes("persona con cui verrai");
+    });
+    const answer = typeof partnerQ?.answer === "string" ? partnerQ.answer.trim() : "";
+    if (answer && order.ticket_tailor_order_id) {
+      answerByOrderId.set(order.ticket_tailor_order_id, answer);
+    }
+  }
+
+  if (answerByOrderId.size === 0) return enrollments;
+
+  await Promise.all(
+    needsPartner
+      .filter((e) => answerByOrderId.has(e.ticket_tailor_order_id as string))
+      .map((e) =>
+        supabase
+          .from("user_event_enrollments")
+          .update({ partner_email: answerByOrderId.get(e.ticket_tailor_order_id as string) })
+          .eq("id", e.id),
+      ),
+  );
+
+  return enrollments.map((e) => {
+    const answer = e.ticket_tailor_order_id
+      ? answerByOrderId.get(e.ticket_tailor_order_id)
+      : undefined;
+    if (answer && e.events?.requires_partner && !e.partner_email?.trim()) {
+      return { ...e, partner_email: answer };
+    }
+    return e;
+  });
 }
 
 async function loadAttendanceStats(
