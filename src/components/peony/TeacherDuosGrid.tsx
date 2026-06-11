@@ -61,20 +61,8 @@ export function TeacherDuosGrid({ duos }: { duos: TeacherDuo[] }) {
                 {duo.name}
               </h3>
               <p className="mt-2 text-sm leading-[1.55] text-[#5f524c]">
-                {duo.shortBio}
+                {locale === "en" && duo.shortBioEn ? duo.shortBioEn : duo.shortBio}
               </p>
-              {duo.tags?.length ? (
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {duo.tags.slice(0, 3).map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full border border-[#8b5e4a]/15 bg-[#8b5e4a]/[0.07] px-2.5 py-1 text-[11px] font-medium text-[#8b5e4a]"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
               <button
                 type="button"
                 className="mt-4 inline-flex rounded-full border border-[#211815]/15 bg-white/55 px-4 py-2 text-sm font-medium text-[#211815] transition hover:bg-white/85"

@@ -4,6 +4,7 @@ export type TeacherDuo = {
   role: string;
   roleEn?: string;
   shortBio: string;
+  shortBioEn?: string;
   fullBio: string;
   fullBioEn?: string;
   image: string;
@@ -44,9 +45,11 @@ export const teacherDuos = [
     name: "Riccardo Wildties & RedSabbath",
     role: "Guest teachers / Kinbaku LuXuria",
     shortBio:
-      "Workshop, ricerca e trasmissione legata al percorso Kinbaku LuXuria.",
+      "Ricerca, passione e trasmissione legate al percorso nel Kinbaku LuXuria style",
+    shortBioEn:
+      "Research, passion and transmission linked to the Kinbaku LuXuria style path",
     fullBio:
-      "«La corda che tormenta è fatta per le anime che hanno quella tristezza dentro, quel tumulto, quel bisogno di abbandono, indipendentemente da chi lega e da chi è legato. Non si tratta di sadismo e masochismo, si tratta di un pellegrinaggio, di scalare una montagna insieme, di un viaggio e non di una destinazione.»\n\nKinbaku LuXuria è uno stile tradizionale che discende direttamente dal Naka-ryu. Riccardo (aka Wildties) ha introdotto una rielaborazione tecnica per adattare lo stile ai fisici occidentali senza tradire lo spirito originale. Semenawa — la corda che tormenta — è la parola che meglio riassume il mood di questo stile.\n\nRiccardo è l'ichi-ban deshi di Naka-san e, per volontà del suo sensei, è colui designato a trasmettere lo stile. Oltre a numerosi workshop e spettacoli in Europa e Nord America con la sua partner Red Sabbath, si è esibito in importanti eventi giapponesi a Tokyo tra cui il Maniac Festival e il Nawa Naka Kai.",
+      "\"Tormenting rope is made for souls that have that sadness within, that turmoil, that need for surrender regardless of who ties and who is tied. It's not about sadism and masochism, it's about a pilgrimage, it's about climbing a mountain together, it's about the journey not the destination.\"\n\nKinbaku LuXuria è uno stile tradizionale che discende direttamente dal Naka-ryu. Riccardo (aka Wildties) ha introdotto una rielaborazione tecnica per adattare lo stile ai fisici occidentali senza tradire lo spirito originale. Semenawa — la corda che tormenta — è la parola che meglio riassume il mood di questo stile.\n\nRiccardo è l'ichi-ban deshi di Naka-san e, per volontà del suo sensei, è colui designato a trasmettere lo stile. Oltre a numerosi workshop e spettacoli in Europa e Nord America con la sua partner Red Sabbath, si è esibito in importanti eventi giapponesi a Tokyo tra cui il Maniac Festival e il Nawa Naka Kai.",
     fullBioEn:
       "\"Tormenting rope is made for souls that have that sadness within, that turmoil, that need for surrender regardless of who ties and who is tied. It's not about sadism and masochism, it's about a pilgrimage, it's about climbing a mountain together, it's about the journey not the destination.\"\n\nKinbaku LuXuria is a traditional style which directly descends from Naka-ryu. Riccardo (aka Wildties) introduced a technical re-engineering to make the style fit with Western body types without undermining its original spirit. Semenawa — the tormenting rope — is the word that best captures the mood of this style.\n\nRiccardo is Naka-san's ichi-ban deshi and, according to the will of his sensei, he is designated to convey the style. Alongside numerous workshops and shows across Europe and North America with his partner Red Sabbath, he has performed at major Japanese events in Tokyo including Maniac Festival and Nawa Naka Kai.",
     image: "/images/teachers/riccardo-wildties-redsabbath.jpg",
@@ -61,7 +64,9 @@ export const teacherDuos = [
     shortBio:
       "Ospiti internazionali per studio tecnico, pratica e ricerca condivisa.",
     fullBio:
-      "Peter Soptik e Sansei sono presentati come coppia di insegnanti ospiti per workshop internazionali, approfondimenti tecnici e progetti speciali. La scheda resta volutamente sintetica e potrà essere ampliata quando saranno disponibili contenuti biografici più specifici.",
+      "L'approccio di Peter Soptik e Sansei alla corda è incentrato sulla connessione profonda tra due persone, radicato nel kinbaku tradizionale e nello stile Kinbaku LuXuria. Il loro legare e insegnare include pattern classici, una forte estetica e una resa profonda alle emozioni fondamentali del semenawa. Tra i temi che esplorano e insegnano vi sono l'oggettivazione e l'esposizione, dalla vergogna all'umiliazione, così come argomenti di nicchia come la corda al collo e i binder per le braccia. Peter ha studiato il bondage giapponese con diversi insegnanti rinomati ed è istruttore certificato del Kinbaku LuXuria Style. Sansei porta la sua esperienza sia come modella che come rigger, offrendo prospettive formate da una resa profonda e dall'esperienza vissuta nelle corde.",
+    fullBioEn:
+      "Peter Soptik and Sansei's approach to rope focuses on deep connection between two people, rooted in traditional kinbaku and the Kinbaku LuXuria Style. Their tying and teaching include classical patterns, strong aesthetics, and deep surrender to core emotions found in semenawa. Among the themes they explore and teach are objectification and exposure, from shame to humiliation, as well as niche topics such as neck rope and arm binders. Peter has studied Japanese bondage with several renowned teachers and is a certified instructor of the Kinbaku LuXuria Style. Sansei brings her experience as both model and rigger, offering insights shaped by deep surrender and embodied experience in the ropes.",
     image: "/images/teachers/peter-soptik-sansei.jpg",
     imageAlt: "Peter Soptik e Sansei",
     tags: ["Guest teachers", "Workshop", "International"],

@@ -285,14 +285,13 @@ export const en: typeof it = {
       "Workshops",
       "Calendar",
     ],
-    heroOverlay: "Studio, lounge, practice, meetings.",
+    heroOverlay: "A room to practise, a lounge to connect",
     heroBadge: "Turin",
-    studioCommunity: "Turin · Kinbaku · Community",
-    studioText:
-      "A space to study rope as technique, relationship and presence.",
+    studioCommunity: "",
+    studioText: "",
     heroTitle: "Peony Studio — Kinbaku venue · Turin",
     heroIntro:
-      "Peony Studio is a space dedicated to the study of rope: technique, connection, aesthetics and shared practice in a carefully crafted environment.",
+      "Peony Studio is a space dedicated to the study of Japanese rope bondage",
     heroPrimaryCtaLabel: "View the calendar",
     heroSecondaryCtaLabel: "How to start",
     tabAbout: "About",

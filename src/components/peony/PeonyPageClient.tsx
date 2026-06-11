@@ -159,7 +159,23 @@ export function PeonyPageClient({ galleryImages }: Props) {
                 {content.nameStory.title}
               </h2>
               <p className="mt-4 text-[15px] leading-[1.75] text-[#5f524c]">
-                {content.nameStory.text}
+                {content.nameStory.text.split("Elemiaow").map((part, i, arr) =>
+                  i < arr.length - 1 ? (
+                    <span key={i}>
+                      {part}
+                      <a
+                        href="https://instagram.com/elemiaow"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline decoration-[#8b5e4a]/50 hover:decoration-[#8b5e4a]"
+                      >
+                        Elemiaow
+                      </a>
+                    </span>
+                  ) : (
+                    <span key={i}>{part}</span>
+                  ),
+                )}
               </p>
               <div className="mt-5 flex flex-wrap gap-2">
                 {["Naka San", "Peonia", "Elemiaow"].map((label) => (
@@ -513,7 +529,7 @@ function TextPanel({ eyebrow, title, text }: { eyebrow: string; title: string; t
       <h2 className="mt-2 font-serif text-4xl font-medium leading-[1.02] md:text-5xl">
         {title}
       </h2>
-      <p className="mt-4 text-[15px] leading-[1.75] text-[#5f524c]">{text}</p>
+      <p className="mt-4 whitespace-pre-line text-[15px] leading-[1.75] text-[#5f524c]">{text}</p>
     </article>
   );
 }

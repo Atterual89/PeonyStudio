@@ -97,13 +97,13 @@ export const peonyAboutContent = {
   },
   nameStory: {
     eyebrow: "Perché Peony",
-    title: "Una peonia, un riferimento, una dedica.",
+    title: "Da dove deriva il nome Peony",
     text:
-      "Il nome Peony nasce da un riferimento legato al Giappone, a Naka San e al simbolo della peonia. Lo studio è dedicato alla sua eredità e alla peonia come immagine di bellezza, presenza e memoria. Il logo Peony è handmade by Elemiaow.",
+      "Decidere il nome non è stato semplice. Come studio di kinbaku, è stato naturale cercare ispirazione nel Giappone. Approfondendo la nostra storia, il nostro \"perché\" e le ispirazioni raccolte nel tempo, siamo arrivati a una scelta profonda: dedicare questo studio alla duratura eredità di Naka San e al suo tatuaggio simbolico della peonia. Il logo di Peony Studio è handmade by Elemiaow.",
   },
   approach: {
     eyebrow: "Approccio",
-    title: "Tecnica, connessione, estetica.",
+    title: "Tecnica, personalità, estetica",
     text:
       "Per noi il kinbaku non è solo tecnica: è una comunicazione silenziosa che coinvolge corpo, respiro, estetica e intenzione. L'approccio di Peony Studio è ispirato al Kinbaku LuXuria style, dove la corda diventa strumento di ascolto, relazione, ritmo, presenza, tensione, abbandono, controllo e fiducia.",
     pillars: [
@@ -128,7 +128,7 @@ export const peonyAboutContent = {
     eyebrow: "Resident teachers",
     title: "Resident Teachers",
     intro:
-      "Peony Studio nasce dal lavoro condiviso di Kurogami e Shiawase: insegnamento, pratica, relazione e ricerca nelle corde.",
+      "Peony Studio nasce dal lavoro condiviso di Kurogami e Shiawase: relazione, pratica, insegnamento e ricerca nel kinbaku",
   },
   guestTeachers: {
     eyebrow: "Guest teachers",
@@ -251,15 +251,15 @@ const peonyAboutContentEn = {
   },
   nameStory: {
     eyebrow: "Why Peony",
-    title: "A peony, a reference, a dedication.",
+    title: "Where the Peony name comes from",
     text:
-      "The name Peony comes from a reference connected to Japan, to Naka San and the symbol of the peony. The studio is dedicated to his legacy and to the peony as an image of beauty, presence and memory. The Peony logo is handmade by Elemiaow.",
+      "Deciding on the name was no simple task. As a kinbaku studio, it was instinctive to draw inspiration from Japan. However, delving into our narrative, our \"why,\" and the inspirations gathered over the years led us to a profound decision. We have chosen to dedicate this studio to the enduring legacy of Naka San and his symbolic Peony tattoo. The studio's logo is handmade by Elemiaow.",
   },
   approach: {
     eyebrow: "Approach",
-    title: "Technique, connection, aesthetics.",
+    title: "Technique, personality, aesthetics",
     text:
-      "For us kinbaku is not just technique: it is a silent communication involving body, breath, aesthetics and intention. Peony Studio's approach is inspired by the Kinbaku LuXuria style, where rope becomes a tool of listening, relationship, rhythm, presence, tension, surrender, control and trust.",
+      "Kinbaku is going for depth.\nIt's not pride but sadness.\nIt's not a show of strength, it's sympathy.\nIt's not commanding, it's asking.\nIt's elegance, it's tact.\nIt's not tying a body, it's tying a person.\nKinbaku is offering something.\nKinbaku doesn't change anything.\nIt reveals what people have inside.\nKinbaku is educating.\n\nKinbaku is writing a letter: rope is just the pen we use.",
     pillars: [
       {
         title: "Technique",
@@ -279,7 +279,7 @@ const peonyAboutContentEn = {
     eyebrow: "Resident teachers",
     title: "The resident couple",
     intro:
-      "Peony Studio was born from the shared work of Kurogami and Shiawase: teaching, practice, relationship and research in ropes.",
+      "Peony Studio was born from the shared work of Kurogami and Shiawase: relationship, practice, teaching and research in kinbaku",
   },
   guestTeachers: {
     eyebrow: "Guest teachers",
