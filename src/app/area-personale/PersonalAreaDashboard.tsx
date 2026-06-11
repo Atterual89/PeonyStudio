@@ -461,6 +461,19 @@ function EventRow({ enrollment, highlight = false, onOpen }: {
       <p className="mt-2 font-serif text-xl font-medium leading-snug">
         {enrollment.events?.title ?? "Evento Peony Studio"}
       </p>
+      {enrollment.events?.requires_partner ? (
+        enrollment.partner_email || enrollment.partner_name ? (
+          <p className="mt-1.5 flex items-center gap-1 text-xs text-green-400">
+            <span aria-hidden="true">👥 ✓</span>
+            <span>{enrollment.partner_name || enrollment.partner_email}</span>
+          </p>
+        ) : (
+          <p className="mt-1.5 flex items-center gap-1 text-xs text-amber-400">
+            <span aria-hidden="true">👥 ⚠️</span>
+            <span>Indica il tuo partner</span>
+          </p>
+        )
+      ) : null}
       <button
         type="button"
         className="mt-2 text-sm font-semibold text-[#d8b5a5] transition hover:text-[#f8efe5]"
