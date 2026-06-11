@@ -491,23 +491,25 @@ function EventRow({ enrollment, highlight = false, onOpen, onConfirmPartner }: {
             <span>{enrollment.partner_name || enrollment.partner_email}</span>
           </p>
         ) : enrollment.partner_source === "ticket_tailor" ? (
-          <div className="mt-1.5">
-            <p className="flex items-center gap-1 text-xs text-amber-400">
-              <span aria-hidden="true">👥 !</span>
-              <span>Conferma o modifica il partner</span>
-              {onConfirmPartner ? (
-                <button
-                  type="button"
-                  onClick={(ev) => { ev.stopPropagation(); onConfirmPartner(enrollment); }}
-                  className="ml-0.5 rounded-full border border-amber-400/40 px-2 py-0.5 text-[10px] font-semibold leading-none transition hover:bg-amber-400/15"
-                >
-                  Conferma
-                </button>
-              ) : null}
-            </p>
-            <p className="mt-0.5 text-[11px] text-[#f8efe5]/50">
-              {enrollment.partner_name || enrollment.partner_email}
-            </p>
+          <div className="mt-1.5 flex items-center justify-between gap-3">
+            <div>
+              <p className="flex items-center gap-1 text-xs text-amber-400">
+                <span aria-hidden="true">👥 !</span>
+                <span>Conferma o modifica il partner</span>
+              </p>
+              <p className="mt-0.5 text-sm font-medium text-[#f8efe5]/80">
+                {enrollment.partner_name || enrollment.partner_email}
+              </p>
+            </div>
+            {onConfirmPartner ? (
+              <button
+                type="button"
+                onClick={(ev) => { ev.stopPropagation(); onConfirmPartner(enrollment); }}
+                className="shrink-0 rounded-full border border-amber-400/40 px-2.5 py-1 text-[10px] font-semibold text-amber-400 transition hover:bg-amber-400/15"
+              >
+                Conferma
+              </button>
+            ) : null}
           </div>
         ) : (
           <p className="mt-1.5 flex items-center gap-1 text-xs text-amber-400">

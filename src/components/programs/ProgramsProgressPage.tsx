@@ -2,7 +2,7 @@
 
 import { BookOpen, Eye, Ribbon, Sprout, User, Users } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 const LEGEND_ORDER: IconName[] = ["User", "Users", "Sprout", "BookOpen", "Ribbon", "Eye"];
 
@@ -79,6 +79,7 @@ export function ProgramsProgressPage({ content, percorsoEvents = [] }: ProgramsP
   const prog = dictionary.programs;
   const prac = dictionary.practice;
   const localizedContent = programsBilingual[locale] ?? programsBilingual.it;
+  const barRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [activeParallelIndex, setActiveParallelIndex] = useState<number | null>(null);
   const [contactModalOpen, setContactModalOpen] = useState(false);
@@ -99,10 +100,15 @@ export function ProgramsProgressPage({ content, percorsoEvents = [] }: ProgramsP
       ? activeIndex / (content.progression.length - 1)
       : 0;
 
+  function scrollBarIntoView() {
+    barRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   function toggleActiveIndex(index: number) {
     const next = activeIndex === index ? null : index;
     setActiveIndex(next);
     setActiveParallelIndex(null);
+    scrollBarIntoView();
   }
 
   return (
@@ -162,7 +168,7 @@ export function ProgramsProgressPage({ content, percorsoEvents = [] }: ProgramsP
       <section className="mx-auto max-w-6xl px-5 pb-8 pt-0 sm:px-6 md:pb-12">
 
         {/* ── Rope timeline ── */}
-        <div className="sticky top-0 z-10 bg-[#f4efe8] relative px-1 py-4 md:px-2">
+        <div ref={barRef} className="sticky top-0 z-10 bg-[#f4efe8] relative px-1 py-4 md:px-2">
           {/* Inline hint — shown above circles when nothing is selected */}
           {activeStep === null && activeParallelIndex === null ? (
             <p className="pb-3 text-center text-[11px] text-[#5f524c]/50 md:text-xs">
@@ -261,6 +267,7 @@ export function ProgramsProgressPage({ content, percorsoEvents = [] }: ProgramsP
           onToggle={(index) => {
             setActiveParallelIndex((current) => (current === index ? null : index));
             setActiveIndex(null);
+            scrollBarIntoView();
           }}
         />
 
