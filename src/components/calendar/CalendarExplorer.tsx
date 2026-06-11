@@ -23,20 +23,7 @@ type CategoryFilter = "all" | "percorso" | "pratica" | "community" | "workshop";
 type PeriodFilter = "all" | "30" | "90" | "season";
 type CalendarCopy = Dictionary["calendar"];
 
-const suggestedTags = [
-  "anche per single",
-  "observer ammessi",
-  "principianti",
-  "con demo",
-  "bottom",
-];
-
-const MOBILE_PERIODS = [
-  { label: "Tutto", value: "all" },
-  { label: "Questo mese", value: "month" },
-  { label: "Prossimi 3 mesi", value: "90days" },
-] as const;
-type MobilePeriod = (typeof MOBILE_PERIODS)[number]["value"];
+type MobilePeriod = "all" | "month" | "90days";
 
 export function CalendarExplorer({
   events,
@@ -44,6 +31,12 @@ export function CalendarExplorer({
 }: CalendarExplorerProps) {
   const { dictionary, locale } = useLanguage();
   const copy = dictionary.calendar;
+  const suggestedTags = copy.suggestedTags;
+  const MOBILE_PERIODS = [
+    { label: copy.mobilePeriodAll, value: "all" as MobilePeriod },
+    { label: copy.mobilePeriodMonth, value: "month" as MobilePeriod },
+    { label: copy.mobilePeriod3Months, value: "90days" as MobilePeriod },
+  ];
   const categoryFilterOptions: { label: string; value: CategoryFilter }[] = [
     { label: copy.filtersList.all, value: "all" },
     { label: copy.filtersList.programs, value: "percorso" },
@@ -123,7 +116,7 @@ export function CalendarExplorer({
     );
 
     return suggestedTags.filter((tag) => tags.has(tag));
-  }, [sortedEvents]);
+  }, [sortedEvents, suggestedTags]);
 
   const filteredEvents = useMemo(() => {
     return sortedEvents.filter((event) => {
@@ -255,7 +248,7 @@ export function CalendarExplorer({
           <input
             value={mobileQuery}
             onChange={(e) => setMobileQuery(e.target.value)}
-            placeholder="Cerca eventi..."
+            placeholder={copy.mobileSearchPlaceholder}
             className="w-full border-b border-[#1a1510]/20 bg-transparent py-2 font-sans text-sm text-[#1a1510] outline-none transition-colors placeholder:text-[#6b5c52]/60 focus:border-[#8b5e4a]"
           />
         </div>
@@ -386,7 +379,7 @@ export function CalendarExplorer({
               onClick={() => setMobileSelectedDay(null)}
               className="rounded-full border border-[#1a1510]/15 px-3 py-1 font-sans text-[10px] text-[#6b5c52] transition hover:bg-white/80"
             >
-              × Deseleziona
+              {copy.deselectDay}
             </button>
           </div>
         )}

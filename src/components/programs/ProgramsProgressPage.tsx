@@ -281,14 +281,14 @@ export function ProgramsProgressPage({ content, percorsoEvents = [] }: ProgramsP
         {/* ── Contatto ── */}
         <div className="mt-10 px-4 pb-4">
           <p className="mb-3 text-xs text-[#6b5a4e]">
-            Hai domande sui percorsi? Scrivici direttamente.
+            {prog.contactQuestion}
           </p>
           <button
             type="button"
             onClick={() => setContactModalOpen(true)}
             className="w-full rounded-full border border-[#2a1f1a] py-3 text-sm text-[#2a1f1a]"
           >
-            Chiedi informazioni
+            {prog.askForInfo}
           </button>
         </div>
       </section>
@@ -332,39 +332,39 @@ export function ProgramsProgressPage({ content, percorsoEvents = [] }: ProgramsP
           >
             <button
               type="button"
-              aria-label="Chiudi"
+              aria-label={prog.contactClose}
               className="absolute right-3 top-3 grid h-10 w-10 place-items-center rounded-full border border-[#211815]/10 bg-[#f4efe8]/85 text-xl leading-none text-[#211815] transition hover:bg-white"
               onClick={closeModal}
             >
               ×
             </button>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">Percorsi</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">{prog.program}</p>
             <h2 id="contact-modal-title" className="mt-2 font-serif text-3xl font-medium leading-[1.06]">
-              Chiedi informazioni
+              {prog.askForInfo}
             </h2>
             <div className="mt-5 grid gap-4">
               <div>
                 <label className="mb-1 block text-xs uppercase tracking-widest text-[#b07a5a]">
-                  Nome o nickname
+                  {prog.contactLabelName}
                 </label>
                 <input
                   type="text"
                   value={contactName}
                   onChange={(e) => setContactName(e.target.value)}
-                  placeholder="Come ti chiami?"
+                  placeholder={prog.namePlaceholder}
                   className="w-full rounded-xl border border-[#c4a888] bg-white px-4 py-3 text-sm text-[#2a1f1a] outline-none focus:border-[#8b5e4a]"
                 />
               </div>
               <div>
                 <label className="mb-1 block text-xs uppercase tracking-widest text-[#b07a5a]">
-                  Percorso
+                  {prog.contactLabelProgram}
                 </label>
                 <select
                   value={contactProgram}
                   onChange={(e) => setContactProgram(e.target.value)}
                   className="w-full rounded-xl border border-[#c4a888] bg-white px-4 py-3 text-sm text-[#2a1f1a] outline-none focus:border-[#8b5e4a]"
                 >
-                  <option value="">Seleziona un percorso...</option>
+                  <option value="">{prog.contactSelectDefault}</option>
                   <option value="Foundation 1">Foundation 1</option>
                   <option value="Foundation 2">Foundation 2</option>
                   <option value="Classe 1">Classe 1</option>
@@ -375,12 +375,12 @@ export function ProgramsProgressPage({ content, percorsoEvents = [] }: ProgramsP
               </div>
               <div>
                 <label className="mb-1 block text-xs uppercase tracking-widest text-[#b07a5a]">
-                  Note o domande
+                  {prog.contactLabelMessage}
                 </label>
                 <textarea
                   value={contactMessage}
                   onChange={(e) => setContactMessage(e.target.value)}
-                  placeholder="Scrivi qui le tue domande o note..."
+                  placeholder={prog.messagePlaceholder}
                   rows={4}
                   className="w-full rounded-xl border border-[#c4a888] bg-white px-4 py-3 text-sm text-[#2a1f1a] outline-none focus:border-[#8b5e4a]"
                 />
@@ -391,7 +391,7 @@ export function ProgramsProgressPage({ content, percorsoEvents = [] }: ProgramsP
               onClick={closeModal}
               className="mt-5 inline-flex w-full justify-center rounded-full bg-[#211815] px-5 py-3 text-sm font-medium text-white shadow-[0_6px_18px_rgba(33,24,21,0.15)] transition hover:-translate-y-0.5"
             >
-              Invia email →
+              {prog.sendEmail}
             </a>
           </div>
         </div>

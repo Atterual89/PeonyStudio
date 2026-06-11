@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { type FormEvent, type ReactNode, useState } from "react";
 
 type SyncStep = {
   label: string;
@@ -68,6 +68,14 @@ type BookSyncPreviewFilters = {
 };
 
 type QuickFilterMode = "none" | "association_to_verify";
+type AdminStepId =
+  | "book"
+  | "members"
+  | "ticketTailor"
+  | "participantCheck"
+  | "participants"
+  | "membershipRecap"
+  | "advanced";
 
 type ParticipantOrderGroup = {
   key: string;
@@ -380,8 +388,9 @@ const associationStatusesToVerify = new Set([
   "not_found",
 ]);
 
-const membersSyncPreviewPageSize = 50;
+const ADMIN_TABLE_PAGE_SIZE = 20;
 const membershipValidFrom = "2025-09-01";
+const TICKET_TAILOR_VISIBLE_FROM = "2025-09-01";
 
 const processSummaryRows = [
   {
@@ -467,6 +476,17 @@ export default function TicketTailorAdminPage() {
   const [partnerSourceFilter, setPartnerSourceFilter] = useState("");
   const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [syncResults, setSyncResults] = useState<SyncResult[]>([]);
+  const [openAdminSections, setOpenAdminSections] = useState<
+    Record<AdminStepId, boolean>
+  >({
+    book: true,
+    members: false,
+    ticketTailor: false,
+    participantCheck: false,
+    participants: false,
+    membershipRecap: false,
+    advanced: false,
+  });
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [participantDrafts, setParticipantDrafts] = useState<
@@ -539,6 +559,7 @@ export default function TicketTailorAdminPage() {
     checked_in: "",
     association_status: "",
   });
+  const [participantListPage, setParticipantListPage] = useState(1);
   const [participantListFilters, setParticipantListFilters] =
     useState<ParticipantListFilters>({
       search: "",
@@ -571,14 +592,53 @@ export default function TicketTailorAdminPage() {
   const [membershipRecapSavedIds, setMembershipRecapSavedIds] = useState<
     Record<string, boolean>
   >({});
-  const quickFilteredParticipants = applyQuickFilter(participants, quickFilterMode);
+  const eventDateByTicketTailorId = createEventDateByTicketTailorId(events);
+  const seasonFilteredParticipants = participants.filter((participant) =>
+    isVisibleFromSeasonStart(
+      participant.ticket_tailor_event_id,
+      eventDateByTicketTailorId,
+    ),
+  );
+  const hiddenBeforeSeasonParticipants =
+    participants.length - seasonFilteredParticipants.length;
+  const participantsWithoutReliableDate = seasonFilteredParticipants.filter(
+    (participant) =>
+      !hasReliableSeasonDate(
+        participant.ticket_tailor_event_id,
+        eventDateByTicketTailorId,
+      ),
+  ).length;
+  const quickFilteredParticipants = applyQuickFilter(
+    seasonFilteredParticipants,
+    quickFilterMode,
+  );
   const displayedParticipants = applyParticipantListFilters(
     quickFilteredParticipants,
     participantListFilters,
     events,
   );
+  const participantListTotalPages = Math.max(
+    1,
+    Math.ceil(displayedParticipants.length / ADMIN_TABLE_PAGE_SIZE),
+  );
+  const safeParticipantListPage = Math.min(
+    participantListPage,
+    participantListTotalPages,
+  );
+  const participantListPageStart =
+    (safeParticipantListPage - 1) * ADMIN_TABLE_PAGE_SIZE;
+  const pagedDisplayedParticipants = displayedParticipants.slice(
+    participantListPageStart,
+    participantListPageStart + ADMIN_TABLE_PAGE_SIZE,
+  );
+  const participantListDisplayStart =
+    displayedParticipants.length > 0 ? participantListPageStart + 1 : 0;
+  const participantListDisplayEnd = Math.min(
+    participantListPageStart + pagedDisplayedParticipants.length,
+    displayedParticipants.length,
+  );
   const participantOrderGroups = groupParticipantsByOrder(
-    displayedParticipants,
+    pagedDisplayedParticipants,
     quickFilteredParticipants,
   );
   const editingParticipant = editingParticipantId
@@ -610,22 +670,32 @@ export default function TicketTailorAdminPage() {
       return false;
     return true;
   });
-  const filteredMembershipRecapRows = membershipRecapRows.filter((row) =>
+  const seasonFilteredMembershipRecapRows = membershipRecapRows.filter((row) =>
+    isVisibleFromSeasonStart(row.ticket_tailor_event_id, eventDateByTicketTailorId),
+  );
+  const hiddenBeforeSeasonMembershipRecapRows =
+    membershipRecapRows.length - seasonFilteredMembershipRecapRows.length;
+  const membershipRecapRowsWithoutReliableDate =
+    seasonFilteredMembershipRecapRows.filter(
+      (row) =>
+        !hasReliableSeasonDate(row.ticket_tailor_event_id, eventDateByTicketTailorId),
+    ).length;
+  const filteredMembershipRecapRows = seasonFilteredMembershipRecapRows.filter((row) =>
     matchesMembershipRecapFilters(row, membershipRecapFilters, membershipRecapDrafts),
   );
   const membershipRecapTotalPages = Math.max(
     1,
-    Math.ceil(filteredMembershipRecapRows.length / membersSyncPreviewPageSize),
+    Math.ceil(filteredMembershipRecapRows.length / ADMIN_TABLE_PAGE_SIZE),
   );
   const safeMembershipRecapPage = Math.min(
     membershipRecapPage,
     membershipRecapTotalPages,
   );
   const membershipRecapPageStart =
-    (safeMembershipRecapPage - 1) * membersSyncPreviewPageSize;
+    (safeMembershipRecapPage - 1) * ADMIN_TABLE_PAGE_SIZE;
   const pagedMembershipRecapRows = filteredMembershipRecapRows.slice(
     membershipRecapPageStart,
-    membershipRecapPageStart + membersSyncPreviewPageSize,
+    membershipRecapPageStart + ADMIN_TABLE_PAGE_SIZE,
   );
   const membershipRecapDisplayStart =
     filteredMembershipRecapRows.length > 0 ? membershipRecapPageStart + 1 : 0;
@@ -659,17 +729,17 @@ export default function TicketTailorAdminPage() {
         );
   const membersSyncTotalPages = Math.max(
     1,
-    Math.ceil(filteredMembersSyncRows.length / membersSyncPreviewPageSize),
+    Math.ceil(filteredMembersSyncRows.length / ADMIN_TABLE_PAGE_SIZE),
   );
   const safeMembersSyncPreviewPage = Math.min(
     membersSyncPreviewPage,
     membersSyncTotalPages,
   );
   const membersSyncPageStart =
-    (safeMembersSyncPreviewPage - 1) * membersSyncPreviewPageSize;
+    (safeMembersSyncPreviewPage - 1) * ADMIN_TABLE_PAGE_SIZE;
   const pagedMembersSyncRows = filteredMembersSyncRows.slice(
     membersSyncPageStart,
-    membersSyncPageStart + membersSyncPreviewPageSize,
+    membersSyncPageStart + ADMIN_TABLE_PAGE_SIZE,
   );
   const membersSyncDisplayStart =
     filteredMembersSyncRows.length > 0 ? membersSyncPageStart + 1 : 0;
@@ -683,17 +753,17 @@ export default function TicketTailorAdminPage() {
     ) ?? [];
   const bookSyncTotalPages = Math.max(
     1,
-    Math.ceil(filteredBookSyncRows.length / membersSyncPreviewPageSize),
+    Math.ceil(filteredBookSyncRows.length / ADMIN_TABLE_PAGE_SIZE),
   );
   const safeBookSyncPreviewPage = Math.min(
     bookSyncPreviewPage,
     bookSyncTotalPages,
   );
   const bookSyncPageStart =
-    (safeBookSyncPreviewPage - 1) * membersSyncPreviewPageSize;
+    (safeBookSyncPreviewPage - 1) * ADMIN_TABLE_PAGE_SIZE;
   const pagedBookSyncRows = filteredBookSyncRows.slice(
     bookSyncPageStart,
-    bookSyncPageStart + membersSyncPreviewPageSize,
+    bookSyncPageStart + ADMIN_TABLE_PAGE_SIZE,
   );
   const bookSyncDisplayStart =
     filteredBookSyncRows.length > 0 ? bookSyncPageStart + 1 : 0;
@@ -733,18 +803,18 @@ export default function TicketTailorAdminPage() {
     }) ?? [];
   const participantCheckTotalPages = Math.max(
     1,
-    Math.ceil(filteredParticipantCheckRows.length / membersSyncPreviewPageSize),
+    Math.ceil(filteredParticipantCheckRows.length / ADMIN_TABLE_PAGE_SIZE),
   );
   const safeParticipantCheckPage = Math.min(
     participantCheckPage,
     participantCheckTotalPages,
   );
   const participantCheckPageStart =
-    (safeParticipantCheckPage - 1) * membersSyncPreviewPageSize;
+    (safeParticipantCheckPage - 1) * ADMIN_TABLE_PAGE_SIZE;
   const pagedParticipantCheckRows =
     filteredParticipantCheckRows.slice(
     participantCheckPageStart,
-    participantCheckPageStart + membersSyncPreviewPageSize,
+    participantCheckPageStart + ADMIN_TABLE_PAGE_SIZE,
   );
   const participantCheckDisplayStart =
     filteredParticipantCheckRows.length > 0
@@ -754,6 +824,30 @@ export default function TicketTailorAdminPage() {
     participantCheckPageStart + pagedParticipantCheckRows.length,
     filteredParticipantCheckRows.length,
   );
+  const adminSectionSummaries: Record<AdminStepId, string> = {
+    book: bookSyncPreview
+      ? `Ultimo controllo: ${bookSyncPreview.previewRows.length} righe`
+      : "Pronto per il controllo",
+    members: membersSyncPreview
+      ? `${membersSyncPreview.wouldCreate} da creare · ${membersSyncPreview.wouldUpdate} da aggiornare`
+      : "Pronto per il controllo",
+    ticketTailor:
+      syncResults.length > 0
+        ? `Ultimo aggiornamento: ${syncResults.length} passaggi`
+        : "Eventi, ordini, ticket e partecipanti",
+    participantCheck: participantCheckPreview
+      ? `${participantCheckPreview.totalAttendees} partecipanti analizzati`
+      : "Pronto per la verifica",
+    participants:
+      participants.length > 0
+        ? `${displayedParticipants.length} righe visibili`
+        : "Carica partecipanti evento",
+    membershipRecap:
+      membershipRecapRows.length > 0
+        ? `${filteredMembershipRecapRows.length} righe visibili`
+        : "Carica recap tessere",
+    advanced: "Import manuale e strumenti tecnici",
+  };
 
   async function handleSync() {
     if (!secret.trim()) {
@@ -1595,6 +1689,13 @@ export default function TicketTailorAdminPage() {
     setParticipantCheckPage(1);
   }
 
+  function toggleAdminSection(sectionId: AdminStepId) {
+    setOpenAdminSections((current) => ({
+      ...current,
+      [sectionId]: !current[sectionId],
+    }));
+  }
+
   return (
     <main className="min-h-screen bg-[#f4efe8] px-5 py-8 text-[#211815] sm:px-6">
       <div className="mx-auto flex max-w-7xl flex-col">
@@ -1781,7 +1882,13 @@ export default function TicketTailorAdminPage() {
           </div>
         </section>
 
-        <section className="order-4 mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
+          <AdminStepSection
+            isOpen={openAdminSections.ticketTailor}
+            number="3"
+            summary={adminSectionSummaries.ticketTailor}
+            title="Aggiorna dati Ticket Tailor"
+            onToggle={() => toggleAdminSection("ticketTailor")}
+          >
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div className="flex gap-4">
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#211815] font-serif text-2xl text-[#f4efe8]">
@@ -1816,7 +1923,7 @@ export default function TicketTailorAdminPage() {
                 disabled={syncingProfiles}
                 onClick={handleSyncProfiles}
               >
-                {syncingProfiles ? "Sync profili..." : "Sync Profili"}
+                {syncingProfiles ? "Aggiorno profili..." : "Aggiorna profili"}
               </button>
             </div>
           </div>
@@ -1829,14 +1936,14 @@ export default function TicketTailorAdminPage() {
                   : "border-[#8b2f2a]/20 bg-[#8b2f2a]/5 text-[#8b2f2a]"
               }`}
             >
-              {profilesSyncResult.ok ? "Sync profili OK — " : "Sync profili: "}
+              {profilesSyncResult.ok ? "Profili aggiornati — " : "Profili: "}
               {typeof profilesSyncResult.message === "string"
                 ? profilesSyncResult.message
                 : [
                     `${profilesSyncResult.ordersRead ?? 0} ordini`,
                     `${profilesSyncResult.profilesCreated ?? 0} profili creati`,
                     `${profilesSyncResult.profilesSkipped ?? 0} già esistenti`,
-                    `${profilesSyncResult.enrollmentsCreated ?? 0} enrollment creati`,
+                    `${profilesSyncResult.enrollmentsCreated ?? 0} iscrizioni create`,
                     `${profilesSyncResult.partnerPrefilled ?? 0} partner compilati`,
                   ].join(" · ")}
             </div>
@@ -1866,9 +1973,15 @@ export default function TicketTailorAdminPage() {
               ))}
             </div>
           ) : null}
-        </section>
+          </AdminStepSection>
 
-        <section className="order-5 mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
+          <AdminStepSection
+            isOpen={openAdminSections.participantCheck}
+            number="4"
+            summary={adminSectionSummaries.participantCheck}
+            title="Verifica tessere partecipanti"
+            onToggle={() => toggleAdminSection("participantCheck")}
+          >
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div className="flex gap-4">
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#211815] font-serif text-2xl text-[#f4efe8]">
@@ -2146,9 +2259,15 @@ export default function TicketTailorAdminPage() {
               </div>
             </div>
           ) : null}
-        </section>
+          </AdminStepSection>
 
-        <section className="order-2 mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
+          <AdminStepSection
+            isOpen={openAdminSections.book}
+            number="1"
+            summary={adminSectionSummaries.book}
+            title="Aggiorna libro soci ufficiale"
+            onToggle={() => toggleAdminSection("book")}
+          >
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div className="flex gap-4">
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#211815] font-serif text-2xl text-[#f4efe8]">
@@ -2448,9 +2567,15 @@ export default function TicketTailorAdminPage() {
               </div>
             </div>
           ) : null}
-        </section>
+          </AdminStepSection>
 
-        <section className="order-3 mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
+          <AdminStepSection
+            isOpen={openAdminSections.members}
+            number="2"
+            summary={adminSectionSummaries.members}
+            title="Aggiorna nuove iscrizioni"
+            onToggle={() => toggleAdminSection("members")}
+          >
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div className="flex gap-4">
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#211815] font-serif text-2xl text-[#f4efe8]">
@@ -2728,9 +2853,14 @@ export default function TicketTailorAdminPage() {
               </div>
             </div>
           ) : null}
-        </section>
+          </AdminStepSection>
 
-        <section className="order-8 mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
+          <AdminStepSection
+            isOpen={openAdminSections.advanced}
+            summary={adminSectionSummaries.advanced}
+            title="Strumenti avanzati"
+            onToggle={() => toggleAdminSection("advanced")}
+          >
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
             Strumenti avanzati
           </p>
@@ -2889,9 +3019,15 @@ export default function TicketTailorAdminPage() {
           ) : null}
             </div>
           </details>
-        </section>
+          </AdminStepSection>
 
-        <section className="order-6 mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
+        <AdminStepSection
+          isOpen={openAdminSections.participants}
+          number="5"
+          summary={adminSectionSummaries.participants}
+          title="Controlla partecipanti evento"
+          onToggle={() => toggleAdminSection("participants")}
+        >
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="flex gap-4">
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#211815] font-serif text-2xl text-[#f4efe8]">
@@ -3004,6 +3140,16 @@ export default function TicketTailorAdminPage() {
             </button>
           </form>
 
+          <p className="mt-3 rounded-[8px] border border-[#8b5e4a]/15 bg-[#8b5e4a]/5 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+            Mostriamo solo ordini/eventi dal 01/09/2025 in poi.
+            {hiddenBeforeSeasonParticipants > 0
+              ? ` Esclusi perché precedenti al 01/09/2025: ${hiddenBeforeSeasonParticipants}.`
+              : ""}
+            {participantsWithoutReliableDate > 0
+              ? ` Data non disponibile: ${participantsWithoutReliableDate} righe mantenute visibili.`
+              : ""}
+          </p>
+
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             {[
               ["Righe mostrate", participantSummary.total],
@@ -3034,10 +3180,13 @@ export default function TicketTailorAdminPage() {
                   className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
                   value={participantListFilters.search}
                   onChange={(event) =>
-                    setParticipantListFilters((current) => ({
-                      ...current,
-                      search: event.target.value,
-                    }))
+                    {
+                      setParticipantListFilters((current) => ({
+                        ...current,
+                        search: event.target.value,
+                      }));
+                      setParticipantListPage(1);
+                    }
                   }
                   placeholder="Cerca nome, email, ordine o evento"
                 />
@@ -3049,10 +3198,13 @@ export default function TicketTailorAdminPage() {
                   className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
                   value={participantListFilters.associationStatus}
                   onChange={(event) =>
-                    setParticipantListFilters((current) => ({
-                      ...current,
-                      associationStatus: event.target.value,
-                    }))
+                    {
+                      setParticipantListFilters((current) => ({
+                        ...current,
+                        associationStatus: event.target.value,
+                      }));
+                      setParticipantListPage(1);
+                    }
                   }
                 >
                   <option value="">Tutte</option>
@@ -3071,10 +3223,13 @@ export default function TicketTailorAdminPage() {
                   className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
                   value={participantListFilters.checkedIn}
                   onChange={(event) =>
-                    setParticipantListFilters((current) => ({
-                      ...current,
-                      checkedIn: event.target.value,
-                    }))
+                    {
+                      setParticipantListFilters((current) => ({
+                        ...current,
+                        checkedIn: event.target.value,
+                      }));
+                      setParticipantListPage(1);
+                    }
                   }
                 >
                   <option value="">Tutti</option>
@@ -3089,10 +3244,13 @@ export default function TicketTailorAdminPage() {
                   className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
                   value={participantListFilters.participantType}
                   onChange={(event) =>
-                    setParticipantListFilters((current) => ({
-                      ...current,
-                      participantType: event.target.value,
-                    }))
+                    {
+                      setParticipantListFilters((current) => ({
+                        ...current,
+                        participantType: event.target.value,
+                      }));
+                      setParticipantListPage(1);
+                    }
                   }
                 >
                   <option value="">Tutti</option>
@@ -3112,6 +3270,7 @@ export default function TicketTailorAdminPage() {
                     participantType: "",
                   });
                   setQuickFilterMode("none");
+                  setParticipantListPage(1);
                 }}
               >
                 Reset filtri
@@ -3205,6 +3364,40 @@ export default function TicketTailorAdminPage() {
                 Nessun partecipante caricato.
               </div>
             )}
+          </div>
+
+          <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+              {participantListDisplayStart}-{participantListDisplayEnd} di{" "}
+              {displayedParticipants.length}
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                className="rounded-full border border-[#211815]/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
+                type="button"
+                disabled={safeParticipantListPage <= 1}
+                onClick={() =>
+                  setParticipantListPage((page) => Math.max(1, page - 1))
+                }
+              >
+                Precedente
+              </button>
+              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                Pagina {safeParticipantListPage} di {participantListTotalPages}
+              </span>
+              <button
+                className="rounded-full border border-[#211815]/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
+                type="button"
+                disabled={safeParticipantListPage >= participantListTotalPages}
+                onClick={() =>
+                  setParticipantListPage((page) =>
+                    Math.min(participantListTotalPages, page + 1),
+                  )
+                }
+              >
+                Successiva
+              </button>
+            </div>
           </div>
 
           <div className="hidden">
@@ -3340,9 +3533,15 @@ export default function TicketTailorAdminPage() {
               </tbody>
             </table>
           </div>
-        </section>
+        </AdminStepSection>
 
-        <section className="order-7 mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
+        <AdminStepSection
+          isOpen={openAdminSections.membershipRecap}
+          number="6"
+          summary={adminSectionSummaries.membershipRecap}
+          title="Recap tessere partecipanti"
+          onToggle={() => toggleAdminSection("membershipRecap")}
+        >
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div className="flex gap-4">
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#211815] font-serif text-2xl text-[#f4efe8]">
@@ -3500,7 +3699,16 @@ export default function TicketTailorAdminPage() {
                 </div>
                 <p className="mt-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
                   Mostrati {filteredMembershipRecapRows.length} di{" "}
-                  {membershipRecapRows.length} partecipanti
+                  {seasonFilteredMembershipRecapRows.length} partecipanti
+                  {hiddenBeforeSeasonMembershipRecapRows > 0
+                    ? ` · Esclusi perché precedenti al 01/09/2025: ${hiddenBeforeSeasonMembershipRecapRows}`
+                    : ""}
+                  {membershipRecapRowsWithoutReliableDate > 0
+                    ? ` · Data non disponibile: ${membershipRecapRowsWithoutReliableDate} righe mantenute visibili`
+                    : ""}
+                </p>
+                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                  Mostriamo solo ordini/eventi dal 01/09/2025 in poi.
                 </p>
               </div>
 
@@ -3706,7 +3914,7 @@ export default function TicketTailorAdminPage() {
               Carica il recap per controllare solo i partecipanti effettivi.
             </div>
           )}
-        </section>
+        </AdminStepSection>
           </>
         )}
 
@@ -4329,6 +4537,61 @@ function ImportSociMatchBlock({
   );
 }
 
+function AdminStepSection({
+  children,
+  isOpen,
+  number,
+  onToggle,
+  summary,
+  title,
+}: {
+  children: ReactNode;
+  isOpen: boolean;
+  number?: string;
+  onToggle: () => void;
+  summary: string;
+  title: string;
+}) {
+  return (
+    <section className="mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 shadow-[0_12px_36px_rgba(33,24,21,0.05)]">
+      <button
+        className="flex w-full flex-col gap-3 p-5 text-left transition hover:bg-[#f4efe8]/50 md:flex-row md:items-center md:justify-between md:p-6"
+        type="button"
+        aria-expanded={isOpen}
+        onClick={onToggle}
+      >
+        <span className="flex items-center gap-4">
+          {number ? (
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#211815] font-serif text-xl text-[#f4efe8]">
+              {number}
+            </span>
+          ) : null}
+          <span>
+            <span className="block text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+              {number ? `Fase ${number}` : "Area"}
+            </span>
+            <span className="mt-1 block font-serif text-2xl font-medium text-[#211815] md:text-3xl">
+              {title}
+            </span>
+          </span>
+        </span>
+        <span className="flex flex-col gap-2 md:items-end">
+          <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+            {summary}
+          </span>
+          <span className="inline-flex rounded-full border border-[#211815]/15 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#211815]">
+            {isOpen ? "Chiudi" : "Apri"}
+          </span>
+        </span>
+      </button>
+
+      {isOpen ? (
+        <div className="border-t border-[#211815]/10 p-5 md:p-7">{children}</div>
+      ) : null}
+    </section>
+  );
+}
+
 function parseImportSociText(text: string): ImportSociPreview {
   return text.split(/\r?\n/).reduce<ImportSociPreview>(
     (preview, rawLine, index) => {
@@ -4395,6 +4658,42 @@ function getDefaultAssociationExpiryDate(referenceDate = new Date()) {
       : referenceDate.getFullYear();
 
   return `${expiryYear}-12-31`;
+}
+
+function createEventDateByTicketTailorId(events: AdminEvent[]) {
+  return events.reduce<Record<string, string>>((dates, event) => {
+    if (event.ticket_tailor_event_id && event.starts_at) {
+      dates[event.ticket_tailor_event_id] = event.starts_at;
+    }
+
+    return dates;
+  }, {});
+}
+
+function isVisibleFromSeasonStart(
+  ticketTailorEventId: string | null,
+  eventDateByTicketTailorId: Record<string, string>,
+) {
+  if (!ticketTailorEventId) {
+    return true;
+  }
+
+  const eventDate = eventDateByTicketTailorId[ticketTailorEventId];
+
+  if (!eventDate) {
+    return true;
+  }
+
+  return eventDate.slice(0, 10) >= TICKET_TAILOR_VISIBLE_FROM;
+}
+
+function hasReliableSeasonDate(
+  ticketTailorEventId: string | null,
+  eventDateByTicketTailorId: Record<string, string>,
+) {
+  return Boolean(
+    ticketTailorEventId && eventDateByTicketTailorId[ticketTailorEventId],
+  );
 }
 
 function groupParticipantsByOrder(

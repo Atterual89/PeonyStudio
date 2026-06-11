@@ -1,9 +1,14 @@
+"use client";
+
 import Link from "next/link";
 
+import { useLanguage } from "@/components/site/LanguageProvider";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import type { ProgramStep } from "@/content/programs";
 
 export function ProgramDetailPage({ step }: { step: ProgramStep }) {
+  const { dictionary } = useLanguage();
+  const copy = dictionary.programs;
   return (
     <main className="min-h-screen bg-[#f4efe8] text-[#211815]">
       <SiteHeader />
@@ -13,7 +18,7 @@ export function ProgramDetailPage({ step }: { step: ProgramStep }) {
           href="/percorsi"
           className="text-sm font-medium text-[#8b5e4a] transition hover:text-[#211815]"
         >
-          ← Torna ai percorsi
+          {copy.backToPrograms}
         </Link>
         <p className="mt-8 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8b5e4a]">
           {step.subtitle}
@@ -28,7 +33,7 @@ export function ProgramDetailPage({ step }: { step: ProgramStep }) {
         <div className="mt-10 grid gap-4 md:grid-cols-[1fr_0.8fr]">
           <article className="rounded-[8px] border border-[#211815]/10 bg-white/62 p-5 md:p-6">
             <h2 className="font-serif text-3xl font-medium leading-[1.08] tracking-normal">
-              Cosa si lavora
+              {copy.whatWeWork}
             </h2>
             <ul className="mt-5 grid gap-2">
               {step.work.map((item) => (
@@ -45,7 +50,7 @@ export function ProgramDetailPage({ step }: { step: ProgramStep }) {
 
           <article className="rounded-[8px] border border-[#211815]/10 bg-gradient-to-br from-white/75 to-[#efe4d7]/65 p-5 md:p-6">
             <h2 className="font-serif text-3xl font-medium leading-[1.08] tracking-normal">
-              Per chi è
+              {copy.forWhom}
             </h2>
             <p className="mt-4 text-sm leading-[1.7] text-[#5f524c]">
               {step.audience}
