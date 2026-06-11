@@ -18,9 +18,9 @@ const CONTENT = {
         title: "Lezione privata di coppia",
         subtitle: "Su misura per voi, nel vostro spazio di lavoro",
         description:
-          "Un formato intensivo pensato per coppie che vogliono lavorare in modo mirato sui propri obiettivi tecnici o espressivi. Gli incontri si svolgono tendenzialmente nel fine settimana (sabato e domenica), con sessioni di circa 6 ore al giorno. In casi particolari è possibile concordare sessioni serali durante la settimana, della durata di circa 3 ore.",
+          "Un formato intensivo pensato per coppie che vogliono lavorare in modo mirato sui propri obiettivi tecnici o espressivi. Gli incontri si svolgono tendenzialmente nel fine settimana (sabato e domenica), con sessioni di circa 5 ore al giorno. In casi particolari è possibile concordare sessioni serali durante la settimana, della durata di circa 3 ore.",
         details: [
-          "2 giorni · ~6 ore al giorno (totale ~12 ore)",
+          "2 giorni · ~5 ore al giorno",
           "Tendenzialmente sabato e domenica",
           "Sessioni serali infrasettimanali su accordo (~3 ore)",
           "Prenotazione solo via email o contatti diretti",
@@ -57,9 +57,9 @@ const CONTENT = {
         title: "Private couple lesson",
         subtitle: "Tailored for you, in your working space",
         description:
-          "An intensive format designed for couples who want to work in a focused way on their technical or expressive goals. Sessions typically take place on weekends (Saturday and Sunday), approximately 6 hours per day. In special cases, weekday evening sessions of about 3 hours can be arranged.",
+          "An intensive format designed for couples who want to work in a focused way on their technical or expressive goals. Sessions typically take place on weekends (Saturday and Sunday), approximately 5 hours per day. In special cases, weekday evening sessions of about 3 hours can be arranged.",
         details: [
-          "2 days · ~6 hours/day (total ~12 hours)",
+          "2 days · ~5 hours/day",
           "Typically Saturday and Sunday",
           "Weekday evening sessions available on request (~3 hours)",
           "Booking by email or direct contact only",
