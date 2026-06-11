@@ -73,15 +73,24 @@ export async function POST(request: NextRequest) {
       const email = order.buyer_email.trim().toLowerCase();
 
       // Step 2: Find or create profile by email
-      const { data: existingProfile } = await supabase
+      const { data: existingProfile, error: profileLookupError } = await supabase
         .from("profiles")
         .select("id,nickname")
         .eq("email", email)
         .maybeSingle();
 
+      if (profileLookupError) {
+        errors.push({
+          level: "error",
+          message: "Profile lookup failed: " + profileLookupError.message,
+          orderId: order.ticket_tailor_order_id,
+        });
+        continue;
+      }
+
       let profileId: string;
 
-      if (existingProfile) {
+      if (existingProfile !== null && existingProfile.id) {
         profileId = existingProfile.id as string;
         profilesSkipped++;
 
@@ -219,6 +228,16 @@ export async function POST(request: NextRequest) {
       });
     }
   }
+
+  console.log("[sync-profiles]", {
+    ordersRead: orders.length,
+    profilesCreated,
+    profilesSkipped,
+    enrollmentsCreated,
+    enrollmentsSkipped,
+    partnerPrefilled,
+    errors: errors.length,
+  });
 
   return NextResponse.json({
     ok: !errors.some((e) => e.level === "error"),
