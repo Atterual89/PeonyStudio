@@ -175,8 +175,8 @@ export async function POST(request: NextRequest) {
           );
           if (partnerAnswer) {
             const updateData = partnerAnswer.includes("@")
-              ? { partner_email: partnerAnswer }
-              : { partner_name: partnerAnswer };
+              ? { partner_email: partnerAnswer, partner_source: "ticket_tailor" }
+              : { partner_name: partnerAnswer, partner_source: "ticket_tailor" };
             await supabase
               .from("user_event_enrollments")
               .update(updateData)
@@ -218,8 +218,8 @@ export async function POST(request: NextRequest) {
         );
         if (partnerAnswer) {
           const updateData = partnerAnswer.includes("@")
-            ? { partner_email: partnerAnswer }
-            : { partner_name: partnerAnswer };
+            ? { partner_email: partnerAnswer, partner_source: "ticket_tailor" }
+            : { partner_name: partnerAnswer, partner_source: "ticket_tailor" };
           await supabase
             .from("user_event_enrollments")
             .update(updateData)

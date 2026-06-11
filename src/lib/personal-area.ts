@@ -22,6 +22,7 @@ type Enrollment = {
   enrollment_status: string | null;
   partner_email: string | null;
   partner_name: string | null;
+  partner_source: string | null;
   events: {
     title: string | null;
     starts_at: string | null;
@@ -263,7 +264,7 @@ async function loadEnrollments(
   const { data: enrollmentRows, error: enrollmentError } = await supabase
     .from("user_event_enrollments")
     .select(
-      "id,event_id,ticket_tailor_order_id,ticket_tailor_event_id,enrollment_status,partner_email,partner_name",
+      "id,event_id,ticket_tailor_order_id,ticket_tailor_event_id,enrollment_status,partner_email,partner_name,partner_source",
     )
     .eq("profile_id", profileId)
     .order("created_at", { ascending: false });
@@ -321,6 +322,7 @@ async function ensurePartnerData(
     (e) =>
       e.events?.requires_partner === true &&
       !e.partner_email?.trim() &&
+      !e.partner_name?.trim() &&
       e.ticket_tailor_order_id,
   );
 
@@ -356,20 +358,26 @@ async function ensurePartnerData(
   await Promise.all(
     needsPartner
       .filter((e) => answerByOrderId.has(e.ticket_tailor_order_id as string))
-      .map((e) =>
-        supabase
+      .map((e) => {
+        const answer = answerByOrderId.get(e.ticket_tailor_order_id as string)!;
+        const updateData = answer.includes("@")
+          ? { partner_email: answer, partner_source: "ticket_tailor" }
+          : { partner_name: answer, partner_source: "ticket_tailor" };
+        return supabase
           .from("user_event_enrollments")
-          .update({ partner_email: answerByOrderId.get(e.ticket_tailor_order_id as string) })
-          .eq("id", e.id),
-      ),
+          .update(updateData)
+          .eq("id", e.id);
+      }),
   );
 
   return enrollments.map((e) => {
     const answer = e.ticket_tailor_order_id
       ? answerByOrderId.get(e.ticket_tailor_order_id)
       : undefined;
-    if (answer && e.events?.requires_partner && !e.partner_email?.trim()) {
-      return { ...e, partner_email: answer };
+    if (answer && e.events?.requires_partner && !e.partner_email?.trim() && !e.partner_name?.trim()) {
+      return answer.includes("@")
+        ? { ...e, partner_email: answer, partner_source: "ticket_tailor" }
+        : { ...e, partner_name: answer, partner_source: "ticket_tailor" };
     }
     return e;
   });

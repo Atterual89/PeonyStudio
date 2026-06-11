@@ -462,11 +462,21 @@ function EventRow({ enrollment, highlight = false, onOpen }: {
         {enrollment.events?.title ?? "Evento Peony Studio"}
       </p>
       {enrollment.events?.requires_partner ? (
-        enrollment.partner_email || enrollment.partner_name ? (
+        enrollment.partner_source === "user" ? (
           <p className="mt-1.5 flex items-center gap-1 text-xs text-green-400">
             <span aria-hidden="true">👥 ✓</span>
             <span>{enrollment.partner_name || enrollment.partner_email}</span>
           </p>
+        ) : enrollment.partner_source === "ticket_tailor" ? (
+          <div className="mt-1.5">
+            <p className="flex items-center gap-1 text-xs text-amber-400">
+              <span aria-hidden="true">👥 !</span>
+              <span>Conferma o modifica il partner</span>
+            </p>
+            <p className="mt-0.5 text-[11px] text-[#f8efe5]/50">
+              {enrollment.partner_name || enrollment.partner_email}
+            </p>
+          </div>
         ) : (
           <p className="mt-1.5 flex items-center gap-1 text-xs text-amber-400">
             <span aria-hidden="true">👥 ⚠️</span>
@@ -510,11 +520,11 @@ function EventDetailModal({
     const newName = partnerName.trim() || null;
     const { error } = await supabase
       .from("user_event_enrollments")
-      .update({ partner_email: newEmail, partner_name: newName })
+      .update({ partner_email: newEmail, partner_name: newName, partner_source: "user" })
       .eq("id", enrollment.id);
     setSavingPartner(false);
     if (!error) {
-      onEnrollmentUpdate({ ...enrollment, partner_email: newEmail, partner_name: newName });
+      onEnrollmentUpdate({ ...enrollment, partner_email: newEmail, partner_name: newName, partner_source: "user" });
       setEditingPartner(false);
       setPartnerSavedOk(true);
       setTimeout(() => setPartnerSavedOk(false), 2000);
