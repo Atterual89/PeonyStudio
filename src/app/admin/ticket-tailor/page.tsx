@@ -461,6 +461,10 @@ export default function TicketTailorAdminPage() {
     Record<string, { partner_email: string; partner_name: string }>
   >({});
   const [partnerSavedIds, setPartnerSavedIds] = useState<Record<string, boolean>>({});
+  const [editingPartnerId, setEditingPartnerId] = useState<string | null>(null);
+  const [partnerSearch, setPartnerSearch] = useState("");
+  const [partnerEventFilter, setPartnerEventFilter] = useState("");
+  const [partnerSourceFilter, setPartnerSourceFilter] = useState("");
   const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [syncResults, setSyncResults] = useState<SyncResult[]>([]);
   const [events, setEvents] = useState<AdminEvent[]>([]);
@@ -582,6 +586,30 @@ export default function TicketTailorAdminPage() {
       null
     : null;
   const participantSummary = getParticipantSummary(displayedParticipants);
+  const partnerUniqueEvents = [
+    ...new Set(
+      partnerRows.map((r) => r.event_title).filter((t): t is string => Boolean(t)),
+    ),
+  ];
+  const normalizedPartnerSearch = partnerSearch.trim().toLowerCase();
+  const filteredPartnerRows = partnerRows.filter((r) => {
+    if (
+      normalizedPartnerSearch &&
+      ![r.buyer_nickname, r.buyer_first_name, r.buyer_email]
+        .filter(Boolean)
+        .some((v) => v!.toLowerCase().includes(normalizedPartnerSearch))
+    )
+      return false;
+    if (partnerEventFilter && r.event_title !== partnerEventFilter) return false;
+    if (partnerSourceFilter === "none" && r.partner_source) return false;
+    if (
+      partnerSourceFilter &&
+      partnerSourceFilter !== "none" &&
+      r.partner_source !== partnerSourceFilter
+    )
+      return false;
+    return true;
+  });
   const filteredMembershipRecapRows = membershipRecapRows.filter((row) =>
     matchesMembershipRecapFilters(row, membershipRecapFilters, membershipRecapDrafts),
   );
@@ -3750,119 +3778,219 @@ export default function TicketTailorAdminPage() {
                   ))}
                 </div>
 
-                <div className="mt-5 grid gap-3">
-                  {partnerRows.map((row) => {
-                    const draft = partnerDrafts[row.id] ?? {
-                      partner_email: row.partner_email ?? "",
-                      partner_name: row.partner_name ?? "",
-                    };
-                    const isSaving = savingPartnerId === row.id;
-                    const isSaved = partnerSavedIds[row.id] ?? false;
-                    const buyerLabel =
-                      row.buyer_nickname ??
-                      row.buyer_first_name ??
-                      row.buyer_email ??
-                      "—";
-                    return (
-                      <div
-                        key={row.id}
-                        className="rounded-[8px] border border-[#211815]/10 bg-white/70 p-4"
-                      >
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="font-semibold text-[#211815]">
-                              {buyerLabel}
-                            </p>
-                            {row.buyer_email && row.buyer_email !== buyerLabel ? (
-                              <p className="text-xs text-[#5f524c]">
-                                {row.buyer_email}
-                              </p>
-                            ) : null}
-                            <p className="mt-1 text-xs text-[#5f524c]">
-                              {row.event_title ?? "—"} ·{" "}
-                              {row.event_starts_at
-                                ? formatDate(row.event_starts_at)
-                                : "—"}
-                            </p>
-                          </div>
-                          <div>
-                            {row.partner_source === "ticket_tailor" ? (
-                              <span className="inline-flex rounded-full border border-[#8b5e4a]/25 bg-[#8b5e4a]/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#8b5e4a]">
-                                Da Ticket Tailor
-                              </span>
-                            ) : row.partner_source === "user" ? (
-                              <span className="inline-flex rounded-full border border-[#2f5b3a]/25 bg-[#2f5b3a]/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#2f5b3a]">
-                                Confermato
-                              </span>
-                            ) : (
-                              <span className="inline-flex rounded-full border border-[#211815]/15 bg-[#211815]/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#5f524c]">
-                                Non indicato
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        {row.partner_email || row.partner_name ? (
-                          <p className="mt-2 text-sm text-[#5f524c]">
-                            <span className="font-medium text-[#211815]">
-                              Partner attuale:
-                            </span>{" "}
-                            {row.partner_name || row.partner_email}
-                          </p>
-                        ) : null}
-                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                          <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-                            Email partner
-                            <input
-                              className="mt-1 w-full rounded-[8px] border border-[#211815]/15 bg-[#f4efe8]/80 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
-                              type="email"
-                              value={draft.partner_email}
-                              onChange={(e) =>
-                                setPartnerDrafts((prev) => ({
-                                  ...prev,
-                                  [row.id]: {
-                                    ...draft,
-                                    partner_email: e.target.value,
-                                  },
-                                }))
-                              }
-                            />
-                          </label>
-                          <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-                            Nome partner
-                            <input
-                              className="mt-1 w-full rounded-[8px] border border-[#211815]/15 bg-[#f4efe8]/80 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
-                              type="text"
-                              value={draft.partner_name}
-                              onChange={(e) =>
-                                setPartnerDrafts((prev) => ({
-                                  ...prev,
-                                  [row.id]: {
-                                    ...draft,
-                                    partner_name: e.target.value,
-                                  },
-                                }))
-                              }
-                            />
-                          </label>
-                        </div>
-                        <div className="mt-3 flex items-center gap-3">
-                          <button
-                            className="rounded-full bg-[#211815] px-4 py-2 text-xs font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
-                            type="button"
-                            disabled={isSaving}
-                            onClick={() => savePartnerRow(row.id)}
+                <div className="mt-5 grid gap-3 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
+                  <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                    Cerca acquirente
+                    <input
+                      className="mt-1 w-full rounded-[8px] border border-[#211815]/15 bg-[#f4efe8]/80 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+                      type="text"
+                      value={partnerSearch}
+                      onChange={(e) => setPartnerSearch(e.target.value)}
+                      placeholder="Nome, nickname, email"
+                    />
+                  </label>
+                  <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                    Evento
+                    <select
+                      className="mt-1 w-full rounded-[8px] border border-[#211815]/15 bg-[#f4efe8]/80 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+                      value={partnerEventFilter}
+                      onChange={(e) => setPartnerEventFilter(e.target.value)}
+                    >
+                      <option value="">Tutti gli eventi</option>
+                      {partnerUniqueEvents.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                    Fonte
+                    <select
+                      className="mt-1 w-full rounded-[8px] border border-[#211815]/15 bg-[#f4efe8]/80 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+                      value={partnerSourceFilter}
+                      onChange={(e) => setPartnerSourceFilter(e.target.value)}
+                    >
+                      <option value="">Tutti</option>
+                      <option value="ticket_tailor">Da Ticket Tailor</option>
+                      <option value="user">Confermato</option>
+                      <option value="none">Non indicato</option>
+                    </select>
+                  </label>
+                  <button
+                    className="rounded-full border border-[#211815]/20 px-4 py-2.5 text-xs font-semibold text-[#211815] transition hover:-translate-y-0.5"
+                    type="button"
+                    onClick={() => {
+                      setPartnerSearch("");
+                      setPartnerEventFilter("");
+                      setPartnerSourceFilter("");
+                    }}
+                  >
+                    Reset filtri
+                  </button>
+                </div>
+
+                <div className="mt-4 overflow-x-auto rounded-[8px] border border-[#211815]/10">
+                  <table className="min-w-[800px] w-full border-collapse bg-white/60 text-left text-sm">
+                    <thead className="bg-[#211815]/5 text-[11px] uppercase tracking-[0.12em] text-[#5f524c]">
+                      <tr>
+                        {[
+                          "Acquirente",
+                          "Email",
+                          "Evento",
+                          "Data",
+                          "Partner",
+                          "Fonte",
+                          "Azioni",
+                        ].map((col) => (
+                          <th
+                            className="border-b border-[#211815]/10 px-3 py-3"
+                            key={col}
                           >
-                            {isSaving ? "Salvo..." : "Salva"}
-                          </button>
-                          {isSaved ? (
-                            <span className="text-xs text-[#2f5b3a]">
-                              Salvato ✓
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-                    );
-                  })}
+                            {col}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredPartnerRows.length > 0 ? (
+                        filteredPartnerRows.map((row) => {
+                          const draft = partnerDrafts[row.id] ?? {
+                            partner_email: row.partner_email ?? "",
+                            partner_name: row.partner_name ?? "",
+                          };
+                          const isEditing = editingPartnerId === row.id;
+                          const isSaving = savingPartnerId === row.id;
+                          const isSaved = partnerSavedIds[row.id] ?? false;
+                          const buyerLabel =
+                            row.buyer_nickname ??
+                            row.buyer_first_name ??
+                            row.buyer_email ??
+                            "—";
+                          return (
+                            <tr
+                              className="border-b border-[#211815]/10 last:border-0 hover:bg-[#f4efe8]/40"
+                              key={row.id}
+                            >
+                              <td className="px-3 py-3 font-medium text-[#211815]">
+                                {buyerLabel}
+                              </td>
+                              <td className="px-3 py-3 text-[#5f524c]">
+                                {row.buyer_email ?? "—"}
+                              </td>
+                              <td className="max-w-[140px] overflow-hidden text-ellipsis whitespace-nowrap px-3 py-3 text-[#5f524c]">
+                                {row.event_title ?? "—"}
+                              </td>
+                              <td className="px-3 py-3 text-[#5f524c]">
+                                {row.event_starts_at
+                                  ? formatDate(row.event_starts_at)
+                                  : "—"}
+                              </td>
+                              <td className="px-3 py-3 text-[#5f524c]">
+                                {isEditing ? (
+                                  <div className="grid gap-1.5">
+                                    <input
+                                      className="rounded-[6px] border border-[#211815]/15 bg-[#f4efe8]/80 px-2 py-1.5 text-xs text-[#211815] outline-none focus:border-[#8b5e4a]"
+                                      type="email"
+                                      placeholder="Email partner"
+                                      value={draft.partner_email}
+                                      onChange={(e) =>
+                                        setPartnerDrafts((prev) => ({
+                                          ...prev,
+                                          [row.id]: {
+                                            ...draft,
+                                            partner_email: e.target.value,
+                                          },
+                                        }))
+                                      }
+                                    />
+                                    <input
+                                      className="rounded-[6px] border border-[#211815]/15 bg-[#f4efe8]/80 px-2 py-1.5 text-xs text-[#211815] outline-none focus:border-[#8b5e4a]"
+                                      type="text"
+                                      placeholder="Nome partner"
+                                      value={draft.partner_name}
+                                      onChange={(e) =>
+                                        setPartnerDrafts((prev) => ({
+                                          ...prev,
+                                          [row.id]: {
+                                            ...draft,
+                                            partner_name: e.target.value,
+                                          },
+                                        }))
+                                      }
+                                    />
+                                  </div>
+                                ) : (
+                                  row.partner_name || row.partner_email || "—"
+                                )}
+                              </td>
+                              <td className="px-3 py-3">
+                                {row.partner_source === "ticket_tailor" ? (
+                                  <span className="inline-flex rounded-full border border-[#8b5e4a]/25 bg-[#8b5e4a]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#8b5e4a]">
+                                    Da TT
+                                  </span>
+                                ) : row.partner_source === "user" ? (
+                                  <span className="inline-flex rounded-full border border-[#2f5b3a]/25 bg-[#2f5b3a]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#2f5b3a]">
+                                    Confermato
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex rounded-full border border-[#211815]/15 bg-[#211815]/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#5f524c]">
+                                    —
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-3 py-3">
+                                {isEditing ? (
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      className="rounded-full bg-[#211815] px-3 py-1.5 text-xs font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:opacity-55"
+                                      type="button"
+                                      disabled={isSaving}
+                                      onClick={async () => {
+                                        await savePartnerRow(row.id);
+                                        setEditingPartnerId(null);
+                                      }}
+                                    >
+                                      {isSaving ? "…" : "Salva"}
+                                    </button>
+                                    <button
+                                      className="text-xs text-[#5f524c] transition hover:text-[#211815]"
+                                      type="button"
+                                      onClick={() => setEditingPartnerId(null)}
+                                    >
+                                      Annulla
+                                    </button>
+                                    {isSaved ? (
+                                      <span className="text-xs text-[#2f5b3a]">
+                                        ✓
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                ) : (
+                                  <button
+                                    className="rounded-full border border-[#211815]/20 px-3 py-1.5 text-xs font-semibold text-[#211815] transition hover:-translate-y-0.5"
+                                    type="button"
+                                    onClick={() => setEditingPartnerId(row.id)}
+                                  >
+                                    Modifica
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td
+                            className="px-3 py-6 text-center text-[#5f524c]"
+                            colSpan={7}
+                          >
+                            Nessun risultato.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </>
             ) : null}
