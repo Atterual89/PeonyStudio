@@ -361,6 +361,17 @@ function EventsSection({ attendanceStats, futureEnrollments, pastEnrollments, ne
     setOverrides((prev) => new Map(prev).set(updated.id, updated));
   }
 
+  async function handleConfirmPartner(enrollment: Enrollment) {
+    const supabase = createSupabaseBrowserClient();
+    const { error } = await supabase
+      .from("user_event_enrollments")
+      .update({ partner_source: "user" })
+      .eq("id", enrollment.id);
+    if (!error) {
+      handleEnrollmentUpdate({ ...enrollment, partner_source: "user" });
+    }
+  }
+
   const otherFuture = nextEnrollment
     ? futureEnrollments.filter((e) => e.id !== nextEnrollment.id)
     : futureEnrollments;
@@ -375,7 +386,7 @@ function EventsSection({ attendanceStats, futureEnrollments, pastEnrollments, ne
 
       {/* Prossimo evento */}
       {nextEnrollment ? (
-        <EventRow enrollment={resolveEnrollment(nextEnrollment)} highlight onOpen={setModalEnrollment} />
+        <EventRow enrollment={resolveEnrollment(nextEnrollment)} highlight onOpen={setModalEnrollment} onConfirmPartner={handleConfirmPartner} />
       ) : (
         <Panel>
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">Nessun evento in arrivo</p>
@@ -390,7 +401,7 @@ function EventsSection({ attendanceStats, futureEnrollments, pastEnrollments, ne
         <Panel>
           <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">Altri eventi in arrivo</p>
           <div className="grid gap-2">
-            {otherFuture.map((e) => <EventRow key={e.id} enrollment={resolveEnrollment(e)} onOpen={setModalEnrollment} />)}
+            {otherFuture.map((e) => <EventRow key={e.id} enrollment={resolveEnrollment(e)} onOpen={setModalEnrollment} onConfirmPartner={handleConfirmPartner} />)}
           </div>
         </Panel>
       ) : null}
@@ -399,7 +410,7 @@ function EventsSection({ attendanceStats, futureEnrollments, pastEnrollments, ne
         <Panel>
           <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">Eventi passati</p>
           <div className="grid gap-2">
-            {pastEnrollments.map((e) => <EventRow key={e.id} enrollment={resolveEnrollment(e)} onOpen={setModalEnrollment} />)}
+            {pastEnrollments.map((e) => <EventRow key={e.id} enrollment={resolveEnrollment(e)} onOpen={setModalEnrollment} onConfirmPartner={handleConfirmPartner} />)}
           </div>
         </Panel>
       ) : null}
@@ -454,10 +465,11 @@ function EventStatCard({
   );
 }
 
-function EventRow({ enrollment, highlight = false, onOpen }: {
+function EventRow({ enrollment, highlight = false, onOpen, onConfirmPartner }: {
   enrollment: Enrollment;
   highlight?: boolean;
   onOpen: (e: Enrollment) => void;
+  onConfirmPartner?: (e: Enrollment) => void;
 }) {
   return (
     <div className={`rounded-[14px] border p-4 ${
@@ -483,6 +495,15 @@ function EventRow({ enrollment, highlight = false, onOpen }: {
             <p className="flex items-center gap-1 text-xs text-amber-400">
               <span aria-hidden="true">👥 !</span>
               <span>Conferma o modifica il partner</span>
+              {onConfirmPartner ? (
+                <button
+                  type="button"
+                  onClick={(ev) => { ev.stopPropagation(); onConfirmPartner(enrollment); }}
+                  className="ml-0.5 rounded-full border border-amber-400/40 px-2 py-0.5 text-[10px] font-semibold leading-none transition hover:bg-amber-400/15"
+                >
+                  Conferma
+                </button>
+              ) : null}
             </p>
             <p className="mt-0.5 text-[11px] text-[#f8efe5]/50">
               {enrollment.partner_name || enrollment.partner_email}

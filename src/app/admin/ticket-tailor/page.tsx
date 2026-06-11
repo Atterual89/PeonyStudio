@@ -336,6 +336,21 @@ type MembersSyncPreviewFilter =
   | "unchanged"
   | "invalid";
 
+type PartnerEnrollmentRow = {
+  id: string;
+  ticket_tailor_order_id: string | null;
+  partner_email: string | null;
+  partner_name: string | null;
+  partner_source: string | null;
+  enrollment_status: string | null;
+  buyer_email: string | null;
+  buyer_first_name: string | null;
+  buyer_last_name: string | null;
+  buyer_nickname: string | null;
+  event_title: string | null;
+  event_starts_at: string | null;
+};
+
 const associationStatuses = [
   "unknown",
   "missing",
@@ -437,6 +452,15 @@ export default function TicketTailorAdminPage() {
   const [syncing, setSyncing] = useState(false);
   const [syncingProfiles, setSyncingProfiles] = useState(false);
   const [profilesSyncResult, setProfilesSyncResult] = useState<Record<string, unknown> | null>(null);
+  const [activeTab, setActiveTab] = useState<"tessere" | "partner">("tessere");
+  const [loadingPartners, setLoadingPartners] = useState(false);
+  const [partnerRows, setPartnerRows] = useState<PartnerEnrollmentRow[]>([]);
+  const [partnerError, setPartnerError] = useState<string | null>(null);
+  const [savingPartnerId, setSavingPartnerId] = useState<string | null>(null);
+  const [partnerDrafts, setPartnerDrafts] = useState<
+    Record<string, { partner_email: string; partner_name: string }>
+  >({});
+  const [partnerSavedIds, setPartnerSavedIds] = useState<Record<string, boolean>>({});
   const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [syncResults, setSyncResults] = useState<SyncResult[]>([]);
   const [events, setEvents] = useState<AdminEvent[]>([]);
@@ -774,6 +798,106 @@ export default function TicketTailorAdminPage() {
       });
     } finally {
       setSyncingProfiles(false);
+    }
+  }
+
+  async function loadPartners() {
+    if (!secret.trim()) {
+      setPartnerError("Inserisci il codice admin.");
+      return;
+    }
+
+    setLoadingPartners(true);
+    setPartnerError(null);
+
+    try {
+      const response = await fetch("/api/admin/partner-enrollments", {
+        headers: { "x-admin-sync-secret": secret },
+      });
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        rows?: PartnerEnrollmentRow[];
+        message?: string;
+      };
+
+      if (!response.ok || payload.ok === false) {
+        setPartnerError(payload.message ?? "Errore caricamento partner.");
+        return;
+      }
+
+      const rows = payload.rows ?? [];
+      setPartnerRows(rows);
+      setPartnerDrafts(
+        Object.fromEntries(
+          rows.map((r) => [
+            r.id,
+            {
+              partner_email: r.partner_email ?? "",
+              partner_name: r.partner_name ?? "",
+            },
+          ]),
+        ),
+      );
+      setPartnerSavedIds({});
+    } catch (error) {
+      setPartnerError(
+        error instanceof Error ? error.message : "Errore sconosciuto.",
+      );
+    } finally {
+      setLoadingPartners(false);
+    }
+  }
+
+  async function savePartnerRow(id: string) {
+    if (!secret.trim()) return;
+
+    const draft = partnerDrafts[id];
+    if (!draft) return;
+
+    setSavingPartnerId(id);
+    setPartnerError(null);
+
+    try {
+      const response = await fetch(`/api/admin/partner-enrollments/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-sync-secret": secret,
+        },
+        body: JSON.stringify({
+          partner_email: draft.partner_email.trim() || null,
+          partner_name: draft.partner_name.trim() || null,
+        }),
+      });
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        message?: string;
+      };
+
+      if (!response.ok || payload.ok === false) {
+        setPartnerError(payload.message ?? "Errore salvataggio partner.");
+        return;
+      }
+
+      setPartnerRows((prev) =>
+        prev.map((r) =>
+          r.id === id
+            ? {
+                ...r,
+                partner_email: draft.partner_email.trim() || null,
+                partner_name: draft.partner_name.trim() || null,
+                partner_source: "user",
+              }
+            : r,
+        ),
+      );
+      setPartnerSavedIds((prev) => ({ ...prev, [id]: true }));
+    } catch (error) {
+      setPartnerError(
+        error instanceof Error ? error.message : "Errore sconosciuto.",
+      );
+    } finally {
+      setSavingPartnerId(null);
     }
   }
 
@@ -1508,6 +1632,33 @@ export default function TicketTailorAdminPage() {
           ) : null}
         </section>
 
+        <div className="mt-6 flex gap-2">
+          <button
+            className={`rounded-full px-5 py-2.5 text-sm font-semibold transition hover:-translate-y-0.5 ${
+              activeTab === "tessere"
+                ? "bg-[#211815] text-[#f4efe8]"
+                : "border border-[#211815]/20 text-[#211815]"
+            }`}
+            type="button"
+            onClick={() => setActiveTab("tessere")}
+          >
+            Gestione Tessere
+          </button>
+          <button
+            className={`rounded-full px-5 py-2.5 text-sm font-semibold transition hover:-translate-y-0.5 ${
+              activeTab === "partner"
+                ? "bg-[#211815] text-[#f4efe8]"
+                : "border border-[#211815]/20 text-[#211815]"
+            }`}
+            type="button"
+            onClick={() => setActiveTab("partner")}
+          >
+            Gestione Partner
+          </button>
+        </div>
+
+        {activeTab === "tessere" && (
+          <>
         <section className="order-1 mt-6 rounded-[8px] border border-[#8b5e4a]/20 bg-[#8b5e4a]/5 p-5 md:p-6">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
             Riepilogo del processo
@@ -3528,6 +3679,195 @@ export default function TicketTailorAdminPage() {
             </div>
           )}
         </section>
+          </>
+        )}
+
+        {activeTab === "partner" && (
+          <section className="mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+                  Partner
+                </p>
+                <h2 className="mt-2 font-serif text-3xl font-medium">
+                  Gestione Partner
+                </h2>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
+                  Enrollment che richiedono un partner. Evidenziati quelli con
+                  dati da Ticket Tailor ancora da confermare.
+                </p>
+              </div>
+              <button
+                className="rounded-full bg-[#211815] px-5 py-2.5 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
+                type="button"
+                disabled={loadingPartners}
+                onClick={loadPartners}
+              >
+                {loadingPartners ? "Carico..." : "Carica partner"}
+              </button>
+            </div>
+
+            {partnerError ? (
+              <p className="mt-4 rounded-[8px] border border-[#8b2f2a]/20 bg-[#8b2f2a]/5 p-3 text-sm text-[#8b2f2a]">
+                {partnerError}
+              </p>
+            ) : null}
+
+            {partnerRows.length > 0 ? (
+              <>
+                <div className="mt-5 grid gap-3 sm:grid-cols-4">
+                  {(
+                    [
+                      ["Totale", partnerRows.length],
+                      [
+                        "Da confermare",
+                        partnerRows.filter(
+                          (r) => r.partner_source === "ticket_tailor",
+                        ).length,
+                      ],
+                      [
+                        "Confermati",
+                        partnerRows.filter((r) => r.partner_source === "user")
+                          .length,
+                      ],
+                      [
+                        "Non indicati",
+                        partnerRows.filter((r) => !r.partner_source).length,
+                      ],
+                    ] as [string, number][]
+                  ).map(([label, value]) => (
+                    <div
+                      className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3"
+                      key={label}
+                    >
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
+                        {label}
+                      </p>
+                      <p className="mt-2 font-serif text-3xl text-[#211815]">
+                        {value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-5 grid gap-3">
+                  {partnerRows.map((row) => {
+                    const draft = partnerDrafts[row.id] ?? {
+                      partner_email: row.partner_email ?? "",
+                      partner_name: row.partner_name ?? "",
+                    };
+                    const isSaving = savingPartnerId === row.id;
+                    const isSaved = partnerSavedIds[row.id] ?? false;
+                    const buyerLabel =
+                      row.buyer_nickname ??
+                      row.buyer_first_name ??
+                      row.buyer_email ??
+                      "—";
+                    return (
+                      <div
+                        key={row.id}
+                        className="rounded-[8px] border border-[#211815]/10 bg-white/70 p-4"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-[#211815]">
+                              {buyerLabel}
+                            </p>
+                            {row.buyer_email && row.buyer_email !== buyerLabel ? (
+                              <p className="text-xs text-[#5f524c]">
+                                {row.buyer_email}
+                              </p>
+                            ) : null}
+                            <p className="mt-1 text-xs text-[#5f524c]">
+                              {row.event_title ?? "—"} ·{" "}
+                              {row.event_starts_at
+                                ? formatDate(row.event_starts_at)
+                                : "—"}
+                            </p>
+                          </div>
+                          <div>
+                            {row.partner_source === "ticket_tailor" ? (
+                              <span className="inline-flex rounded-full border border-[#8b5e4a]/25 bg-[#8b5e4a]/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#8b5e4a]">
+                                Da Ticket Tailor
+                              </span>
+                            ) : row.partner_source === "user" ? (
+                              <span className="inline-flex rounded-full border border-[#2f5b3a]/25 bg-[#2f5b3a]/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#2f5b3a]">
+                                Confermato
+                              </span>
+                            ) : (
+                              <span className="inline-flex rounded-full border border-[#211815]/15 bg-[#211815]/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#5f524c]">
+                                Non indicato
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {row.partner_email || row.partner_name ? (
+                          <p className="mt-2 text-sm text-[#5f524c]">
+                            <span className="font-medium text-[#211815]">
+                              Partner attuale:
+                            </span>{" "}
+                            {row.partner_name || row.partner_email}
+                          </p>
+                        ) : null}
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                          <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                            Email partner
+                            <input
+                              className="mt-1 w-full rounded-[8px] border border-[#211815]/15 bg-[#f4efe8]/80 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+                              type="email"
+                              value={draft.partner_email}
+                              onChange={(e) =>
+                                setPartnerDrafts((prev) => ({
+                                  ...prev,
+                                  [row.id]: {
+                                    ...draft,
+                                    partner_email: e.target.value,
+                                  },
+                                }))
+                              }
+                            />
+                          </label>
+                          <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                            Nome partner
+                            <input
+                              className="mt-1 w-full rounded-[8px] border border-[#211815]/15 bg-[#f4efe8]/80 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+                              type="text"
+                              value={draft.partner_name}
+                              onChange={(e) =>
+                                setPartnerDrafts((prev) => ({
+                                  ...prev,
+                                  [row.id]: {
+                                    ...draft,
+                                    partner_name: e.target.value,
+                                  },
+                                }))
+                              }
+                            />
+                          </label>
+                        </div>
+                        <div className="mt-3 flex items-center gap-3">
+                          <button
+                            className="rounded-full bg-[#211815] px-4 py-2 text-xs font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
+                            type="button"
+                            disabled={isSaving}
+                            onClick={() => savePartnerRow(row.id)}
+                          >
+                            {isSaving ? "Salvo..." : "Salva"}
+                          </button>
+                          {isSaved ? (
+                            <span className="text-xs text-[#2f5b3a]">
+                              Salvato ✓
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            ) : null}
+          </section>
+        )}
       </div>
 
       {editingParticipant ? (

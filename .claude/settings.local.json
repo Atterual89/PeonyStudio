@@ -27,7 +27,9 @@
       "Bash(curl *)",
       "Bash(taskkill /PID 3464 /F)",
       "PowerShell(Stop-Process *)",
-      "PowerShell(cd D:\\\\peony_studio\\\\PeonyStudio; $env:NODE_OPTIONS=\"--max-old-space-size=4096\"; npm.cmd run build 2>&1 | Select-Object -Last 8)"
+      "PowerShell(cd D:\\\\peony_studio\\\\PeonyStudio; $env:NODE_OPTIONS=\"--max-old-space-size=4096\"; npm.cmd run build 2>&1 | Select-Object -Last 8)",
+      "PowerShell(cd \"D:\\\\peony_studio\\\\PeonyStudio\"; $env:NODE_OPTIONS=\"--max-old-space-size=4096\"; npx.cmd tsc --noEmit 2>&1 | Select-Object -First 40)",
+      "PowerShell(cd \"D:\\\\peony_studio\\\\PeonyStudio\"; $env:NODE_OPTIONS=\"--max-old-space-size=6144\"; npm.cmd run build 2>&1 | Select-Object -Last 12)"
     ]
   }
 }
