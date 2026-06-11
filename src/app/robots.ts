@@ -1,13 +1,11 @@
 import type { MetadataRoute } from "next";
 
-const siteUrl = normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL);
+import { getSiteUrl, isProductionDeployment } from "@/lib/site-url";
 
 export default function robots(): MetadataRoute.Robots {
-  const isProduction =
-    process.env.VERCEL_ENV === "production" ||
-    (!process.env.VERCEL_ENV && process.env.NODE_ENV === "production");
+  const siteUrl = getSiteUrl();
 
-  if (!isProduction) {
+  if (!isProductionDeployment()) {
     return {
       rules: {
         userAgent: "*",
@@ -25,8 +23,4 @@ export default function robots(): MetadataRoute.Robots {
     },
     sitemap: `${siteUrl}/sitemap.xml`,
   };
-}
-
-function normalizeSiteUrl(value?: string) {
-  return (value ?? "http://localhost:3000").replace(/\/$/, "");
 }
