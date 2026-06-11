@@ -74,7 +74,7 @@ export const shopContent = {
           "Pensata per chi partecipa regolarmente a eventi, pratiche e workshop",
         value: "VALORE 990€ → COSTO 645€ – Sconto del 35%",
         benefits: [
-          "Una lezione privata di 3h con Kurogami & Shiawase",
+          "Una sessione privata di coaching di 3h con Kurogami",
           "Ingressi inclusi alle sessioni di Pratica Assistita e Classe Tematica per sé e per il proprio partner",
           "Ingressi inclusi Rope Jam, Open Day",
           "Sconto 10% sulla partecipazione ai workshop*",
