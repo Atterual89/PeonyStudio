@@ -124,7 +124,10 @@ export function PrivateLessonsTab() {
                   </p>
                   <p className="mt-0.5 text-xs text-[#6b5c52]">{lesson.subtitle}</p>
                 </div>
-                <span className="ml-4 shrink-0 text-xl text-[#2a1f1a]" aria-hidden="true">
+                <span
+                  className="ml-4 grid h-7 w-7 shrink-0 place-items-center rounded-full border border-[#211815]/10 bg-white/45 text-lg text-[#8b5e4a]"
+                  aria-hidden="true"
+                >
                   {open ? "×" : "+"}
                 </span>
               </button>

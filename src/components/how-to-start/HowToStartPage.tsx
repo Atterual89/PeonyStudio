@@ -178,20 +178,20 @@ export function HowToStartPage({ content }: HowToStartPageProps) {
                     aria-hidden="true"
                     className={`absolute -left-[15px] top-[14px] h-2 w-2 rounded-full transition duration-200 ${active ? "bg-[#8b5e4a]" : "bg-[#c8b49a]"}`}
                   />
-                  <div className={`rounded-[10px] border p-3 transition duration-200 ${active ? "border-[#211815] bg-[#211815]" : "border-[#211815]/10 bg-white"}`}>
-                    <p className={`text-[10px] font-semibold uppercase tracking-[0.18em] ${active ? "text-[#8b5e4a]" : "text-[#8b5e4a]/70"}`}>
+                  <div className="rounded-[10px] border border-[#211815]/10 bg-white p-3 transition duration-200">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8b5e4a]/70">
                       {String(index + 1).padStart(2, "0")}
                     </p>
-                    <h3 className={`mt-1 font-serif text-base font-medium leading-tight ${active ? "text-[#f5ede2]" : "text-[#211815]"}`}>
+                    <h3 className="mt-1 font-serif text-base font-medium leading-tight text-[#211815]">
                       {card.title}
                     </h3>
-                    <p className={`mt-0.5 text-xs leading-[1.45] ${active ? "text-[#c8b49a]" : "text-[#5f524c]"}`}>
+                    <p className="mt-0.5 text-xs leading-[1.45] text-[#5f524c]">
                       {card.text}
                     </p>
                     <div className="mt-2 flex gap-1.5">
                       {(HTS_STEP_ICONS[index] ?? []).map((n) => {
                         const Icon = HTS_ICON_MAP[n];
-                        return <Icon key={n} size={12} className={active ? "text-[#c8b49a]/60" : "text-[#8b5e4a]/50"} aria-hidden="true" />;
+                        return <Icon key={n} size={12} className="text-[#8b5e4a]/50" aria-hidden="true" />;
                       })}
                     </div>
                   </div>

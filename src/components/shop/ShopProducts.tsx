@@ -150,11 +150,7 @@ export function ShopProducts({ storeUrl }: { storeUrl?: string }) {
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
-  const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
-    "peony-card": false,
-    "gift-card": false,
-    corde: false,
-  });
+  const [openProductId, setOpenProductId] = useState<SectionKey | null>(null);
   const [ropeModalOpen, setRopeModalOpen] = useState(false);
   const [quizOpen, setQuizOpen] = useState(false);
   const [highlightedCard, setHighlightedCard] = useState<CardLevel | null>(null);
@@ -205,7 +201,7 @@ export function ShopProducts({ storeUrl }: { storeUrl?: string }) {
   );
 
   const openAndScroll = (section: SectionKey) => {
-    setOpenSections((current) => ({ ...current, [section]: true }));
+    setOpenProductId(section);
     window.setTimeout(() => {
       document.getElementById(section)?.scrollIntoView({
         behavior: "smooth",
@@ -215,10 +211,7 @@ export function ShopProducts({ storeUrl }: { storeUrl?: string }) {
   };
 
   const toggleSection = (section: SectionKey) => {
-    setOpenSections((current) => ({
-      ...current,
-      [section]: !current[section],
-    }));
+    setOpenProductId((current) => (current === section ? null : section));
   };
 
   const focusRecommendedCard = (card: CardLevel) => {
@@ -274,7 +267,7 @@ export function ShopProducts({ storeUrl }: { storeUrl?: string }) {
         id="peony-card"
         eyebrow={localizedShop.peonyCards.eyebrow}
         title={localizedShop.peonyCards.title}
-        open={openSections["peony-card"]}
+        open={openProductId === "peony-card"}
         onToggle={() => toggleSection("peony-card")}
       >
         <PeonyCardsSection
@@ -299,7 +292,7 @@ export function ShopProducts({ storeUrl }: { storeUrl?: string }) {
         id="gift-card"
         eyebrow={localizedShop.giftCards.eyebrow}
         title={localizedShop.giftCards.title}
-        open={openSections["gift-card"]}
+        open={openProductId === "gift-card"}
         onToggle={() => toggleSection("gift-card")}
       >
         <GiftCardsSection
@@ -316,7 +309,7 @@ export function ShopProducts({ storeUrl }: { storeUrl?: string }) {
         id="corde"
         eyebrow={localizedShop.ropes.eyebrow}
         title={localizedShop.ropes.title}
-        open={openSections.corde}
+        open={openProductId === "corde"}
         onToggle={() => toggleSection("corde")}
       >
         <RopesSection onOpenInquiry={() => setRopeModalOpen(true)} />
@@ -399,6 +392,9 @@ function PeonyCardsSection({
   const { dictionary } = useLanguage();
   const shopDict = dictionary.shop;
   const content = shopContent.peonyCards;
+  const [openIncludesId, setOpenIncludesId] = useState<string | null>(
+    highlightedCard,
+  );
 
   return (
     <div className="grid gap-5">
@@ -433,6 +429,12 @@ function PeonyCardsSection({
                 failedImage={product ? failedImages[product.id] : false}
                 onImageError={onImageError}
                 storeUrl={storeUrl}
+                includesOpen={openIncludesId === variant.variant}
+                onIncludesToggle={() =>
+                  setOpenIncludesId((current) =>
+                    current === variant.variant ? null : variant.variant,
+                  )
+                }
               />
             );
           })}
@@ -462,6 +464,8 @@ function PeonyCardProduct({
   failedImage,
   onImageError,
   storeUrl,
+  includesOpen,
+  onIncludesToggle,
 }: {
   variant: PeonyCardVariant;
   product?: ShopProduct;
@@ -469,6 +473,8 @@ function PeonyCardProduct({
   failedImage?: boolean;
   onImageError: (id: string) => void;
   storeUrl?: string;
+  includesOpen: boolean;
+  onIncludesToggle: () => void;
 }) {
   const { dictionary } = useLanguage();
   const shopDict = dictionary.shop;
@@ -513,7 +519,8 @@ function PeonyCardProduct({
         <DetailsBlock
           title={shopDict.whatIncludes}
           items={variant.benefits}
-          defaultOpen={highlighted}
+          open={includesOpen}
+          onToggle={onIncludesToggle}
         />
       </div>
     </article>
@@ -1027,41 +1034,60 @@ function DetailsBlock({
   paragraphs = [],
   items,
   defaultOpen = false,
+  open: controlledOpen,
+  onToggle,
 }: {
   title: string;
   paragraphs?: string[];
   items: string[];
   defaultOpen?: boolean;
+  open?: boolean;
+  onToggle?: () => void;
 }) {
+  const [internalOpen, setInternalOpen] = useState(defaultOpen);
+  const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
+
+  function handleClick() {
+    if (onToggle) {
+      onToggle();
+    } else {
+      setInternalOpen((v) => !v);
+    }
+  }
+
   return (
-    <details
-      className="rounded-[8px] border border-[#211815]/10 bg-white/35"
-      open={defaultOpen}
-    >
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-[#211815] marker:hidden">
+    <div className="rounded-[8px] border border-[#211815]/10 bg-white/35">
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-[#211815]"
+        onClick={handleClick}
+      >
         <span>{title}</span>
         <span aria-hidden="true" className="text-[#8b5e4a]">
           +
         </span>
-      </summary>
-      <div className="border-t border-[#211815]/10 px-4 py-3">
-        {paragraphs.length ? (
-          <div className="mb-3 grid gap-2 text-sm leading-[1.6] text-[#5f524c]">
-            {paragraphs.map((paragraph) => (
-              <p key={paragraph}>{paragraph}</p>
+      </button>
+      {isOpen ? (
+        <div className="border-t border-[#211815]/10 px-4 py-3">
+          {paragraphs.length ? (
+            <div className="mb-3 grid gap-2 text-sm leading-[1.6] text-[#5f524c]">
+              {paragraphs.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+            </div>
+          ) : null}
+          <ul className="grid gap-2 text-sm leading-[1.55] text-[#5f524c]">
+            {items.map((item) => (
+              <li key={item} className="flex gap-2">
+                <span aria-hidden="true" className="mt-[0.45em] h-1.5 w-1.5 shrink-0 rounded-full bg-[#8b5e4a]/55" />
+                <span>{item}</span>
+              </li>
             ))}
-          </div>
-        ) : null}
-        <ul className="grid gap-2 text-sm leading-[1.55] text-[#5f524c]">
-          {items.map((item) => (
-            <li key={item} className="flex gap-2">
-              <span aria-hidden="true" className="mt-[0.45em] h-1.5 w-1.5 shrink-0 rounded-full bg-[#8b5e4a]/55" />
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </details>
+          </ul>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
