@@ -350,6 +350,17 @@ function EventsSection({ attendanceStats, futureEnrollments, pastEnrollments, ne
   nextEnrollment: Enrollment | null;
 }) {
   const [modalEnrollment, setModalEnrollment] = useState<Enrollment | null>(null);
+  const [overrides, setOverrides] = useState<Map<string, Enrollment>>(new Map());
+
+  function resolveEnrollment(e: Enrollment) {
+    return overrides.get(e.id) ?? e;
+  }
+
+  function handleEnrollmentUpdate(updated: Enrollment) {
+    setModalEnrollment(updated);
+    setOverrides((prev) => new Map(prev).set(updated.id, updated));
+  }
+
   const otherFuture = nextEnrollment
     ? futureEnrollments.filter((e) => e.id !== nextEnrollment.id)
     : futureEnrollments;
@@ -364,7 +375,7 @@ function EventsSection({ attendanceStats, futureEnrollments, pastEnrollments, ne
 
       {/* Prossimo evento */}
       {nextEnrollment ? (
-        <EventRow enrollment={nextEnrollment} highlight onOpen={setModalEnrollment} />
+        <EventRow enrollment={resolveEnrollment(nextEnrollment)} highlight onOpen={setModalEnrollment} />
       ) : (
         <Panel>
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">Nessun evento in arrivo</p>
@@ -379,7 +390,7 @@ function EventsSection({ attendanceStats, futureEnrollments, pastEnrollments, ne
         <Panel>
           <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">Altri eventi in arrivo</p>
           <div className="grid gap-2">
-            {otherFuture.map((e) => <EventRow key={e.id} enrollment={e} onOpen={setModalEnrollment} />)}
+            {otherFuture.map((e) => <EventRow key={e.id} enrollment={resolveEnrollment(e)} onOpen={setModalEnrollment} />)}
           </div>
         </Panel>
       ) : null}
@@ -388,7 +399,7 @@ function EventsSection({ attendanceStats, futureEnrollments, pastEnrollments, ne
         <Panel>
           <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">Eventi passati</p>
           <div className="grid gap-2">
-            {pastEnrollments.map((e) => <EventRow key={e.id} enrollment={e} onOpen={setModalEnrollment} />)}
+            {pastEnrollments.map((e) => <EventRow key={e.id} enrollment={resolveEnrollment(e)} onOpen={setModalEnrollment} />)}
           </div>
         </Panel>
       ) : null}
@@ -414,7 +425,7 @@ function EventsSection({ attendanceStats, futureEnrollments, pastEnrollments, ne
         <EventDetailModal
           enrollment={modalEnrollment}
           onClose={() => setModalEnrollment(null)}
-          onEnrollmentUpdate={setModalEnrollment}
+          onEnrollmentUpdate={handleEnrollmentUpdate}
         />
       ) : null}
     </div>
