@@ -103,11 +103,6 @@ export function ProgramsProgressPage({ content, percorsoEvents = [] }: ProgramsP
     const next = activeIndex === index ? null : index;
     setActiveIndex(next);
     setActiveParallelIndex(null);
-    if (next !== null) {
-      setTimeout(() => {
-        document.getElementById("program-detail")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 80);
-    }
   }
 
   return (
@@ -180,7 +175,7 @@ export function ProgramsProgressPage({ content, percorsoEvents = [] }: ProgramsP
         ) : null}
 
         {/* ── Rope timeline ── */}
-        <div className="relative px-1 pb-2 pt-8 md:px-2 md:pt-10">
+        <div className="sticky top-0 z-10 bg-[#f4efe8] relative px-1 pb-2 pt-4 md:px-2 md:pt-5">
           <div className="relative grid grid-cols-4">
             {/* Background rope — thin, muted */}
             <div

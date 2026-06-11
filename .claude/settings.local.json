@@ -31,7 +31,12 @@
       "PowerShell(cd \"D:\\\\peony_studio\\\\PeonyStudio\"; $env:NODE_OPTIONS=\"--max-old-space-size=4096\"; npx.cmd tsc --noEmit 2>&1 | Select-Object -First 40)",
       "PowerShell(cd \"D:\\\\peony_studio\\\\PeonyStudio\"; $env:NODE_OPTIONS=\"--max-old-space-size=6144\"; npm.cmd run build 2>&1 | Select-Object -Last 12)",
       "PowerShell(cd D:\\\\peony_studio\\\\PeonyStudio; $env:NODE_OPTIONS=\"--max-old-space-size=6144\"; npm.cmd run build 2>&1 | Select-Object -Last 25)",
-      "Bash(xargs grep -l \"heroIntro\\\\|studioCommunity\\\\|studioText\\\\|guestEyebrow\\\\|guestTitle\")"
+      "Bash(xargs grep -l \"heroIntro\\\\|studioCommunity\\\\|studioText\\\\|guestEyebrow\\\\|guestTitle\")",
+      "PowerShell(npm.cmd cache clean --force 2>&1 | Select-Object -Last 3)",
+      "PowerShell(Get-PSDrive C, D 2>&1 | Select-Object Name, @{N='Used\\(GB\\)';E={[math]::Round\\($_.Used/1GB,1\\)}}, @{N='Free\\(GB\\)';E={[math]::Round\\($_.Free/1GB,1\\)}})",
+      "PowerShell(Remove-Item *)",
+      "PowerShell($env:NODE_OPTIONS=\"--max-old-space-size=6144\"; npx.cmd tsc --noEmit 2>&1 | Select-Object -Last 20)",
+      "PowerShell($env:NODE_OPTIONS=\"--max-old-space-size=6144\"; npm.cmd run lint 2>&1 | Select-Object -Last 20)"
     ]
   }
 }
