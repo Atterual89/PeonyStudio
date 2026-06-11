@@ -20,7 +20,7 @@ const sections: Array<{ id: SectionId; label: string; text: string; icon: string
   { id: "overview", label: "Home",     text: "Il colpo d'occhio sul tuo momento.",    icon: "spark"   },
   { id: "events",   label: "Eventi",   text: "Date future, storico e dettagli utili.", icon: "ticket"  },
   { id: "guide",    label: "Guida",    text: "La forma della tua presenza.",           icon: "eye"     },
-  { id: "path",     label: "Percorso", text: "Il tuo percorso formativo.",             icon: "path"    },
+  { id: "path",     label: "Storico",  text: "I corsi che hai frequentato.",          icon: "path"    },
   { id: "profile",  label: "Profilo",  text: "Dati, tessera e funzioni gestionali.",  icon: "card"    },
 ];
 
@@ -33,7 +33,6 @@ const animalGuides = [
   { min: 19, max: Number.POSITIVE_INFINITY, name: "Tigre Determinata", status: "Presenza intensa",  image: "/images/animal-guides/tigre-determinata.png"   },
 ];
 
-const learningSteps = ["Foundation 1", "Foundation 2", "Class 1", "Class 1+"];
 
 // ── Main dashboard ────────────────────────────────────────────────────────────
 
@@ -50,7 +49,6 @@ export function PersonalAreaDashboard({ data }: { data: PersonalAreaData }) {
   const otherFutureEnrollments = nextEnrollment ? futureEnrollments.slice(1) : futureEnrollments;
   const displayName = getDisplayName(data, nicknameOverride);
   const guide       = getAnimalGuide(pastEnrollments.length);
-  const pathSteps   = getPathSteps(sortedEnrollments, pastEnrollments);
 
   function changeSection(id: SectionId) { setActiveSection(id); setDrawerOpen(false); }
 
@@ -85,7 +83,7 @@ export function PersonalAreaDashboard({ data }: { data: PersonalAreaData }) {
                 />
               ) : null}
               {activeSection === "guide"   ? <AnimalGuideSection guide={guide} pastCount={pastEnrollments.length} /> : null}
-              {activeSection === "path"    ? <PathSection pathSteps={pathSteps} /> : null}
+              {activeSection === "path"    ? <AttendanceHistorySection history={data.attendanceHistory} /> : null}
               {activeSection === "profile" ? <ProfileSection data={data} nicknameOverride={nicknameOverride} onNicknameUpdate={setNicknameOverride} /> : null}
             </main>
           </div>
@@ -837,52 +835,46 @@ function AnimalGuideSection({ guide, pastCount }: { guide: AnimalGuide; pastCoun
   );
 }
 
-// ── Path section ──────────────────────────────────────────────────────────────
+// ── Attendance history section ────────────────────────────────────────────────
 
-function PathSection({ pathSteps }: { pathSteps: PathStep[] }) {
+function AttendanceHistorySection({ history }: { history: PersonalAreaData["attendanceHistory"] }) {
   return (
     <div className="grid gap-5">
       <SectionIntro
-        eyebrow="Percorso"
-        title="Il tuo percorso"
-        text="La progressione è orientativa: l'ingresso dipende dall'esperienza e dalla pratica reale."
+        eyebrow="Storico"
+        title="I corsi che hai frequentato"
+        text="Basato sui check-in agli eventi Peony Studio."
       />
       <Panel>
-        <div className="grid gap-3 md:grid-cols-4">
-          {pathSteps.map((step, index) => (
-            <div
-              key={step.name}
-              className={`rounded-[16px] border p-4 ${
-                step.status === "completato"
-                  ? "border-[#d8b5a5]/35 bg-[#8b5e4a]/20"
-                  : step.status === "suggerito"
-                    ? "border-[#f8efe5]/18 bg-[#f8efe5]/10"
-                    : "border-[#f8efe5]/10 bg-[#f8efe5]/5"
-              }`}
-            >
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#d8b5a5]">
-                {String(index + 1).padStart(2, "0")}
-              </p>
-              <h3 className="mt-2 font-serif text-2xl font-medium">{step.name}</h3>
-              <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#f8efe5]/55">
-                {step.status}
-              </p>
-            </div>
-          ))}
-        </div>
-      </Panel>
-      <Panel>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">In parallelo</p>
-        <div className="mt-3 grid gap-3 md:grid-cols-2">
-          {["Pratica Assistita", "Classi Tematiche"].map((item) => (
-            <div key={item} className="rounded-[14px] border border-[#f8efe5]/10 bg-[#f8efe5]/6 p-4">
-              <h3 className="font-serif text-xl font-medium">{item}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-[#f8efe5]/60">
-                Corsia di supporto: ripetere, consolidare e approfondire.
-              </p>
-            </div>
-          ))}
-        </div>
+        {history.length === 0 ? (
+          <p className="text-sm text-[#f8efe5]/55">Nessun corso frequentato ancora.</p>
+        ) : (
+          <div className="grid gap-2">
+            {history.map((item, index) => (
+              <div
+                key={`${item.title}-${index}`}
+                className="flex items-center justify-between gap-3 rounded-[12px] border border-[#f8efe5]/10 bg-[#f8efe5]/6 px-4 py-3"
+              >
+                <div className="min-w-0">
+                  <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+                    <Badge>{item.category ?? "evento"}</Badge>
+                    {item.starts_at ? (
+                      <span className="text-xs text-[#f8efe5]/45">{formatShortDate(item.starts_at)}</span>
+                    ) : null}
+                  </div>
+                  <p className="font-serif text-base font-medium leading-snug text-[#f8efe5]">
+                    {item.title}
+                  </p>
+                </div>
+                {item.count > 1 ? (
+                  <span className="shrink-0 rounded-full border border-[#f8efe5]/15 bg-[#f8efe5]/8 px-2 py-0.5 text-[11px] font-semibold text-[#f8efe5]/55">
+                    × {item.count}
+                  </span>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        )}
       </Panel>
     </div>
   );
@@ -1057,7 +1049,6 @@ function DashboardIcon({ name }: { name: string }) {
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type AnimalGuide = (typeof animalGuides)[number] & { missingToNext: number | null; shortName: string };
-type PathStep    = { name: string; status: "completato" | "suggerito" | "non ancora iniziato" };
 
 // ── Utility functions — unchanged logic ───────────────────────────────────────
 
@@ -1067,28 +1058,6 @@ function getAnimalGuide(presences: number): AnimalGuide {
   return { ...current, missingToNext: next ? next.min - presences : null, shortName: current.name.split(" ")[0] };
 }
 
-function getPathSteps(enrollments: Enrollment[], pastEnrollments: Enrollment[]): PathStep[] {
-  const completedIndex = learningSteps.reduce((highest, step, index) => {
-    const done = pastEnrollments.some((e) => matchesStep(e.events?.title, step));
-    return done ? Math.max(highest, index) : highest;
-  }, -1);
-  const suggestedIndex = Math.min(completedIndex + 1, learningSteps.length - 1);
-
-  return learningSteps.map((step, index) => {
-    if (index <= completedIndex) return { name: step, status: "completato" };
-    const hasEnrollment = enrollments.some((e) => matchesStep(e.events?.title, step));
-    if (index === suggestedIndex || hasEnrollment) return { name: step, status: "suggerito" };
-    return { name: step, status: "non ancora iniziato" };
-  });
-}
-
-function matchesStep(title: string | null | undefined, step: string) {
-  const t = title?.toLowerCase() ?? "";
-  const s = step.toLowerCase();
-  if (s === "class 1+") return t.includes("class 1+") || t.includes("classe 1+");
-  if (s === "class 1")  return (t.includes("class 1") || t.includes("classe 1")) && !t.includes("1+");
-  return t.includes(s);
-}
 
 function getDisplayName(data: PersonalAreaData, nicknameOverride?: string | null) {
   const nickname = (nicknameOverride !== undefined ? nicknameOverride : data.profile?.nickname)?.trim();

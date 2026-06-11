@@ -33,6 +33,13 @@ type Enrollment = {
   } | null;
 };
 
+export type AttendanceHistoryGrouped = {
+  title: string;
+  category: string | null;
+  starts_at: string | null;
+  count: number;
+};
+
 export type PersonalAreaData = {
   email: string;
   profile: Profile | null;
@@ -44,6 +51,7 @@ export type PersonalAreaData = {
     checkedIn: number;
   };
   enrollments: Enrollment[];
+  attendanceHistory: AttendanceHistoryGrouped[];
 };
 
 export async function getOrCreatePersonalAreaData(
@@ -61,6 +69,7 @@ export async function getOrCreatePersonalAreaData(
   const rawEnrollments = await loadEnrollments(supabase, user.id);
   const enrollments = await ensurePartnerData(supabase, rawEnrollments);
   const attendanceStats = await loadAttendanceStats(supabase, email);
+  const attendanceHistory = await loadAttendanceHistory(supabase, email);
 
   return {
     email,
@@ -70,6 +79,7 @@ export async function getOrCreatePersonalAreaData(
     createdEnrollments: claimResult.createdEnrollments,
     attendanceStats,
     enrollments,
+    attendanceHistory,
   };
 }
 
@@ -381,6 +391,52 @@ async function ensurePartnerData(
     }
     return e;
   });
+}
+
+async function loadAttendanceHistory(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  email: string,
+): Promise<AttendanceHistoryGrouped[]> {
+  const { data, error } = await supabase
+    .from("ticket_tailor_issued_tickets")
+    .select("event_id,ticket_tailor_event_id,ticket_type_name,events(title,category,starts_at)")
+    .eq("holder_email", email)
+    .eq("checked_in", true)
+    .limit(50);
+
+  if (error || !data) return [];
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rows = data as any[];
+
+  const filtered = rows.filter((row) => {
+    const cat = row.events?.category as string | null | undefined;
+    return row.events != null && cat !== "community" && cat !== "system";
+  });
+
+  filtered.sort((a, b) => {
+    const aTime = a.events?.starts_at ? new Date(a.events.starts_at as string).getTime() : 0;
+    const bTime = b.events?.starts_at ? new Date(b.events.starts_at as string).getTime() : 0;
+    return bTime - aTime;
+  });
+
+  const groupMap = new Map<string, AttendanceHistoryGrouped>();
+  for (const row of filtered) {
+    const title = (row.events?.title as string | null) ?? "Evento senza titolo";
+    const existing = groupMap.get(title);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      groupMap.set(title, {
+        title,
+        category: (row.events?.category as string | null) ?? null,
+        starts_at: (row.events?.starts_at as string | null) ?? null,
+        count: 1,
+      });
+    }
+  }
+
+  return Array.from(groupMap.values()).slice(0, 10);
 }
 
 async function loadAttendanceStats(
