@@ -126,27 +126,6 @@ export function PeonyPageClient({ galleryImages }: Props) {
               </div>
             </div>
 
-            {/* Dark card + pillars */}
-            <div className="peony-reveal peony-reveal-delay-2 mx-auto mt-4 grid max-w-6xl gap-3 md:mt-5 md:grid-cols-[1.2fr_0.8fr]">
-              <div className="relative min-h-[160px] overflow-hidden rounded-[8px] border border-[#211815]/10 bg-[#211815] p-5 text-[#f4efe8] md:min-h-[230px] md:p-7">
-                <span aria-hidden="true" className="absolute -right-16 -top-20 h-60 w-60 rounded-full border border-[#d6b89f]/20" />
-                <span aria-hidden="true" className="absolute right-8 top-10 h-px w-52 rotate-[-18deg] bg-[#d6b89f]/30" />
-                <p className="relative text-[11px] font-semibold uppercase tracking-[0.22em] text-[#d6b89f]">
-                  {p.studioCommunity}
-                </p>
-                <p className="relative mt-12 max-w-xl font-serif text-[28px] font-medium leading-[1.07] md:mt-20 md:text-4xl">
-                  {p.studioText}
-                </p>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-1">
-                {content.approach.pillars.map((pillar) => (
-                  <div key={pillar.title} className="rounded-[8px] border border-[#211815]/10 bg-white/42 p-3.5 md:p-4">
-                    <p className="font-serif text-2xl font-medium leading-[1.08]">{pillar.title}</p>
-                    <p className="mt-1 text-sm leading-[1.55] text-[#5f524c]">{pillar.text}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
           </section>
 
           {/* Perché Peony */}
@@ -191,27 +170,6 @@ export function PeonyPageClient({ galleryImages }: Props) {
               text={content.approach.text}
             />
           </section>
-        </>
-      )}
-
-      {/* ── Tab 2: Spazio ── */}
-      {activeTab === "spazio" && (
-        <>
-          <SectionShell eyebrow={content.space.eyebrow} title={content.space.title}>
-            <p className="max-w-3xl text-[15px] leading-[1.75] text-[#5f524c] md:text-base">
-              {content.space.intro}
-            </p>
-            <ImageMosaic />
-            <CardGrid cards={content.space.cards} numbered />
-          </SectionShell>
-
-          <SectionShell
-            eyebrow={content.gallery.eyebrow}
-            title={content.gallery.title}
-            intro={content.gallery.intro}
-          >
-            <GalleryGrid images={galleryImages} emptyText={content.gallery.empty} />
-          </SectionShell>
 
           <section className="mx-auto grid max-w-6xl gap-4 px-5 py-7 sm:px-6 md:grid-cols-[0.9fr_1.1fr] md:py-12">
             <div className="rounded-[8px] border border-[#211815]/10 bg-white/38 p-5 md:p-6">
@@ -252,6 +210,27 @@ export function PeonyPageClient({ galleryImages }: Props) {
               </div>
             </div>
           </section>
+        </>
+      )}
+
+      {/* ── Tab 2: Spazio ── */}
+      {activeTab === "spazio" && (
+        <>
+          <SectionShell eyebrow={content.space.eyebrow} title={content.space.title}>
+            <p className="max-w-3xl text-[15px] leading-[1.75] text-[#5f524c] md:text-base">
+              {content.space.intro}
+            </p>
+            <SpacePhotoSection cards={content.space.cards} />
+          </SectionShell>
+
+          <SectionShell
+            id="gallery"
+            eyebrow={content.gallery.eyebrow}
+            title={content.gallery.title}
+            intro={content.gallery.intro}
+          >
+            <GalleryGrid images={galleryImages} emptyText={content.gallery.empty} />
+          </SectionShell>
         </>
       )}
 
@@ -382,75 +361,6 @@ function SectionShell({
   );
 }
 
-function CardGrid({
-  cards,
-  columns = "md:grid-cols-4",
-  compact = false,
-  numbered = false,
-}: {
-  cards: { title: string; text: string }[];
-  columns?: string;
-  compact?: boolean;
-  numbered?: boolean;
-}) {
-  return (
-    <div className={`grid gap-3 sm:grid-cols-2 ${columns}`}>
-      {cards.map((card, index) => (
-        <article
-          key={card.title}
-          className={`peony-reveal rounded-[8px] border border-[#211815]/10 bg-white/42 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] transition duration-500 hover:-translate-y-1 hover:bg-white/62 hover:shadow-[0_12px_32px_rgba(33,24,21,0.08)] ${
-            compact ? "p-3.5 md:p-4" : "p-4"
-          }`}
-          style={{ animationDelay: `${index * 70}ms` }}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <h3 className="font-serif text-2xl font-medium leading-[1.08]">{card.title}</h3>
-            {numbered ? (
-              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]/70">
-                {String(index + 1).padStart(2, "0")}
-              </span>
-            ) : null}
-          </div>
-          <p className={`mt-2 text-sm text-[#5f524c] ${compact ? "leading-[1.5]" : "leading-[1.6]"}`}>
-            {card.text}
-          </p>
-        </article>
-      ))}
-    </div>
-  );
-}
-
-function ImageMosaic() {
-  const images = [
-    { src: "/images/home/space-lounge.jpg", alt: "Lounge Peony Studio" },
-    { src: "/images/home/space-bamboo.jpg", alt: "Bamboo e hashira Peony Studio" },
-    { src: "/images/home/event-practice.jpg", alt: "Pratica nello spazio Peony" },
-  ];
-
-  return (
-    <div className="grid gap-3 md:grid-cols-[1.2fr_0.8fr]">
-      {images.map((image, index) => (
-        <div
-          key={image.src}
-          className={`peony-reveal group relative overflow-hidden rounded-[8px] border border-[#211815]/10 bg-[#efe4d7] ${
-            index === 0 ? "md:row-span-2" : ""
-          }`}
-          style={{ animationDelay: `${index * 90}ms` }}
-        >
-          <Image
-            src={image.src}
-            alt={image.alt}
-            width={760}
-            height={520}
-            className={`w-full object-cover saturate-[0.92] transition duration-700 group-hover:scale-105 ${
-              index === 0 ? "h-[240px] md:h-full" : "h-[170px] md:h-[190px]"
-            }`}
-          />
-        </div>
-      ))}
-    </div>
-  );
-}
 
 function GalleryGrid({ images, emptyText }: { images: GalleryImage[]; emptyText: string }) {
   if (!images.length) {
@@ -517,6 +427,81 @@ function CommunityLinkGrid({
         </Link>
       ))}
     </div>
+  );
+}
+
+const SPACE_PHOTO_MAP: Record<number, string> = {
+  0: "/images/peony-gallery/sala.jpg",
+  1: "/images/peony-gallery/lounge.jpg",
+  3: "/images/peony-gallery/comfort.jpg",
+};
+
+function SpacePhotoSection({ cards }: { cards: { title: string; text: string }[] }) {
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+
+  return (
+    <>
+      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
+        {cards.map((card, index) => {
+          const photo = SPACE_PHOTO_MAP[index];
+          return (
+            <article key={card.title} className="overflow-hidden rounded-[8px] border border-[#211815]/10 bg-white/42">
+              {photo ? (
+                <button
+                  type="button"
+                  className="block w-full cursor-zoom-in overflow-hidden"
+                  onClick={() => setLightboxImage(photo)}
+                  aria-label={`Ingrandisci foto ${card.title}`}
+                >
+                  <Image
+                    src={photo}
+                    alt={card.title}
+                    width={480}
+                    height={360}
+                    className="aspect-[4/3] w-full object-cover transition duration-500 hover:scale-105"
+                  />
+                </button>
+              ) : null}
+              <div className="p-3.5 md:p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-serif text-xl font-medium leading-[1.08]">{card.title}</h3>
+                  <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]/70">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                </div>
+                <p className="mt-1.5 text-sm leading-[1.6] text-[#5f524c]">{card.text}</p>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+
+      {lightboxImage ? (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 px-4 py-4"
+          role="presentation"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button
+            type="button"
+            aria-label="Chiudi"
+            className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/15 text-xl text-white transition hover:bg-white/25"
+            onClick={(e) => { e.stopPropagation(); setLightboxImage(null); }}
+          >
+            ×
+          </button>
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
+            <Image
+              src={lightboxImage}
+              alt=""
+              width={1200}
+              height={900}
+              className="max-h-[90vh] max-w-[92vw] object-contain"
+            />
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
 

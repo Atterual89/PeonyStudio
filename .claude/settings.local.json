@@ -36,7 +36,10 @@
       "PowerShell(Get-PSDrive C, D 2>&1 | Select-Object Name, @{N='Used\\(GB\\)';E={[math]::Round\\($_.Used/1GB,1\\)}}, @{N='Free\\(GB\\)';E={[math]::Round\\($_.Free/1GB,1\\)}})",
       "PowerShell(Remove-Item *)",
       "PowerShell($env:NODE_OPTIONS=\"--max-old-space-size=6144\"; npx.cmd tsc --noEmit 2>&1 | Select-Object -Last 20)",
-      "PowerShell($env:NODE_OPTIONS=\"--max-old-space-size=6144\"; npm.cmd run lint 2>&1 | Select-Object -Last 20)"
+      "PowerShell($env:NODE_OPTIONS=\"--max-old-space-size=6144\"; npm.cmd run lint 2>&1 | Select-Object -Last 20)",
+      "PowerShell($env:NODE_OPTIONS=\"--max-old-space-size=6144\"; npx.cmd tsc --noEmit 2>&1 | Select-Object -Last 10)",
+      "PowerShell($env:NODE_OPTIONS=\"--max-old-space-size=6144\"; npm.cmd run lint 2>&1 | Select-Object -Last 15)",
+      "PowerShell($env:NODE_OPTIONS=\"--max-old-space-size=6144\"; npx.cmd tsc --noEmit 2>&1 | Select-Object -Last 15; npm.cmd run lint 2>&1 | Select-Object -Last 15)"
     ]
   }
 }

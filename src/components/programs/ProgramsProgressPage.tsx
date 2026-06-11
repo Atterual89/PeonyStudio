@@ -161,21 +161,20 @@ export function ProgramsProgressPage({ content, percorsoEvents = [] }: ProgramsP
       {/* Rope + nodes + parallel + detail */}
       <section className="mx-auto max-w-6xl px-5 pb-8 pt-0 sm:px-6 md:pb-12">
 
-        {/* Inline hint — shown before the rope when nothing is selected */}
-        {activeStep === null && activeParallelIndex === null ? (
-          <p className="pb-2 pt-4 text-center text-[11px] text-[#5f524c]/50 md:text-xs">
-            {prog.clickNodeInstruction.split("◎").map((part, i) =>
-              i === 0 ? (
-                <span key={i}>{part}<span aria-hidden="true" className="inline-flex h-[13px] w-[13px] shrink-0 items-center justify-center rounded-full border-[1.5px] border-[#8b5e4a]/45 align-middle"><span className="h-[5px] w-[5px] rounded-full border border-[#8b5e4a]/35" /></span></span>
-              ) : (
-                <span key={i}>{part}</span>
-              )
-            )}
-          </p>
-        ) : null}
-
         {/* ── Rope timeline ── */}
-        <div className="sticky top-0 z-10 bg-[#f4efe8] relative px-1 pb-2 pt-4 md:px-2 md:pt-5">
+        <div className="sticky top-0 z-10 bg-[#f4efe8] relative px-1 py-4 md:px-2">
+          {/* Inline hint — shown above circles when nothing is selected */}
+          {activeStep === null && activeParallelIndex === null ? (
+            <p className="pb-3 text-center text-[11px] text-[#5f524c]/50 md:text-xs">
+              {prog.clickNodeInstruction.split("◎").map((part, i) =>
+                i === 0 ? (
+                  <span key={i}>{part}<span aria-hidden="true" className="inline-flex h-[13px] w-[13px] shrink-0 items-center justify-center rounded-full border-[1.5px] border-[#8b5e4a]/45 align-middle"><span className="h-[5px] w-[5px] rounded-full border border-[#8b5e4a]/35" /></span></span>
+                ) : (
+                  <span key={i}>{part}</span>
+                )
+              )}
+            </p>
+          ) : null}
           <div className="relative grid grid-cols-4">
             {/* Background rope — thin, muted */}
             <div
@@ -198,7 +197,7 @@ export function ProgramsProgressPage({ content, percorsoEvents = [] }: ProgramsP
                   aria-pressed={active}
                   aria-current={active ? "step" : undefined}
                   onClick={() => toggleActiveIndex(index)}
-                  className="group relative flex min-w-0 flex-col items-center gap-0 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-4 focus-visible:ring-offset-[#f4efe8]"
+                  className="group relative flex min-w-0 cursor-pointer flex-col items-center gap-0 text-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-4 focus-visible:ring-offset-[#f4efe8]"
                 >
                   {/* Node — double-ring knot style */}
                   <span
@@ -544,10 +543,10 @@ function ParallelBar({
                 aria-expanded={active}
                 aria-controls="parallel-detail"
                 onClick={() => onToggle(index)}
-                className={`grid min-h-10 flex-1 place-items-center rounded-[7px] border px-2 text-center text-[10px] font-semibold uppercase leading-tight tracking-[0.1em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f4efe8] md:min-h-11 md:text-[11px] md:tracking-[0.14em] ${
+                className={`grid min-h-10 flex-1 cursor-pointer place-items-center rounded-[7px] border px-2 text-center text-[10px] font-semibold uppercase leading-tight tracking-[0.1em] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f4efe8] md:min-h-11 md:text-[11px] md:tracking-[0.14em] ${
                   active
                     ? "border-[#8b5e4a]/55 bg-white/78 text-[#211815] shadow-[0_8px_20px_rgba(33,24,21,0.08)]"
-                    : "border-transparent bg-[#f4efe8]/45 text-[#5f524c] active:bg-white/60"
+                    : "border-[#8b5e4a]/20 bg-[#f4efe8]/45 text-[#5f524c] hover:border-[#8b5e4a]/35 hover:bg-[#8b5e4a]/10 active:bg-white/60"
                 }`}
               >
                 {label}

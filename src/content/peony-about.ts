@@ -105,7 +105,7 @@ export const peonyAboutContent = {
     eyebrow: "Approccio",
     title: "Tecnica, personalità, estetica",
     text:
-      "Per noi il kinbaku non è solo tecnica: è una comunicazione silenziosa che coinvolge corpo, respiro, estetica e intenzione. L'approccio di Peony Studio è ispirato al Kinbaku LuXuria style, dove la corda diventa strumento di ascolto, relazione, ritmo, presenza, tensione, abbandono, controllo e fiducia.",
+      "Kinbaku is going for depth.\nIt's not pride but sadness.\nIt's not a show of strength, it's sympathy.\nIt's not commanding, it's asking.\nIt's elegance, it's tact.\nIt's not tying a body, it's tying a person.\nKinbaku is offering something.\nKinbaku doesn't change anything.\nIt reveals what people have inside.\nKinbaku is educating.\n\nKinbaku is writing a letter: rope is just the pen we use.",
     pillars: [
       {
         title: "Tecnica",
