@@ -68,6 +68,8 @@ export async function POST(request: NextRequest) {
       typeof o.buyer_email === "string" && o.buyer_email.trim().length > 0,
   );
 
+  let debugCount = 0;
+
   for (const order of orders) {
     try {
       const email = order.buyer_email.trim().toLowerCase();
@@ -78,6 +80,11 @@ export async function POST(request: NextRequest) {
         .select("id,nickname")
         .eq("email", email)
         .maybeSingle();
+
+      if (debugCount < 3) {
+        console.log("[sync-profiles debug]", { email, existingProfile, profileLookupError });
+        debugCount++;
+      }
 
       if (profileLookupError) {
         errors.push({
