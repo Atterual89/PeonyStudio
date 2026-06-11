@@ -435,6 +435,8 @@ const syncSteps: SyncStep[] = [
 export default function TicketTailorAdminPage() {
   const [secret, setSecret] = useState("");
   const [syncing, setSyncing] = useState(false);
+  const [syncingProfiles, setSyncingProfiles] = useState(false);
+  const [profilesSyncResult, setProfilesSyncResult] = useState<Record<string, unknown> | null>(null);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [syncResults, setSyncResults] = useState<SyncResult[]>([]);
   const [events, setEvents] = useState<AdminEvent[]>([]);
@@ -747,6 +749,32 @@ export default function TicketTailorAdminPage() {
     setSyncing(false);
     await loadEvents();
     await loadParticipants();
+  }
+
+  async function handleSyncProfiles() {
+    if (!secret.trim()) {
+      setProfilesSyncResult({ ok: false, message: "Inserisci il codice admin." });
+      return;
+    }
+
+    setSyncingProfiles(true);
+    setProfilesSyncResult(null);
+
+    try {
+      const response = await fetch("/api/admin/ticket-tailor/sync-profiles", {
+        method: "POST",
+        headers: { "x-admin-sync-secret": secret },
+      });
+      const payload = (await response.json()) as Record<string, unknown>;
+      setProfilesSyncResult(payload);
+    } catch (error) {
+      setProfilesSyncResult({
+        ok: false,
+        message: error instanceof Error ? error.message : "Errore sconosciuto.",
+      });
+    } finally {
+      setSyncingProfiles(false);
+    }
   }
 
   async function loadEvents() {
@@ -1594,15 +1622,46 @@ export default function TicketTailorAdminPage() {
                 </p>
               </div>
             </div>
-            <button
-              className="rounded-full bg-[#211815] px-5 py-2.5 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
-              type="button"
-              disabled={syncing}
-              onClick={handleSync}
-            >
-              {syncing ? "Aggiorno..." : "Aggiorna dati Ticket Tailor"}
-            </button>
+            <div className="flex flex-wrap gap-3">
+              <button
+                className="rounded-full bg-[#211815] px-5 py-2.5 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
+                type="button"
+                disabled={syncing}
+                onClick={handleSync}
+              >
+                {syncing ? "Aggiorno..." : "Aggiorna dati Ticket Tailor"}
+              </button>
+              <button
+                className="rounded-full border border-[#211815]/20 px-5 py-2.5 text-sm font-semibold text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
+                type="button"
+                disabled={syncingProfiles}
+                onClick={handleSyncProfiles}
+              >
+                {syncingProfiles ? "Sync profili..." : "Sync Profili"}
+              </button>
+            </div>
           </div>
+
+          {profilesSyncResult ? (
+            <div
+              className={`mt-4 rounded-[8px] border p-3 text-sm ${
+                profilesSyncResult.ok
+                  ? "border-[#2f5b3a]/20 bg-[#2f5b3a]/5 text-[#2f5b3a]"
+                  : "border-[#8b2f2a]/20 bg-[#8b2f2a]/5 text-[#8b2f2a]"
+              }`}
+            >
+              {profilesSyncResult.ok ? "Sync profili OK — " : "Sync profili: "}
+              {typeof profilesSyncResult.message === "string"
+                ? profilesSyncResult.message
+                : [
+                    `${profilesSyncResult.ordersRead ?? 0} ordini`,
+                    `${profilesSyncResult.profilesCreated ?? 0} profili creati`,
+                    `${profilesSyncResult.profilesSkipped ?? 0} già esistenti`,
+                    `${profilesSyncResult.enrollmentsCreated ?? 0} enrollment creati`,
+                    `${profilesSyncResult.partnerPrefilled ?? 0} partner compilati`,
+                  ].join(" · ")}
+            </div>
+          ) : null}
 
           {syncResults.length > 0 ? (
             <div className="mt-5 grid gap-3 md:grid-cols-4">
