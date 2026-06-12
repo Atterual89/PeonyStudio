@@ -83,6 +83,8 @@ export const en: typeof it = {
     codePlaceholder: "00000000",
     verifyButton: "Verify code",
     verifying: "Verifying...",
+    accessGrantedButton: "Access granted...",
+    accessGranted: "Access granted. We are opening your personal area...",
     resendButton: "Resend code",
     resendCooldown: "You can request another in {seconds}s",
     resendSuccess: "New code sent. Check your email.",

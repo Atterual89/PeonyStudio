@@ -21,10 +21,12 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [loadingVerify, setLoadingVerify] = useState(false);
   const [loadingResend, setLoadingResend] = useState(false);
+  const [loginSuccess, setLoginSuccess] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [resendSuccess, setResendSuccess] = useState(false);
 
   const cooldownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const verifyInFlightRef = useRef(false);
 
   function startCooldown() {
     if (cooldownTimer.current) clearInterval(cooldownTimer.current);
@@ -72,7 +74,9 @@ export function LoginForm() {
 
       setNormalizedEmail(norm);
       setCode("");
+      setLoginSuccess(false);
       setResendSuccess(false);
+      verifyInFlightRef.current = false;
       startCooldown();
       setStep("code");
     } catch (err) {
@@ -85,6 +89,8 @@ export function LoginForm() {
 
   async function handleVerify(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (loadingVerify || loginSuccess || verifyInFlightRef.current) return;
+
     setError(null);
 
     if (code.length !== OTP_LENGTH) {
@@ -92,7 +98,9 @@ export function LoginForm() {
       return;
     }
 
+    verifyInFlightRef.current = true;
     setLoadingVerify(true);
+    let verified = false;
 
     try {
       const supabase = createSupabaseBrowserClient();
@@ -104,17 +112,25 @@ export function LoginForm() {
         return;
       }
 
+      verified = true;
+      setError(null);
+      setLoginSuccess(true);
       router.push("/area-personale");
       router.refresh();
     } catch (err) {
       logAuthError("verifyOtp unexpected error", err);
       setError(dictionary.login.invalidCode);
     } finally {
-      setLoadingVerify(false);
+      if (!verified) {
+        verifyInFlightRef.current = false;
+        setLoadingVerify(false);
+      }
     }
   }
 
   async function handleResend() {
+    if (loadingVerify || loginSuccess) return;
+
     setError(null);
     setResendSuccess(false);
     setLoadingResend(true);
@@ -149,13 +165,19 @@ export function LoginForm() {
   }
 
   function handleBackToEmail() {
+    if (loadingVerify || loginSuccess) return;
+
     setStep("email");
     setCode("");
     setError(null);
+    setLoginSuccess(false);
     setResendSuccess(false);
+    verifyInFlightRef.current = false;
   }
 
   if (step === "code") {
+    const codeStepLocked = loadingVerify || loginSuccess;
+
     return (
       <form className="mt-7 space-y-4" onSubmit={handleVerify}>
         <p className="rounded-[8px] border border-[#2f5b3a]/20 bg-[#2f5b3a]/8 p-3 text-sm leading-6 text-[#2f5b3a]">
@@ -178,6 +200,7 @@ export function LoginForm() {
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
             placeholder={dictionary.login.codePlaceholder}
             autoComplete="one-time-code"
+            disabled={codeStepLocked}
             autoFocus
           />
         </label>
@@ -186,18 +209,20 @@ export function LoginForm() {
           <button
             className="rounded-full bg-[#211815] px-5 py-3 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
             type="submit"
-            disabled={loadingVerify || code.length !== OTP_LENGTH}
+            disabled={codeStepLocked || code.length !== OTP_LENGTH}
           >
-            {loadingVerify
-              ? dictionary.login.verifying
-              : dictionary.login.verifyButton}
+            {loginSuccess
+              ? dictionary.login.accessGrantedButton
+              : loadingVerify
+                ? dictionary.login.verifying
+                : dictionary.login.verifyButton}
           </button>
 
           <button
             className="rounded-full border border-[#8b5e4a] px-5 py-3 text-sm font-semibold text-[#8b5e4a] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
             type="button"
             onClick={handleResend}
-            disabled={cooldown > 0 || loadingResend}
+            disabled={codeStepLocked || cooldown > 0 || loadingResend}
           >
             {loadingResend
               ? "..."
@@ -209,6 +234,12 @@ export function LoginForm() {
                 : dictionary.login.resendButton}
           </button>
         </div>
+
+        {loginSuccess ? (
+          <p className="rounded-[8px] border border-[#2f5b3a]/20 bg-[#2f5b3a]/8 p-3 text-sm leading-6 text-[#2f5b3a]">
+            {dictionary.login.accessGranted}
+          </p>
+        ) : null}
 
         {resendSuccess ? (
           <p className="rounded-[8px] border border-[#2f5b3a]/20 bg-[#2f5b3a]/8 p-3 text-sm leading-6 text-[#2f5b3a]">
@@ -226,6 +257,7 @@ export function LoginForm() {
           className="block text-sm text-[#8b5e4a] underline underline-offset-2 hover:no-underline"
           type="button"
           onClick={handleBackToEmail}
+          disabled={codeStepLocked}
         >
           {dictionary.login.changeEmail}
         </button>

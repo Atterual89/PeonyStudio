@@ -81,6 +81,8 @@ export const it = {
     codePlaceholder: "00000000",
     verifyButton: "Verifica codice",
     verifying: "Verifica in corso...",
+    accessGrantedButton: "Accesso riuscito...",
+    accessGranted: "Accesso riuscito. Stiamo aprendo la tua area personale...",
     resendButton: "Invia un nuovo codice",
     resendCooldown: "Puoi richiederne un altro in {seconds}s",
     resendSuccess: "Nuovo codice inviato. Controlla la tua email.",
