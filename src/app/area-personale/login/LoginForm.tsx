@@ -87,14 +87,10 @@ export function LoginForm() {
 
     try {
       const supabase = createSupabaseBrowserClient();
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        email: normalizedEmail,
-        token: code,
-        type: "email",
-      });
+      const verifyError = await verifyOtpWithFallback(supabase, normalizedEmail, code);
 
       if (verifyError) {
-        logAuthError("verifyOtp error", verifyError);
+        logAuthError("verifyOtp error (email + signup)", verifyError);
         setError(dictionary.login.invalidCode);
         return;
       }
@@ -256,6 +252,26 @@ export function LoginForm() {
       ) : null}
     </form>
   );
+}
+
+async function verifyOtpWithFallback(
+  supabase: ReturnType<typeof createSupabaseBrowserClient>,
+  email: string,
+  token: string,
+) {
+  const { error: emailError } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: "email",
+  });
+  if (!emailError) return null;
+
+  const { error: signupError } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: "signup",
+  });
+  return signupError;
 }
 
 function isValidEmail(value: string) {

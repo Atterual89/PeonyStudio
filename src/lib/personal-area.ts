@@ -65,8 +65,12 @@ export async function getOrCreatePersonalAreaData(
 
   const supabase = createSupabaseAdminClient();
   const { profile, profileLinked } = await ensureProfile(supabase, user.id, email);
-  const claimResult = await claimBuyerEvents(supabase, user.id, email);
-  const rawEnrollments = await loadEnrollments(supabase, user.id);
+  // Use the profile's actual DB id for all downstream FK operations so that
+  // orphaned profiles (re-created auth user, old profile row retained) work
+  // correctly without FK violations.
+  const profileId = profile.id;
+  const claimResult = await claimBuyerEvents(supabase, profileId, email);
+  const rawEnrollments = await loadEnrollments(supabase, profileId);
   const enrollments = await ensurePartnerData(supabase, rawEnrollments);
   const attendanceStats = await loadAttendanceStats(supabase, email);
   const attendanceHistory = await loadAttendanceHistory(supabase, email);
@@ -147,10 +151,13 @@ async function ensureProfile(
     .eq("email", email)
     .maybeSingle();
 
-  if (existingByEmail?.id === userId) {
+  if (existingByEmail) {
+    // Return any profile matching this email, even if its id differs from the
+    // current auth user (happens when an auth user was deleted and re-created
+    // with the same email — the old profile row outlives the old auth account).
     return {
       profile: existingByEmail as Profile,
-      profileLinked: true,
+      profileLinked: existingByEmail.id === userId,
     };
   }
 
