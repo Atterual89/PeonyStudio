@@ -488,7 +488,6 @@ export default function TicketTailorAdminPage() {
   const [syncing, setSyncing] = useState(false);
   const [syncingProfiles, setSyncingProfiles] = useState(false);
   const [profilesSyncResult, setProfilesSyncResult] = useState<Record<string, unknown> | null>(null);
-  const [activeTab, setActiveTab] = useState<"tessere" | "partner">("tessere");
   const [loadingPartners, setLoadingPartners] = useState(false);
   const [partnerRows, setPartnerRows] = useState<PartnerEnrollmentRow[]>([]);
   const [partnerError, setPartnerError] = useState<string | null>(null);
@@ -506,9 +505,9 @@ export default function TicketTailorAdminPage() {
   const [openAdminSections, setOpenAdminSections] = useState<
     Record<AdminStepId, boolean>
   >({
-    book: true,
+    book: false,
     members: false,
-    ticketTailor: false,
+    ticketTailor: true,
     participantCheck: false,
     participants: false,
     membershipRecap: false,
@@ -1869,132 +1868,13 @@ export default function TicketTailorAdminPage() {
           ) : null}
         </section>
 
-        <div className="mt-6 flex gap-2">
-          <button
-            className={`rounded-full px-5 py-2.5 text-sm font-semibold transition hover:-translate-y-0.5 ${
-              activeTab === "tessere"
-                ? "bg-[#211815] text-[#f4efe8]"
-                : "border border-[#211815]/20 text-[#211815]"
-            }`}
-            type="button"
-            onClick={() => setActiveTab("tessere")}
-          >
-            Gestione Tessere
-          </button>
-          <button
-            className={`rounded-full px-5 py-2.5 text-sm font-semibold transition hover:-translate-y-0.5 ${
-              activeTab === "partner"
-                ? "bg-[#211815] text-[#f4efe8]"
-                : "border border-[#211815]/20 text-[#211815]"
-            }`}
-            type="button"
-            onClick={() => setActiveTab("partner")}
-          >
-            Gestione Partner
-          </button>
-        </div>
-
-        {activeTab === "tessere" && (
-          <>
-        <section className="order-1 mt-6 rounded-[8px] border border-[#8b5e4a]/20 bg-[#8b5e4a]/5 p-5 md:p-6">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-            Riepilogo del processo
-          </p>
-          <h2 className="mt-2 font-serif text-3xl font-medium">
-            Riepilogo del processo
-          </h2>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-[#5f524c]">
-            Segui le fasi in ordine. Le fasi con due azioni prevedono prima un
-            controllo senza salvataggio e poi una conferma.
-          </p>
-
-          <ol className="mt-5 grid gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c] md:grid-cols-6">
-            {[
-              "Soci ufficiali",
-              "Nuove iscrizioni",
-              "Biglietti",
-              "Verifica tessere",
-              "Partecipanti",
-              "Recap tessere",
-            ].map((label, index) => (
-              <li
-                className="flex items-center gap-2 rounded-full border border-[#211815]/10 bg-white/55 px-3 py-2"
-                key={label}
-              >
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#211815] text-[#f4efe8]">
-                  {index + 1}
-                </span>
-                {label}
-              </li>
-            ))}
-          </ol>
-
-          <div className="mt-5 hidden overflow-x-auto rounded-[8px] border border-[#211815]/10 md:block">
-            <table className="min-w-[1100px] w-full border-collapse bg-white/60 text-left text-sm">
-              <thead className="bg-[#211815]/5 text-[11px] uppercase tracking-[0.12em] text-[#5f524c]">
-                <tr>
-                  {[
-                    "Fase",
-                    "Cosa aggiorna",
-                    "Fonte dati",
-                    "Azione da fare",
-                    "Risultato",
-                  ].map((column) => (
-                    <th className="border-b border-[#211815]/10 px-4 py-3" key={column}>
-                      {column}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {processSummaryRows.map((row) => (
-                  <tr className="border-b border-[#211815]/8" key={row.phase}>
-                    <td className="px-4 py-4 font-semibold text-[#211815]">
-                      {row.phase}
-                    </td>
-                    <td className="px-4 py-4 text-[#5f524c]">{row.updates}</td>
-                    <td className="px-4 py-4 text-[#5f524c]">{row.source}</td>
-                    <td className="px-4 py-4 text-[#5f524c]">{row.action}</td>
-                    <td className="px-4 py-4 text-[#5f524c]">{row.result}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="mt-5 grid gap-3 md:hidden">
-            {processSummaryRows.map((row) => (
-              <div
-                className="rounded-[8px] border border-[#211815]/10 bg-white/60 p-4"
-                key={row.phase}
-              >
-                <p className="font-semibold text-[#211815]">{row.phase}</p>
-                <p className="mt-2 text-sm text-[#5f524c]">
-                  <span className="font-semibold text-[#211815]">Cosa aggiorna:</span>{" "}
-                  {row.updates}
-                </p>
-                <p className="mt-2 text-sm text-[#5f524c]">
-                  <span className="font-semibold text-[#211815]">Fonte dati:</span>{" "}
-                  {row.source}
-                </p>
-                <p className="mt-2 text-sm text-[#5f524c]">
-                  <span className="font-semibold text-[#211815]">Azione da fare:</span>{" "}
-                  {row.action}
-                </p>
-                <p className="mt-2 text-sm text-[#5f524c]">
-                  <span className="font-semibold text-[#211815]">Risultato:</span>{" "}
-                  {row.result}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
+        <>
 
           <AdminStepSection
             isOpen={openAdminSections.ticketTailor}
-            number="3"
+            number={undefined}
             summary={adminSectionSummaries.ticketTailor}
-            title="Aggiorna dati Ticket Tailor"
+            title="Sincronizzazione dati"
             onToggle={() => toggleAdminSection("ticketTailor")}
           >
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -2004,15 +1884,15 @@ export default function TicketTailorAdminPage() {
               </span>
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-                  Fase 3
+                  Sincronizzazione dati
                 </p>
                 <h2 className="mt-2 font-serif text-3xl font-medium">
-                  3. Aggiorna biglietti Ticket Tailor
+                  Sincronizzazione dati
                 </h2>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
-                  Importa eventi, ordini, biglietti, acquirenti, partecipanti e
-                  check-in da Ticket Tailor. Questo step non verifica le
-                  tessere.
+                  Importa eventi, ordini, biglietti, acquirenti, partecipanti,
+                  check-in e profili. Le registrazioni soci arrivano dal Google
+                  Form e vengono importate in association_members.
                 </p>
               </div>
             </div>
@@ -2032,6 +1912,16 @@ export default function TicketTailorAdminPage() {
                 onClick={handleSyncProfiles}
               >
                 {syncingProfiles ? "Aggiorno profili..." : "Aggiorna profili"}
+              </button>
+              <button
+                className="rounded-full border border-[#211815]/20 px-5 py-2.5 text-sm font-semibold text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
+                type="button"
+                disabled={previewingMembersSync || applyingMembersSync}
+                onClick={handlePreviewMembersSync}
+              >
+                {previewingMembersSync
+                  ? "Controllo..."
+                  : "Controlla/importa registrazioni form"}
               </button>
             </div>
           </div>
@@ -2082,6 +1972,125 @@ export default function TicketTailorAdminPage() {
             </div>
           ) : null}
           </AdminStepSection>
+
+          <section className="mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+                  Vista principale
+                </p>
+                <h2 className="mt-2 font-serif text-3xl font-medium">
+                  Persone con eventi futuri
+                </h2>
+                <p className="mt-3 max-w-3xl text-sm leading-6 text-[#5f524c]">
+                  Le persone compaiono una sola volta, aggregate per email quando
+                  presente o per nome e cognome quando manca. La tessera viene
+                  trattata come stato della persona; il salvataggio usa ancora le
+                  righe partecipante collegate.
+                </p>
+              </div>
+              <button
+                className="rounded-full bg-[#211815] px-5 py-2.5 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
+                type="button"
+                disabled={loadingParticipants}
+                onClick={() => fetchParticipants({ ...filters, participant_type: "" })}
+              >
+                {loadingParticipants ? "Carico..." : "Carica persone"}
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              {[
+                ["Persone", futurePeopleSummary.total],
+                ["Da controllare", futurePeopleSummary.review],
+                ["Scadute", futurePeopleSummary.expired],
+                ["Non trovate", futurePeopleSummary.notFound],
+                ["Valide", futurePeopleSummary.verified],
+              ].map(([label, value]) => (
+                <div
+                  className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3"
+                  key={label}
+                >
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
+                    {label}
+                  </p>
+                  <p className="mt-2 font-serif text-3xl text-[#211815]">
+                    {value}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 space-y-4 rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-4">
+              <div className="flex flex-wrap gap-2">
+                {[
+                  ["Da controllare", "review"],
+                  ["Scadute", "expired"],
+                  ["Non trovate", "not_found"],
+                  ["Valide", "verified"],
+                  ["Tutte", "all"],
+                ].map(([label, filter]) => (
+                  <button
+                    className={quickFilterButtonClass(futurePeopleFilter === filter)}
+                    key={filter}
+                    type="button"
+                    onClick={() => setFuturePeopleFilter(filter as FuturePeopleFilter)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              <label className="block text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                Cerca
+                <input
+                  className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+                  value={futurePeopleSearch}
+                  onChange={(event) => setFuturePeopleSearch(event.target.value)}
+                  placeholder="Nome, email, evento o ordine"
+                />
+              </label>
+
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                Mostrate {filteredFuturePersonGroups.length} di{" "}
+                {futurePersonGroups.length} persone con eventi futuri
+              </p>
+            </div>
+
+            {participantError ? (
+              <p className="mt-4 rounded-[8px] border border-[#8b2f2a]/20 bg-[#8b2f2a]/5 p-3 text-sm text-[#8b2f2a]">
+                {participantError}
+              </p>
+            ) : null}
+
+            <div className="mt-5 space-y-4">
+              {filteredFuturePersonGroups.length > 0 ? (
+                filteredFuturePersonGroups.map((group) => (
+                  <FuturePersonCard
+                    key={group.key}
+                    group={group}
+                    draft={
+                      group.participants[0]
+                        ? participantDrafts[group.participants[0].id]
+                        : undefined
+                    }
+                    saving={savingFuturePersonKey === group.key}
+                    saved={futurePeopleSavedKeys[group.key] === true}
+                    onChange={(field, value) =>
+                      updateFuturePersonDraft(group, field, value)
+                    }
+                    onSave={() => saveFuturePersonAssociation(group)}
+                  />
+                ))
+              ) : (
+                <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/60 px-4 py-8 text-center text-sm text-[#5f524c]">
+                  Nessuna persona con eventi futuri caricata.
+                </div>
+              )}
+            </div>
+          </section>
+
+
 
           <AdminStepSection
             isOpen={openAdminSections.participantCheck}
@@ -2369,122 +2378,305 @@ export default function TicketTailorAdminPage() {
           ) : null}
           </AdminStepSection>
 
-          <section className="mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
-            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+
+
+          <AdminStepSection
+            isOpen={openAdminSections.members}
+            number="2"
+            summary={adminSectionSummaries.members}
+            title="Aggiorna nuove iscrizioni"
+            onToggle={() => toggleAdminSection("members")}
+          >
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div className="flex gap-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#211815] font-serif text-2xl text-[#f4efe8]">
+                2
+              </span>
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-                  Vista principale
+                  Fase 2
                 </p>
                 <h2 className="mt-2 font-serif text-3xl font-medium">
-                  Persone con eventi futuri
+                  2. Aggiorna nuove iscrizioni
                 </h2>
-                <p className="mt-3 max-w-3xl text-sm leading-6 text-[#5f524c]">
-                  Le persone compaiono una sola volta, aggregate per email quando
-                  presente o per nome e cognome quando manca. La tessera viene
-                  trattata come stato della persona; il salvataggio usa ancora le
-                  righe partecipante collegate.
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
+                  Legge il Google Sheet collegato al form associativo e importa
+                  le nuove iscrizioni dal 01/09/2025 in poi. Le compilazioni
+                  precedenti vengono ignorate.
                 </p>
               </div>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                className="rounded-full border border-[#211815]/20 px-5 py-2.5 text-sm font-semibold text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
+                type="button"
+                disabled={previewingMembersSync || applyingMembersSync}
+                onClick={handlePreviewMembersSync}
+              >
+                {previewingMembersSync
+                  ? "Controllo..."
+                  : "Controlla nuove iscrizioni"}
+              </button>
               <button
                 className="rounded-full bg-[#211815] px-5 py-2.5 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
                 type="button"
-                disabled={loadingParticipants}
-                onClick={() => fetchParticipants({ ...filters, participant_type: "" })}
+                disabled={
+                  !membersSyncPreview ||
+                  previewingMembersSync ||
+                  applyingMembersSync
+                }
+                onClick={handleApplyMembersSync}
               >
-                {loadingParticipants ? "Carico..." : "Carica persone"}
+                {applyingMembersSync
+                  ? "Confermo..."
+                  : "Conferma nuove iscrizioni"}
               </button>
             </div>
+          </div>
 
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              {[
-                ["Persone", futurePeopleSummary.total],
-                ["Da controllare", futurePeopleSummary.review],
-                ["Scadute", futurePeopleSummary.expired],
-                ["Non trovate", futurePeopleSummary.notFound],
-                ["Valide", futurePeopleSummary.verified],
-              ].map(([label, value]) => (
-                <div
-                  className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3"
-                  key={label}
-                >
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
-                    {label}
-                  </p>
-                  <p className="mt-2 font-serif text-3xl text-[#211815]">
-                    {value}
-                  </p>
-                </div>
-              ))}
-            </div>
+          {membersSyncError ? (
+            <p className="mt-4 rounded-[8px] border border-[#8b2f2a]/20 bg-[#8b2f2a]/5 p-3 text-sm text-[#8b2f2a]">
+              {membersSyncError}
+            </p>
+          ) : null}
 
-            <div className="mt-5 space-y-4 rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-4">
-              <div className="flex flex-wrap gap-2">
+          {membersSyncApplyReport ? (
+            <p className="mt-4 rounded-[8px] border border-[#2f5b3a]/20 bg-[#2f5b3a]/5 p-3 text-sm text-[#2f5b3a]">
+              Nuove iscrizioni confermate: {membersSyncApplyReport.created ?? 0}{" "}
+              nuove, {membersSyncApplyReport.updated ?? 0} aggiornate.
+            </p>
+          ) : null}
+
+          {membersSyncPreview ? (
+            <div className="mt-5 space-y-4">
+              {!membersSyncApplyReport ? (
+                <p className="rounded-[8px] border border-[#8b5e4a]/20 bg-[#8b5e4a]/5 p-3 text-sm text-[#5f524c]">
+                  Controllo completato. Nessun dato è stato ancora salvato.
+                </p>
+              ) : null}
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-7">
                 {[
-                  ["Da controllare", "review"],
-                  ["Scadute", "expired"],
-                  ["Non trovate", "not_found"],
-                  ["Valide", "verified"],
-                  ["Tutte", "all"],
-                ].map(([label, filter]) => (
-                  <button
-                    className={quickFilterButtonClass(futurePeopleFilter === filter)}
-                    key={filter}
-                    type="button"
-                    onClick={() => setFuturePeopleFilter(filter as FuturePeopleFilter)}
+                  ["Righe lette", membersSyncPreview.totalRows],
+                  ["Da creare", membersSyncPreview.wouldCreate],
+                  ["Da aggiornare", membersSyncPreview.wouldUpdate],
+                  ["Già allineate", membersSyncPreview.unchanged],
+                  ["Non valide", membersSyncPreview.invalidRows],
+                  [
+                    "Escluse perché precedenti al 01/09/2025",
+                    membersSyncPreview.skippedBeforeValidFrom ?? 0,
+                  ],
+                  [
+                    "Data mancante ricostruita",
+                    membersSyncPreview.fallbackStartDateCount,
+                  ],
+                ].map(([label, value]) => (
+                  <div
+                    className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3"
+                    key={label}
                   >
-                    {label}
-                  </button>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
+                      {label}
+                    </p>
+                    <p className="mt-2 font-serif text-3xl text-[#211815]">
+                      {value}
+                    </p>
+                  </div>
                 ))}
               </div>
 
-              <label className="block text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-                Cerca
-                <input
-                  className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
-                  value={futurePeopleSearch}
-                  onChange={(event) => setFuturePeopleSearch(event.target.value)}
-                  placeholder="Nome, email, evento o ordine"
-                />
-              </label>
+              {membersSyncPreview.fallbackNameMatchCount > 0 ? (
+                <p className="rounded-[8px] border border-[#8b5e4a]/20 bg-[#8b5e4a]/5 p-3 text-sm text-[#5f524c]">
+                  Corrispondenze per nome/cognome usate:{" "}
+                  {membersSyncPreview.fallbackNameMatchCount}.
+                </p>
+              ) : null}
 
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-                Mostrate {filteredFuturePersonGroups.length} di{" "}
-                {futurePersonGroups.length} persone con eventi futuri
-              </p>
-            </div>
-
-            {participantError ? (
-              <p className="mt-4 rounded-[8px] border border-[#8b2f2a]/20 bg-[#8b2f2a]/5 p-3 text-sm text-[#8b2f2a]">
-                {participantError}
-              </p>
-            ) : null}
-
-            <div className="mt-5 space-y-4">
-              {filteredFuturePersonGroups.length > 0 ? (
-                filteredFuturePersonGroups.map((group) => (
-                  <FuturePersonCard
-                    key={group.key}
-                    group={group}
-                    draft={
-                      group.participants[0]
-                        ? participantDrafts[group.participants[0].id]
-                        : undefined
-                    }
-                    saving={savingFuturePersonKey === group.key}
-                    saved={futurePeopleSavedKeys[group.key] === true}
-                    onChange={(field, value) =>
-                      updateFuturePersonDraft(group, field, value)
-                    }
-                    onSave={() => saveFuturePersonAssociation(group)}
-                  />
-                ))
-              ) : (
-                <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/60 px-4 py-8 text-center text-sm text-[#5f524c]">
-                  Nessuna persona con eventi futuri caricata.
+              {membersSyncPreview.detectedColumns ? (
+                <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
+                    Colonne rilevate
+                  </p>
+                  <div className="mt-3 grid gap-2 text-xs text-[#5f524c] md:grid-cols-5">
+                    {[
+                      ["Nome", membersSyncPreview.detectedColumns.first_name],
+                      ["Cognome", membersSyncPreview.detectedColumns.last_name],
+                      ["Email", membersSyncPreview.detectedColumns.email],
+                      ["Data", membersSyncPreview.detectedColumns.membership_starts_at],
+                      ["Contatto", membersSyncPreview.detectedColumns.contact],
+                    ].map(([label, column]) => (
+                      <p key={label as string}>
+                        <span className="font-semibold text-[#211815]">
+                          {label as string}:
+                        </span>{" "}
+                        {(column as DetectedSheetColumn).header ?? "-"}
+                      </p>
+                    ))}
+                  </div>
                 </div>
-              )}
+              ) : null}
+
+              {membersSyncPreview.errors.length > 0 ? (
+                <div className="rounded-[8px] border border-[#8b2f2a]/20 bg-[#8b2f2a]/5 p-3 text-sm text-[#8b2f2a]">
+                  {membersSyncPreview.errors.map((error) => (
+                    <p key={error}>{error}</p>
+                  ))}
+                </div>
+              ) : null}
+
+              <div className="flex flex-col gap-3 rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    ["Tutte", "all"],
+                    ["Da creare", "create"],
+                    ["Da aggiornare", "update"],
+                    ["Già allineate", "unchanged"],
+                    ["Non valide", "invalid"],
+                  ].map(([label, filter]) => (
+                    <button
+                      className={quickFilterButtonClass(
+                        membersSyncPreviewFilter === filter,
+                      )}
+                      key={filter}
+                      type="button"
+                      onClick={() =>
+                        updateMembersSyncPreviewFilter(
+                          filter as MembersSyncPreviewFilter,
+                        )
+                      }
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <div className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                  {membersSyncDisplayStart}-{membersSyncDisplayEnd} di{" "}
+                  {filteredMembersSyncRows.length} · Pagina{" "}
+                  {safeMembersSyncPreviewPage} di {membersSyncTotalPages}
+                </div>
+              </div>
+
+              <div className="overflow-x-auto rounded-[8px] border border-[#211815]/10">
+                <table className="min-w-[980px] w-full border-collapse bg-[#f4efe8]/60 text-left text-xs">
+                  <thead className="bg-[#211815]/5 uppercase tracking-[0.12em] text-[#5f524c]">
+                    <tr>
+                      {[
+                        "riga",
+                        "nome",
+                        "email",
+                        "inizio",
+                        "scadenza",
+                        "azione",
+                        "corrispondenza",
+                        "note",
+                      ].map((column) => (
+                        <th
+                          className="border-b border-[#211815]/10 px-3 py-3"
+                          key={column}
+                        >
+                          {column}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagedMembersSyncRows.length > 0 ? (
+                    pagedMembersSyncRows.map((row) => (
+                      <tr className="border-b border-[#211815]/8" key={row.rowNumber}>
+                        <td className="px-3 py-3">{row.rowNumber}</td>
+                        <td className="px-3 py-3">
+                          {row.first_name} {row.last_name}
+                        </td>
+                        <td className="px-3 py-3">{row.email ?? "-"}</td>
+                        <td className="px-3 py-3">{row.membership_starts_at}</td>
+                        <td className="px-3 py-3">{row.membership_expires_at}</td>
+                        <td className="px-3 py-3">
+                          {formatPreviewActionLabel(row.action)}
+                        </td>
+                        <td className="px-3 py-3">
+                          {formatMatchMethodLabel(row.matchMethod)}
+                        </td>
+                        <td className="px-3 py-3">
+                          {row.notes.length > 0 ? row.notes.join(" · ") : ""}
+                          {row.notes.length > 0 &&
+                          (row.fallbackStartDate || row.errors.length > 0)
+                            ? " · "
+                            : ""}
+                          {row.action === "skipped" && row.errors.length === 0
+                            ? "Compilazione precedente al 01/09/2025: da verificare manualmente."
+                            : ""}
+                          {row.fallbackStartDate
+                            ? `${row.action === "skipped" ? " · " : ""}data fallback`
+                            : ""}
+                          {row.errors.length > 0
+                            ? `${
+                                row.fallbackStartDate || row.action === "skipped"
+                                  ? " · "
+                                  : ""
+                              }${row.errors.join(" · ")}`
+                            : ""}
+                        </td>
+                      </tr>
+                    ))
+                    ) : (
+                      <tr>
+                        <td className="px-3 py-8 text-center text-[#5f524c]" colSpan={8}>
+                          Nessuna riga per questo filtro.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                  {membersSyncDisplayStart}-{membersSyncDisplayEnd} di{" "}
+                  {filteredMembersSyncRows.length}
+                </p>
+                <div className="flex items-center gap-3">
+                  <button
+                    className="rounded-full border border-[#211815]/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
+                    type="button"
+                    disabled={safeMembersSyncPreviewPage <= 1}
+                    onClick={() =>
+                      setMembersSyncPreviewPage((page) => Math.max(1, page - 1))
+                    }
+                  >
+                    Precedente
+                  </button>
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                    Pagina {safeMembersSyncPreviewPage} di{" "}
+                    {membersSyncTotalPages}
+                  </span>
+                  <button
+                    className="rounded-full border border-[#211815]/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
+                    type="button"
+                    disabled={safeMembersSyncPreviewPage >= membersSyncTotalPages}
+                    onClick={() =>
+                      setMembersSyncPreviewPage((page) =>
+                        Math.min(membersSyncTotalPages, page + 1),
+                      )
+                    }
+                  >
+                    Successiva
+                  </button>
+                </div>
+              </div>
             </div>
-          </section>
+          ) : null}
+          </AdminStepSection>
+
+          <AdminStepSection
+            isOpen={openAdminSections.advanced}
+            summary={adminSectionSummaries.advanced}
+            title="Strumenti avanzati"
+            onToggle={() => toggleAdminSection("advanced")}
+          >
+          <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/60 p-4">
+            <p className="text-sm leading-6 text-[#5f524c]">
+              Il libro soci e stato usato per l&apos;import storico. La verifica ordinaria delle tessere usa le registrazioni presenti in association_members e gli aggiornamenti manuali di stato/scadenza.
+            </p>
+          </div>
 
           <AdminStepSection
             isOpen={openAdminSections.book}
@@ -2794,298 +2986,6 @@ export default function TicketTailorAdminPage() {
           ) : null}
           </AdminStepSection>
 
-          <AdminStepSection
-            isOpen={openAdminSections.members}
-            number="2"
-            summary={adminSectionSummaries.members}
-            title="Aggiorna nuove iscrizioni"
-            onToggle={() => toggleAdminSection("members")}
-          >
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div className="flex gap-4">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#211815] font-serif text-2xl text-[#f4efe8]">
-                2
-              </span>
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-                  Fase 2
-                </p>
-                <h2 className="mt-2 font-serif text-3xl font-medium">
-                  2. Aggiorna nuove iscrizioni
-                </h2>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
-                  Legge il Google Sheet collegato al form associativo e importa
-                  le nuove iscrizioni dal 01/09/2025 in poi. Le compilazioni
-                  precedenti vengono ignorate.
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <button
-                className="rounded-full border border-[#211815]/20 px-5 py-2.5 text-sm font-semibold text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
-                type="button"
-                disabled={previewingMembersSync || applyingMembersSync}
-                onClick={handlePreviewMembersSync}
-              >
-                {previewingMembersSync
-                  ? "Controllo..."
-                  : "Controlla nuove iscrizioni"}
-              </button>
-              <button
-                className="rounded-full bg-[#211815] px-5 py-2.5 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
-                type="button"
-                disabled={
-                  !membersSyncPreview ||
-                  previewingMembersSync ||
-                  applyingMembersSync
-                }
-                onClick={handleApplyMembersSync}
-              >
-                {applyingMembersSync
-                  ? "Confermo..."
-                  : "Conferma nuove iscrizioni"}
-              </button>
-            </div>
-          </div>
-
-          {membersSyncError ? (
-            <p className="mt-4 rounded-[8px] border border-[#8b2f2a]/20 bg-[#8b2f2a]/5 p-3 text-sm text-[#8b2f2a]">
-              {membersSyncError}
-            </p>
-          ) : null}
-
-          {membersSyncApplyReport ? (
-            <p className="mt-4 rounded-[8px] border border-[#2f5b3a]/20 bg-[#2f5b3a]/5 p-3 text-sm text-[#2f5b3a]">
-              Nuove iscrizioni confermate: {membersSyncApplyReport.created ?? 0}{" "}
-              nuove, {membersSyncApplyReport.updated ?? 0} aggiornate.
-            </p>
-          ) : null}
-
-          {membersSyncPreview ? (
-            <div className="mt-5 space-y-4">
-              {!membersSyncApplyReport ? (
-                <p className="rounded-[8px] border border-[#8b5e4a]/20 bg-[#8b5e4a]/5 p-3 text-sm text-[#5f524c]">
-                  Controllo completato. Nessun dato è stato ancora salvato.
-                </p>
-              ) : null}
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-7">
-                {[
-                  ["Righe lette", membersSyncPreview.totalRows],
-                  ["Da creare", membersSyncPreview.wouldCreate],
-                  ["Da aggiornare", membersSyncPreview.wouldUpdate],
-                  ["Già allineate", membersSyncPreview.unchanged],
-                  ["Non valide", membersSyncPreview.invalidRows],
-                  [
-                    "Escluse perché precedenti al 01/09/2025",
-                    membersSyncPreview.skippedBeforeValidFrom ?? 0,
-                  ],
-                  [
-                    "Data mancante ricostruita",
-                    membersSyncPreview.fallbackStartDateCount,
-                  ],
-                ].map(([label, value]) => (
-                  <div
-                    className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3"
-                    key={label}
-                  >
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
-                      {label}
-                    </p>
-                    <p className="mt-2 font-serif text-3xl text-[#211815]">
-                      {value}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              {membersSyncPreview.fallbackNameMatchCount > 0 ? (
-                <p className="rounded-[8px] border border-[#8b5e4a]/20 bg-[#8b5e4a]/5 p-3 text-sm text-[#5f524c]">
-                  Corrispondenze per nome/cognome usate:{" "}
-                  {membersSyncPreview.fallbackNameMatchCount}.
-                </p>
-              ) : null}
-
-              {membersSyncPreview.detectedColumns ? (
-                <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
-                    Colonne rilevate
-                  </p>
-                  <div className="mt-3 grid gap-2 text-xs text-[#5f524c] md:grid-cols-5">
-                    {[
-                      ["Nome", membersSyncPreview.detectedColumns.first_name],
-                      ["Cognome", membersSyncPreview.detectedColumns.last_name],
-                      ["Email", membersSyncPreview.detectedColumns.email],
-                      ["Data", membersSyncPreview.detectedColumns.membership_starts_at],
-                      ["Contatto", membersSyncPreview.detectedColumns.contact],
-                    ].map(([label, column]) => (
-                      <p key={label as string}>
-                        <span className="font-semibold text-[#211815]">
-                          {label as string}:
-                        </span>{" "}
-                        {(column as DetectedSheetColumn).header ?? "-"}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              {membersSyncPreview.errors.length > 0 ? (
-                <div className="rounded-[8px] border border-[#8b2f2a]/20 bg-[#8b2f2a]/5 p-3 text-sm text-[#8b2f2a]">
-                  {membersSyncPreview.errors.map((error) => (
-                    <p key={error}>{error}</p>
-                  ))}
-                </div>
-              ) : null}
-
-              <div className="flex flex-col gap-3 rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3 md:flex-row md:items-center md:justify-between">
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    ["Tutte", "all"],
-                    ["Da creare", "create"],
-                    ["Da aggiornare", "update"],
-                    ["Già allineate", "unchanged"],
-                    ["Non valide", "invalid"],
-                  ].map(([label, filter]) => (
-                    <button
-                      className={quickFilterButtonClass(
-                        membersSyncPreviewFilter === filter,
-                      )}
-                      key={filter}
-                      type="button"
-                      onClick={() =>
-                        updateMembersSyncPreviewFilter(
-                          filter as MembersSyncPreviewFilter,
-                        )
-                      }
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                <div className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-                  {membersSyncDisplayStart}-{membersSyncDisplayEnd} di{" "}
-                  {filteredMembersSyncRows.length} · Pagina{" "}
-                  {safeMembersSyncPreviewPage} di {membersSyncTotalPages}
-                </div>
-              </div>
-
-              <div className="overflow-x-auto rounded-[8px] border border-[#211815]/10">
-                <table className="min-w-[980px] w-full border-collapse bg-[#f4efe8]/60 text-left text-xs">
-                  <thead className="bg-[#211815]/5 uppercase tracking-[0.12em] text-[#5f524c]">
-                    <tr>
-                      {[
-                        "riga",
-                        "nome",
-                        "email",
-                        "inizio",
-                        "scadenza",
-                        "azione",
-                        "corrispondenza",
-                        "note",
-                      ].map((column) => (
-                        <th
-                          className="border-b border-[#211815]/10 px-3 py-3"
-                          key={column}
-                        >
-                          {column}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pagedMembersSyncRows.length > 0 ? (
-                    pagedMembersSyncRows.map((row) => (
-                      <tr className="border-b border-[#211815]/8" key={row.rowNumber}>
-                        <td className="px-3 py-3">{row.rowNumber}</td>
-                        <td className="px-3 py-3">
-                          {row.first_name} {row.last_name}
-                        </td>
-                        <td className="px-3 py-3">{row.email ?? "-"}</td>
-                        <td className="px-3 py-3">{row.membership_starts_at}</td>
-                        <td className="px-3 py-3">{row.membership_expires_at}</td>
-                        <td className="px-3 py-3">
-                          {formatPreviewActionLabel(row.action)}
-                        </td>
-                        <td className="px-3 py-3">
-                          {formatMatchMethodLabel(row.matchMethod)}
-                        </td>
-                        <td className="px-3 py-3">
-                          {row.notes.length > 0 ? row.notes.join(" · ") : ""}
-                          {row.notes.length > 0 &&
-                          (row.fallbackStartDate || row.errors.length > 0)
-                            ? " · "
-                            : ""}
-                          {row.action === "skipped" && row.errors.length === 0
-                            ? "Compilazione precedente al 01/09/2025: da verificare manualmente."
-                            : ""}
-                          {row.fallbackStartDate
-                            ? `${row.action === "skipped" ? " · " : ""}data fallback`
-                            : ""}
-                          {row.errors.length > 0
-                            ? `${
-                                row.fallbackStartDate || row.action === "skipped"
-                                  ? " · "
-                                  : ""
-                              }${row.errors.join(" · ")}`
-                            : ""}
-                        </td>
-                      </tr>
-                    ))
-                    ) : (
-                      <tr>
-                        <td className="px-3 py-8 text-center text-[#5f524c]" colSpan={8}>
-                          Nessuna riga per questo filtro.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-                  {membersSyncDisplayStart}-{membersSyncDisplayEnd} di{" "}
-                  {filteredMembersSyncRows.length}
-                </p>
-                <div className="flex items-center gap-3">
-                  <button
-                    className="rounded-full border border-[#211815]/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
-                    type="button"
-                    disabled={safeMembersSyncPreviewPage <= 1}
-                    onClick={() =>
-                      setMembersSyncPreviewPage((page) => Math.max(1, page - 1))
-                    }
-                  >
-                    Precedente
-                  </button>
-                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-                    Pagina {safeMembersSyncPreviewPage} di{" "}
-                    {membersSyncTotalPages}
-                  </span>
-                  <button
-                    className="rounded-full border border-[#211815]/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
-                    type="button"
-                    disabled={safeMembersSyncPreviewPage >= membersSyncTotalPages}
-                    onClick={() =>
-                      setMembersSyncPreviewPage((page) =>
-                        Math.min(membersSyncTotalPages, page + 1),
-                      )
-                    }
-                  >
-                    Successiva
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : null}
-          </AdminStepSection>
-
-          <AdminStepSection
-            isOpen={openAdminSections.advanced}
-            summary={adminSectionSummaries.advanced}
-            title="Strumenti avanzati"
-            onToggle={() => toggleAdminSection("advanced")}
-          >
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
             Strumenti avanzati
           </p>
@@ -4140,10 +4040,8 @@ export default function TicketTailorAdminPage() {
             </div>
           )}
         </AdminStepSection>
-          </>
-        )}
+        </>
 
-        {activeTab === "partner" && (
           <section className="mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
@@ -4428,7 +4326,6 @@ export default function TicketTailorAdminPage() {
               </>
             ) : null}
           </section>
-        )}
       </div>
 
       {editingParticipant ? (
