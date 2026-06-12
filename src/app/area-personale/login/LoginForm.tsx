@@ -259,19 +259,19 @@ async function verifyOtpWithFallback(
   email: string,
   token: string,
 ) {
-  const { error: emailError } = await supabase.auth.verifyOtp({
-    email,
-    token,
-    type: "email",
-  });
-  if (!emailError) return null;
-
   const { error: signupError } = await supabase.auth.verifyOtp({
     email,
     token,
     type: "signup",
   });
-  return signupError;
+  if (!signupError) return null;
+
+  const { error: emailError } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: "email",
+  });
+  return emailError;
 }
 
 function isValidEmail(value: string) {
