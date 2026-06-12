@@ -74,11 +74,11 @@ export const it = {
     submitting: "Invio in corso...",
     success: "Controlla la tua email: ti abbiamo inviato il link per accedere.",
     successWithCode:
-      "Controlla la tua email: ti abbiamo inviato il link per accedere e un codice a 6 cifre.",
+      "Controlla la tua email: ti abbiamo inviato il link per accedere e un codice a 8 cifre.",
     codeStepIntro:
-      "Inserisci il codice a 6 cifre ricevuto via email, oppure clicca il link nell'email per accedere direttamente.",
+      "Inserisci il codice a 8 cifre ricevuto via email, oppure clicca il link nell'email per accedere direttamente.",
     codeLabel: "Codice di accesso",
-    codePlaceholder: "000000",
+    codePlaceholder: "00000000",
     verifyButton: "Verifica codice",
     verifying: "Verifica in corso...",
     resendButton: "Invia un nuovo codice",

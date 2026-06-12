@@ -7,6 +7,7 @@ import { useLanguage } from "@/components/site/LanguageProvider";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const RESEND_COOLDOWN_SECONDS = 30;
+const OTP_LENGTH = 8;
 
 export function LoginForm() {
   const { dictionary } = useLanguage();
@@ -53,11 +54,13 @@ export function LoginForm() {
     setLoading(true);
     try {
       const supabase = createSupabaseBrowserClient();
-      const origin = window.location.origin;
+      const siteUrl =
+        process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
+        window.location.origin;
       const { error: signInError } = await supabase.auth.signInWithOtp({
         email: norm,
         options: {
-          emailRedirectTo: `${origin}/auth/callback?next=/area-personale`,
+          emailRedirectTo: `${siteUrl}/auth/callback`,
         },
       });
 
@@ -83,6 +86,12 @@ export function LoginForm() {
   async function handleVerify(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+
+    if (code.length !== OTP_LENGTH) {
+      setError(dictionary.login.invalidCode);
+      return;
+    }
+
     setLoadingVerify(true);
 
     try {
@@ -112,11 +121,13 @@ export function LoginForm() {
 
     try {
       const supabase = createSupabaseBrowserClient();
-      const origin = window.location.origin;
+      const siteUrl =
+        process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
+        window.location.origin;
       const { error: resendError } = await supabase.auth.signInWithOtp({
         email: normalizedEmail,
         options: {
-          emailRedirectTo: `${origin}/auth/callback?next=/area-personale`,
+          emailRedirectTo: `${siteUrl}/auth/callback`,
         },
       });
 
@@ -162,7 +173,7 @@ export function LoginForm() {
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
-            maxLength={6}
+            maxLength={OTP_LENGTH}
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
             placeholder={dictionary.login.codePlaceholder}
@@ -175,7 +186,7 @@ export function LoginForm() {
           <button
             className="rounded-full bg-[#211815] px-5 py-3 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
             type="submit"
-            disabled={loadingVerify || code.length !== 6}
+            disabled={loadingVerify || code.length !== OTP_LENGTH}
           >
             {loadingVerify
               ? dictionary.login.verifying

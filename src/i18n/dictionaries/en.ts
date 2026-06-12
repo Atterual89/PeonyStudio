@@ -76,11 +76,11 @@ export const en: typeof it = {
     submitting: "Sending...",
     success: "Check your email: we sent you the link to access your area.",
     successWithCode:
-      "Check your email: we sent you the access link and a 6-digit code.",
+      "Check your email: we sent you the access link and an 8-digit code.",
     codeStepIntro:
-      "Enter the 6-digit code from your email, or click the link in the email to access directly.",
+      "Enter the 8-digit code from your email, or click the link in the email to access directly.",
     codeLabel: "Access code",
-    codePlaceholder: "000000",
+    codePlaceholder: "00000000",
     verifyButton: "Verify code",
     verifying: "Verifying...",
     resendButton: "Resend code",
