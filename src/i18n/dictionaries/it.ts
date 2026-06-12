@@ -73,6 +73,19 @@ export const it = {
     submit: "Entra nell'area personale",
     submitting: "Invio in corso...",
     success: "Controlla la tua email: ti abbiamo inviato il link per accedere.",
+    successWithCode:
+      "Controlla la tua email: ti abbiamo inviato il link per accedere e un codice a 6 cifre.",
+    codeStepIntro:
+      "Inserisci il codice a 6 cifre ricevuto via email, oppure clicca il link nell'email per accedere direttamente.",
+    codeLabel: "Codice di accesso",
+    codePlaceholder: "000000",
+    verifyButton: "Verifica codice",
+    verifying: "Verifica in corso...",
+    resendButton: "Invia un nuovo codice",
+    resendCooldown: "Puoi richiederne un altro in {seconds}s",
+    resendSuccess: "Nuovo codice inviato. Controlla la tua email.",
+    invalidCode: "Codice non valido o scaduto. Riprova o richiedi un nuovo codice.",
+    changeEmail: "Cambia email",
     invalidEmail: "Inserisci una email valida.",
     error:
       "Non siamo riusciti a inviare il link di accesso. Riprova tra poco.",
