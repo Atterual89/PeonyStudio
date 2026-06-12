@@ -61,6 +61,33 @@ type ParticipantListFilters = {
   participantType: string;
 };
 
+type FuturePeopleFilter =
+  | "review"
+  | "expired"
+  | "not_found"
+  | "verified"
+  | "all";
+
+type FuturePersonEvent = {
+  participant: Participant;
+  event: AdminEvent;
+  eventDateMs: number;
+  eventTitle: string;
+};
+
+type FuturePersonGroup = {
+  key: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  status: string;
+  expires_at: string | null;
+  notes_admin: string | null;
+  reviewReason: string | null;
+  participants: Participant[];
+  events: FuturePersonEvent[];
+};
+
 type BookSyncPreviewFilters = {
   search: string;
   status: "all" | "verified" | "expired" | "invalid";
@@ -567,6 +594,15 @@ export default function TicketTailorAdminPage() {
       checkedIn: "",
       participantType: "",
     });
+  const [futurePeopleFilter, setFuturePeopleFilter] =
+    useState<FuturePeopleFilter>("review");
+  const [futurePeopleSearch, setFuturePeopleSearch] = useState("");
+  const [savingFuturePersonKey, setSavingFuturePersonKey] = useState<string | null>(
+    null,
+  );
+  const [futurePeopleSavedKeys, setFuturePeopleSavedKeys] = useState<
+    Record<string, boolean>
+  >({});
   const [membershipRecapRows, setMembershipRecapRows] = useState<
     MembershipRecapRow[]
   >([]);
@@ -646,6 +682,16 @@ export default function TicketTailorAdminPage() {
       null
     : null;
   const participantSummary = getParticipantSummary(displayedParticipants);
+  const futurePersonGroups = groupFutureParticipantsByPerson(
+    seasonFilteredParticipants,
+    events,
+  );
+  const filteredFuturePersonGroups = filterFuturePersonGroups(
+    futurePersonGroups,
+    futurePeopleFilter,
+    futurePeopleSearch,
+  );
+  const futurePeopleSummary = getFuturePeopleSummary(futurePersonGroups);
   const partnerUniqueEvents = [
     ...new Set(
       partnerRows.map((r) => r.event_title).filter((t): t is string => Boolean(t)),
@@ -1160,6 +1206,46 @@ export default function TicketTailorAdminPage() {
     });
   }
 
+  function updateFuturePersonDraft(
+    group: FuturePersonGroup,
+    field: keyof AssociationDraft,
+    value: string,
+  ) {
+    for (const participant of group.participants) {
+      updateParticipantDraft(participant.id, field, value);
+    }
+    setFuturePeopleSavedKeys((current) => ({
+      ...current,
+      [group.key]: false,
+    }));
+  }
+
+  async function patchParticipantAssociation(
+    participantId: string,
+    draft: AssociationDraft,
+  ) {
+    const response = await fetch(`/api/admin/participants/${participantId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-sync-secret": secret,
+      },
+      body: JSON.stringify({
+        association_status: draft.association_status,
+        association_expires_at: draft.association_expires_at || null,
+        notes_admin: draft.notes_admin || null,
+      }),
+    });
+    const payload = (await response.json()) as {
+      ok?: boolean;
+      message?: string;
+    };
+
+    if (!response.ok || payload.ok === false) {
+      throw new Error(payload.message ?? "Errore salvataggio associazione.");
+    }
+  }
+
   async function saveParticipantAssociation(participantId: string) {
     if (!secret.trim()) {
       setParticipantError("Inserisci il codice admin.");
@@ -1176,30 +1262,7 @@ export default function TicketTailorAdminPage() {
     setParticipantError(null);
 
     try {
-      const response = await fetch(`/api/admin/participants/${participantId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "x-admin-sync-secret": secret,
-        },
-        body: JSON.stringify({
-          association_status: draft.association_status,
-          association_expires_at: draft.association_expires_at || null,
-          notes_admin: draft.notes_admin || null,
-        }),
-      });
-      const payload = (await response.json()) as {
-        ok?: boolean;
-        message?: string;
-      };
-
-      if (!response.ok || payload.ok === false) {
-        setParticipantError(
-          payload.message ?? "Errore salvataggio associazione.",
-        );
-        return false;
-      }
-
+      await patchParticipantAssociation(participantId, draft);
       await loadParticipants();
       return true;
     } catch (error) {
@@ -1209,6 +1272,52 @@ export default function TicketTailorAdminPage() {
       return false;
     } finally {
       setSavingParticipantId(null);
+    }
+  }
+
+  async function saveFuturePersonAssociation(group: FuturePersonGroup) {
+    if (!secret.trim()) {
+      setParticipantError("Inserisci il codice admin.");
+      return;
+    }
+
+    const firstParticipant = group.participants[0];
+    const draft = firstParticipant ? participantDrafts[firstParticipant.id] : null;
+    if (!draft) {
+      setParticipantError("Dati tessera non trovati per questa persona.");
+      return;
+    }
+
+    setSavingFuturePersonKey(group.key);
+    setParticipantError(null);
+
+    try {
+      for (const participant of group.participants) {
+        await patchParticipantAssociation(participant.id, draft);
+      }
+
+      setParticipants((current) =>
+        current.map((participant) =>
+          group.participants.some((item) => item.id === participant.id)
+            ? {
+                ...participant,
+                association_status: draft.association_status,
+                association_expires_at: draft.association_expires_at || null,
+                notes_admin: draft.notes_admin || null,
+              }
+            : participant,
+        ),
+      );
+      setFuturePeopleSavedKeys((current) => ({
+        ...current,
+        [group.key]: true,
+      }));
+    } catch (error) {
+      setParticipantError(
+        error instanceof Error ? error.message : "Errore sconosciuto.",
+      );
+    } finally {
+      setSavingFuturePersonKey(null);
     }
   }
 
@@ -1704,11 +1813,10 @@ export default function TicketTailorAdminPage() {
             Admin
           </p>
           <h1 className="mt-3 font-serif text-4xl font-medium md:text-5xl">
-            Gestione eventi e tessere
+            Gestione Ticket Tailor e tessere
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
-            Segui gli step in ordine. Quando uno step ha due bottoni, il primo
-            controlla i dati senza salvare, il secondo conferma l&apos;aggiornamento.
+            Sincronizza ordini e controlla le persone con eventi futuri.
           </p>
 
           <div className="mt-6 flex flex-col gap-3 md:flex-row md:items-end">
@@ -2260,6 +2368,123 @@ export default function TicketTailorAdminPage() {
             </div>
           ) : null}
           </AdminStepSection>
+
+          <section className="mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+                  Vista principale
+                </p>
+                <h2 className="mt-2 font-serif text-3xl font-medium">
+                  Persone con eventi futuri
+                </h2>
+                <p className="mt-3 max-w-3xl text-sm leading-6 text-[#5f524c]">
+                  Le persone compaiono una sola volta, aggregate per email quando
+                  presente o per nome e cognome quando manca. La tessera viene
+                  trattata come stato della persona; il salvataggio usa ancora le
+                  righe partecipante collegate.
+                </p>
+              </div>
+              <button
+                className="rounded-full bg-[#211815] px-5 py-2.5 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
+                type="button"
+                disabled={loadingParticipants}
+                onClick={() => fetchParticipants({ ...filters, participant_type: "" })}
+              >
+                {loadingParticipants ? "Carico..." : "Carica persone"}
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              {[
+                ["Persone", futurePeopleSummary.total],
+                ["Da controllare", futurePeopleSummary.review],
+                ["Scadute", futurePeopleSummary.expired],
+                ["Non trovate", futurePeopleSummary.notFound],
+                ["Valide", futurePeopleSummary.verified],
+              ].map(([label, value]) => (
+                <div
+                  className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3"
+                  key={label}
+                >
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
+                    {label}
+                  </p>
+                  <p className="mt-2 font-serif text-3xl text-[#211815]">
+                    {value}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 space-y-4 rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-4">
+              <div className="flex flex-wrap gap-2">
+                {[
+                  ["Da controllare", "review"],
+                  ["Scadute", "expired"],
+                  ["Non trovate", "not_found"],
+                  ["Valide", "verified"],
+                  ["Tutte", "all"],
+                ].map(([label, filter]) => (
+                  <button
+                    className={quickFilterButtonClass(futurePeopleFilter === filter)}
+                    key={filter}
+                    type="button"
+                    onClick={() => setFuturePeopleFilter(filter as FuturePeopleFilter)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              <label className="block text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                Cerca
+                <input
+                  className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+                  value={futurePeopleSearch}
+                  onChange={(event) => setFuturePeopleSearch(event.target.value)}
+                  placeholder="Nome, email, evento o ordine"
+                />
+              </label>
+
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                Mostrate {filteredFuturePersonGroups.length} di{" "}
+                {futurePersonGroups.length} persone con eventi futuri
+              </p>
+            </div>
+
+            {participantError ? (
+              <p className="mt-4 rounded-[8px] border border-[#8b2f2a]/20 bg-[#8b2f2a]/5 p-3 text-sm text-[#8b2f2a]">
+                {participantError}
+              </p>
+            ) : null}
+
+            <div className="mt-5 space-y-4">
+              {filteredFuturePersonGroups.length > 0 ? (
+                filteredFuturePersonGroups.map((group) => (
+                  <FuturePersonCard
+                    key={group.key}
+                    group={group}
+                    draft={
+                      group.participants[0]
+                        ? participantDrafts[group.participants[0].id]
+                        : undefined
+                    }
+                    saving={savingFuturePersonKey === group.key}
+                    saved={futurePeopleSavedKeys[group.key] === true}
+                    onChange={(field, value) =>
+                      updateFuturePersonDraft(group, field, value)
+                    }
+                    onSave={() => saveFuturePersonAssociation(group)}
+                  />
+                ))
+              ) : (
+                <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/60 px-4 py-8 text-center text-sm text-[#5f524c]">
+                  Nessuna persona con eventi futuri caricata.
+                </div>
+              )}
+            </div>
+          </section>
 
           <AdminStepSection
             isOpen={openAdminSections.book}
@@ -4220,6 +4445,146 @@ export default function TicketTailorAdminPage() {
   );
 }
 
+function FuturePersonCard({
+  group,
+  draft,
+  saving,
+  saved,
+  onChange,
+  onSave,
+}: {
+  group: FuturePersonGroup;
+  draft: AssociationDraft | undefined;
+  saving: boolean;
+  saved: boolean;
+  onChange: (field: keyof AssociationDraft, value: string) => void;
+  onSave: () => void;
+}) {
+  const currentDraft =
+    draft ??
+    ({
+      association_status: group.status,
+      association_expires_at: group.expires_at ?? "",
+      notes_admin: group.notes_admin ?? "",
+    } satisfies AssociationDraft);
+
+  return (
+    <article className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/65 p-4">
+      <div className="flex flex-col gap-3 border-b border-[#211815]/10 pb-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge status={currentDraft.association_status} />
+            {group.reviewReason ? (
+              <span className="rounded-full border border-[#8b5e4a]/25 bg-[#8b5e4a]/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#8b5e4a]">
+                Da controllare
+              </span>
+            ) : null}
+          </div>
+          <h3 className="mt-3 font-serif text-2xl text-[#211815]">
+            {group.first_name ?? "-"} {group.last_name ?? "-"}
+          </h3>
+          <p className="mt-1 text-sm text-[#5f524c]">{group.email ?? "-"}</p>
+          <p className="mt-2 text-sm font-semibold text-[#211815]">
+            {formatAssociationStatusSentence(
+              currentDraft.association_status,
+              currentDraft.association_expires_at,
+            )}
+          </p>
+          {group.reviewReason ? (
+            <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#8b5e4a]">
+              {group.reviewReason}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="rounded-[8px] border border-[#211815]/10 bg-white/65 p-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+          {group.events.length} eventi futuri collegati
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.45fr)]">
+        <div className="space-y-2">
+          {group.events.map(({ participant, event, eventTitle }) => (
+            <div
+              className="rounded-[8px] border border-[#211815]/10 bg-white/65 p-3"
+              key={participant.id}
+            >
+              <p className="text-sm font-semibold text-[#211815]">{eventTitle}</p>
+              <div className="mt-2 grid gap-2 text-xs text-[#5f524c] sm:grid-cols-3">
+                <p>
+                  <span className="font-semibold text-[#211815]">Data:</span>{" "}
+                  {event.starts_at ? formatDate(event.starts_at) : "-"}
+                </p>
+                <p>
+                  <span className="font-semibold text-[#211815]">Ordine:</span>{" "}
+                  {participant.ticket_tailor_order_id ?? "-"}
+                </p>
+                <p>
+                  <span className="font-semibold text-[#211815]">Check-in:</span>{" "}
+                  <CheckedInBadge checkedIn={participant.checked_in} />
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="space-y-3 rounded-[8px] border border-[#211815]/10 bg-white/65 p-3">
+          <label className="block text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+            Stato tessera
+            <select
+              className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+              value={currentDraft.association_status}
+              onChange={(event) => onChange("association_status", event.target.value)}
+            >
+              {associationStatusesForEditing.map((status) => (
+                <option key={status} value={status}>
+                  {formatAssociationStatusLabel(status)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+            Scadenza tessera
+            <input
+              className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+              type="date"
+              value={currentDraft.association_expires_at}
+              onChange={(event) =>
+                onChange("association_expires_at", event.target.value)
+              }
+            />
+          </label>
+
+          <label className="block text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+            Note admin
+            <textarea
+              className="mt-2 min-h-[92px] w-full rounded-[8px] border border-[#211815]/15 bg-white px-3 py-2 text-sm normal-case leading-5 tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
+              value={currentDraft.notes_admin}
+              onChange={(event) => onChange("notes_admin", event.target.value)}
+              placeholder="Nota interna admin"
+            />
+          </label>
+
+          <button
+            className="w-full rounded-full bg-[#211815] px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
+            type="button"
+            disabled={saving}
+            onClick={onSave}
+          >
+            {saving ? "Salvo..." : "Salva persona"}
+          </button>
+          {saved ? (
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#2f5b3a]">
+              Salvato sui partecipanti collegati
+            </p>
+          ) : null}
+        </div>
+      </div>
+    </article>
+  );
+}
+
 function ParticipantOrderRow({
   participant,
   roleLabel,
@@ -4696,6 +5061,214 @@ function hasReliableSeasonDate(
   );
 }
 
+function groupFutureParticipantsByPerson(
+  participants: Participant[],
+  events: AdminEvent[],
+) {
+  const eventByTicketTailorId = new Map(
+    events
+      .filter((event) => event.ticket_tailor_event_id)
+      .map((event) => [event.ticket_tailor_event_id!, event]),
+  );
+  const now = Date.now();
+  const groups = new Map<string, FuturePersonGroup>();
+
+  for (const participant of participants) {
+    if (participant.participant_type !== "attendee") continue;
+    if (!participant.ticket_tailor_event_id) continue;
+
+    const event = eventByTicketTailorId.get(participant.ticket_tailor_event_id);
+    if (!event?.starts_at) continue;
+
+    const eventDateMs = new Date(event.starts_at).getTime();
+    if (Number.isNaN(eventDateMs) || eventDateMs < now) continue;
+
+    const emailKey = normalizeEmailKey(participant.email);
+    const nameKey = normalizePersonNameKey(
+      participant.first_name,
+      participant.last_name,
+    );
+    const key = emailKey ? `email:${emailKey}` : `name:${nameKey || participant.id}`;
+    const currentGroup = groups.get(key);
+    const group =
+      currentGroup ??
+      ({
+        key,
+        first_name: participant.first_name,
+        last_name: participant.last_name,
+        email: participant.email,
+        status: normalizeParticipantListStatus(participant.association_status),
+        expires_at: participant.association_expires_at,
+        notes_admin: participant.notes_admin,
+        reviewReason: emailKey
+          ? null
+          : "Email mancante: aggregazione per nome e cognome.",
+        participants: [],
+        events: [],
+      } satisfies FuturePersonGroup);
+
+    group.participants.push(participant);
+    group.events.push({
+      participant,
+      event,
+      eventDateMs,
+      eventTitle: event.title ?? event.slug ?? participant.ticket_tailor_event_id,
+    });
+    group.status = chooseMostUrgentAssociationStatus(
+      group.status,
+      normalizeParticipantListStatus(participant.association_status),
+    );
+    group.expires_at = chooseEarliestDate(
+      group.expires_at,
+      participant.association_expires_at,
+    );
+    group.notes_admin = group.notes_admin || participant.notes_admin;
+
+    groups.set(key, group);
+  }
+
+  return Array.from(groups.values())
+    .map((group) => ({
+      ...group,
+      events: group.events.sort((first, second) => first.eventDateMs - second.eventDateMs),
+    }))
+    .sort((first, second) => {
+      const statusDelta =
+        getFuturePersonSortPriority(first) - getFuturePersonSortPriority(second);
+      if (statusDelta !== 0) return statusDelta;
+
+      const firstDate = first.events[0]?.eventDateMs ?? Number.MAX_SAFE_INTEGER;
+      const secondDate = second.events[0]?.eventDateMs ?? Number.MAX_SAFE_INTEGER;
+      if (firstDate !== secondDate) return firstDate - secondDate;
+
+      return getFuturePersonDisplayName(first).localeCompare(
+        getFuturePersonDisplayName(second),
+        "it",
+      );
+    });
+}
+
+function filterFuturePersonGroups(
+  groups: FuturePersonGroup[],
+  filter: FuturePeopleFilter,
+  search: string,
+) {
+  const normalizedSearch = search.trim().toLowerCase();
+
+  return groups.filter((group) => {
+    const status = normalizeParticipantListStatus(group.status);
+    const filterMatches =
+      filter === "all"
+        ? true
+        : filter === "review"
+          ? Boolean(group.reviewReason) ||
+            ["manual_review", "not_found", "unknown", "pending"].includes(status)
+          : filter === "not_found"
+            ? status === "not_found"
+            : status === filter;
+    const searchMatches = normalizedSearch
+      ? [
+          group.first_name ?? "",
+          group.last_name ?? "",
+          group.email ?? "",
+          group.status,
+          group.reviewReason ?? "",
+          ...group.events.flatMap(({ participant, eventTitle }) => [
+            eventTitle,
+            participant.ticket_tailor_order_id ?? "",
+          ]),
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedSearch)
+      : true;
+
+    return filterMatches && searchMatches;
+  });
+}
+
+function getFuturePeopleSummary(groups: FuturePersonGroup[]) {
+  return groups.reduce(
+    (summary, group) => {
+      const status = normalizeParticipantListStatus(group.status);
+      summary.total += 1;
+      if (
+        group.reviewReason ||
+        ["manual_review", "not_found", "unknown", "pending"].includes(status)
+      ) {
+        summary.review += 1;
+      }
+      if (status === "expired") summary.expired += 1;
+      if (status === "not_found") summary.notFound += 1;
+      if (status === "verified") summary.verified += 1;
+
+      return summary;
+    },
+    {
+      total: 0,
+      review: 0,
+      expired: 0,
+      notFound: 0,
+      verified: 0,
+    },
+  );
+}
+
+function getFuturePersonSortPriority(group: FuturePersonGroup) {
+  const status = normalizeParticipantListStatus(group.status);
+  if (group.reviewReason || status === "not_found" || status === "manual_review") {
+    return 1;
+  }
+  if (status === "expired") return 2;
+  if (status === "pending") return 3;
+  if (status === "verified") return 4;
+  return 5;
+}
+
+function chooseMostUrgentAssociationStatus(current: string, next: string) {
+  const priority: Record<string, number> = {
+    manual_review: 1,
+    not_found: 1,
+    expired: 2,
+    pending: 3,
+    verified: 4,
+    unknown: 5,
+  };
+
+  return (priority[next] ?? 5) < (priority[current] ?? 5) ? next : current;
+}
+
+function chooseEarliestDate(current: string | null, next: string | null) {
+  if (!current) return next;
+  if (!next) return current;
+  return next < current ? next : current;
+}
+
+function normalizeEmailKey(email: string | null) {
+  return email?.trim().toLowerCase() ?? "";
+}
+
+function normalizePersonNameKey(firstName: string | null, lastName: string | null) {
+  return [firstName, lastName]
+    .map((value) =>
+      (value ?? "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " "),
+    )
+    .filter(Boolean)
+    .join(" ");
+}
+
+function getFuturePersonDisplayName(group: FuturePersonGroup) {
+  return [group.last_name, group.first_name, group.email]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
 function groupParticipantsByOrder(
   participants: Participant[],
   sourceParticipants = participants,
@@ -4984,17 +5557,48 @@ function normalizeAssociationStatus(status: string | null) {
 function formatAssociationStatusLabel(status: string | null) {
   const normalized = normalizeAssociationStatus(status);
   const labels: Record<string, string> = {
-    verified: "Tessera valida",
-    pending: "Da validare",
-    expired: "Scaduta",
-    not_found: "Non trovata",
+    verified: "Associato/a",
+    pending: "In attesa",
+    expired: "Tessera scaduta",
+    not_found: "Non trovato/a",
     manual_review: "Da controllare",
-    unknown: "Da verificare",
-    missing: "Non trovata",
+    unknown: "Stato non verificato",
+    missing: "Non trovato/a",
     not_required: "Non richiesta",
   };
 
   return labels[normalized] ?? normalized;
+}
+
+function formatAssociationStatusSentence(status: string | null, expiresAt: string | null) {
+  const normalized = normalizeAssociationStatus(status);
+  const formattedExpiry = expiresAt ? formatDate(expiresAt) : null;
+
+  if (normalized === "verified") {
+    return formattedExpiry
+      ? `Associato/a fino al ${formattedExpiry}`
+      : "Associato/a";
+  }
+
+  if (normalized === "expired") {
+    return formattedExpiry
+      ? `Tessera scaduta il ${formattedExpiry}`
+      : "Tessera scaduta";
+  }
+
+  if (normalized === "not_found" || normalized === "missing") {
+    return "Non trovato/a tra i soci";
+  }
+
+  if (normalized === "manual_review") {
+    return "Da controllare";
+  }
+
+  if (normalized === "pending") {
+    return "In attesa";
+  }
+
+  return "Stato non verificato";
 }
 
 function formatPreviewActionLabel(action: string | null | undefined) {
