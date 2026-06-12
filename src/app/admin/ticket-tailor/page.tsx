@@ -65,6 +65,7 @@ type FuturePeopleFilter =
   | "review"
   | "expired"
   | "not_found"
+  | "archived"
   | "verified"
   | "all";
 
@@ -392,6 +393,7 @@ const associationStatuses = [
   "pending",
   "verified",
   "expired",
+  "archived",
   "manual_review",
   "not_found",
   "not_required",
@@ -401,6 +403,7 @@ const associationStatusesForEditing = [
   "verified",
   "pending",
   "expired",
+  "archived",
   "not_found",
   "manual_review",
   "unknown",
@@ -2030,6 +2033,7 @@ export default function TicketTailorAdminPage() {
                   ["Da controllare", "review"],
                   ["Scadute", "expired"],
                   ["Non trovate", "not_found"],
+                  ["Archiviati", "archived"],
                   ["Valide", "verified"],
                   ["Tutte", "all"],
                 ].map(([label, filter]) => (
@@ -3328,6 +3332,7 @@ export default function TicketTailorAdminPage() {
                   <option value="verified">Tessera valida</option>
                   <option value="pending">Da validare</option>
                   <option value="expired">Scaduta</option>
+                  <option value="archived">Archiviata</option>
                   <option value="not_found">Non trovata</option>
                   <option value="manual_review">Da controllare</option>
                   <option value="unknown">Da verificare</option>
@@ -3572,10 +3577,22 @@ export default function TicketTailorAdminPage() {
                         >
                           {associationStatuses.map((status) => (
                             <option key={status} value={status}>
-                              {status}
+                              {formatAssociationStatusLabel(status)}
                             </option>
                           ))}
                         </select>
+                        <AssociationStatusDateWarning
+                          status={
+                            participantDrafts[participant.id]?.association_status ??
+                            participant.association_status
+                          }
+                          expiresAt={
+                            participantDrafts[participant.id]
+                              ?.association_expires_at ??
+                            participant.association_expires_at
+                          }
+                          compact
+                        />
                       </td>
                       <td className="px-3 py-3">
                         <input
@@ -3930,6 +3947,11 @@ export default function TicketTailorAdminPage() {
                                   </option>
                                 ))}
                               </select>
+                              <AssociationStatusDateWarning
+                                status={draft.association_status}
+                                expiresAt={draft.association_expires_at}
+                                compact
+                              />
                             </td>
                             <td className="px-3 py-3">
                               <textarea
@@ -4376,6 +4398,10 @@ function FuturePersonCard({
               currentDraft.association_expires_at,
             )}
           </p>
+          <AssociationStatusDateWarning
+            status={currentDraft.association_status}
+            expiresAt={currentDraft.association_expires_at}
+          />
           {group.reviewReason ? (
             <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#8b5e4a]">
               {group.reviewReason}
@@ -4410,6 +4436,11 @@ function FuturePersonCard({
                   <CheckedInBadge checkedIn={participant.checked_in} />
                 </p>
               </div>
+              <AssociationStatusDateWarning
+                status={participant.association_status}
+                expiresAt={participant.association_expires_at}
+                compact
+              />
             </div>
           ))}
         </div>
@@ -4444,6 +4475,11 @@ function FuturePersonCard({
 
           <label className="block text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
             Note admin
+            {currentDraft.association_status === "archived" ? (
+              <span className="mt-1 block text-[11px] normal-case leading-5 tracking-normal text-[#8b5e4a]">
+                Consiglio: usa le note per indicare il motivo dell&apos;archiviazione.
+              </span>
+            ) : null}
             <textarea
               className="mt-2 min-h-[92px] w-full rounded-[8px] border border-[#211815]/15 bg-white px-3 py-2 text-sm normal-case leading-5 tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
               value={currentDraft.notes_admin}
@@ -4532,6 +4568,11 @@ function ParticipantOrderRow({
             {showCheckIn ? participant.checked_in_source ?? "-" : "—"}
           </p>
         </div>
+        <AssociationStatusDateWarning
+          status={participant.association_status}
+          expiresAt={participant.association_expires_at}
+          compact
+        />
 
         <button
           className="rounded-full bg-[#211815] px-4 py-2 text-xs font-semibold text-[#f4efe8] transition hover:-translate-y-0.5"
@@ -4640,8 +4681,18 @@ function AssociationEditModal({
           </label>
         </div>
 
+        <AssociationStatusDateWarning
+          status={currentDraft.association_status}
+          expiresAt={currentDraft.association_expires_at}
+        />
+
         <label className="mt-4 block text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
           Nota interna admin
+          {currentDraft.association_status === "archived" ? (
+            <span className="mt-1 block text-[11px] normal-case leading-5 tracking-normal text-[#8b5e4a]">
+              Consiglio: usa le note per indicare il motivo dell&apos;archiviazione.
+            </span>
+          ) : null}
           <textarea
             className="mt-2 min-h-[120px] w-full rounded-[8px] border border-[#211815]/15 bg-white/70 px-3 py-3 text-sm normal-case leading-6 tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
             value={currentDraft.notes_admin}
@@ -4987,14 +5038,22 @@ function groupFutureParticipantsByPerson(
       eventDateMs,
       eventTitle: event.title ?? event.slug ?? participant.ticket_tailor_event_id,
     });
-    group.status = chooseMostUrgentAssociationStatus(
+    const participantStatus = normalizeParticipantListStatus(
+      participant.association_status,
+    );
+    const nextGroupStatus = chooseMostUrgentAssociationStatus(
       group.status,
-      normalizeParticipantListStatus(participant.association_status),
+      participantStatus,
     );
-    group.expires_at = chooseEarliestDate(
-      group.expires_at,
-      participant.association_expires_at,
-    );
+    if (nextGroupStatus !== group.status) {
+      group.status = nextGroupStatus;
+      group.expires_at = participant.association_expires_at;
+    } else if (nextGroupStatus === participantStatus) {
+      group.expires_at = chooseEarliestDate(
+        group.expires_at,
+        participant.association_expires_at,
+      );
+    }
     group.notes_admin = group.notes_admin || participant.notes_admin;
 
     groups.set(key, group);
@@ -5094,8 +5153,9 @@ function getFuturePersonSortPriority(group: FuturePersonGroup) {
   }
   if (status === "expired") return 2;
   if (status === "pending") return 3;
-  if (status === "verified") return 4;
-  return 5;
+  if (status === "archived") return 4;
+  if (status === "verified") return 5;
+  return 6;
 }
 
 function chooseMostUrgentAssociationStatus(current: string, next: string) {
@@ -5104,11 +5164,14 @@ function chooseMostUrgentAssociationStatus(current: string, next: string) {
     not_found: 1,
     expired: 2,
     pending: 3,
-    verified: 4,
-    unknown: 5,
+    archived: 4,
+    verified: 5,
+    unknown: 6,
+    missing: 6,
+    not_required: 7,
   };
 
-  return (priority[next] ?? 5) < (priority[current] ?? 5) ? next : current;
+  return (priority[next] ?? 99) < (priority[current] ?? 99) ? next : current;
 }
 
 function chooseEarliestDate(current: string | null, next: string | null) {
@@ -5433,6 +5496,7 @@ function formatAssociationStatusLabel(status: string | null) {
     verified: "Associato/a",
     pending: "In attesa",
     expired: "Tessera scaduta",
+    archived: "Tessera archiviata",
     not_found: "Non trovato/a",
     manual_review: "Da controllare",
     unknown: "Stato non verificato",
@@ -5454,9 +5518,21 @@ function formatAssociationStatusSentence(status: string | null, expiresAt: strin
   }
 
   if (normalized === "expired") {
+    if (isAssociationStatusDateInconsistent(normalized, expiresAt)) {
+      return formattedExpiry
+        ? `Stato tessera scaduta con scadenza registrata: ${formattedExpiry}`
+        : "Tessera scaduta";
+    }
+
     return formattedExpiry
       ? `Tessera scaduta il ${formattedExpiry}`
       : "Tessera scaduta";
+  }
+
+  if (normalized === "archived") {
+    return formattedExpiry
+      ? `Tessera archiviata · scadenza registrata: ${formattedExpiry}`
+      : "Tessera archiviata";
   }
 
   if (normalized === "not_found" || normalized === "missing") {
@@ -5472,6 +5548,52 @@ function formatAssociationStatusSentence(status: string | null, expiresAt: strin
   }
 
   return "Stato non verificato";
+}
+
+function isAssociationStatusDateInconsistent(
+  status: string | null,
+  expiresAt: string | null,
+) {
+  if (normalizeAssociationStatus(status) !== "expired" || !expiresAt) {
+    return false;
+  }
+
+  const expiresDate = expiresAt.slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(expiresDate) && expiresDate >= getTodayDateKey();
+}
+
+function getTodayDateKey() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function AssociationStatusDateWarning({
+  compact = false,
+  expiresAt,
+  status,
+}: {
+  compact?: boolean;
+  expiresAt: string | null;
+  status: string | null;
+}) {
+  if (!isAssociationStatusDateInconsistent(status, expiresAt)) {
+    return null;
+  }
+
+  return (
+    <p
+      className={`rounded-[8px] border border-[#8b5e4a]/25 bg-[#8b5e4a]/10 text-[#8b5e4a] ${
+        compact
+          ? "mt-2 px-3 py-2 text-xs leading-5"
+          : "mt-3 p-3 text-sm leading-6"
+      }`}
+    >
+      Stato e scadenza incoerenti: la tessera risulta scaduta ma la data è futura.
+    </p>
+  );
 }
 
 function formatPreviewActionLabel(action: string | null | undefined) {
@@ -5504,6 +5626,7 @@ function formatMembershipStatusLabel(status: string | null | undefined) {
   const labels: Record<string, string> = {
     verified: "Valida",
     expired: "Scaduta",
+    archived: "Archiviata",
     pending: "Da validare",
     manual_review: "Da controllare",
   };
@@ -5558,7 +5681,9 @@ function StatusBadge({ status }: { status: string | null }) {
         ? "border-[#8b2f2a]/25 bg-[#8b2f2a]/10 text-[#8b2f2a]"
         : normalized === "pending"
           ? "border-[#8b5e4a]/25 bg-[#8b5e4a]/10 text-[#8b5e4a]"
-          : "border-[#211815]/15 bg-[#211815]/5 text-[#5f524c]";
+          : normalized === "archived"
+            ? "border-[#211815]/15 bg-[#211815]/5 text-[#5f524c]"
+            : "border-[#211815]/15 bg-[#211815]/5 text-[#5f524c]";
 
   return (
     <span

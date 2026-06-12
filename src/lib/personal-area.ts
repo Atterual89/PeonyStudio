@@ -452,7 +452,7 @@ async function loadAttendanceStats(
 ) {
   const { data, error } = await supabase
     .from("event_participants")
-    .select("checked_in")
+    .select("event_id,ticket_tailor_event_id,checked_in")
     .eq("participant_type", "attendee")
     .eq("email", email);
 
@@ -460,11 +460,36 @@ async function loadAttendanceStats(
     throw new Error(error.message);
   }
 
-  const attendees = data ?? [];
+  const bookedEventKeys = new Set<string>();
+  const checkedInEventKeys = new Set<string>();
+
+  for (const participant of data ?? []) {
+    const eventKey = getParticipantEventKey(participant);
+    if (!eventKey) continue;
+
+    bookedEventKeys.add(eventKey);
+    if (participant.checked_in === true) {
+      checkedInEventKeys.add(eventKey);
+    }
+  }
 
   return {
-    booked: attendees.length,
-    checkedIn: attendees.filter((participant) => participant.checked_in === true)
-      .length,
+    booked: bookedEventKeys.size,
+    checkedIn: checkedInEventKeys.size,
   };
+}
+
+function getParticipantEventKey(participant: {
+  event_id: string | null;
+  ticket_tailor_event_id: string | null;
+}) {
+  if (participant.event_id?.trim()) {
+    return `event:${participant.event_id.trim()}`;
+  }
+
+  if (participant.ticket_tailor_event_id?.trim()) {
+    return `ticket-tailor:${participant.ticket_tailor_event_id.trim()}`;
+  }
+
+  return null;
 }
