@@ -1870,119 +1870,144 @@ export default function TicketTailorAdminPage() {
 
         <>
 
-          <AdminStepSection
-            isOpen={openAdminSections.ticketTailor}
-            number={undefined}
-            summary={adminSectionSummaries.ticketTailor}
-            title="Sincronizzazione dati"
-            onToggle={() => toggleAdminSection("ticketTailor")}
-          >
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div className="flex gap-4">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#211815] font-serif text-2xl text-[#f4efe8]">
-                3
-              </span>
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-                  Sincronizzazione dati
-                </p>
-                <h2 className="mt-2 font-serif text-3xl font-medium">
-                  Sincronizzazione dati
-                </h2>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
-                  Importa eventi, ordini, biglietti, acquirenti, partecipanti,
-                  check-in e profili. Le registrazioni soci arrivano dal Google
-                  Form e vengono importate in association_members.
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <button
-                className="rounded-full bg-[#211815] px-5 py-2.5 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
-                type="button"
-                disabled={syncing}
-                onClick={handleSync}
-              >
-                {syncing ? "Aggiorno..." : "Aggiorna dati Ticket Tailor"}
-              </button>
-              <button
-                className="rounded-full border border-[#211815]/20 px-5 py-2.5 text-sm font-semibold text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
-                type="button"
-                disabled={syncingProfiles}
-                onClick={handleSyncProfiles}
-              >
-                {syncingProfiles ? "Aggiorno profili..." : "Aggiorna profili"}
-              </button>
-              <button
-                className="rounded-full border border-[#211815]/20 px-5 py-2.5 text-sm font-semibold text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
-                type="button"
-                disabled={previewingMembersSync || applyingMembersSync}
-                onClick={handlePreviewMembersSync}
-              >
-                {previewingMembersSync
-                  ? "Controllo..."
-                  : "Controlla/importa registrazioni form"}
-              </button>
-            </div>
-          </div>
+          <section className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+            <div className="rounded-[8px] border border-[#211815]/10 bg-white/70 p-4 shadow-[0_10px_28px_rgba(33,24,21,0.045)] md:p-5">
+              <h2 className="font-serif text-2xl font-medium text-[#211815]">
+                Sincronizzazione dati
+              </h2>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-[#5f524c]">
+                Aggiorna Ticket Tailor, profili e registrazioni dal form.
+              </p>
 
-          {profilesSyncResult ? (
-            <div
-              className={`mt-4 rounded-[8px] border p-3 text-sm ${
-                profilesSyncResult.ok
-                  ? "border-[#2f5b3a]/20 bg-[#2f5b3a]/5 text-[#2f5b3a]"
-                  : "border-[#8b2f2a]/20 bg-[#8b2f2a]/5 text-[#8b2f2a]"
-              }`}
-            >
-              {profilesSyncResult.ok ? "Profili aggiornati — " : "Profili: "}
-              {typeof profilesSyncResult.message === "string"
-                ? profilesSyncResult.message
-                : [
-                    `${profilesSyncResult.ordersRead ?? 0} ordini`,
-                    `${profilesSyncResult.profilesCreated ?? 0} profili creati`,
-                    `${profilesSyncResult.profilesSkipped ?? 0} già esistenti`,
-                    `${profilesSyncResult.enrollmentsCreated ?? 0} iscrizioni create`,
-                    `${profilesSyncResult.partnerPrefilled ?? 0} partner compilati`,
-                  ].join(" · ")}
-            </div>
-          ) : null}
-
-          {syncResults.length > 0 ? (
-            <div className="mt-5 grid gap-3 md:grid-cols-4">
-              {syncResults.map((result) => (
-                <div
-                  className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3"
-                  key={result.label}
+              <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                <button
+                  className="rounded-[8px] bg-[#211815] px-4 py-2.5 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
+                  type="button"
+                  disabled={syncing}
+                  onClick={handleSync}
                 >
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
-                    {result.label}
-                  </p>
-                  <p
-                    className={`mt-2 text-sm font-medium ${
-                      result.ok ? "text-[#2f5b3a]" : "text-[#8b2f2a]"
-                    }`}
-                  >
-                    {result.ok ? "OK" : "Errore"}
-                  </p>
-                  <p className="mt-2 text-xs leading-5 text-[#5f524c]">
-                    {result.summary}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : null}
-          </AdminStepSection>
+                  {syncing ? "Aggiorno..." : "Aggiorna dati Ticket Tailor"}
+                </button>
+                <button
+                  className="rounded-[8px] border border-[#211815]/20 px-4 py-2.5 text-sm font-semibold text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
+                  type="button"
+                  disabled={syncingProfiles}
+                  onClick={handleSyncProfiles}
+                >
+                  {syncingProfiles ? "Aggiorno..." : "Aggiorna profili"}
+                </button>
+                <button
+                  className="rounded-[8px] border border-[#211815]/20 px-4 py-2.5 text-sm font-semibold text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
+                  type="button"
+                  disabled={previewingMembersSync || applyingMembersSync}
+                  onClick={handlePreviewMembersSync}
+                >
+                  {previewingMembersSync
+                    ? "Controllo..."
+                    : "Controlla/importa registrazioni form"}
+                </button>
+              </div>
 
-          <section className="mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.05)] md:p-7">
-            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-                  Vista principale
+              {profilesSyncResult || syncResults.length > 0 ? (
+                <div className="mt-4 space-y-2">
+                  {profilesSyncResult ? (
+                    <p
+                      className={`rounded-[8px] border px-3 py-2 text-xs leading-5 ${
+                        profilesSyncResult.ok
+                          ? "border-[#2f5b3a]/20 bg-[#2f5b3a]/5 text-[#2f5b3a]"
+                          : "border-[#8b2f2a]/20 bg-[#8b2f2a]/5 text-[#8b2f2a]"
+                      }`}
+                    >
+                      {profilesSyncResult.ok ? "Profili aggiornati: " : "Profili: "}
+                      {typeof profilesSyncResult.message === "string"
+                        ? profilesSyncResult.message
+                        : [
+                            `${profilesSyncResult.ordersRead ?? 0} ordini`,
+                            `${profilesSyncResult.profilesCreated ?? 0} profili creati`,
+                            `${profilesSyncResult.profilesSkipped ?? 0} già esistenti`,
+                            `${profilesSyncResult.enrollmentsCreated ?? 0} iscrizioni create`,
+                            `${profilesSyncResult.partnerPrefilled ?? 0} partner compilati`,
+                          ].join(" · ")}
+                    </p>
+                  ) : null}
+
+                  {syncResults.length > 0 ? (
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {syncResults.map((result) => (
+                        <div
+                          className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/60 px-3 py-2"
+                          key={result.label}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs font-semibold text-[#211815]">
+                              {result.label}
+                            </p>
+                            <span
+                              className={`text-[11px] font-semibold ${
+                                result.ok ? "text-[#2f5b3a]" : "text-[#8b2f2a]"
+                              }`}
+                            >
+                              {result.ok ? "OK" : "Errore"}
+                            </span>
+                          </div>
+                          {result.summary ? (
+                            <p className="mt-1 text-xs leading-5 text-[#5f524c]">
+                              {result.summary}
+                            </p>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="rounded-[8px] border border-[#211815]/10 bg-white/70 p-4 shadow-[0_10px_28px_rgba(33,24,21,0.045)] md:p-5">
+              <h2 className="font-serif text-2xl font-medium text-[#211815]">
+                Stato operativo
+              </h2>
+              {futurePersonGroups.length > 0 ? (
+                <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5 lg:grid-cols-2">
+                  {[
+                    ["Persone future", futurePeopleSummary.total],
+                    ["Da controllare", futurePeopleSummary.review],
+                    ["Scadute", futurePeopleSummary.expired],
+                    ["Non trovate", futurePeopleSummary.notFound],
+                    ["Valide", futurePeopleSummary.verified],
+                  ].map(([label, value]) => (
+                    <div
+                      className={`rounded-[8px] border px-3 py-2 ${
+                        Number(value) > 0
+                          ? "border-[#211815]/10 bg-[#f4efe8]/70"
+                          : "border-[#211815]/8 bg-[#f4efe8]/35 text-[#5f524c]"
+                      }`}
+                      key={label}
+                    >
+                      <p className="text-[11px] font-medium text-[#5f524c]">
+                        {label}
+                      </p>
+                      <p className="mt-1 font-serif text-2xl text-[#211815]">
+                        {value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-4 rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/55 p-4 text-sm leading-6 text-[#5f524c]">
+                  Inserisci il codice admin e clicca Carica persone.
                 </p>
-                <h2 className="mt-2 font-serif text-3xl font-medium">
+              )}
+            </div>
+          </section>
+
+          <section className="mt-6 rounded-[8px] border border-[#8b5e4a]/20 bg-white/80 p-4 shadow-[0_18px_44px_rgba(33,24,21,0.07)] md:p-6">
+            <div className="flex flex-col gap-3 border-b border-[#211815]/10 pb-4 md:flex-row md:items-start md:justify-between">
+              <div>
+                <h2 className="font-serif text-3xl font-medium">
                   Persone con eventi futuri
                 </h2>
-                <p className="mt-3 max-w-3xl text-sm leading-6 text-[#5f524c]">
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-[#5f524c]">
                   Le persone compaiono una sola volta, aggregate per email quando
                   presente o per nome e cognome quando manca. La tessera viene
                   trattata come stato della persona; il salvataggio usa ancora le
@@ -1999,29 +2024,7 @@ export default function TicketTailorAdminPage() {
               </button>
             </div>
 
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              {[
-                ["Persone", futurePeopleSummary.total],
-                ["Da controllare", futurePeopleSummary.review],
-                ["Scadute", futurePeopleSummary.expired],
-                ["Non trovate", futurePeopleSummary.notFound],
-                ["Valide", futurePeopleSummary.verified],
-              ].map(([label, value]) => (
-                <div
-                  className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3"
-                  key={label}
-                >
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
-                    {label}
-                  </p>
-                  <p className="mt-2 font-serif text-3xl text-[#211815]">
-                    {value}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-5 space-y-4 rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-4">
+            <div className="mt-4 grid gap-3 rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/65 p-3 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.42fr)] lg:items-end">
               <div className="flex flex-wrap gap-2">
                 {[
                   ["Da controllare", "review"],
@@ -2041,7 +2044,7 @@ export default function TicketTailorAdminPage() {
                 ))}
               </div>
 
-              <label className="block text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+              <label className="block text-xs font-semibold text-[#5f524c]">
                 Cerca
                 <input
                   className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
@@ -2051,7 +2054,7 @@ export default function TicketTailorAdminPage() {
                 />
               </label>
 
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+              <p className="text-xs text-[#5f524c] lg:col-span-2">
                 Mostrate {filteredFuturePersonGroups.length} di{" "}
                 {futurePersonGroups.length} persone con eventi futuri
               </p>
@@ -2083,8 +2086,10 @@ export default function TicketTailorAdminPage() {
                   />
                 ))
               ) : (
-                <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/60 px-4 py-8 text-center text-sm text-[#5f524c]">
-                  Nessuna persona con eventi futuri caricata.
+                <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/60 px-5 py-10 text-center text-sm leading-6 text-[#5f524c]">
+                  Nessuna persona caricata. Inserisci il codice admin e clicca
+                  Carica persone. Se non compaiono risultati, aggiorna prima i
+                  dati Ticket Tailor.
                 </div>
               )}
             </div>
@@ -2101,15 +2106,12 @@ export default function TicketTailorAdminPage() {
           >
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div className="flex gap-4">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#211815] font-serif text-2xl text-[#f4efe8]">
-                4
-              </span>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-                  Fase 4
+                <p className="text-xs font-semibold text-[#8b5e4a]">
+                  Dettaglio tecnico
                 </p>
-                <h2 className="mt-2 font-serif text-3xl font-medium">
-                  4. Verifica tessere dei partecipanti
+                <h2 className="mt-2 font-serif text-2xl font-medium">
+                  Verifica tessere dei partecipanti
                 </h2>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
                   Confronta i partecipanti importati da Ticket Tailor con i soci
@@ -2389,15 +2391,12 @@ export default function TicketTailorAdminPage() {
           >
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div className="flex gap-4">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#211815] font-serif text-2xl text-[#f4efe8]">
-                2
-              </span>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-                  Fase 2
+                <p className="text-xs font-semibold text-[#8b5e4a]">
+                  Registrazioni soci
                 </p>
-                <h2 className="mt-2 font-serif text-3xl font-medium">
-                  2. Aggiorna nuove iscrizioni
+                <h2 className="mt-2 font-serif text-2xl font-medium">
+                  Controlla/importa registrazioni form
                 </h2>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
                   Legge il Google Sheet collegato al form associativo e importa
@@ -2687,15 +2686,12 @@ export default function TicketTailorAdminPage() {
           >
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div className="flex gap-4">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#211815] font-serif text-2xl text-[#f4efe8]">
-                1
-              </span>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-                  Fase 1
+                <p className="text-xs font-semibold text-[#8b5e4a]">
+                  Storico libro soci
                 </p>
-                <h2 className="mt-2 font-serif text-3xl font-medium">
-                  1. Aggiorna libro soci ufficiale
+                <h2 className="mt-2 font-serif text-2xl font-medium">
+                  Libro soci ufficiale
                 </h2>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
                   Legge il tab &lsquo;libro soci&rsquo; e aggiorna lo stato
@@ -3034,7 +3030,7 @@ export default function TicketTailorAdminPage() {
                 setImportSociMatchPreview(null);
                 setImportSociMatchError(null);
               }}
-              placeholder={"Nome\tCognome\nMario Rossi\nAnna Maria\tSiviero\\"}
+              placeholder={"Nome\tCognome\nMario Rossi\nAnna Maria\tSiviero"}
             />
           </label>
 
@@ -3148,22 +3144,18 @@ export default function TicketTailorAdminPage() {
 
         <AdminStepSection
           isOpen={openAdminSections.participants}
-          number="5"
           summary={adminSectionSummaries.participants}
-          title="Controlla partecipanti evento"
+          title="Partecipanti evento / dettaglio tecnico"
           onToggle={() => toggleAdminSection("participants")}
         >
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="flex gap-4">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#211815] font-serif text-2xl text-[#f4efe8]">
-                5
-              </span>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-                  Fase 5
+                <p className="text-sm font-semibold text-[#8b5e4a]">
+                  Dettaglio tecnico
                 </p>
                 <h2 className="mt-2 font-serif text-3xl font-medium">
-                  5. Controlla partecipanti evento
+                  Partecipanti evento / dettaglio tecnico
                 </h2>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
                   Mostra acquirenti, partecipanti, check-in e stato tessera
@@ -3669,15 +3661,12 @@ export default function TicketTailorAdminPage() {
         >
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div className="flex gap-4">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#211815] font-serif text-2xl text-[#f4efe8]">
-                6
-              </span>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-                  Fase 6
+                <p className="text-xs font-semibold text-[#8b5e4a]">
+                  Recap tecnico
                 </p>
-                <h2 className="mt-2 font-serif text-3xl font-medium">
-                  6. Recap tessere partecipanti
+                <h2 className="mt-2 font-serif text-2xl font-medium">
+                  Recap tessere partecipanti
                 </h2>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
                   Tabella finale di controllo. Mostra solo i partecipanti
@@ -4608,7 +4597,7 @@ function AssociationEditModal({
             type="button"
             onClick={onClose}
           >
-            Chiudi
+            Torna alla lista
           </button>
         </div>
 
@@ -4802,7 +4791,6 @@ function ImportSociMatchBlock({
 function AdminStepSection({
   children,
   isOpen,
-  number,
   onToggle,
   summary,
   title,
@@ -4815,40 +4803,28 @@ function AdminStepSection({
   title: string;
 }) {
   return (
-    <section className="mt-6 rounded-[8px] border border-[#211815]/10 bg-white/55 shadow-[0_12px_36px_rgba(33,24,21,0.05)]">
+    <section className="mt-5 rounded-[8px] border border-[#211815]/10 bg-white/60 shadow-[0_10px_28px_rgba(33,24,21,0.04)]">
       <button
-        className="flex w-full flex-col gap-3 p-5 text-left transition hover:bg-[#f4efe8]/50 md:flex-row md:items-center md:justify-between md:p-6"
+        className="flex w-full flex-col gap-3 p-4 text-left transition hover:bg-[#f4efe8]/45 md:flex-row md:items-center md:justify-between md:p-5"
         type="button"
         aria-expanded={isOpen}
         onClick={onToggle}
       >
-        <span className="flex items-center gap-4">
-          {number ? (
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#211815] font-serif text-xl text-[#f4efe8]">
-              {number}
-            </span>
-          ) : null}
-          <span>
-            <span className="block text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-              {number ? `Fase ${number}` : "Area"}
-            </span>
-            <span className="mt-1 block font-serif text-2xl font-medium text-[#211815] md:text-3xl">
-              {title}
-            </span>
+        <span>
+          <span className="block font-serif text-xl font-medium text-[#211815] md:text-2xl">
+            {title}
           </span>
-        </span>
-        <span className="flex flex-col gap-2 md:items-end">
-          <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+          <span className="mt-1 block text-sm leading-6 text-[#5f524c]">
             {summary}
           </span>
-          <span className="inline-flex rounded-full border border-[#211815]/15 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#211815]">
-            {isOpen ? "Chiudi" : "Apri"}
-          </span>
+        </span>
+        <span className="inline-flex w-fit rounded-full border border-[#211815]/15 px-4 py-2 text-xs font-semibold text-[#211815]">
+          {isOpen ? "Nascondi dettagli" : "Mostra dettagli"}
         </span>
       </button>
 
       {isOpen ? (
-        <div className="border-t border-[#211815]/10 p-5 md:p-7">{children}</div>
+        <div className="border-t border-[#211815]/10 p-4 md:p-6">{children}</div>
       ) : null}
     </section>
   );
