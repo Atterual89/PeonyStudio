@@ -39,42 +39,42 @@ export function SiteHeader() {
     <>
       <header
         className={`sticky top-0 z-50 px-3 transition-[padding] duration-300 sm:px-4 ${
-          scrolled ? "py-2" : "py-3.5"
+          scrolled ? "py-2" : "py-3 md:py-4"
         }`}
       >
         <div
-          className={`mx-auto flex max-w-6xl items-center justify-between rounded-full border border-[#211815]/10 bg-[#f4efe8]/[0.82] py-2 pl-4 pr-2 backdrop-blur-[14px] transition-shadow duration-300 sm:pl-5 ${
+          className={`mx-auto flex max-w-6xl items-center justify-between rounded-full border border-[#211815]/10 bg-[#f4efe8]/[0.78] py-2 pl-4 pr-2 backdrop-blur-[18px] transition-shadow duration-300 sm:pl-5 xl:gap-4 xl:px-3 ${
             scrolled
-              ? "shadow-[0_4px_24px_rgba(33,24,21,0.08)]"
-              : "shadow-[0_1px_0_rgba(33,24,21,0.04)]"
+              ? "shadow-[0_8px_28px_rgba(33,24,21,0.08)]"
+              : "shadow-[0_1px_0_rgba(33,24,21,0.035)]"
           }`}
         >
           <Link href="/" aria-label={dictionary.chrome.homeAria}>
             <BrandLogo compact />
           </Link>
 
-          <nav className="hidden items-center gap-4 text-[12px] font-medium text-[#5f524c] xl:flex">
+          <nav className="hidden items-center gap-1 rounded-full border border-[#211815]/8 bg-white/30 p-1 text-[12px] font-medium text-[#5f524c] lg:flex">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="transition-colors hover:text-[#8b5e4a]"
+                className="rounded-full px-3 py-2 transition-colors hover:bg-[#f4efe8]/80 hover:text-[#8b5e4a]"
               >
                 {item.label}
               </Link>
             ))}
           </nav>
 
-          <div className="hidden items-center gap-2 xl:flex">
+          <div className="hidden items-center gap-2 rounded-full border border-[#211815]/8 bg-white/30 px-1.5 py-1 lg:flex">
             <LanguageSelector />
           </div>
 
-          <div className="flex items-center gap-2 xl:hidden">
+          <div className="flex items-center gap-2 lg:hidden">
             <LanguageSelector compact />
             <button
               type="button"
               onClick={() => setOpen(true)}
-              className="hidden md:flex h-10 items-center rounded-full border border-[#211815]/20 bg-white/60 px-4 text-sm font-medium text-[#211815] transition hover:bg-white/85"
+              className="hidden h-10 items-center rounded-full border border-[#211815]/20 bg-white/60 px-4 text-sm font-medium text-[#211815] transition hover:bg-white/85 md:flex"
             >
               {dictionary.chrome.menu}
             </button>
@@ -83,7 +83,7 @@ export function SiteHeader() {
       </header>
 
       <div
-        className={`fixed inset-0 z-[200] flex flex-col bg-[#f4efe8]/[0.97] px-5 py-5 backdrop-blur-xl transition-opacity duration-300 xl:hidden ${
+        className={`fixed inset-0 z-[200] flex flex-col bg-[#f4efe8]/[0.97] px-5 py-5 backdrop-blur-xl transition-opacity duration-300 lg:hidden ${
           open ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       >
@@ -95,7 +95,7 @@ export function SiteHeader() {
             aria-label={dictionary.chrome.closeMenu}
             className="grid h-11 w-11 place-items-center rounded-full border border-[#211815]/20 bg-white/70 text-lg text-[#211815]"
           >
-            x
+            ×
           </button>
         </div>
 

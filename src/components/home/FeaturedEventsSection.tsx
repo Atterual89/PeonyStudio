@@ -93,8 +93,8 @@ export function FeaturedEventsSection({
   const resolvedCtaLabel = ctaLabel ?? eventsDict.ctaLabel;
 
   return (
-    <section className="py-12 md:py-20">
-      <div className="mx-auto mb-6 flex max-w-6xl items-end justify-between gap-4 px-5 sm:px-6">
+    <section className="py-10 md:py-16">
+      <div className="mx-auto mb-5 flex max-w-6xl items-end justify-between gap-4 px-5 sm:px-6">
         <motion.div
           initial={reduceMotion ? false : { opacity: 0, y: 28 }}
           whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
@@ -104,13 +104,13 @@ export function FeaturedEventsSection({
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
             {resolvedEyebrow}
           </p>
-          <h2 className="mt-2 font-serif text-[32px] font-medium leading-[1.1] tracking-normal md:text-5xl">
+          <h2 className="mt-2 font-serif text-[32px] font-medium leading-[1.1] tracking-normal md:text-[44px]">
             {resolvedTitle}
           </h2>
         </motion.div>
         <Link
           href={ctaHref}
-          className="shrink-0 text-sm font-medium text-[#8b5e4a] transition hover:translate-x-1"
+          className="shrink-0 rounded-full border border-[#211815]/10 bg-white/35 px-4 py-2 text-sm font-medium text-[#8b5e4a] transition hover:bg-white/65"
         >
           {resolvedCtaLabel}
         </Link>
@@ -127,27 +127,23 @@ export function FeaturedEventsSection({
           {featured ? (
             <Link
               href={featured.eventUrl}
-              className="group relative flex min-h-[420px] w-[min(82vw,340px)] shrink-0 flex-col overflow-hidden rounded-[8px] border border-[#211815] bg-[#211815] p-5 text-[#f4efe8] [scroll-snap-align:start] shadow-[0_4px_16px_rgba(33,24,21,0.15)] transition duration-500 hover:-translate-y-[3px] hover:shadow-[0_14px_36px_rgba(33,24,21,0.30)]"
+              className="group relative flex w-[min(82vw,330px)] shrink-0 flex-col overflow-hidden rounded-[14px] border border-[#211815] bg-[#211815] p-4 text-[#f4efe8] [scroll-snap-align:start] shadow-[0_4px_16px_rgba(33,24,21,0.15)] transition duration-300 hover:-translate-y-[3px] hover:shadow-[0_14px_36px_rgba(33,24,21,0.24)] md:w-[360px]"
             >
-              <span
-                aria-hidden="true"
-                className="absolute -right-8 -top-8 h-[120px] w-[120px] rounded-full bg-[#d6b89f]/15"
-              />
-              <div className="relative mb-4 overflow-hidden rounded-[6px] border border-[#f4efe8]/10">
+              <div className="relative mb-4 overflow-hidden rounded-[10px] border border-[#f4efe8]/10">
                 <EventImage
                   src={featured.image ?? "/images/home/event-rope-jam.jpg"}
                   alt={featured.title}
                   variant="hero"
-                  className="h-36 w-full md:h-40"
+                  className="h-36 w-full md:h-44"
                 />
               </div>
               <p className="relative text-[10px] font-semibold uppercase tracking-[0.2em] text-[#d6b89f]">
                 {featured.category}
               </p>
-              <h3 className="relative mt-3 font-serif text-[38px] font-medium leading-[1.05] tracking-normal">
+              <h3 className="relative mt-3 font-serif text-[30px] font-medium leading-[1.05] tracking-normal md:text-[34px]">
                 {featured.title}
               </h3>
-              <div className="mt-auto">
+              <div className="mt-5">
                 <Countdown target={featured.target} />
                 <div className="mt-3 border-t border-[#f4efe8]/15 pt-3">
                   <p className="text-sm font-semibold">{featured.date}</p>
@@ -160,7 +156,7 @@ export function FeaturedEventsSection({
               </div>
             </Link>
           ) : (
-            <article className="relative flex min-h-[320px] w-[min(82vw,340px)] shrink-0 flex-col justify-between overflow-hidden rounded-[8px] border border-[#211815] bg-[#211815] p-5 text-[#f4efe8] [scroll-snap-align:start] shadow-[0_4px_16px_rgba(33,24,21,0.15)]">
+            <article className="relative flex w-[min(82vw,330px)] shrink-0 flex-col justify-between overflow-hidden rounded-[14px] border border-[#211815] bg-[#211815] p-5 text-[#f4efe8] [scroll-snap-align:start] shadow-[0_4px_16px_rgba(33,24,21,0.15)] md:w-[360px]">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#d6b89f]">
                 {eventsDict.fallback.eyebrow}
               </p>
@@ -180,13 +176,9 @@ export function FeaturedEventsSection({
             <Link
               key={`${event.category}-${event.title}`}
               href={event.eventUrl}
-              className="group relative flex w-[min(74vw,285px)] shrink-0 flex-col overflow-hidden rounded-[8px] border border-[#211815]/10 bg-white/65 p-[18px] [scroll-snap-align:start] shadow-[0_1px_0_rgba(33,24,21,0.04)] transition duration-500 hover:-translate-y-[3px] hover:shadow-[0_12px_30px_rgba(33,24,21,0.08)]"
+              className="group relative flex w-[min(72vw,250px)] shrink-0 flex-col overflow-hidden rounded-[14px] border border-[#211815]/10 bg-white/60 [scroll-snap-align:start] shadow-[0_1px_0_rgba(33,24,21,0.04)] transition duration-300 hover:-translate-y-[3px] hover:bg-white/75 hover:shadow-[0_12px_30px_rgba(33,24,21,0.08)] md:w-[270px]"
             >
-              <span
-                aria-hidden="true"
-                className="absolute -right-8 -top-8 h-[110px] w-[110px] rounded-full bg-[#d6b89f]/20"
-              />
-              <div className="relative mb-3.5 overflow-hidden rounded-[6px] border border-[#211815]/10">
+              <div className="relative overflow-hidden border-b border-[#211815]/10">
                 <EventImage
                   src={event.image ?? "/images/home/event-foundation.jpg"}
                   alt={event.title}
@@ -194,21 +186,26 @@ export function FeaturedEventsSection({
                   className="h-32 w-full md:h-36"
                 />
               </div>
-              <p className="relative text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8b5e4a]">
-                {event.category}
-              </p>
-              <h3 className="relative mt-2.5 font-serif text-2xl font-medium leading-[1.15] tracking-normal text-[#211815]">
-                {event.title}
-              </h3>
-              <div className="mt-auto border-t border-[#211815]/10 pt-3">
-                <p className="text-sm font-semibold text-[#211815]">
-                  {event.date}
-                </p>
+              <div className="flex flex-1 flex-col p-3.5">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-[#8b5e4a]/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#8b5e4a]">
+                    {event.category}
+                  </span>
+                  <span className="text-[11px] text-[#6b5c52]">
+                    {event.date}
+                  </span>
+                </div>
+                <h3 className="mt-2 font-serif text-xl font-medium leading-[1.12] tracking-normal text-[#211815]">
+                  {event.title}
+                </h3>
                 {event.detail ? (
-                  <p className="mt-1 overflow-hidden text-xs leading-[1.45] text-[#5f524c] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+                  <p className="mt-2 overflow-hidden text-xs leading-[1.45] text-[#5f524c] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
                     {event.detail}
                   </p>
                 ) : null}
+                <p className="mt-auto pt-4 text-xs font-medium text-[#8b5e4a]">
+                  {resolvedCtaLabel} →
+                </p>
               </div>
             </Link>
           ))}

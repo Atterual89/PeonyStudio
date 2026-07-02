@@ -138,7 +138,7 @@ export const it = {
       },
       partner: {
         title: "Partner / accompagnatore",
-        text: "Uno spazio che arrivera piu avanti.",
+        text: "Uno spazio che arriverà più avanti.",
       },
       path: {
         title: "Il mio percorso",
@@ -181,7 +181,7 @@ export const it = {
       noEvents:
         "Non risultano ancora eventi associati a questa email. Se hai prenotato con un'altra email, accedi usando quella.",
       membershipUnknown:
-        "Lo stato della tessera sara verificato dallo staff.",
+        "Lo stato della tessera sarà verificato dallo staff.",
       membershipManual:
         "Questo stato viene aggiornato manualmente dallo staff.",
       membershipHelp: "Se hai dubbi, scrivici prima dell'evento.",
@@ -200,7 +200,7 @@ export const it = {
       partner:
         "In futuro potrai indicare qui la persona con cui parteciperai. Per ora, se hai bisogno di comunicarci qualcosa prima di un evento, scrivici sui canali abituali.",
       path:
-        "Pratica assistita e classi tematiche accompagnano il percorso come attivita parallele. La logica di progresso arrivera in uno step successivo.",
+        "Pratica assistita e classi tematiche accompagnano il percorso come attività parallele. La logica di progresso arriverà in uno step successivo.",
     },
     statuses: {
       confirmed: "Iscrizione confermata",
@@ -244,7 +244,7 @@ export const it = {
     dashboardEyebrow: "Area personale",
     dashboardTitle: "Il tuo percorso, quando accedi",
     dashboardText:
-      "Nella dashboard personale potrai ritrovare iscrizioni, eventi seguiti, storico attivita e, in prospettiva, il percorso suggerito in base alla tua esperienza.",
+      "Nella dashboard personale potrai ritrovare iscrizioni, eventi seguiti, storico attività e, in prospettiva, il percorso suggerito in base alla tua esperienza.",
     dashboardCta: "Area personale",
     quizEyebrow: "Orientamento interno",
     quizTitle: "Da dove partire nel percorso?",
@@ -722,11 +722,11 @@ export const it = {
     sections: {
       upcoming: {
         title: "Prossimi appuntamenti",
-        subtitle: "Le date piu vicine, ordinate per giorno.",
+        subtitle: "Le date più vicine, ordinate per giorno.",
       },
       percorso: {
         title: "Percorsi",
-        subtitle: "Cicli e classi strutturate per costruire continuita.",
+        subtitle: "Cicli e classi strutturate per costruire continuità.",
       },
       pratica: {
         title: "Pratica",

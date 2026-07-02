@@ -81,7 +81,6 @@ export function CalendarExplorer({
   const [category, setCategory] = useState<CategoryFilter>("all");
   const [period, setPeriod] = useState<PeriodFilter>("all");
   const [activeTags, setActiveTags] = useState<string[]>([]);
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [visibleMonth, setVisibleMonth] = useState(
     firstFutureEvent ? getMonthKey(firstFutureEvent.date) : getMonthKey(today),
@@ -394,69 +393,49 @@ export function CalendarExplorer({
         />
       </div>
 
-      {/* desktop: layout calendario invariato */}
       <div className="hidden md:block">
-      <div className="rounded-[8px] border border-[#211815]/10 bg-white/38 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] md:p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h2 className="font-serif text-2xl font-medium leading-none">
-              {copy.filters}
-            </h2>
-            <p className="mt-1 text-xs text-[#5f524c]">{filterSummary}</p>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {hasActiveFilters ? (
-              <button
-                type="button"
-                onClick={resetFilters}
-                className="rounded-full border border-[#211815]/10 bg-[#f4efe8]/70 px-3 py-2 text-xs font-medium text-[#5f524c] transition hover:bg-white/70"
-              >
-                {copy.resetFilters}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              aria-expanded={filtersOpen}
-              onClick={() => setFiltersOpen((open) => !open)}
-              className="rounded-full bg-[#211815] px-4 py-2 text-xs font-medium text-white transition hover:-translate-y-0.5"
-            >
-              {filtersOpen ? copy.hideFilters : copy.showFilters}
-            </button>
-          </div>
-        </div>
-
-        <div
-          className={`grid transition-[grid-template-rows] duration-300 motion-reduce:transition-none ${
-            filtersOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-          }`}
-        >
-          <div className="overflow-hidden">
-            <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto_auto] md:items-center">
-              <label className="block">
-                <span className="sr-only">{copy.searchEvent}</span>
-                <input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder={copy.searchPlaceholder}
-                  className="h-11 w-full rounded-full border border-[#211815]/10 bg-[#f4efe8]/70 px-4 text-sm text-[#211815] outline-none transition placeholder:text-[#5f524c]/60 focus:border-[#8b5e4a]/60 focus:bg-white/70"
-                />
-              </label>
-              <FilterGroup
-                label={copy.category}
-                options={categoryFilterOptions}
-                value={category}
-                onChange={(value) => setCategory(value)}
+        <div className="rounded-[14px] border border-[#211815]/10 bg-white/30 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]">
+          <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-start">
+            <label className="block">
+              <span className="sr-only">{copy.searchEvent}</span>
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={copy.searchPlaceholder}
+                className="h-11 w-full border-b border-[#211815]/20 bg-transparent text-sm text-[#211815] outline-none transition placeholder:text-[#5f524c]/60 focus:border-[#8b5e4a]"
               />
-              <FilterGroup
-                label={copy.period}
-                options={periodFilterOptions}
-                value={period}
-                onChange={(value) => setPeriod(value)}
-              />
+            </label>
+            <div className="flex items-center gap-2">
+              <span className="max-w-[260px] truncate text-xs text-[#5f524c]">
+                {filterSummary}
+              </span>
+              {hasActiveFilters ? (
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="shrink-0 rounded-full border border-[#211815]/10 bg-[#f4efe8]/70 px-3 py-2 text-xs font-medium text-[#5f524c] transition hover:bg-white/70"
+                >
+                  {copy.resetFilters}
+                </button>
+              ) : null}
             </div>
+          </div>
 
+          <div className="mt-4 grid gap-3">
+            <FilterGroup
+              label={copy.category}
+              options={categoryFilterOptions}
+              value={category}
+              onChange={(value) => setCategory(value)}
+            />
+            <FilterGroup
+              label={copy.period}
+              options={periodFilterOptions}
+              value={period}
+              onChange={(value) => setPeriod(value)}
+            />
             {availableTags.length ? (
-              <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex flex-wrap gap-2 pb-1">
                 <button
                   type="button"
                   onClick={() => setActiveTags([])}
@@ -478,138 +457,131 @@ export function CalendarExplorer({
             ) : null}
           </div>
         </div>
-      </div>
 
-      {!hasResults ? (
-        <div className="mt-6 rounded-[8px] border border-[#211815]/10 bg-white/45 p-6">
-          <h2 className="font-serif text-3xl font-medium leading-[1.08] tracking-normal">
-            {copy.noResults}
-          </h2>
-          <button
-            type="button"
-            onClick={resetFilters}
-            className="mt-5 mr-2 inline-flex rounded-full border border-[#211815]/20 bg-[#f4efe8]/70 px-5 py-3 text-sm font-medium text-[#211815]"
-          >
-            {copy.resetFilters}
-          </button>
-          <Link
-            href={ticketTailorUrl}
-            className="mt-5 inline-flex rounded-full bg-[#211815] px-5 py-3 text-sm font-medium text-white"
-          >
-            {copy.openTicketTailor}
-          </Link>
-        </div>
-      ) : (
-        <>
-          <section className="mt-5 rounded-[8px] border border-[#211815]/10 bg-white/38 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] md:p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="font-serif text-2xl font-medium leading-none">
-                  {copy.monthlyCalendar}
-                </h2>
-                <p className="mt-1 text-xs text-[#5f524c]">
-                  {formatMonthLabel(visibleMonth, locale)} Â· {filteredEvents.length} {copy.filteredEvents}
-                </p>
-              </div>
-              <button
-                type="button"
-                aria-expanded={calendarOpen}
-                onClick={() => setCalendarOpen((open) => !open)}
-                className="rounded-full bg-[#211815] px-4 py-2 text-xs font-medium text-white transition hover:-translate-y-0.5"
-              >
-                {calendarOpen ? copy.hideCalendar : copy.showCalendar}
-              </button>
+        <section className="mt-5 rounded-[14px] border border-[#211815]/10 bg-white/30 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-serif text-2xl font-medium leading-none">
+                {copy.monthlyCalendar}
+              </h2>
+              <p className="mt-1 text-xs text-[#5f524c]">
+                {formatMonthLabel(visibleMonth, locale)} · {filteredEvents.length} {copy.filteredEvents}
+              </p>
             </div>
-
-            <div
-              className={`grid transition-[grid-template-rows] duration-300 motion-reduce:transition-none ${
-                calendarOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-              }`}
+            <button
+              type="button"
+              aria-expanded={calendarOpen}
+              onClick={() => setCalendarOpen((open) => !open)}
+              className="rounded-full border border-[#211815]/10 bg-[#211815] px-4 py-2 text-xs font-medium text-white transition hover:-translate-y-0.5"
             >
-              <div className="overflow-hidden">
-                <div className="mt-4 grid gap-4 lg:grid-cols-[0.92fr_1.08fr]">
-                  <div className="rounded-[8px] border border-[#211815]/10 bg-white/45 p-4 md:p-5">
-                    <div className="flex items-center justify-between gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setVisibleMonth(shiftMonth(visibleMonth, -1))}
-                        className="grid h-10 w-10 place-items-center rounded-full border border-[#211815]/10 bg-[#f4efe8]/60 text-lg text-[#8b5e4a] transition hover:bg-white/70"
-                        aria-label={copy.previousMonth}
-                      >
-                        â€¹
-                      </button>
-                      <h3 className="font-serif text-3xl font-medium capitalize leading-[1.05] md:text-4xl">
-                        {formatMonthLabel(visibleMonth, locale)}
-                      </h3>
-                      <button
-                        type="button"
-                        onClick={() => setVisibleMonth(shiftMonth(visibleMonth, 1))}
-                        className="grid h-10 w-10 place-items-center rounded-full border border-[#211815]/10 bg-[#f4efe8]/60 text-lg text-[#8b5e4a] transition hover:bg-white/70"
-                        aria-label={copy.nextMonth}
-                      >
-                        â€º
-                      </button>
-                    </div>
+              {calendarOpen ? copy.hideCalendar : copy.showCalendar}
+            </button>
+          </div>
 
-                    <div className="mt-5 grid grid-cols-7 gap-1 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
-                      {["L", "M", "M", "G", "V", "S", "D"].map((day, index) => (
-                        <span key={`${day}-${index}`}>{day}</span>
-                      ))}
-                    </div>
-                    <div className="mt-2 grid grid-cols-7 gap-1.5">
-                      {monthCells.map((cell) => (
-                        <button
-                          key={cell.date}
-                          type="button"
-                          disabled={!cell.inMonth}
-                          onClick={() => setSelectedDay(cell.date)}
-                          className={dayButtonClass({
-                            isSelected: cell.date === effectiveSelectedDay,
-                            hasEvents: cell.events.length > 0,
-                            inMonth: cell.inMonth,
-                          })}
-                        >
-                          <span>{Number(cell.date.slice(-2))}</span>
-                          {cell.events.length ? (
-                            <span className="mt-1 inline-flex min-h-4 min-w-4 items-center justify-center rounded-full bg-[#8b5e4a]/15 px-1 text-[10px] font-semibold text-[#8b5e4a]">
-                              {cell.events.length}
-                            </span>
-                          ) : null}
-                        </button>
-                      ))}
-                    </div>
+          <div
+            className={`grid transition-[grid-template-rows] duration-300 motion-reduce:transition-none ${
+              calendarOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+            }`}
+          >
+            <div className="overflow-hidden">
+              <div className="mt-4 grid gap-4 lg:grid-cols-[0.82fr_1.18fr]">
+                <div className="rounded-[12px] border border-[#211815]/10 bg-[#f4efe8]/45 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setVisibleMonth(shiftMonth(visibleMonth, -1))}
+                      className="grid h-9 w-9 place-items-center rounded-full border border-[#211815]/10 bg-white/50 text-base text-[#8b5e4a] transition hover:bg-white/80"
+                      aria-label={copy.previousMonth}
+                    >
+                      ‹
+                    </button>
+                    <h3 className="font-serif text-2xl font-medium capitalize leading-[1.05]">
+                      {formatMonthLabel(visibleMonth, locale)}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setVisibleMonth(shiftMonth(visibleMonth, 1))}
+                      className="grid h-9 w-9 place-items-center rounded-full border border-[#211815]/10 bg-white/50 text-base text-[#8b5e4a] transition hover:bg-white/80"
+                      aria-label={copy.nextMonth}
+                    >
+                      ›
+                    </button>
                   </div>
 
-                  <div className="rounded-[8px] border border-[#211815]/10 bg-white/45 p-4 md:p-5">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-                      {copy.selectedDay}
-                    </p>
-                    <h3 className="mt-2 font-serif text-3xl font-medium leading-[1.06] md:text-4xl">
-                      {copy.eventsOf} {formatDayTitle(effectiveSelectedDay, locale)}
-                    </h3>
-                    <div className="mt-4 flex gap-3 overflow-x-auto pb-2 [scroll-snap-type:x_mandatory] [scrollbar-width:thin] [scrollbar-color:#8b5e4a33_transparent]">
-                      {selectedDayEvents.length ? (
-                        selectedDayEvents.map((event) => (
-                          <EventCard
-                            key={event.id}
-                            event={event}
-                            copy={copy}
-                            locale={locale}
-                            ticketTailorUrl={ticketTailorUrl}
-                          />
-                        ))
-                      ) : (
-                        <p className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/60 p-4 text-sm text-[#5f524c]">
-                          {copy.noEventsDay}
-                        </p>
-                      )}
-                    </div>
+                  <div className="mt-4 grid grid-cols-7 gap-1 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
+                    {["L", "M", "M", "G", "V", "S", "D"].map((day, index) => (
+                      <span key={`${day}-${index}`}>{day}</span>
+                    ))}
+                  </div>
+                  <div className="mt-2 grid grid-cols-7 gap-1">
+                    {monthCells.map((cell) => (
+                      <button
+                        key={cell.date}
+                        type="button"
+                        disabled={!cell.inMonth}
+                        onClick={() => setSelectedDay(cell.date)}
+                        className={dayButtonClass({
+                          isSelected: cell.date === effectiveSelectedDay,
+                          hasEvents: cell.events.length > 0,
+                          inMonth: cell.inMonth,
+                        })}
+                      >
+                        <span>{Number(cell.date.slice(-2))}</span>
+                        {cell.events.length ? (
+                          <span className="mt-1 h-1 w-1 rounded-full bg-current opacity-70" />
+                        ) : null}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="min-w-0 rounded-[12px] border border-[#211815]/10 bg-[#f4efe8]/45 p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+                    {copy.eventsOf} {formatDayTitle(effectiveSelectedDay, locale)}
+                  </p>
+                  <div className="mt-3 flex gap-3 overflow-x-auto pb-2 [scroll-snap-type:x_mandatory] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {selectedDayEvents.length ? (
+                      selectedDayEvents.map((event) => (
+                        <EventCard
+                          key={event.id}
+                          event={event}
+                          copy={copy}
+                          locale={locale}
+                          ticketTailorUrl={ticketTailorUrl}
+                        />
+                      ))
+                    ) : (
+                      <p className="rounded-[8px] border border-[#211815]/10 bg-white/45 p-4 text-sm text-[#5f524c]">
+                        {copy.noEventsDay}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
-          </section>
+          </div>
+        </section>
 
+        {!hasResults ? (
+          <div className="mt-6 rounded-[14px] border border-[#211815]/10 bg-white/45 p-6">
+            <h2 className="font-serif text-3xl font-medium leading-[1.08] tracking-normal">
+              {copy.noResults}
+            </h2>
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="mt-5 mr-2 inline-flex rounded-full border border-[#211815]/20 bg-[#f4efe8]/70 px-5 py-3 text-sm font-medium text-[#211815]"
+            >
+              {copy.resetFilters}
+            </button>
+            <Link
+              href={ticketTailorUrl}
+              className="mt-5 inline-flex rounded-full bg-[#211815] px-5 py-3 text-sm font-medium text-white"
+            >
+              {copy.openTicketTailor}
+            </Link>
+          </div>
+        ) : (
           <div className="mt-7 grid gap-5">
             {sectionItems.map((section) => {
               const sectionCategory =
@@ -647,8 +619,7 @@ export function CalendarExplorer({
               );
             })}
           </div>
-        </>
-      )}
+        )}
       </div>
     </section>
   );
@@ -670,7 +641,7 @@ function FilterGroup<T extends string>({
       <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8b5e4a] md:sr-only">
         {label}
       </p>
-      <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] md:max-w-[360px] [&::-webkit-scrollbar]:hidden">
+      <div className="flex flex-wrap gap-2 pb-1">
         {options.map((option) => (
           <button
             key={option.value}
@@ -706,10 +677,10 @@ function EventRail({
   locale: string;
 }) {
   return (
-    <section className="rounded-[8px] border border-[#211815]/10 bg-white/35 p-4 md:p-5">
-      <div className="flex items-start justify-between gap-4">
+    <section className="overflow-hidden rounded-[14px] border border-[#211815]/10 bg-white/30 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]">
+      <div className="flex items-start justify-between gap-4 px-4 md:px-5">
         <div>
-          <h2 className="font-serif text-3xl font-medium leading-[1.05] md:text-4xl">
+          <h2 className="font-serif text-3xl font-medium leading-[1.05] md:text-[34px]">
             {title}
           </h2>
           <p className="mt-1 max-w-2xl text-sm leading-[1.6] text-[#5f524c]">
@@ -720,9 +691,9 @@ function EventRail({
           type="button"
           aria-expanded={open}
           onClick={onToggle}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[#211815]/10 bg-[#f4efe8]/60 text-xl leading-none text-[#8b5e4a] transition hover:bg-white/70"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[#211815]/10 bg-[#f4efe8]/60 text-lg leading-none text-[#8b5e4a] transition hover:bg-white/70"
         >
-          {open ? "âˆ’" : "+"}
+          {open ? "−" : "+"}
         </button>
       </div>
       <div
@@ -731,7 +702,7 @@ function EventRail({
         }`}
       >
         <div className="overflow-hidden">
-          <div className="mt-4 flex gap-3 overflow-x-auto px-4 pb-2 scroll-px-4 [scroll-snap-type:x_mandatory] [scrollbar-width:thin] [scrollbar-color:#8b5e4a33_transparent]">
+          <div className="mt-4 flex gap-3 overflow-x-auto px-4 pb-2 scroll-px-4 [scroll-snap-type:x_mandatory] [scrollbar-width:none] md:px-5 [&::-webkit-scrollbar]:hidden">
             {events.map((event) => (
               <EventCard
                 key={event.id}
@@ -765,7 +736,7 @@ function EventCard({
     : `/eventi/${event.slug}`;
 
   return (
-    <article className="group w-[min(calc((100vw-32px)/1.25),340px)] shrink-0 overflow-hidden rounded-[8px] border border-[#211815]/10 bg-white/65 shadow-[0_1px_0_rgba(33,24,21,0.04)] transition hover:-translate-y-[3px] hover:shadow-[0_12px_30px_rgba(33,24,21,0.10)] [scroll-snap-align:start]">
+    <article className="group w-[min(calc((100vw-32px)/1.25),320px)] shrink-0 overflow-hidden rounded-[14px] border border-[#211815]/10 bg-white/62 shadow-[0_1px_0_rgba(33,24,21,0.04)] transition hover:-translate-y-[3px] hover:bg-white/80 hover:shadow-[0_12px_30px_rgba(33,24,21,0.10)] [scroll-snap-align:start] md:w-[270px]">
       <Link
         href={detailHref}
         className="relative block overflow-hidden bg-[#efe4d7]"
@@ -774,10 +745,10 @@ function EventCard({
           src={image}
           alt={event.title}
           variant="card"
-          className="h-28"
+          className="h-28 md:h-32"
         />
       </Link>
-      <div className="flex min-w-0 flex-col p-4">
+      <div className="flex min-w-0 flex-col p-3.5">
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full bg-[#8b5e4a]/10 px-2.5 py-1 text-[10px] uppercase tracking-wide text-[#5f524c]">
             {categoryLabel(event.category, copy)}
@@ -787,7 +758,7 @@ function EventCard({
           </span>
         </div>
         <Link href={detailHref} className="mt-2 block">
-          <h3 className="font-serif text-2xl font-medium leading-[1.08] tracking-normal text-[#211815]">
+          <h3 className="font-serif text-xl font-medium leading-[1.1] tracking-normal text-[#211815]">
             {event.title}
           </h3>
         </Link>
@@ -852,7 +823,7 @@ function dayButtonClass({
   hasEvents: boolean;
   inMonth: boolean;
 }) {
-  return `flex min-h-[58px] flex-col items-center justify-center rounded-[8px] border text-sm transition md:min-h-[66px] ${
+  return `flex min-h-[44px] flex-col items-center justify-center rounded-[10px] border text-sm transition md:min-h-[48px] ${
     isSelected
       ? "border-[#211815] bg-[#211815] text-white"
       : hasEvents

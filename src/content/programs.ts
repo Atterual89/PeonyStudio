@@ -64,7 +64,7 @@ export const programsContent = {
         "esercizi completi e riproducibili",
       ],
       audience:
-        "Per chi inizia o vuole costruire fondamenta tecniche chiare e solide.",
+        "Per coppie che iniziano o vogliono costruire fondamenta tecniche chiare e solide.",
     },
     {
       title: "Foundation 2",
@@ -78,7 +78,7 @@ export const programsContent = {
         "continuità tra pattern e transizioni",
       ],
       audience:
-        "Per chi ha già lavorato sulle basi e vuole comprendere linee, tensioni e gestione del corpo nello spazio.",
+        "Per coppie che hanno già lavorato sulle basi e vogliono comprendere linee, tensioni e gestione del corpo nello spazio.",
     },
     {
       title: "Classe 1",
@@ -153,7 +153,7 @@ export const programsContent = {
         "esercizi riproducibili a casa o in pratica",
       ],
       audience:
-        "Per chi inizia o vuole costruire fondamenta tecniche chiare e solide.",
+        "Per coppie che iniziano o vogliono costruire fondamenta tecniche chiare e solide.",
     },
     {
       title: "Foundation 2",
@@ -168,7 +168,7 @@ export const programsContent = {
         "continuità tra pattern e transizioni",
       ],
       audience:
-        "Per chi ha già lavorato sulle basi e vuole iniziare a comprendere linee, tensioni e corpo nello spazio.",
+        "Per coppie che hanno già lavorato sulle basi e vogliono iniziare a comprendere linee, tensioni e corpo nello spazio.",
     },
     {
       title: "Classe 1",
@@ -351,7 +351,7 @@ const programsContentEn = {
       description:
         "A 4-session program covering basic technical principles. Not just technique: classes designed to leave complete, reproducible exercises to take home and work on during Rope Jams.",
       work: ["knots", "single and double column", "frictions and countertensions", "basic patterns", "complete reproducible exercises"],
-      audience: "For those who are starting or want to build clear and solid technical foundations.",
+      audience: "For couples who are starting or want to build clear and solid technical foundations.",
     },
     {
       title: "Foundation 2",
@@ -359,7 +359,7 @@ const programsContentEn = {
       description:
         "A 4-session program that continues Foundation 1. Introduces first suspension lines, tension directions, body work and continuity between patterns and transitions.",
       work: ["first suspension lines", "tension directions", "body work", "continuity between patterns and transitions"],
-      audience: "For those who have already worked on the basics and want to understand lines, tensions and body management in space.",
+      audience: "For couples who have already worked on the basics and want to understand lines, tensions and body management in space.",
     },
     {
       title: "Classe 1",
@@ -413,7 +413,7 @@ const programsContentEn = {
         "basic patterns",
         "reproducible exercises for home or practice",
       ],
-      audience: "For those who are starting or want to build clear and solid technical foundations.",
+      audience: "For couples who are starting or want to build clear and solid technical foundations.",
     },
     {
       title: "Foundation 2",
@@ -427,7 +427,7 @@ const programsContentEn = {
         "body management in space",
         "continuity between patterns and transitions",
       ],
-      audience: "For those who have already worked on the basics and want to understand lines, tensions and body in space.",
+      audience: "For couples who have already worked on the basics and want to understand lines, tensions and body in space.",
     },
     {
       title: "Classe 1",

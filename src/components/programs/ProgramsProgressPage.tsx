@@ -1,10 +1,10 @@
 "use client";
 
-import { BookOpen, Eye, Ribbon, Sprout, User, Users } from "lucide-react";
+import { BookOpen, Eye, Ribbon, Sprout, Users } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState } from "react";
 
-const LEGEND_ORDER: IconName[] = ["User", "Users", "Sprout", "BookOpen", "Ribbon", "Eye"];
+const LEGEND_ORDER: IconName[] = ["Users", "Sprout", "BookOpen", "Ribbon", "Eye"];
 
 import { ProgramsLevelQuiz } from "@/components/programs/ProgramsLevelQuiz";
 import { TabsWrapper } from "@/components/layout/TabsWrapper";
@@ -18,19 +18,18 @@ import type {
 } from "@/content/programs";
 import type { PeonyEvent } from "@/lib/events";
 
-const ICON_MAP = { User, Users, Sprout, BookOpen, Ribbon, Eye } as const;
+const ICON_MAP = { Users, Sprout, BookOpen, Ribbon, Eye } as const;
 type IconName = keyof typeof ICON_MAP;
 
 const NODE_ICONS: Record<number, IconName[]> = {
-  0: ["User", "Sprout"],
-  1: ["User", "BookOpen"],
+  0: ["Users", "Sprout"],
+  1: ["Users", "BookOpen"],
   2: ["Users", "BookOpen"],
   3: ["Users", "BookOpen"],
 };
 
 
-const ICON_LABEL_KEY: Record<IconName, "iconLegendUser" | "iconLegendUsers" | "iconLegendSprout" | "iconLegendBookOpen" | "iconLegendRibbon" | "iconLegendEye"> = {
-  User:     "iconLegendUser",
+const ICON_LABEL_KEY: Record<IconName, "iconLegendUsers" | "iconLegendSprout" | "iconLegendBookOpen" | "iconLegendRibbon" | "iconLegendEye"> = {
   Users:    "iconLegendUsers",
   Sprout:   "iconLegendSprout",
   BookOpen: "iconLegendBookOpen",

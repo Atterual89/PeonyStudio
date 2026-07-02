@@ -1,7 +1,6 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -72,33 +71,30 @@ export function EntryDoorsSection() {
   const reduceMotion = useReducedMotion();
   const { dictionary } = useLanguage();
   const { doors } = dictionary.home;
-  const d = doors.items;
-
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <section className="mx-auto max-w-6xl px-5 py-14 sm:px-6 md:py-24">
-
-      {/* intestazione sezione — solo desktop */}
+    <section className="mx-auto max-w-6xl px-5 pb-14 pt-6 sm:px-6 md:pb-20 md:pt-8">
       <motion.div
-        className="hidden md:block"
+        className="hidden md:grid md:grid-cols-[0.78fr_1fr] md:items-end md:gap-8"
         initial={reduceMotion ? false : { opacity: 0, y: 28 }}
         whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.75, ease: [0.23, 1, 0.32, 1] }}
       >
-        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-          {doors.eyebrow}
-        </p>
-        <h2 className="mt-2 max-w-2xl font-serif text-[32px] font-medium leading-[1.1] tracking-normal text-[#211815] md:text-5xl">
-          {doors.title}
-        </h2>
-        <p className="mt-4 max-w-2xl text-sm leading-[1.7] text-[#5f524c] md:text-base">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+            {doors.eyebrow}
+          </p>
+          <h2 className="mt-2 max-w-2xl font-serif text-[32px] font-medium leading-[1.1] tracking-normal text-[#211815] md:text-5xl">
+            {doors.title}
+          </h2>
+        </div>
+        <p className="max-w-xl text-sm leading-[1.7] text-[#5f524c] md:text-base">
           {doors.description}
         </p>
       </motion.div>
 
-      {/* ── MOBILE: accordion verticale ── */}
       <div className="mt-8 overflow-hidden rounded-[16px] bg-[#f0ebe4] px-4 py-6 md:hidden">
         <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#b07a5a]">
           {doors.eyebrow}
@@ -107,7 +103,7 @@ export function EntryDoorsSection() {
           {doors.title}
         </h2>
         <div className="mt-5 flex flex-col gap-[6px]">
-          {d.map((door, index) => {
+          {doors.items.map((door, index) => {
             const isOpen = openIndex === index;
             const colors = CARD_COLORS[index];
             return (
@@ -180,55 +176,64 @@ export function EntryDoorsSection() {
         </div>
       </div>
 
-      {/* ── DESKTOP: grid originale invariata ── */}
-      <div className="mt-8 hidden gap-4 md:grid md:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-8 hidden gap-3 overflow-x-auto pb-3 [scroll-snap-type:x_mandatory] [scrollbar-width:none] md:flex [&::-webkit-scrollbar]:hidden">
         {doors.items.map((door, index) => (
           <motion.div
             key={door.title}
+            className="min-w-[280px] flex-1 [scroll-snap-align:start] xl:min-w-0"
             initial={reduceMotion ? false : { opacity: 0, y: 28 }}
             whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{
               duration: 0.75,
-              delay: index * 0.12,
+              delay: index * 0.08,
               ease: [0.23, 1, 0.32, 1],
             }}
           >
             <Link
               href={door.href}
-              className={`group relative flex h-full flex-col overflow-hidden rounded-[8px] border border-[#211815]/10 bg-gradient-to-br ${door.gradient} p-[18px] shadow-[0_2px_0_rgba(33,24,21,0.03)] transition duration-500 hover:-translate-y-[3px] hover:shadow-[0_16px_40px_rgba(33,24,21,0.10)]`}
+              className="group flex h-full min-h-[260px] flex-col overflow-hidden rounded-[16px] border border-[#211815]/10 p-5 transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_48px_rgba(33,24,21,0.10)]"
+              style={{ background: CARD_COLORS[index]?.bg }}
             >
-              <span
-                aria-hidden="true"
-                className="absolute -right-10 top-12 h-[140px] w-[140px] rounded-full border border-[#211815]/10 bg-[#f4efe8]/30 transition duration-500 group-hover:scale-110"
-              />
-              <span className="relative mb-5 overflow-hidden rounded-[6px] border border-[#211815]/10">
-                <Image
-                  src={door.image}
-                  alt={door.title}
-                  width={640}
-                  height={480}
-                  className="aspect-[4/3] w-full object-cover saturate-[0.92] transition duration-700 ease-[cubic-bezier(.23,1,.32,1)] group-hover:scale-[1.06]"
-                />
-              </span>
-              <span className="relative mb-5 flex items-center justify-between">
-                <span className="rounded-full border border-[#211815]/10 bg-[#f4efe8]/55 px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-[#8b5e4a]">
+              <span className="mb-6 flex items-start justify-between gap-4">
+                <span
+                  className="grid h-11 w-11 place-items-center rounded-full"
+                  style={{ backgroundColor: `${CARD_COLORS[index]?.text}18` }}
+                >
+                  {renderMobileIcon(index, CARD_COLORS[index]?.text ?? S)}
+                </span>
+                <span
+                  className="font-mono text-[11px] tabular-nums"
+                  style={{ color: CARD_COLORS[index]?.text, opacity: 0.55 }}
+                >
                   {String(index + 1).padStart(2, "0")}
                 </span>
-                <span className="grid h-10 w-10 place-items-center rounded-full bg-[#211815] text-sm font-medium text-[#f4efe8] shadow-[0_4px_14px_rgba(33,24,21,0.18)]">
-                  {door.mark}
-                </span>
               </span>
-              <h3 className="relative font-serif text-[28px] font-medium leading-[1.1] tracking-normal text-[#211815]">
+              <h3
+                className="font-serif text-[24px] font-medium leading-[1.08] tracking-normal"
+                style={{ color: CARD_COLORS[index]?.text }}
+              >
                 {door.title}
               </h3>
-              <p className="relative mt-3 text-[11px] font-semibold uppercase leading-5 tracking-[0.12em] text-[#8b5e4a]">
+              <p
+                className="mt-3 text-[10px] font-semibold uppercase leading-5 tracking-[0.16em]"
+                style={{ color: `${CARD_COLORS[index]?.text}99` }}
+              >
                 {door.content}
               </p>
-              <p className="relative mt-3 text-sm leading-[1.65] text-[#5f524c]">
+              <p
+                className="mt-3 text-sm leading-[1.62]"
+                style={{ color: `${CARD_COLORS[index]?.text}cc` }}
+              >
                 {door.description}
               </p>
-              <span className="relative mt-5 w-fit border-b border-[#8b5e4a]/35 pb-1 text-sm font-medium text-[#8b5e4a] transition group-hover:border-[#8b5e4a]">
+              <span
+                className="mt-auto inline-flex w-fit rounded-full border px-4 py-2 text-sm font-medium transition group-hover:bg-white/30"
+                style={{
+                  borderColor: `${CARD_COLORS[index]?.text}55`,
+                  color: CARD_COLORS[index]?.text,
+                }}
+              >
                 {door.cta} →
               </span>
             </Link>
