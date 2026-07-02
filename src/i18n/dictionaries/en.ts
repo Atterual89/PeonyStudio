@@ -482,6 +482,63 @@ export const en: typeof it = {
     giftCardEmpty:
       "Available Gift Cards will appear here when the Ticket Tailor store is active.",
     differencesTitle: "Differences at a glance",
+    comparisonCards: [
+      {
+        audience: "For regular attendees",
+        bullets: [
+          "Priority access",
+          "Workshop discounts",
+          "Valid for one season",
+        ],
+      },
+      {
+        audience: "For flexible attendance",
+        bullets: [
+          "No subscription",
+          "Use when you want",
+          "Valid for 12 months",
+        ],
+      },
+      {
+        audience: "For gifting",
+        bullets: [
+          "Ready-to-use gift",
+          "Flexible amount",
+          "Easy to use",
+        ],
+      },
+    ],
+    comparisonDetailsShow: "View level details",
+    comparisonDetailsHide: "Hide details",
+    cardLevelsTitle: "Peony Card levels",
+    tokenPackagesTitle: "Peony Token packages",
+    comparisonDetailToggleShow: "View details",
+    comparisonDetailToggleHide: "Hide details",
+    cardLevelsCaption: "The color intensity follows the level",
+    tokenPackagesCaption: "Same activity cost across all packages",
+    comparisonBenefitLabel: "Benefit",
+    comparisonLevels: ["Bronze", "Silver", "Gold", "Platinum"],
+    comparisonBenefitRows: [
+      "2027 membership fee",
+      "Rope Jam and Open Day",
+      "Assisted Practice and Thematic Classes",
+      "Workshop discount",
+      "Coaching with Kurogami",
+      "Private lesson with Kurogami and Shiawase",
+      "Rope discount",
+    ],
+    tokenCreditsLabel: "credits",
+    tokenMaxUsesLabel: "Maximum {count} uses",
+    tokenValidityLabel: "Valid for 12 months",
+    tokenActivityLabel: "How many tokens activities require",
+    tokenActivityChips: [
+      "Rope Jam / Peer Rope — 1 token",
+      "Open Day — 2 tokens",
+      "Assisted Practice — 3 tokens",
+      "Thematic Class — 4 tokens",
+    ],
+    tokenAssociationNote:
+      "Requires a valid membership fee, to be completed separately",
     shopComingSoon: "Ticket Tailor shop coming soon.",
     buy: "Buy",
     whatIncludes: "What it includes",

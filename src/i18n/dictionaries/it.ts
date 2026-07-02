@@ -486,6 +486,63 @@ export const it = {
     giftCardEmpty:
       "Le Gift Card disponibili verranno mostrate qui quando lo store Ticket Tailor sarà attivo.",
     differencesTitle: "Differenze in breve",
+    comparisonCards: [
+      {
+        audience: "Per chi frequenta spesso",
+        bullets: [
+          "Accesso prioritario",
+          "Sconti su workshop",
+          "Valida una stagione",
+        ],
+      },
+      {
+        audience: "Per chi vuole flessibilità",
+        bullets: [
+          "Nessun abbonamento",
+          "Usa quando vuoi",
+          "Valido 12 mesi",
+        ],
+      },
+      {
+        audience: "Per chi vuole regalare",
+        bullets: [
+          "Regalo pronto all'uso",
+          "Importo flessibile",
+          "Facile da usare",
+        ],
+      },
+    ],
+    comparisonDetailsShow: "Vedi i dettagli dei livelli",
+    comparisonDetailsHide: "Nascondi i dettagli",
+    cardLevelsTitle: "Livelli Peony Card",
+    tokenPackagesTitle: "Pacchetti Peony Token",
+    comparisonDetailToggleShow: "Vedi i dettagli",
+    comparisonDetailToggleHide: "Nascondi i dettagli",
+    cardLevelsCaption: "L'intensità del colore segue il livello",
+    tokenPackagesCaption: "Stesso costo per attività in tutti i pacchetti",
+    comparisonBenefitLabel: "Benefit",
+    comparisonLevels: ["Bronze", "Silver", "Gold", "Platinum"],
+    comparisonBenefitRows: [
+      "Quota associativa 2027",
+      "Rope Jam e Open Day",
+      "Pratica Assistita e Classi Tematiche",
+      "Sconto sui workshop",
+      "Coaching con Kurogami",
+      "Lezione privata Kurogami e Shiawase",
+      "Sconto sulle corde",
+    ],
+    tokenCreditsLabel: "crediti",
+    tokenMaxUsesLabel: "Massimo {count} utilizzi",
+    tokenValidityLabel: "Validità 12 mesi",
+    tokenActivityLabel: "Quanti token servono per attività",
+    tokenActivityChips: [
+      "Rope Jam / Peer Rope — 1 token",
+      "Open Day — 2 token",
+      "Pratica Assistita — 3 token",
+      "Classe Tematica — 4 token",
+    ],
+    tokenAssociationNote:
+      "Richiede quota associativa valida, da completare separatamente",
     shopComingSoon: "Shop Ticket Tailor in arrivo.",
     buy: "Acquista",
     whatIncludes: "Cosa include",

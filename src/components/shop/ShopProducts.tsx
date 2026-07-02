@@ -8,6 +8,16 @@ import {
   useMemo,
   useState,
 } from "react";
+import {
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Gift,
+  IdCard,
+  Minus,
+  Ticket,
+  type LucideIcon,
+} from "lucide-react";
 
 import { useLanguage } from "@/components/site/LanguageProvider";
 
@@ -168,6 +178,56 @@ const CARD_RESULT_COPY: Record<CardLevel, { it: string; en: string }> = {
     en: "The most complete card if you want to experience the season to the fullest, with frequent workshops, a private lesson and individual coaching.",
   },
 };
+
+const COMPARISON_CARD_STYLES: {
+  icon: LucideIcon;
+  iconBg: string;
+  iconColor: string;
+  pillText: string;
+}[] = [
+  {
+    icon: IdCard,
+    iconBg: "bg-[#f0e0d3]",
+    iconColor: "text-[#a8583e]",
+    pillText: "text-[#8a4126]",
+  },
+  {
+    icon: Ticket,
+    iconBg: "bg-[#e9ecdf]",
+    iconColor: "text-[#6b7a4f]",
+    pillText: "text-[#4e5c38]",
+  },
+  {
+    icon: Gift,
+    iconBg: "bg-[#f2e2e8]",
+    iconColor: "text-[#9c5570]",
+    pillText: "text-[#7c3e56]",
+  },
+];
+
+const CARD_LEVELS: {
+  key: CardLevel;
+  color: string;
+}[] = [
+  { key: "Bronze", color: "text-[#8a5a3a]" },
+  { key: "Silver", color: "text-[#7a4a2a]" },
+  { key: "Gold", color: "text-[#63381c]" },
+  { key: "Platinum", color: "text-[#3f2210]" },
+];
+
+const CARD_COMPARISON_ROWS: {
+  cells: ("check" | "minus" | string)[];
+}[] = [
+  { cells: ["check", "check", "check", "check"] },
+  { cells: ["check", "check", "check", "check"] },
+  { cells: ["minus", "check", "check", "check"] },
+  { cells: ["minus", "5%", "10%", "10%"] },
+  { cells: ["minus", "minus", "3h", "3h"] },
+  { cells: ["minus", "minus", "minus", "3h"] },
+  { cells: ["minus", "minus", "minus", "10%"] },
+];
+
+const TOKEN_PACKAGES = [6, 12, 24];
 
 export function ShopProducts({ storeUrl }: { storeUrl?: string }) {
   const { dictionary, locale } = useLanguage();
@@ -439,9 +499,9 @@ function PeonyCardsSection({
   const { dictionary } = useLanguage();
   const shopDict = dictionary.shop;
   const content = shopContent.peonyCards;
-  const [openIncludesId, setOpenIncludesId] = useState<string | null>(
-    highlightedCard,
-  );
+  const [openIncludesByVariant, setOpenIncludesByVariant] = useState<
+    Partial<Record<CardLevel, boolean>>
+  >(highlightedCard ? { [highlightedCard]: true } : {});
 
   return (
     <div className="grid gap-5">
@@ -475,11 +535,12 @@ function PeonyCardsSection({
               failedImage={product ? failedImages[product.id] : false}
               onImageError={onImageError}
               storeUrl={storeUrl}
-              includesOpen={openIncludesId === variant.variant}
+              includesOpen={openIncludesByVariant[variant.variant] ?? false}
               onIncludesToggle={() =>
-                setOpenIncludesId((current) =>
-                  current === variant.variant ? null : variant.variant,
-                )
+                setOpenIncludesByVariant((current) => ({
+                  ...current,
+                  [variant.variant]: !current[variant.variant],
+                }))
               }
             />
           );
@@ -617,28 +678,244 @@ function DifferencesBlock() {
   const shopDict = dictionary.shop;
   const localizedShop = shopBilingual[locale] ?? shopBilingual.it;
   const differences = localizedShop.differences;
+  const [cardLevelsOpen, setCardLevelsOpen] = useState(false);
+  const [tokenPackagesOpen, setTokenPackagesOpen] = useState(false);
 
   return (
-    <section className="rounded-[8px] border border-[#211815]/10 bg-white/35 p-4 md:p-5">
+    <section className="overflow-hidden rounded-[8px] border border-[#211815]/10 bg-[#f2ede3] p-4 md:p-5">
       <h2 className="font-serif text-3xl font-medium leading-[1.04]">
         {shopDict.differencesTitle}
       </h2>
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
-        {differences.map((item) => (
+      <div className="relative mt-5">
+        <svg
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-8 top-12 z-0 hidden h-28 md:block"
+          preserveAspectRatio="none"
+          viewBox="0 0 100 30"
+        >
+          <path
+            d="M3 18 Q 25 3 50 16 T 97 12"
+            fill="none"
+            stroke="#c9a688"
+            strokeDasharray="1 7"
+            strokeLinecap="round"
+            strokeWidth="1.5"
+          />
+        </svg>
+        <div className="relative z-10 grid gap-3 md:grid-cols-3">
+          {differences.map((item, index) => {
+            const cardStyle = COMPARISON_CARD_STYLES[index];
+            const Icon = cardStyle.icon;
+            const detail = shopDict.comparisonCards[index];
+
+            return (
+              <article
+                key={item.title}
+                className="rounded-[14px] border border-[#e1d6c3] bg-[#faf7f0] p-4 shadow-[0_10px_28px_rgba(42,31,26,0.05)]"
+              >
+                <div
+                  className={`grid h-11 w-11 place-items-center rounded-full ${cardStyle.iconBg}`}
+                >
+                  <Icon className={`h-5 w-5 ${cardStyle.iconColor}`} />
+                </div>
+                <h3 className="mt-4 font-serif text-xl font-medium leading-[1.12] text-[#2a1f1a]">
+                  {item.title}
+                </h3>
+                <span
+                  className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-medium ${cardStyle.iconBg} ${cardStyle.pillText}`}
+                >
+                  {detail.audience}
+                </span>
+                <p className="mt-3 text-sm leading-[1.6] text-[#5f524c]">
+                  {item.text}
+                </p>
+                <ul className="mt-4 grid gap-2 border-t border-[#e1d6c3] pt-4 text-sm leading-[1.45] text-[#4a3f35]">
+                  {detail.bullets.map((bullet) => (
+                    <li key={bullet} className="flex items-start gap-2">
+                      <Check
+                        className={`mt-0.5 h-4 w-4 shrink-0 ${cardStyle.iconColor}`}
+                      />
+                      <span>{bullet}</span>
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-3">
+        <ComparisonDetailsBox
+          title={shopDict.cardLevelsTitle}
+          open={cardLevelsOpen}
+          onToggle={() => setCardLevelsOpen((current) => !current)}
+        >
+          <CardLevelsTable />
+        </ComparisonDetailsBox>
+        <ComparisonDetailsBox
+          title={shopDict.tokenPackagesTitle}
+          open={tokenPackagesOpen}
+          onToggle={() => setTokenPackagesOpen((current) => !current)}
+        >
+          <TokenPackagesDetails />
+        </ComparisonDetailsBox>
+      </div>
+    </section>
+  );
+}
+
+function ComparisonDetailsBox({
+  title,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  const { dictionary } = useLanguage();
+  const shopDict = dictionary.shop;
+
+  return (
+    <div className="overflow-hidden rounded-[14px] border-[0.5px] border-[#e1d6c3] bg-[#faf7f0]">
+      <button
+        type="button"
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+        onClick={onToggle}
+      >
+        <span className="font-serif text-xl font-medium leading-[1.12] text-[#2a1f1a]">
+          {title}
+        </span>
+        <span className="inline-flex shrink-0 items-center gap-2 text-sm font-medium text-[#8b5e4a]">
+          {open
+            ? shopDict.comparisonDetailToggleHide
+            : shopDict.comparisonDetailToggleShow}
+          {open ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
+          )}
+        </span>
+      </button>
+      <div
+        className={`grid overflow-hidden transition-[max-height,opacity] duration-300 ease-out ${
+          open ? "max-h-[1200px] opacity-100" : "max-h-0 opacity-0"
+        }`}
+      >
+        <div className="border-t border-[#e1d6c3] p-4">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function CardLevelsTable() {
+  const { dictionary } = useLanguage();
+  const shopDict = dictionary.shop;
+
+  return (
+    <div className="grid gap-3">
+      <p className="text-[13px] leading-[1.5] text-[#8a7a68]">
+        {shopDict.cardLevelsCaption}
+      </p>
+      <div className="overflow-x-auto rounded-[14px] border border-[#e1d6c3] bg-[#faf7f0]">
+        <table className="min-w-[760px] w-full border-collapse text-sm text-[#4a3f35]">
+          <thead>
+            <tr className="bg-[#f5f0e6]">
+              <th className="px-4 py-3 text-left font-medium">
+                {shopDict.comparisonBenefitLabel}
+              </th>
+              {CARD_LEVELS.map((level, index) => (
+                <th
+                  key={level.key}
+                  className={`px-4 py-3 text-center font-serif text-xl font-medium ${level.color}`}
+                >
+                  {shopDict.comparisonLevels[index]}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {CARD_COMPARISON_ROWS.map((row, rowIndex) => (
+              <tr
+                key={shopDict.comparisonBenefitRows[rowIndex]}
+                className={rowIndex % 2 === 0 ? "bg-[#faf7f0]" : "bg-[#f5f0e6]"}
+              >
+                <th className="px-4 py-3 text-left font-medium text-[#2a1f1a]">
+                  {shopDict.comparisonBenefitRows[rowIndex]}
+                </th>
+                {row.cells.map((cell, cellIndex) => (
+                  <td
+                    key={`${shopDict.comparisonBenefitRows[rowIndex]}-${cellIndex}`}
+                    className="px-4 py-3 text-center"
+                  >
+                    {cell === "check" ? (
+                      <Check className="mx-auto h-4 w-4 text-[#a8583e]" />
+                    ) : cell === "minus" ? (
+                      <Minus className="mx-auto h-4 w-4 text-[#b4a998]" />
+                    ) : (
+                      <span className="font-medium text-[#4a3f35]">{cell}</span>
+                    )}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function TokenPackagesDetails() {
+  const { dictionary } = useLanguage();
+  const shopDict = dictionary.shop;
+
+  return (
+    <div className="grid gap-4">
+      <p className="text-[13px] leading-[1.5] text-[#8a7a68]">
+        {shopDict.tokenPackagesCaption}
+      </p>
+      <div className="grid gap-3 md:grid-cols-3">
+        {TOKEN_PACKAGES.map((credits) => (
           <article
-            key={item.title}
-            className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/55 p-4"
+            key={credits}
+            className="rounded-[14px] border-[0.5px] border-[#e1d6c3] bg-[#f5f0e6] p-4"
           >
-            <h3 className="font-serif text-2xl font-medium leading-[1.08]">
-              {item.title}
+            <h3 className="font-serif text-xl font-medium text-[#2a1f1a]">
+              {credits} {shopDict.tokenCreditsLabel}
             </h3>
             <p className="mt-2 text-sm leading-[1.6] text-[#5f524c]">
-              {item.text}
+              {shopDict.tokenMaxUsesLabel.replace("{count}", String(credits))}
+            </p>
+            <p className="text-sm leading-[1.6] text-[#5f524c]">
+              {shopDict.tokenValidityLabel}
             </p>
           </article>
         ))}
       </div>
-    </section>
+      <div className="rounded-[14px] border border-[#e1d6c3] bg-[#faf7f0] p-4">
+        <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#4a3f35]">
+          {shopDict.tokenActivityLabel}
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {shopDict.tokenActivityChips.map((chip) => (
+            <span
+              key={chip}
+              className="rounded-full bg-[#f0e0d3] px-3 py-1.5 text-sm font-medium text-[#8a4126]"
+            >
+              {chip}
+            </span>
+          ))}
+        </div>
+        <p className="mt-3 text-xs leading-[1.6] text-[#a89b8a]">
+          {shopDict.tokenAssociationNote}
+        </p>
+      </div>
+    </div>
   );
 }
 
