@@ -30,7 +30,7 @@ type ShopProduct = {
   status?: string;
 };
 
-type SectionKey = "peony-card" | "gift-card" | "corde";
+type SectionKey = "peony-card" | "peony-token" | "gift-card" | "corde";
 type CardLevel = "Bronze" | "Silver" | "Gold" | "Platinum";
 
 type RopeInquiry = {
@@ -54,6 +54,11 @@ const SHOP_CHOICES: {
     text: "Accessi, priorità, sconti e benefit per la stagione 2026/2027.",
   },
   {
+    key: "peony-token",
+    title: "Peony Token",
+    text: "Crediti da usare per partecipare ad attività selezionate, senza acquistare una card stagionale.",
+  },
+  {
     key: "gift-card",
     title: "Gift Card",
     text: "Voucher e gift card da acquistare tramite Ticket Tailor.",
@@ -65,82 +70,103 @@ const SHOP_CHOICES: {
   },
 ];
 
-const CARD_QUIZ = [
-  {
-    question: "Che tipo di attività pensi di frequentare di più?",
-    options: [
-      {
-        label: "Rope Jam / Open Day / eventi sociali",
-        scores: { Bronze: 3, Silver: 1 },
-      },
-      {
-        label: "Pratica Assistita e Classi Tematiche",
-        scores: { Silver: 3, Gold: 1 },
-      },
-      {
-        label: "Workshop con Kurogami & Shiawase",
-        scores: { Gold: 3, Platinum: 1 },
-      },
-      {
-        label: "Un mix di tutto",
-        scores: { Platinum: 3, Gold: 2 },
-      },
-    ],
-  },
-  {
-    question: "Quanto pensi di frequentare Peony durante la stagione?",
-    options: [
-      { label: "Ogni tanto", scores: { Bronze: 3 } },
-      { label: "Una volta al mese", scores: { Silver: 3 } },
-      { label: "Due o più volte al mese", scores: { Gold: 3 } },
-      {
-        label: "Voglio vivere la stagione il più possibile",
-        scores: { Platinum: 3 },
-      },
-    ],
-  },
-  {
-    question: "Ti interessa anche lavorare in modo individuale con gli insegnanti?",
-    options: [
-      {
-        label: "No, mi interessano soprattutto eventi e pratica",
-        scores: { Bronze: 2, Silver: 1 },
-      },
-      { label: "Sì, mi interessa una lezione privata", scores: { Gold: 3 } },
-      {
-        label: "Sì, mi interessa anche coaching individuale",
-        scores: { Platinum: 3 },
-      },
-    ],
-  },
-  {
-    question: "Ti interessano i workshop e la priorità di prenotazione?",
-    options: [
-      { label: "Poco", scores: { Bronze: 3 } },
-      { label: "Sì, qualche workshop", scores: { Silver: 2, Gold: 1 } },
-      {
-        label: "Sì, voglio partecipare spesso e prenotare prima",
-        scores: { Gold: 2, Platinum: 3 },
-      },
-    ],
-  },
-] satisfies {
+type CardQuizQuestion = {
   question: string;
-  options: {
-    label: string;
-    scores: Partial<Record<CardLevel, number>>;
-  }[];
-}[];
+  options: { label: string; scores: Partial<Record<CardLevel, number>> }[];
+};
 
-const CARD_RESULT_COPY: Record<CardLevel, string> = {
-  Bronze:
-    "È la scelta più leggera se pensi di partecipare soprattutto a Rope Jam, Open Day o eventi sociali, con una frequenza saltuaria.",
-  Silver:
-    "È adatta se vuoi iniziare a frequentare con più continuità pratiche, classi tematiche e qualche workshop.",
-  Gold:
-    "È pensata per una presenza regolare, con pratiche, workshop, priorità e una lezione privata inclusa.",
-  Platinum:
-    "È la card più completa se vuoi vivere la stagione il più possibile, con workshop frequenti, lezione privata e coaching individuale.",
+const CARD_QUIZ_CONTENT: { it: CardQuizQuestion[]; en: CardQuizQuestion[] } = {
+  it: [
+    {
+      question: "Che tipo di attività pensi di frequentare di più?",
+      options: [
+        { label: "Rope Jam / Open Day / eventi sociali", scores: { Bronze: 3, Silver: 1 } },
+        { label: "Pratica Assistita e Classi Tematiche", scores: { Silver: 3, Gold: 1 } },
+        { label: "Workshop con Kurogami & Shiawase", scores: { Gold: 3, Platinum: 1 } },
+        { label: "Un mix di tutto", scores: { Platinum: 3, Gold: 2 } },
+      ],
+    },
+    {
+      question: "Quanto pensi di frequentare Peony durante la stagione?",
+      options: [
+        { label: "Ogni tanto", scores: { Bronze: 3 } },
+        { label: "Una volta al mese", scores: { Silver: 3 } },
+        { label: "Due o più volte al mese", scores: { Gold: 3 } },
+        { label: "Voglio vivere la stagione il più possibile", scores: { Platinum: 3 } },
+      ],
+    },
+    {
+      question: "Ti interessa anche lavorare in modo individuale con gli insegnanti?",
+      options: [
+        { label: "No, mi interessano soprattutto eventi e pratica", scores: { Bronze: 2, Silver: 1 } },
+        { label: "Sì, mi interessa una lezione privata", scores: { Gold: 3 } },
+        { label: "Sì, mi interessa anche coaching individuale", scores: { Platinum: 3 } },
+      ],
+    },
+    {
+      question: "Ti interessano i workshop e la priorità di prenotazione?",
+      options: [
+        { label: "Poco", scores: { Bronze: 3 } },
+        { label: "Sì, qualche workshop", scores: { Silver: 2, Gold: 1 } },
+        { label: "Sì, voglio partecipare spesso e prenotare prima", scores: { Gold: 2, Platinum: 3 } },
+      ],
+    },
+  ],
+  en: [
+    {
+      question: "What type of activities do you plan to attend most?",
+      options: [
+        { label: "Rope Jam / Open Day / social events", scores: { Bronze: 3, Silver: 1 } },
+        { label: "Assisted Practice and Thematic Classes", scores: { Silver: 3, Gold: 1 } },
+        { label: "Workshops with Kurogami & Shiawase", scores: { Gold: 3, Platinum: 1 } },
+        { label: "A bit of everything", scores: { Platinum: 3, Gold: 2 } },
+      ],
+    },
+    {
+      question: "How often do you plan to come to Peony during the season?",
+      options: [
+        { label: "Occasionally", scores: { Bronze: 3 } },
+        { label: "Once a month", scores: { Silver: 3 } },
+        { label: "Twice or more per month", scores: { Gold: 3 } },
+        { label: "I want to make the most of the whole season", scores: { Platinum: 3 } },
+      ],
+    },
+    {
+      question: "Are you also interested in working individually with the teachers?",
+      options: [
+        { label: "No, I'm mainly interested in events and practice", scores: { Bronze: 2, Silver: 1 } },
+        { label: "Yes, I'm interested in a private lesson", scores: { Gold: 3 } },
+        { label: "Yes, I'm also interested in individual coaching", scores: { Platinum: 3 } },
+      ],
+    },
+    {
+      question: "Are you interested in workshops and booking priority?",
+      options: [
+        { label: "Not much", scores: { Bronze: 3 } },
+        { label: "Yes, a few workshops", scores: { Silver: 2, Gold: 1 } },
+        { label: "Yes, I want to attend often and book early", scores: { Gold: 2, Platinum: 3 } },
+      ],
+    },
+  ],
+};
+
+const CARD_RESULT_COPY: Record<CardLevel, { it: string; en: string }> = {
+  Bronze: {
+    it: "È la scelta più leggera se pensi di partecipare soprattutto a Rope Jam, Open Day o eventi sociali, con una frequenza saltuaria.",
+    en: "The lightest option if you plan to mainly attend Rope Jam, Open Day or social events, on an occasional basis.",
+  },
+  Silver: {
+    it: "È adatta se vuoi iniziare a frequentare con più continuità pratiche, classi tematiche e qualche workshop.",
+    en: "A good fit if you want to attend practice sessions, thematic classes and the occasional workshop more regularly.",
+  },
+  Gold: {
+    it: "È pensata per una presenza regolare, con pratiche, workshop, priorità e una lezione privata inclusa.",
+    en: "Designed for a regular presence, with practice sessions, workshops, booking priority and a private lesson included.",
+  },
+  Platinum: {
+    it: "È la card più completa se vuoi vivere la stagione il più possibile, con workshop frequenti, lezione privata e coaching individuale.",
+    en: "The most complete card if you want to experience the season to the fullest, with frequent workshops, a private lesson and individual coaching.",
+  },
 };
 
 export function ShopProducts({ storeUrl }: { storeUrl?: string }) {
@@ -185,10 +211,12 @@ export function ShopProducts({ storeUrl }: { storeUrl?: string }) {
   }, []);
 
   const peonyCardProducts = useMemo(
-    () =>
-      products.filter(
-        (product) => normalizeText(product.name) === "peony card 2027",
-      ),
+    () => products.filter(isPeonyCardProduct),
+    [products],
+  );
+
+  const peonyTokenProducts = useMemo(
+    () => products.filter(isPeonyTokenProduct),
     [products],
   );
 
@@ -238,7 +266,7 @@ export function ShopProducts({ storeUrl }: { storeUrl?: string }) {
         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
           {shopDict.whatLooking}
         </p>
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <div className="mt-4 grid gap-3 md:grid-cols-4">
           {SHOP_CHOICES.map((choice, index) => {
             const choiceText = shopDict.shopChoices[index];
             return (
@@ -263,6 +291,8 @@ export function ShopProducts({ storeUrl }: { storeUrl?: string }) {
         </div>
       </section>
 
+      <DifferencesBlock />
+
       <ShopAccordionSection
         id="peony-card"
         eyebrow={localizedShop.peonyCards.eyebrow}
@@ -284,6 +314,23 @@ export function ShopProducts({ storeUrl }: { storeUrl?: string }) {
               ?.scrollIntoView({ behavior: "smooth", block: "center" });
           }}
           onOpenQuiz={() => setQuizOpen(true)}
+          storeUrl={storeUrl}
+        />
+      </ShopAccordionSection>
+
+      <ShopAccordionSection
+        id="peony-token"
+        eyebrow={localizedShop.peonyTokens.eyebrow}
+        title={localizedShop.peonyTokens.title}
+        open={openProductId === "peony-token"}
+        onToggle={() => toggleSection("peony-token")}
+      >
+        <PeonyTokensSection
+          products={peonyTokenProducts}
+          failedImages={failedImages}
+          onImageError={(id) =>
+            setFailedImages((current) => ({ ...current, [id]: true }))
+          }
           storeUrl={storeUrl}
         />
       </ShopAccordionSection>
@@ -415,33 +462,29 @@ function PeonyCardsSection({
           {shopDict.helpChoose}
         </button>
       </div>
-      {products.length ? (
-        <div className="grid gap-4 md:grid-cols-2">
-          {content.variants.map((variant) => {
-            const product = findProductByVariant(products, variant.variant);
+      <div className="grid gap-4 md:grid-cols-2">
+        {content.variants.map((variant) => {
+          const product = findProductByVariant(products, variant.variant);
 
-            return (
-              <PeonyCardProduct
-                key={variant.variant}
-                variant={variant}
-                product={product}
-                highlighted={highlightedCard === variant.variant}
-                failedImage={product ? failedImages[product.id] : false}
-                onImageError={onImageError}
-                storeUrl={storeUrl}
-                includesOpen={openIncludesId === variant.variant}
-                onIncludesToggle={() =>
-                  setOpenIncludesId((current) =>
-                    current === variant.variant ? null : variant.variant,
-                  )
-                }
-              />
-            );
-          })}
-        </div>
-      ) : (
-        <EmptyState text={shopDict.peonyCardEmpty} />
-      )}
+          return (
+            <PeonyCardProduct
+              key={variant.variant}
+              variant={variant}
+              product={product}
+              highlighted={highlightedCard === variant.variant}
+              failedImage={product ? failedImages[product.id] : false}
+              onImageError={onImageError}
+              storeUrl={storeUrl}
+              includesOpen={openIncludesId === variant.variant}
+              onIncludesToggle={() =>
+                setOpenIncludesId((current) =>
+                  current === variant.variant ? null : variant.variant,
+                )
+              }
+            />
+          );
+        })}
+      </div>
       <div className="grid gap-3">
         <DetailsBlock
           title={content.howItWorks.title}
@@ -524,6 +567,78 @@ function PeonyCardProduct({
         />
       </div>
     </article>
+  );
+}
+
+function PeonyTokensSection({
+  products,
+  failedImages,
+  onImageError,
+  storeUrl,
+}: {
+  products: ShopProduct[];
+  failedImages: Record<string, boolean>;
+  onImageError: (id: string) => void;
+  storeUrl?: string;
+}) {
+  const { dictionary } = useLanguage();
+  const shopDict = dictionary.shop;
+  const content = shopContent.peonyTokens;
+
+  return (
+    <div className="grid gap-5">
+      <SectionHeader intro={content.intro} />
+      {products.length ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {products.map((product) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              title={
+                product.variant
+                  ? `${product.name} - ${product.variant}`
+                  : product.name
+              }
+              failedImage={failedImages[product.id]}
+              onImageError={onImageError}
+              storeUrl={storeUrl}
+            />
+          ))}
+        </div>
+      ) : (
+        <EmptyState text={shopDict.peonyTokenEmpty} />
+      )}
+    </div>
+  );
+}
+
+function DifferencesBlock() {
+  const { dictionary, locale } = useLanguage();
+  const shopDict = dictionary.shop;
+  const localizedShop = shopBilingual[locale] ?? shopBilingual.it;
+  const differences = localizedShop.differences;
+
+  return (
+    <section className="rounded-[8px] border border-[#211815]/10 bg-white/35 p-4 md:p-5">
+      <h2 className="font-serif text-3xl font-medium leading-[1.04]">
+        {shopDict.differencesTitle}
+      </h2>
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        {differences.map((item) => (
+          <article
+            key={item.title}
+            className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/55 p-4"
+          >
+            <h3 className="font-serif text-2xl font-medium leading-[1.08]">
+              {item.title}
+            </h3>
+            <p className="mt-2 text-sm leading-[1.6] text-[#5f524c]">
+              {item.text}
+            </p>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -618,6 +733,8 @@ function ProductCard({
 }
 
 function RopesSection({ onOpenInquiry }: { onOpenInquiry: () => void }) {
+  const { dictionary } = useLanguage();
+  const s = dictionary.shop;
   const content = shopContent.ropes;
   const [selectedProducer, setSelectedProducer] = useState<string | null>(null);
   const selectedRopes = selectedProducer
@@ -652,8 +769,8 @@ function RopesSection({ onOpenInquiry }: { onOpenInquiry: () => void }) {
             </p>
             <span className="mt-4 inline-flex text-sm font-medium text-[#8b5e4a]">
               {selectedProducer === producer.title
-                ? "Nascondi dettagli"
-                : "Vedi dettagli"}
+                ? s.ropeHideDetails
+                : s.ropeShowDetails}
             </span>
           </button>
         ))}
@@ -684,6 +801,8 @@ function RopesSection({ onOpenInquiry }: { onOpenInquiry: () => void }) {
 }
 
 function RopeCard({ rope }: { rope: RopeProduct }) {
+  const { dictionary } = useLanguage();
+  const s = dictionary.shop;
   return (
     <article className="rounded-[8px] border border-[#211815]/10 bg-white/42 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]">
       <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8b5e4a]">
@@ -693,9 +812,9 @@ function RopeCard({ rope }: { rope: RopeProduct }) {
         {rope.diameter}
       </h3>
       <div className="mt-4 flex flex-wrap gap-2">
-        <UseChip active={rope.floorwork} label="Terra" />
-        <UseChip active={rope.suspensionHarness} label="Harness" />
-        <UseChip active={rope.suspensionUpline} label="Upline" />
+        <UseChip active={rope.floorwork} label={s.ropeLabelFloor} yesLabel={s.ropeYes} noLabel={s.ropeNo} />
+        <UseChip active={rope.suspensionHarness} label="Harness" yesLabel={s.ropeYes} noLabel={s.ropeNo} />
+        <UseChip active={rope.suspensionUpline} label="Upline" yesLabel={s.ropeYes} noLabel={s.ropeNo} />
       </div>
     </article>
   );
@@ -712,6 +831,9 @@ function PeonyCardQuizModal({
   onClose: () => void;
   onShowDetails: (card: CardLevel) => void;
 }) {
+  const { dictionary, locale } = useLanguage();
+  const s = dictionary.shop;
+  const CARD_QUIZ = CARD_QUIZ_CONTENT[locale as keyof typeof CARD_QUIZ_CONTENT] ?? CARD_QUIZ_CONTENT.it;
   const [answers, setAnswers] = useState<number[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
 
@@ -722,7 +844,7 @@ function PeonyCardQuizModal({
   }
 
   const completed = answers.length === CARD_QUIZ.length;
-  const result = completed ? getCardQuizResult(answers) : null;
+  const result = completed ? getCardQuizResult(answers, CARD_QUIZ) : null;
   const question = CARD_QUIZ[currentQuestion];
 
   const chooseAnswer = (answerIndex: number) => {
@@ -744,22 +866,22 @@ function PeonyCardQuizModal({
     <ModalFrame
       labelledBy="peony-card-quiz-title"
       onClose={onClose}
-      closeLabel="Chiudi quiz Peony Card"
+      closeLabel={s.quizCloseLabel}
     >
       {result ? (
         <div className="grid gap-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-            Risultato
+            {s.quizResult}
           </p>
           <div>
             <h2
               id="peony-card-quiz-title"
               className="font-serif text-4xl font-medium leading-[1.02]"
             >
-              Ti consigliamo: {result}
+              {s.quizRecommend} {result}
             </h2>
             <p className="mt-3 text-[15px] leading-[1.7] text-[#5f524c]">
-              {CARD_RESULT_COPY[result]}
+              {CARD_RESULT_COPY[result][locale as keyof typeof CARD_RESULT_COPY.Bronze] ?? CARD_RESULT_COPY[result].it}
             </p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -771,7 +893,7 @@ function PeonyCardQuizModal({
                 onShowDetails(result);
               }}
             >
-              Guarda dettagli
+              {s.quizViewDetails}
             </button>
             {storeUrl ? (
               <a
@@ -780,7 +902,7 @@ function PeonyCardQuizModal({
                 rel="noreferrer"
                 className="inline-flex justify-center rounded-full bg-[#211815] px-5 py-3 text-sm font-medium text-white transition hover:-translate-y-0.5"
               >
-                Acquista
+                {s.buy}
               </a>
             ) : null}
             <button
@@ -788,23 +910,23 @@ function PeonyCardQuizModal({
               className="inline-flex justify-center rounded-full border border-[#211815]/15 px-5 py-3 text-sm font-medium text-[#211815] transition hover:bg-white/45"
               onClick={resetQuiz}
             >
-              Rifai il quiz
+              {s.quizRedo}
             </button>
           </div>
         </div>
       ) : (
         <div className="grid gap-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-            Domanda {currentQuestion + 1} di {CARD_QUIZ.length}
+            {s.quizQuestion} {currentQuestion + 1} {s.quizOf} {CARD_QUIZ.length}
           </p>
           <h2
             id="peony-card-quiz-title"
             className="font-serif text-3xl font-medium leading-[1.06] md:text-4xl"
           >
-            {question.question}
+            {question?.question}
           </h2>
           <div className="grid gap-2">
-            {question.options.map((option, index) => (
+            {question?.options.map((option, index) => (
               <button
                 key={option.label}
                 type="button"
@@ -829,14 +951,14 @@ function PeonyCardQuizModal({
                 setCurrentQuestion((current) => Math.max(current - 1, 0))
               }
             >
-              Indietro
+              {s.quizBack}
             </button>
             <button
               type="button"
               className="rounded-full border border-[#211815]/15 px-4 py-2.5 text-sm font-medium text-[#211815]"
               onClick={onClose}
             >
-              Chiudi
+              {s.quizClose}
             </button>
           </div>
         </div>
@@ -852,6 +974,8 @@ function RopeInquiryModal({
   open: boolean;
   onClose: () => void;
 }) {
+  const { dictionary } = useLanguage();
+  const s = dictionary.shop;
   const [form, setForm] = useState<RopeInquiry>({
     name: "",
     contact: "",
@@ -900,34 +1024,34 @@ function RopeInquiryModal({
     <ModalFrame
       labelledBy="rope-inquiry-title"
       onClose={onClose}
-      closeLabel="Chiudi richiesta corde"
+      closeLabel={s.ropeCloseLabel}
     >
       <form onSubmit={handleSubmit}>
         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-          Corde
+          {shopContent.ropes.eyebrow}
         </p>
         <h2
           id="rope-inquiry-title"
           className="mt-2 font-serif text-4xl font-medium leading-[1.02]"
         >
-          Richiedi corde
+          {s.ropeRequestTitle}
         </h2>
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           <TextInput
-            label="Nome o nickname"
+            label={s.ropeLabelName}
             required
             value={form.name}
             onChange={(value) => updateField("name", value)}
           />
           <TextInput
-            label="Contatto"
+            label={s.ropeLabelContact}
             required
             value={form.contact}
-            placeholder="Email / Telegram / telefono"
+            placeholder={s.ropePlaceholderContact}
             onChange={(value) => updateField("contact", value)}
           />
           <SelectInput
-            label="Produttore"
+            label={s.ropeLabelProducer}
             value={form.producer}
             options={["Europa", "Ogawa"]}
             onChange={(value) =>
@@ -935,7 +1059,7 @@ function RopeInquiryModal({
             }
           />
           <SelectInput
-            label="Trattamento"
+            label={s.ropeLabelTreatment}
             value={form.treatment}
             options={["grezza", "trattata"]}
             onChange={(value) =>
@@ -943,7 +1067,7 @@ function RopeInquiryModal({
             }
           />
           <SelectInput
-            label="Diametro"
+            label={s.ropeLabelDiameter}
             value={form.diameter}
             options={["4,5 mm", "5 mm", "5,5 mm", "6 mm"]}
             onChange={(value) =>
@@ -951,7 +1075,7 @@ function RopeInquiryModal({
             }
           />
           <TextInput
-            label="Numero corde"
+            label={s.ropeLabelQuantity}
             required
             type="number"
             min="1"
@@ -960,7 +1084,7 @@ function RopeInquiryModal({
           />
           <label className="grid gap-2 sm:col-span-2">
             <span className="text-sm font-medium text-[#211815]">
-              Note opzionali
+              {s.ropeLabelNotes}
             </span>
             <textarea
               className="min-h-28 rounded-[8px] border border-[#211815]/10 bg-white/55 px-3 py-2 text-sm text-[#211815] outline-none transition focus:border-[#8b5e4a]/45"
@@ -973,7 +1097,7 @@ function RopeInquiryModal({
           type="submit"
           className="mt-6 inline-flex w-full justify-center rounded-full bg-[#211815] px-5 py-3 text-sm font-medium text-white transition hover:-translate-y-0.5 sm:w-auto"
         >
-          Prepara email
+          {s.ropePrepareEmail}
         </button>
       </form>
     </ModalFrame>
@@ -1181,7 +1305,7 @@ function Chip({
 }
 
 
-function UseChip({ active, label }: { active: boolean; label: string }) {
+function UseChip({ active, label, yesLabel, noLabel }: { active: boolean; label: string; yesLabel: string; noLabel: string }) {
   return (
     <span
       className={`rounded-full border px-3 py-1.5 text-xs font-medium ${
@@ -1190,7 +1314,7 @@ function UseChip({ active, label }: { active: boolean; label: string }) {
           : "border-[#211815]/10 bg-white/45 text-[#5f524c]/55"
       }`}
     >
-      {label}: {active ? "sì" : "no"}
+      {label}: {active ? yesLabel : noLabel}
     </span>
   );
 }
@@ -1257,7 +1381,7 @@ function SelectInput({
   );
 }
 
-function getCardQuizResult(answers: number[]): CardLevel {
+function getCardQuizResult(answers: number[], quiz: CardQuizQuestion[]): CardLevel {
   const scores: Record<CardLevel, number> = {
     Bronze: 0,
     Silver: 0,
@@ -1266,7 +1390,7 @@ function getCardQuizResult(answers: number[]): CardLevel {
   };
 
   answers.forEach((answerIndex, questionIndex) => {
-    const option = CARD_QUIZ[questionIndex]?.options[answerIndex];
+    const option = quiz[questionIndex]?.options[answerIndex];
     if (!option) {
       return;
     }
@@ -1283,9 +1407,49 @@ function getCardQuizResult(answers: number[]): CardLevel {
 }
 
 function findProductByVariant(products: ShopProduct[], variant: string) {
-  return products.find(
-    (product) => normalizeText(product.variant ?? "") === normalizeText(variant),
+  const normalizedVariant = normalizeText(variant);
+
+  return products.find((product) => {
+    const productVariant = normalizeText(product.variant ?? "");
+    return (
+      productVariant === normalizedVariant ||
+      getCardLevel(product) === variant
+    );
+  });
+}
+
+function getProductSearchText(product: ShopProduct) {
+  return normalizeText(
+    [product.name, product.variant, product.description].filter(Boolean).join(" "),
   );
+}
+
+function isPeonyCardProduct(product: ShopProduct) {
+  const text = getProductSearchText(product);
+  const excluded = ["token", "gift", "voucher", "buono"].some((term) =>
+    text.includes(term),
+  );
+
+  if (excluded) {
+    return false;
+  }
+
+  return (
+    (text.includes("peony") && text.includes("card")) ||
+    text.includes("membership")
+  );
+}
+
+function isPeonyTokenProduct(product: ShopProduct) {
+  const text = getProductSearchText(product);
+  return text.includes("peony token") || text.includes("token");
+}
+
+function getCardLevel(product: ShopProduct): CardLevel | undefined {
+  const text = getProductSearchText(product);
+  const levels: CardLevel[] = ["Bronze", "Silver", "Gold", "Platinum"];
+
+  return levels.find((level) => text.includes(normalizeText(level)));
 }
 
 function normalizeText(value: string) {

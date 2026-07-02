@@ -138,6 +138,36 @@ export const shopContent = {
       ],
     },
   },
+  peonyTokens: {
+    eyebrow: "Peony Token",
+    title: "Peony Token",
+    intro: [
+      "I Peony Token sono crediti acquistabili in anticipo e utilizzabili per prenotare attività selezionate dello studio.",
+      "Sono pensati per chi vuole flessibilità: non sono una card stagionale, non includono priorità o benefit continuativi, ma permettono di gestire più facilmente la partecipazione a singoli eventi compatibili.",
+    ],
+    howItWorks: {
+      title: "Come funzionano",
+      items: [
+        "Acquisti i token in anticipo tramite Ticket Tailor.",
+        "Li usi per attività selezionate quando sono compatibili con il formato dell'evento.",
+        "Non sostituiscono la Peony Card e non includono priorità, sconti o benefit continuativi.",
+      ],
+    },
+  },
+  differences: [
+    {
+      title: "Peony Card",
+      text: "È una membership stagionale nominale: include accessi, priorità, sconti e benefit per la stagione Peony Studio.",
+    },
+    {
+      title: "Peony Token",
+      text: "Sono crediti/prepagati da usare su attività selezionate: più flessibili, ma senza i vantaggi continuativi delle card.",
+    },
+    {
+      title: "Gift Card / Voucher",
+      text: "È un buono regalo o voucher acquistabile per un'altra persona o per un utilizzo specifico.",
+    },
+  ],
   giftCards: {
     eyebrow: "Gift Card / Voucher",
     title: "Gift Card e voucher",
@@ -235,6 +265,28 @@ export const shopContentEn = {
       "You will receive your card and codes by email",
     ],
   },
+  peonyTokens: {
+    eyebrow: "Peony Token",
+    title: "Peony Token",
+    intro: [
+      "Peony Tokens are credits purchased in advance and used to book selected studio activities.",
+      "They are designed for people who want flexibility: they are not a seasonal card and do not include ongoing priority or benefits, but they make it easier to manage participation in compatible single events.",
+    ],
+  },
+  differences: [
+    {
+      title: "Peony Card",
+      text: "A named seasonal membership: it includes access, priority, discounts and benefits for the Peony Studio season.",
+    },
+    {
+      title: "Peony Token",
+      text: "Credits/prepaid units for selected activities: more flexible, but without the ongoing benefits of the cards.",
+    },
+    {
+      title: "Gift Card / Voucher",
+      text: "A gift card or voucher purchased for another person or for a specific use.",
+    },
+  ],
   giftCards: {
     eyebrow: "Gift Card / Voucher",
     title: "Gift Cards and vouchers",
@@ -253,6 +305,8 @@ export const shopBilingual = {
     hero: shopContent.hero,
     products: shopContent.products,
     peonyCards: { eyebrow: shopContent.peonyCards.eyebrow, title: shopContent.peonyCards.title, intro: shopContent.peonyCards.intro },
+    peonyTokens: { eyebrow: shopContent.peonyTokens.eyebrow, title: shopContent.peonyTokens.title, intro: shopContent.peonyTokens.intro },
+    differences: shopContent.differences,
     giftCards: { eyebrow: shopContent.giftCards.eyebrow, title: shopContent.giftCards.title, intro: shopContent.giftCards.intro },
     ropes: { eyebrow: shopContent.ropes.eyebrow, title: shopContent.ropes.title, intro: shopContent.ropes.intro },
   },
