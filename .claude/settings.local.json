@@ -41,11 +41,7 @@
       "PowerShell($env:NODE_OPTIONS=\"--max-old-space-size=6144\"; npm.cmd run lint 2>&1 | Select-Object -Last 15)",
       "PowerShell($env:NODE_OPTIONS=\"--max-old-space-size=6144\"; npx.cmd tsc --noEmit 2>&1 | Select-Object -Last 15; npm.cmd run lint 2>&1 | Select-Object -Last 15)",
       "PowerShell($env:NODE_OPTIONS=\"--max-old-space-size=6144\"; npx.cmd tsc --noEmit 2>&1 | Select-Object -Last 10; npm.cmd run lint 2>&1 | Select-Object -Last 12)",
-      "PowerShell($env:NODE_OPTIONS=\"--max-old-space-size=6144\"; npx.cmd tsc --noEmit 2>&1 | Select-Object -Last 15; npm.cmd run lint 2>&1 | Select-Object -Last 12)",
-      "Bash(powershell *)",
-      "PowerShell(New-Item *)",
-      "Bash(npx next *)",
-      "Bash(grep -v \"^$\")"
+      "PowerShell($env:NODE_OPTIONS=\"--max-old-space-size=6144\"; npx.cmd tsc --noEmit 2>&1 | Select-Object -Last 15; npm.cmd run lint 2>&1 | Select-Object -Last 12)"
     ]
   }
 }
