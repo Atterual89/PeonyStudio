@@ -5,7 +5,7 @@ import Link from "next/link";
 import { EventImage } from "@/components/shared/EventImage";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { useLanguage } from "@/components/site/LanguageProvider";
-import type { PeonyEvent, PeonyEventCategory } from "@/lib/events";
+import { getEventDetailHref, type PeonyEvent, type PeonyEventCategory } from "@/lib/events";
 
 type EventPageContentProps = {
   event: PeonyEvent;
@@ -33,6 +33,15 @@ type EvDict = {
   observerWelcome: string;
   prerequisitesRequired: string;
   prerequisitesNone: string;
+  labelParticipation: string;
+  participationCouplesOnly: string;
+  participationWithoutPartner: string;
+  observerAllowed: string;
+  observerNotAllowed: string;
+  labelAudience: string;
+  audienceBottomSwitch: string;
+  labelFormat: string;
+  formatConversation: string;
   details: string;
   descriptionFallback: string;
   bookOnTicketTailor: string;
@@ -217,7 +226,7 @@ function RelatedEventCard({
 }) {
   return (
     <Link
-      href={`/eventi/${event.slug}`}
+      href={getEventDetailHref(event)}
       className="group grid w-[min(84vw,420px)] shrink-0 grid-cols-[116px_1fr] overflow-hidden rounded-[8px] border border-[#211815]/10 bg-white/60 [scroll-snap-align:start] transition hover:-translate-y-0.5 hover:bg-white/75 md:w-[420px] md:grid-cols-[140px_1fr]"
     >
       <div className="relative overflow-hidden bg-[#efe4d7]">
@@ -276,11 +285,34 @@ function getQuickInfo(
     if (prerequisites) items.push({ label: ev.labelPrerequisites, value: prerequisites });
   }
 
-  const partner = inferPartner(tags, ev);
-  if (partner) items.push({ label: ev.labelPartner, value: partner });
+  const participation = event.participation;
+  if (participation) {
+    if (participation.mode === "role-based") {
+      items.push({ label: ev.labelAudience, value: ev.audienceBottomSwitch });
+      items.push({ label: ev.labelFormat, value: ev.formatConversation });
+    } else {
+      items.push({
+        label: ev.labelParticipation,
+        value:
+          participation.mode === "couples-only"
+            ? ev.participationCouplesOnly
+            : ev.participationWithoutPartner,
+      });
+      items.push({
+        label: ev.labelObserver,
+        value:
+          participation.observers === "allowed"
+            ? ev.observerAllowed
+            : ev.observerNotAllowed,
+      });
+    }
+  } else {
+    const partner = inferPartner(tags, ev);
+    if (partner) items.push({ label: ev.labelPartner, value: partner });
 
-  const observer = inferObserver(tags, ev);
-  if (observer) items.push({ label: ev.labelObserver, value: observer });
+    const observer = inferObserver(tags, ev);
+    if (observer) items.push({ label: ev.labelObserver, value: observer });
+  }
 
   const instructors = inferInstructors(tags);
   if (instructors) items.push({ label: ev.labelInstructors, value: instructors });

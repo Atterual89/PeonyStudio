@@ -8,6 +8,7 @@ import { EventImage } from "@/components/shared/EventImage";
 import { EventsNetflixLayout } from "@/components/shared/EventsNetflixLayout";
 import type { Dictionary } from "@/i18n/getDictionary";
 import {
+  getEventDetailHref,
   isWorkshopEvent,
   type PeonyEvent,
   type PeonyEventCard,
@@ -731,9 +732,7 @@ function EventCard({
   locale: string;
 }) {
   const image = event.imageUrl ?? getFallbackImage(event);
-  const detailHref = event.workshopSlug
-    ? `/workshop/${event.workshopSlug}`
-    : `/eventi/${event.slug}`;
+  const detailHref = getEventDetailHref(event);
 
   return (
     <article className="group w-[min(calc((100vw-32px)/1.25),320px)] shrink-0 overflow-hidden rounded-[14px] border border-[#211815]/10 bg-white/62 shadow-[0_1px_0_rgba(33,24,21,0.04)] transition hover:-translate-y-[3px] hover:bg-white/80 hover:shadow-[0_12px_30px_rgba(33,24,21,0.10)] [scroll-snap-align:start] md:w-[270px]">
@@ -1023,9 +1022,7 @@ function getMobileMonthCells(
 }
 
 function toNetflixCard(event: PeonyEvent): PeonyEventCard {
-  const detailHref = event.workshopSlug
-    ? `/workshop/${event.workshopSlug}`
-    : `/eventi/${event.slug}`;
+  const detailHref = getEventDetailHref(event);
   return {
     slug: event.slug,
     category: event.category,

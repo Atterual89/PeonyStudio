@@ -3,7 +3,7 @@ import {
   type WorkshopCardData,
 } from "@/components/workshop/WorkshopPageClient";
 import { getWorkshopBySlug } from "@/content/workshops";
-import { getWorkshopEvents, type PeonyEvent } from "@/lib/events";
+import { getEventDetailHref, getWorkshopEvents, type PeonyEvent } from "@/lib/events";
 
 export default async function WorkshopPage() {
   const liveEvents = await getWorkshopEvents();
@@ -19,9 +19,7 @@ function buildLiveCard(event: PeonyEvent): WorkshopCardData {
 
   return {
     id: event.id,
-    detailHref: event.workshopSlug
-      ? `/workshop/${event.workshopSlug}`
-      : `/eventi/${event.slug}`,
+    detailHref: getEventDetailHref(event),
     title: event.title,
     teachers: enrichment?.teachers ?? teachersFromTags(event.tags ?? []),
     dateLabel: event.dateLabel ?? enrichment?.dateLabel,

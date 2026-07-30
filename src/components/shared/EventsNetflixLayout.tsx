@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo } from "react";
 
 import { EventImage } from "@/components/shared/EventImage";
@@ -133,39 +134,48 @@ function CategoryRow({
 
 function NetflixCard({ event }: { event: PeonyEventCard }) {
   const image = event.image ?? FALLBACK_IMAGE;
-  const href = event.bookingUrl ?? event.eventUrl;
 
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="w-[calc((100vw-48px)/1.25)] max-w-[300px] shrink-0 overflow-hidden rounded-[8px] border bg-white/65 [scroll-snap-align:start] transition-transform hover:-translate-y-[3px]"
-    >
-      <EventImage
-        src={image}
-        alt={event.title}
-        variant="netflix"
-      />
-      <div className="px-3 pb-3 pt-2.5">
-        <div className="flex items-center gap-2">
-          <span className="rounded-full bg-[#8b5e4a]/10 px-2.5 py-1 text-[10px] uppercase tracking-wide text-[#5f524c]">
-            {CATEGORY_LABELS[event.category] ?? event.category}
-          </span>
-          <span className="text-[10px] text-[#6b5c52]">
-            {tryFormatDate(event.date)}
-          </span>
+    <article className="w-[calc((100vw-48px)/1.25)] max-w-[300px] shrink-0 overflow-hidden rounded-[8px] border bg-white/65 [scroll-snap-align:start] transition-transform hover:-translate-y-[3px]">
+      <Link href={event.eventUrl} className="block">
+        <EventImage
+          src={image}
+          alt={event.title}
+          variant="netflix"
+        />
+        <div className="px-3 pt-2.5">
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-[#8b5e4a]/10 px-2.5 py-1 text-[10px] uppercase tracking-wide text-[#5f524c]">
+              {CATEGORY_LABELS[event.category] ?? event.category}
+            </span>
+            <span className="text-[10px] text-[#6b5c52]">
+              {tryFormatDate(event.date)}
+            </span>
+          </div>
+          <p className="mt-1 font-serif text-lg font-medium leading-tight text-[#211815] line-clamp-2">
+            {event.title}
+          </p>
         </div>
-        <p className="mt-1 font-serif text-lg font-medium leading-tight text-[#211815] line-clamp-2">
-          {event.title}
-        </p>
+      </Link>
+      <div className="flex flex-wrap gap-2 px-3 pb-3 pt-2">
+        <Link
+          href={event.eventUrl}
+          className="inline-block rounded-full border border-[#211815]/20 px-4 py-2 text-[13px] font-medium text-[#211815]"
+        >
+          Dettagli
+        </Link>
         {event.bookingUrl ? (
-          <span className="mt-2 inline-block rounded-full bg-[#211815] px-4 py-2 text-[13px] font-medium text-white">
+          <a
+            href={event.bookingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block rounded-full bg-[#211815] px-4 py-2 text-[13px] font-medium text-white"
+          >
             Prenota
-          </span>
+          </a>
         ) : null}
       </div>
-    </a>
+    </article>
   );
 }
 

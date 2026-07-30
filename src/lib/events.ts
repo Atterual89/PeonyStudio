@@ -13,6 +13,24 @@ export type PeonyEventCategory =
   | "trasferta"
   | "altro";
 
+export type EventParticipationMode =
+  | "couples-only"
+  | "couples-or-without-partner"
+  | "role-based";
+
+export type EventObserverPolicy =
+  | "allowed"
+  | "not-allowed"
+  | "not-applicable";
+
+export type EventAudienceRole = "bottom" | "switch";
+
+export type EventParticipation = {
+  mode: EventParticipationMode;
+  observers: EventObserverPolicy;
+  audience?: EventAudienceRole[];
+};
+
 export type PeonyEvent = {
   id: string;
   slug: string;
@@ -39,6 +57,7 @@ export type PeonyEvent = {
   dateLabel?: string;
   durationLabel?: string;
   workshopSlug?: string;
+  participation?: EventParticipation;
   rawTicketTailorPayload?: Record<string, unknown>;
 };
 
@@ -124,6 +143,14 @@ export async function getFeaturedEvent(): Promise<PeonyEvent | null> {
   );
 }
 
+export function getEventDetailHref(
+  event: Pick<PeonyEvent, "slug" | "workshopSlug">,
+): string {
+  return event.workshopSlug
+    ? `/workshop/${event.workshopSlug}`
+    : `/eventi/${event.slug}`;
+}
+
 export function toEventCard(event: PeonyEvent): PeonyEventCard {
   return {
     slug: event.slug,
@@ -132,7 +159,7 @@ export function toEventCard(event: PeonyEvent): PeonyEventCard {
     date: formatEventDate(event.date),
     detail: event.shortDescription,
     image: event.imageUrl ?? getEventImage(event),
-    eventUrl: `/eventi/${event.slug}`,
+    eventUrl: getEventDetailHref(event),
     target: `${event.date}T21:00:00+02:00`,
     bookingUrl: event.bookingUrl ?? fallbackBookingUrl,
   };
@@ -189,8 +216,72 @@ function finalizeEvent(event: PeonyEvent): PeonyEvent {
 
   return {
     ...baseEvent,
+    participation: event.participation ?? inferEventParticipation(baseEvent),
     tags: inferEventTags(baseEvent),
   };
+}
+
+export function inferEventParticipation(
+  event: Pick<PeonyEvent, "title" | "category" | "code">,
+): EventParticipation | undefined {
+  const normalized = normalizeSearchText(
+    [event.title, event.code].filter(Boolean).join(" "),
+  );
+
+  if (
+    normalized.includes("aperibottom") ||
+    normalized.includes("aperi bottom") ||
+    normalized.includes("aperi-bottom")
+  ) {
+    return {
+      mode: "role-based",
+      observers: "not-applicable",
+      audience: ["bottom", "switch"],
+    };
+  }
+
+  if (normalized.includes("rope jam") || normalized.includes("open day")) {
+    return {
+      mode: "couples-or-without-partner",
+      observers: "allowed",
+    };
+  }
+
+  if (
+    normalized.includes("pratica assistita") ||
+    normalized.includes("pratica guidata")
+  ) {
+    return {
+      mode: "couples-or-without-partner",
+      observers: "not-allowed",
+    };
+  }
+
+  if (
+    normalized.includes("classe tematica") ||
+    normalized.includes("classi tematiche")
+  ) {
+    return {
+      mode: "couples-only",
+      observers: "not-allowed",
+    };
+  }
+
+  if (event.category === "workshop") {
+    return {
+      mode: "couples-only",
+      observers: "not-allowed",
+    };
+  }
+
+  if (event.category === "percorso") {
+    return {
+      mode: "couples-only",
+      observers: "not-allowed",
+    };
+  }
+
+  return undefined;
 }
 
 export function createEventSlug(title: string, date: string) {
@@ -244,7 +335,7 @@ export function inferEventTags(
   }
 
   if (primaryText.includes("rope jam")) {
-    addTags(tags, ["community", "anche per single", "pratica libera"]);
+    addTags(tags, ["community", "anche per single", "observer ammessi", "pratica libera"]);
   }
 
   if (
@@ -252,7 +343,7 @@ export function inferEventTags(
     primaryText.includes("aperi bottom") ||
     primaryText.includes("aperi-bottom")
   ) {
-    addTags(tags, ["bottom", "community", "anche per single"]);
+    addTags(tags, ["bottom", "switch", "community", "condivisione"]);
   }
 
   if (

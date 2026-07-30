@@ -184,7 +184,7 @@ function WorkshopCard({ card }: { card: WorkshopCardData }) {
                 : "bg-[#211815] text-white"
             }`}
           >
-            {card.isPreview ? w.statusPreview : w.ctaBook}
+            {card.isPreview ? w.statusPreview : w.ctaDetails}
           </span>
         </div>
       </div>
