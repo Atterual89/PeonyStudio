@@ -1,10 +1,10 @@
 "use client";
 
-import { BookOpen, Eye, Ribbon, Sprout, Users } from "lucide-react";
+import { BookOpen, ChevronDown, Eye, Ribbon, Sprout, User, Users } from "lucide-react";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-const LEGEND_ORDER: IconName[] = ["Users", "Sprout", "BookOpen", "Ribbon", "Eye"];
+const LEGEND_ORDER: IconName[] = ["User", "Users", "Sprout", "BookOpen", "Ribbon", "Eye"];
 
 import { ProgramsLevelQuiz } from "@/components/programs/ProgramsLevelQuiz";
 import { TabsWrapper } from "@/components/layout/TabsWrapper";
@@ -18,18 +18,11 @@ import type {
 } from "@/content/programs";
 import type { PeonyEvent } from "@/lib/events";
 
-const ICON_MAP = { Users, Sprout, BookOpen, Ribbon, Eye } as const;
+const ICON_MAP = { User, Users, Sprout, BookOpen, Ribbon, Eye } as const;
 type IconName = keyof typeof ICON_MAP;
 
-const NODE_ICONS: Record<number, IconName[]> = {
-  0: ["Users", "Sprout"],
-  1: ["Users", "BookOpen"],
-  2: ["Users", "BookOpen"],
-  3: ["Users", "BookOpen"],
-};
-
-
-const ICON_LABEL_KEY: Record<IconName, "iconLegendUsers" | "iconLegendSprout" | "iconLegendBookOpen" | "iconLegendRibbon" | "iconLegendEye"> = {
+const ICON_LABEL_KEY: Record<IconName, "iconLegendUser" | "iconLegendUsers" | "iconLegendSprout" | "iconLegendBookOpen" | "iconLegendRibbon" | "iconLegendEye"> = {
+  User:     "iconLegendUser",
   Users:    "iconLegendUsers",
   Sprout:   "iconLegendSprout",
   BookOpen: "iconLegendBookOpen",
@@ -41,8 +34,6 @@ type ProgramsProgressPageProps = {
   content: typeof programsContent;
   percorsoEvents?: PeonyEvent[];
 };
-
-const NODE_LABELS_SHORT = ["F1", "F2", "C1", "C1+"];
 
 const PERCORSO_PATTERNS: Record<number, string[]> = {
   0: ["foundation lv.1", "foundation lv 1", "foundation lev.1", "foundation 1"],
@@ -78,7 +69,7 @@ export function ProgramsProgressPage({ content, percorsoEvents = [] }: ProgramsP
   const prog = dictionary.programs;
   const prac = dictionary.practice;
   const localizedContent = programsBilingual[locale] ?? programsBilingual.it;
-  const barRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<(HTMLLIElement | null)[]>([]);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [activeParallelIndex, setActiveParallelIndex] = useState<number | null>(null);
   const [contactModalOpen, setContactModalOpen] = useState(false);
@@ -93,21 +84,21 @@ export function ProgramsProgressPage({ content, percorsoEvents = [] }: ProgramsP
     setContactMessage("");
   };
 
-  const activeStep = activeIndex === null ? null : localizedContent.progression[activeIndex];
-  const progressScale =
-    activeIndex !== null && content.progression.length > 1
-      ? activeIndex / (content.progression.length - 1)
-      : 0;
-
-  function scrollBarIntoView() {
-    barRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  function scrollItemIntoView(index: number) {
+    requestAnimationFrame(() => {
+      itemRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
   }
 
   function toggleActiveIndex(index: number) {
     const next = activeIndex === index ? null : index;
     setActiveIndex(next);
     setActiveParallelIndex(null);
-    scrollBarIntoView();
+    if (next !== null) scrollItemIntoView(next);
+  }
+
+  function closeActiveIndex() {
+    setActiveIndex(null);
   }
 
   return (
@@ -133,6 +124,26 @@ export function ProgramsProgressPage({ content, percorsoEvents = [] }: ProgramsP
         </p>
       </section>
 
+      {/* Intro map — overview of the structured path + parallel activities */}
+      <IntroMap
+        prog={prog}
+        progression={localizedContent.progression}
+        parallelLabels={[prog.parallelPracticeLabel, prog.parallelClassiLabel]}
+      />
+
+      {/* Quiz banner */}
+      <div className="mx-auto max-w-6xl px-5 pb-4 sm:px-6">
+        <div className="flex items-center justify-between gap-3 rounded-[8px] border border-[#8b5e4a]/20 bg-[#8b5e4a]/[0.06] px-4 py-2.5">
+          <p className="text-sm text-[#5f524c]">{prog.quizBannerText}</p>
+          <a
+            href="#quiz"
+            className="shrink-0 text-sm font-semibold text-[#8b5e4a] transition hover:text-[#211815]"
+          >
+            {prog.quizBannerBtn}
+          </a>
+        </div>
+      </div>
+
       {/* Icon legend banner */}
       <div className="mx-auto max-w-6xl pb-3">
         <div className="overflow-x-auto bg-[#211815]/[0.04] px-5 py-2.5 [scrollbar-width:none] sm:px-6 [&::-webkit-scrollbar]:hidden">
@@ -150,132 +161,47 @@ export function ProgramsProgressPage({ content, percorsoEvents = [] }: ProgramsP
         </div>
       </div>
 
-      {/* Quiz banner */}
-      <div className="mx-auto max-w-6xl px-5 pb-4 sm:px-6">
-        <div className="flex items-center justify-between gap-3 rounded-[8px] border border-[#8b5e4a]/20 bg-[#8b5e4a]/[0.06] px-4 py-2.5">
-          <p className="text-sm text-[#5f524c]">{prog.quizBannerText}</p>
-          <a
-            href="#quiz"
-            className="shrink-0 text-sm font-semibold text-[#8b5e4a] transition hover:text-[#211815]"
-          >
-            {prog.quizBannerBtn}
-          </a>
-        </div>
-      </div>
+      {/* Levels — vertical expandable list */}
+      <section id="percorso-livelli" className="scroll-mt-24 mx-auto max-w-6xl px-5 pb-8 pt-0 sm:px-6 md:pb-12">
+        {activeIndex === null && activeParallelIndex === null ? (
+          <p className="pb-3 text-center text-[11px] text-[#5f524c]/50 md:text-xs">
+            {prog.clickNodeInstruction.split("◎").map((part, i) =>
+              i === 0 ? (
+                <span key={i}>{part}<span aria-hidden="true" className="inline-flex h-[13px] w-[13px] shrink-0 items-center justify-center rounded-full border-[1.5px] border-[#8b5e4a]/45 align-middle"><span className="h-[5px] w-[5px] rounded-full border border-[#8b5e4a]/35" /></span></span>
+              ) : (
+                <span key={i}>{part}</span>
+              )
+            )}
+          </p>
+        ) : null}
 
-      {/* Rope + nodes + parallel + detail */}
-      <section className="mx-auto max-w-6xl px-5 pb-8 pt-0 sm:px-6 md:pb-12">
-
-        {/* ── Rope timeline ── */}
-        <div ref={barRef} className="sticky top-0 z-10 bg-[#f4efe8] relative px-1 py-4 md:px-2">
-          {/* Inline hint — shown above circles when nothing is selected */}
-          {activeStep === null && activeParallelIndex === null ? (
-            <p className="pb-3 text-center text-[11px] text-[#5f524c]/50 md:text-xs">
-              {prog.clickNodeInstruction.split("◎").map((part, i) =>
-                i === 0 ? (
-                  <span key={i}>{part}<span aria-hidden="true" className="inline-flex h-[13px] w-[13px] shrink-0 items-center justify-center rounded-full border-[1.5px] border-[#8b5e4a]/45 align-middle"><span className="h-[5px] w-[5px] rounded-full border border-[#8b5e4a]/35" /></span></span>
-                ) : (
-                  <span key={i}>{part}</span>
-                )
-              )}
-            </p>
-          ) : null}
-          <div className="relative grid grid-cols-4">
-            {/* Background rope — thin, muted */}
-            <div
-              aria-hidden="true"
-              className="absolute left-[12.5%] right-[12.5%] top-[19px] h-[2px] rounded-full bg-[#211815]/14 md:top-[23px]"
-            />
-            {/* Active rope — thicker, colored, scales left to selected node */}
-            <div
-              aria-hidden="true"
-              className="absolute left-[12.5%] right-[12.5%] top-[17px] h-[5px] origin-left rounded-full bg-gradient-to-r from-[#8b5e4a]/55 to-[#8b5e4a] transition-transform duration-500 ease-out md:top-[21px]"
-              style={{ transform: `scaleX(${progressScale})` }}
-            />
-
+        <div className="relative mx-auto max-w-3xl">
+          {/* Rope connecting the numbered nodes */}
+          <div
+            aria-hidden="true"
+            className="absolute left-[22px] top-6 bottom-6 w-[2px] rounded-full bg-[#8b5e4a]/25 md:left-[26px]"
+          />
+          <ul className="relative flex flex-col gap-3">
             {localizedContent.progression.map((step, index) => {
               const active = index === activeIndex;
               return (
-                <button
+                <LevelCard
                   key={step.title}
-                  type="button"
-                  aria-pressed={active}
-                  aria-current={active ? "step" : undefined}
-                  onClick={() => toggleActiveIndex(index)}
-                  className="group relative flex min-w-0 cursor-pointer flex-col items-center gap-0 text-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-4 focus-visible:ring-offset-[#f4efe8]"
-                >
-                  {/* Node — double-ring knot style */}
-                  <span
-                    className={`programs-knot relative z-10 grid h-9 w-9 place-items-center rounded-full border-2 bg-[#f4efe8] transition duration-300 md:h-11 md:w-11 ${
-                      active
-                        ? "border-[#8b5e4a] shadow-[0_0_0_7px_rgba(139,94,74,0.12)]"
-                        : "border-[#8b5e4a]/30 shadow-[0_0_0_6px_rgba(244,239,232,0.8)] group-hover:border-[#8b5e4a]/55"
-                    }`}
-                  >
-                    {active && (
-                      <span aria-hidden="true" className="absolute inset-0 rounded-full border-2 border-[#8b5e4a]/55 animate-ping" />
-                    )}
-                    <span
-                      aria-hidden="true"
-                      className={`h-4 w-4 rounded-full border-2 transition duration-300 md:h-5 md:w-5 ${
-                        active
-                          ? "border-[#8b5e4a] bg-[#8b5e4a]"
-                          : "border-[#8b5e4a]/30 bg-transparent group-hover:border-[#8b5e4a]/55"
-                      }`}
-                    />
-                  </span>
-                  {/* Short dotted connector */}
-                  <span aria-hidden="true" className="h-3 border-l border-dotted border-[#8b5e4a]/40 md:h-4" />
-                  {/* Label below — full on md+, abbreviated on mobile */}
-                  <span
-                    className={`text-center transition duration-200 ${
-                      active ? "text-[#8b5e4a]" : "text-[#5f524c]/60 group-hover:text-[#5f524c]"
-                    }`}
-                  >
-                    <span className="block font-semibold leading-tight md:hidden" style={{ fontSize: "10px" }}>
-                      {NODE_LABELS_SHORT[index]}
-                    </span>
-                    <span className="hidden text-xs font-semibold leading-tight md:block">
-                      {step.title}
-                    </span>
-                  </span>
-                  {/* Icons */}
-                  {active ? (
-                    <span className="mt-1 flex justify-center gap-1">
-                      {(NODE_ICONS[index] ?? []).map(n => {
-                        const Icon = ICON_MAP[n];
-                        return <Icon key={n} size={12} className="text-[#8b5e4a]/70" aria-hidden="true" />;
-                      })}
-                    </span>
-                  ) : null}
-                </button>
+                  step={step}
+                  index={index}
+                  active={active}
+                  prog={prog}
+                  matchedEvents={matchPercorso(percorsoEvents, index)}
+                  onToggle={() => toggleActiveIndex(index)}
+                  onClose={closeActiveIndex}
+                  itemRef={(el) => {
+                    itemRefs.current[index] = el;
+                  }}
+                />
               );
             })}
-          </div>
+          </ul>
         </div>
-
-        {/* ── Parallel activities ── */}
-        <div className="mx-auto flex justify-center pt-5 md:pt-6">
-          <span aria-hidden="true" className="h-5 border-l border-dashed border-[#8b5e4a]/35 md:h-6" />
-        </div>
-        <ParallelBar
-          items={localizedContent.parallelPractice.items}
-          activeIndex={activeParallelIndex}
-          prog={prog}
-          percorsoEvents={percorsoEvents}
-          onToggle={(index) => {
-            setActiveParallelIndex((current) => (current === index ? null : index));
-            setActiveIndex(null);
-            scrollBarIntoView();
-          }}
-        />
-
-        {/* ── Program detail ── */}
-        {activeStep ? (
-          <div id="program-detail" className="mt-4 md:mt-5">
-            <ProgramDetail step={activeStep} prog={prog} matchedEvents={matchPercorso(percorsoEvents, activeIndex ?? 0)} />
-          </div>
-        ) : null}
 
         {/* ── Contatto ── */}
         <div className="mt-10 px-4 pb-4">
@@ -290,6 +216,21 @@ export function ProgramsProgressPage({ content, percorsoEvents = [] }: ProgramsP
             {prog.askForInfo}
           </button>
         </div>
+      </section>
+
+      {/* Parallel activities — prominent block after the full path list */}
+      <section id="in-parallelo" className="scroll-mt-24 mx-auto max-w-6xl px-5 pb-5 sm:px-6">
+        <ParallelBlock
+          intro={localizedContent.parallelPractice.intro}
+          items={localizedContent.parallelPractice.items}
+          activeIndex={activeParallelIndex}
+          prog={prog}
+          percorsoEvents={percorsoEvents}
+          onToggle={(index) => {
+            setActiveParallelIndex((current) => (current === index ? null : index));
+            setActiveIndex(null);
+          }}
+        />
       </section>
 
       {/* Quiz */}
@@ -399,6 +340,83 @@ export function ProgramsProgressPage({ content, percorsoEvents = [] }: ProgramsP
   );
 }
 
+// ── Intro map — compact overview + navigation ─────────────────────────────────
+
+function IntroMap({
+  prog,
+  progression,
+  parallelLabels,
+}: {
+  prog: {
+    mapEyebrow: string;
+    mapIntro: string;
+    mapStructuredPathLabel: string;
+    mapParallelLabel: string;
+  };
+  progression: ProgramStep[];
+  parallelLabels: string[];
+}) {
+  return (
+    <section className="mx-auto max-w-6xl px-5 pb-5 pt-1 sm:px-6">
+      <div className="rounded-[14px] border border-[#211815]/10 bg-white/30 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] md:p-5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+          {prog.mapEyebrow}
+        </p>
+        <p className="mt-2 text-sm leading-[1.6] text-[#5f524c] md:text-base">
+          {prog.mapIntro}
+        </p>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-[1.3fr_1fr]">
+          {/* Structured path */}
+          <a
+            href="#percorso-livelli"
+            className="group rounded-[10px] border border-[#211815]/10 bg-[#f4efe8]/50 p-3 transition hover:border-[#8b5e4a]/45 hover:bg-white/60"
+          >
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8b5e4a]/80">
+              {prog.mapStructuredPathLabel}
+            </p>
+            <div className="mt-2 flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {progression.map((step, index) => (
+                <span key={step.title} className="flex shrink-0 items-center gap-1.5">
+                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 border-[#8b5e4a]/45 bg-[#f4efe8] text-[11px] font-semibold text-[#8b5e4a] transition group-hover:border-[#8b5e4a]">
+                    {index + 1}
+                  </span>
+                  {index < progression.length - 1 ? (
+                    <span aria-hidden="true" className="h-[2px] w-4 shrink-0 rounded-full bg-[#8b5e4a]/25 md:w-6" />
+                  ) : null}
+                </span>
+              ))}
+            </div>
+            <p className="mt-2 truncate text-xs text-[#5f524c]/80">
+              {progression.map((step) => step.title).join(" · ")}
+            </p>
+          </a>
+
+          {/* Parallel activities */}
+          <a
+            href="#in-parallelo"
+            className="group rounded-[10px] border border-[#8b5e4a]/25 bg-[#8b5e4a]/[0.06] p-3 transition hover:border-[#8b5e4a]/50 hover:bg-[#8b5e4a]/[0.1]"
+          >
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8b5e4a]/80">
+              {prog.mapParallelLabel}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {parallelLabels.map((label) => (
+                <span
+                  key={label}
+                  className="rounded-full border border-[#8b5e4a]/30 bg-white/50 px-2.5 py-1 text-[11px] font-semibold text-[#5f524c] transition group-hover:border-[#8b5e4a]/50"
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ── Parallel detail panel ────────────────────────────────────────────────────
 
 function ParallelDetailPanel({
@@ -502,13 +520,15 @@ function ParallelDetailPanel({
 
 const PARALLELO_KEYS: ("pratica" | "tematica")[] = ["pratica", "tematica"];
 
-function ParallelBar({
+function ParallelBlock({
+  intro,
   items,
   activeIndex,
   prog,
   percorsoEvents,
   onToggle,
 }: {
+  intro: string;
   items: ParallelPracticeItem[];
   activeIndex: number | null;
   prog: {
@@ -532,34 +552,32 @@ function ParallelBar({
   const matchedParallelEvents = activeIndex !== null ? matchParallelo(percorsoEvents, parallelKey) : [];
 
   return (
-    <div className="mx-auto mb-2 max-w-5xl">
-      <div className="relative rounded-[8px] border border-[#211815]/10 bg-white/30 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]">
-        <div aria-hidden="true" className="absolute left-3 right-3 top-1/2 h-px -translate-y-1/2 bg-[#8b5e4a]/15" />
-        <div className="relative flex items-center gap-1">
-          <span className="shrink-0 px-2 text-[10px] font-semibold uppercase tracking-[0.13em] text-[#8b5e4a]/75 md:text-[11px] md:tracking-[0.16em]">
-            {prog.inParallel}:
-          </span>
-          {items.map((item, index) => {
-            const active = activeIndex === index;
-            const label = labels[index] ?? item.title;
-            return (
-              <button
-                key={item.title}
-                type="button"
-                aria-expanded={active}
-                aria-controls="parallel-detail"
-                onClick={() => onToggle(index)}
-                className={`grid min-h-10 flex-1 cursor-pointer place-items-center rounded-[7px] border px-2 text-center text-[10px] font-semibold uppercase leading-tight tracking-[0.1em] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f4efe8] md:min-h-11 md:text-[11px] md:tracking-[0.14em] ${
-                  active
-                    ? "border-[#8b5e4a]/55 bg-white/78 text-[#211815] shadow-[0_8px_20px_rgba(33,24,21,0.08)]"
-                    : "border-[#8b5e4a]/20 bg-[#f4efe8]/45 text-[#5f524c] hover:border-[#8b5e4a]/35 hover:bg-[#8b5e4a]/10 active:bg-white/60"
-                }`}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
+    <div className="rounded-[14px] border border-[#8b5e4a]/25 bg-[#8b5e4a]/[0.07] p-4 md:p-5">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+        {prog.inParallel}
+      </p>
+      <p className="mt-2 text-sm leading-[1.6] text-[#5f524c] md:text-base">{intro}</p>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        {items.map((item, index) => {
+          const active = activeIndex === index;
+          const label = labels[index] ?? item.title;
+          return (
+            <button
+              key={item.title}
+              type="button"
+              aria-expanded={active}
+              aria-controls="parallel-detail"
+              onClick={() => onToggle(index)}
+              className={`rounded-[10px] border px-4 py-3 text-left text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f4efe8] ${
+                active
+                  ? "border-[#8b5e4a] bg-white/80 text-[#211815] shadow-[0_8px_20px_rgba(33,24,21,0.08)]"
+                  : "border-[#8b5e4a]/25 bg-white/40 text-[#5f524c] hover:border-[#8b5e4a]/45 hover:bg-white/60"
+              }`}
+            >
+              {label}
+            </button>
+          );
+        })}
       </div>
 
       <div className={`grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none ${activeItem ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
@@ -580,107 +598,153 @@ function ParallelBar({
   );
 }
 
-// ── Program detail (inline) ───────────────────────────────────────────────────
+// ── Level card (vertical list, inline expand) ─────────────────────────────────
 
-function ProgramDetail({
+function LevelCard({
   step,
+  index,
+  active,
   prog,
   matchedEvents,
+  onToggle,
+  onClose,
+  itemRef,
 }: {
   step: ProgramStep;
+  index: number;
+  active: boolean;
   prog: {
-    selectedProgram: string;
     whatWeWork: string;
     forWhom: string;
     detailsLink: string;
+    closeDetail: string;
   };
   matchedEvents: PeonyEvent[];
+  onToggle: () => void;
+  onClose: () => void;
+  itemRef: (el: HTMLLIElement | null) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
 
+  useEffect(() => {
+    if (!active) setExpanded(false);
+  }, [active]);
+
   return (
-    <article className="programs-panel-in mx-auto max-w-5xl rounded-[14px] border border-[#211815]/10 bg-white/42 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] md:p-6">
-      <div className="grid gap-4 md:grid-cols-[0.9fr_1.1fr] md:gap-6">
-        {/* Left: always-visible info */}
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-            {prog.selectedProgram}
-          </p>
-          <h2 className="mt-3 font-serif text-[38px] font-medium leading-[1.02] tracking-normal text-[#211815] md:text-6xl">
-            {step.title}
-          </h2>
-          <p className="mt-3 text-sm font-semibold leading-5 text-[#8b5e4a] md:text-base">
-            {step.subtitle}
-          </p>
-          <p className="mt-4 text-sm leading-[1.7] text-[#5f524c] md:text-base">
-            {step.description}
-          </p>
-          {matchedEvents.length > 0 ? (
-            <div className="mt-4 rounded-[10px] border border-[#211815]/10 bg-[#f4efe8]/50 p-4">
-              <p className="mb-3 text-[10px] font-medium uppercase tracking-widest text-[#8b5e4a]">
-                Prossime date
-              </p>
-              <div className="flex flex-col gap-2">
-                {matchedEvents.slice(0, 4).map((event) => (
-                  <div key={event.id} className="flex items-center justify-between">
-                    <span className="text-sm text-[#211815]">
-                      {event.dateLabel ?? event.date}
-                      {event.timeLabel ? ` · ${event.timeLabel}` : ""}
-                    </span>
-                    {event.bookingUrl ? (
-                      <a
-                        href={event.bookingUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="rounded-full bg-[#211815] px-3 py-1.5 text-xs font-medium text-white"
-                      >
-                        Prenota
-                      </a>
-                    ) : (
-                      <span className="rounded-full border border-[#211815]/20 px-3 py-1.5 text-xs text-[#6b5c52]">
-                        In programma
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <p className="mt-4 text-sm text-[#6b5c52]">
-              Nessuna data in programma al momento.
-            </p>
-          )}
-          <div className="mt-3">
+    <li ref={itemRef} className="scroll-mt-24">
+      <div
+        className={`relative rounded-[14px] border transition-colors duration-200 ${
+          active
+            ? "border-[#8b5e4a] bg-white/55 shadow-[0_10px_30px_rgba(33,24,21,0.08)]"
+            : "border-[#211815]/10 bg-white/25"
+        }`}
+      >
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={active}
+          className="flex w-full items-center gap-3 rounded-[14px] p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e4a] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f4efe8]"
+        >
+          <span
+            className={`programs-knot relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 bg-[#f4efe8] transition duration-300 ${
+              active ? "border-[#8b5e4a] shadow-[0_0_0_6px_rgba(139,94,74,0.12)]" : "border-[#8b5e4a]/30"
+            }`}
+          >
+            <span
+              aria-hidden="true"
+              className={`text-[13px] font-semibold leading-none ${active ? "text-[#8b5e4a]" : "text-[#8b5e4a]/50"}`}
+            >
+              {index + 1}
+            </span>
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className={`block font-serif text-lg leading-tight ${active ? "text-[#211815]" : "text-[#211815]/85"}`}>
+              {step.title}
+            </span>
+            <span className="block text-xs text-[#5f524c]/75">{step.subtitle}</span>
+          </span>
+          <ChevronDown
+            aria-hidden="true"
+            size={18}
+            className={`shrink-0 text-[#8b5e4a] transition-transform duration-200 ${active ? "rotate-180" : ""}`}
+          />
+        </button>
+
+        {active ? (
+          <div className="programs-panel-in relative border-t border-[#211815]/10 px-4 pb-4 pt-4 md:px-5">
             <button
               type="button"
-              className="inline-flex items-center gap-1 border-b border-[#8b5e4a]/35 pb-0.5 text-sm font-medium text-[#8b5e4a] transition hover:border-[#8b5e4a]"
-              onClick={() => setExpanded((v) => !v)}
+              onClick={onClose}
+              aria-label={prog.closeDetail}
+              className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full border border-[#211815]/10 bg-[#f4efe8]/80 text-base leading-none text-[#211815] transition hover:bg-white"
             >
-              {prog.detailsLink} {expanded ? "↑" : "↓"}
+              ×
             </button>
-          </div>
-        </div>
-
-        {/* Right: expandable details */}
-        <div
-          className={`grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none ${
-            expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-          }`}
-        >
-          <div className="overflow-hidden">
-            <div className="grid gap-3 md:pt-0 pt-2">
-              <InfoBlock title={prog.whatWeWork} items={step.work} />
-              <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/60 p-4">
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
-                  {prog.forWhom}
-                </h3>
-                <p className="mt-3 text-sm leading-[1.65] text-[#5f524c]">{step.audience}</p>
+            <p className="pr-10 text-sm leading-[1.7] text-[#5f524c] md:text-base">
+              {step.description}
+            </p>
+            {matchedEvents.length > 0 ? (
+              <div className="mt-4 rounded-[10px] border border-[#211815]/10 bg-[#f4efe8]/50 p-4">
+                <p className="mb-3 text-[10px] font-medium uppercase tracking-widest text-[#8b5e4a]">
+                  Prossime date
+                </p>
+                <div className="flex flex-col gap-2">
+                  {matchedEvents.slice(0, 4).map((event) => (
+                    <div key={event.id} className="flex items-center justify-between">
+                      <span className="text-sm text-[#211815]">
+                        {event.dateLabel ?? event.date}
+                        {event.timeLabel ? ` · ${event.timeLabel}` : ""}
+                      </span>
+                      {event.bookingUrl ? (
+                        <a
+                          href={event.bookingUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-full bg-[#211815] px-3 py-1.5 text-xs font-medium text-white"
+                        >
+                          Prenota
+                        </a>
+                      ) : (
+                        <span className="rounded-full border border-[#211815]/20 px-3 py-1.5 text-xs text-[#6b5c52]">
+                          In programma
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-[#6b5c52]">
+                Nessuna data in programma al momento.
+              </p>
+            )}
+            <div className="mt-3">
+              <button
+                type="button"
+                aria-expanded={expanded}
+                className="inline-flex items-center gap-1 border-b border-[#8b5e4a]/35 pb-0.5 text-sm font-medium text-[#8b5e4a] transition hover:border-[#8b5e4a]"
+                onClick={() => setExpanded((v) => !v)}
+              >
+                {prog.detailsLink} {expanded ? "↑" : "↓"}
+              </button>
+            </div>
+            <div className={`grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none ${expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+              <div className="overflow-hidden">
+                <div className="grid gap-3 pt-3">
+                  <InfoBlock title={prog.whatWeWork} items={step.work} />
+                  <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/60 p-4">
+                    <h3 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
+                      {prog.forWhom}
+                    </h3>
+                    <p className="mt-3 text-sm leading-[1.65] text-[#5f524c]">{step.audience}</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        ) : null}
       </div>
-    </article>
+    </li>
   );
 }
 

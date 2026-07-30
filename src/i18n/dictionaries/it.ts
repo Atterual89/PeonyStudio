@@ -231,6 +231,11 @@ export const it = {
     clickNodeInstruction: "Clicca su un ◎ per scoprire cosa si lavora",
     toggleShow: "Scopri tutto il percorso",
     toggleHide: "Nascondi il percorso completo",
+    mapEyebrow: "Come funziona",
+    mapIntro:
+      "Una progressione strutturata, accompagnata da attività che puoi affiancare a qualsiasi livello.",
+    mapStructuredPathLabel: "Percorso strutturato",
+    mapParallelLabel: "In parallelo, a qualsiasi livello",
     inParallel: "In parallelo",
     inParallelToPath: "In parallelo al percorso",
     goToPractice: "Vai alla pratica",

@@ -228,6 +228,11 @@ export const en: typeof it = {
     clickNodeInstruction: "Tap a ◎ to learn more",
     toggleShow: "Discover the full path",
     toggleHide: "Hide the full path",
+    mapEyebrow: "How it works",
+    mapIntro:
+      "A structured progression, supported by activities you can add at any level.",
+    mapStructuredPathLabel: "Structured path",
+    mapParallelLabel: "In parallel, at any level",
     inParallel: "Parallel",
     inParallelToPath: "Alongside the program",
     goToPractice: "Go to practice",
