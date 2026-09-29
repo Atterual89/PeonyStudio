@@ -21,7 +21,7 @@ export type TicketTailorOrder = {
   rawPayload: TicketTailorRecord;
 };
 
-export async function getTicketTailorEvents(): Promise<PeonyEvent[]> {
+export async function getTicketTailorEvents(options?: { since?: string }): Promise<PeonyEvent[]> {
   const apiKey = process.env.TICKET_TAILOR_API_KEY;
 
   if (!apiKey) {
@@ -41,7 +41,9 @@ export async function getTicketTailorEvents(): Promise<PeonyEvent[]> {
             return false;
           }
 
-          return isVisibleTicketTailorEvent(item.event);
+          return options?.since
+            ? isTicketTailorEventFromDate(item.event, options.since)
+            : isVisibleTicketTailorEvent(item.event);
         },
       );
 
@@ -61,7 +63,9 @@ export async function getTicketTailorEvents(): Promise<PeonyEvent[]> {
       }),
     );
 
-    return enriched.filter(isVisibleTicketTailorEvent);
+    return options?.since
+      ? enriched.filter((event) => isTicketTailorEventFromDate(event, options.since!))
+      : enriched.filter(isVisibleTicketTailorEvent);
   } catch {
     return [];
   }
@@ -523,6 +527,11 @@ function createTicketTailorSlug(title: string, date: string) {
     .replace(/-{2,}/g, "-");
 
   return `${titlePart || "evento"}-${date}`;
+}
+
+function isTicketTailorEventFromDate(event: PeonyEvent, since: string) {
+  const effectiveEndDate = event.endDate ?? event.date;
+  return Boolean(event.date) && effectiveEndDate >= since && isPublishedStatus(event.status);
 }
 
 function isVisibleTicketTailorEvent(event: PeonyEvent) {
