@@ -20,7 +20,7 @@ type SyncMessage = {
 
 type SupabaseIssuedTicketRow = {
   ticket_tailor_issued_ticket_id: string;
-  ticket_tailor_order_id: string | null;
+  ticket_tailor_order_id: string;
   ticket_tailor_event_id: string | null;
   event_id: string | null;
   ticket_type_name: string | null;
@@ -90,6 +90,16 @@ export async function POST(request: NextRequest) {
         "order.id",
         "order.object_id",
       ]);
+      if (!orderId) {
+        skipped += 1;
+        errors.push({
+          level: "warning",
+          ticketTailorIssuedTicketId: ticketId,
+          message: "Issued ticket skipped because its order id is missing.",
+        });
+        continue;
+      }
+
       const ticketTailorEventId = findString(ticket, [
         "event_id",
         "eventId",
