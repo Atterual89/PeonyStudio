@@ -18,9 +18,9 @@ type Enrollment = PersonalAreaData["enrollments"][number];
 
 const sections: Array<{ id: SectionId; label: string; text: string; icon: string }> = [
   { id: "overview", label: "Home",     text: "Il colpo d'occhio sul tuo momento.",    icon: "spark"   },
-  { id: "events",   label: "Eventi",   text: "Date future, storico e dettagli utili.", icon: "ticket"  },
+  { id: "events",   label: "Eventi",   text: "I tuoi prossimi appuntamenti.",          icon: "ticket"  },
   { id: "guide",    label: "Guida",    text: "La forma della tua presenza.",           icon: "eye"     },
-  { id: "path",     label: "Storico",  text: "I corsi che hai frequentato.",          icon: "path"    },
+  { id: "path",     label: "Storico",  text: "Gli eventi a cui hai partecipato.",     icon: "path"    },
   { id: "profile",  label: "Profilo",  text: "Dati, tessera e funzioni gestionali.",  icon: "card"    },
 ];
 
@@ -44,11 +44,10 @@ export function PersonalAreaDashboard({ data }: { data: PersonalAreaData }) {
 
   const sortedEnrollments = useMemo(() => sortEnrollmentsByDate(data.enrollments), [data.enrollments]);
   const futureEnrollments = sortedEnrollments.filter((e) => isFutureEnrollment(e, referenceNow));
-  const pastEnrollments   = sortedEnrollments.filter((e) => !isFutureEnrollment(e, referenceNow));
   const nextEnrollment    = futureEnrollments[0] ?? null;
   const otherFutureEnrollments = nextEnrollment ? futureEnrollments.slice(1) : futureEnrollments;
   const displayName = getDisplayName(data, nicknameOverride);
-  const guide       = getAnimalGuide(pastEnrollments.length);
+  const guide       = getAnimalGuide(data.attendanceStats.checkedIn);
 
   function changeSection(id: SectionId) { setActiveSection(id); setDrawerOpen(false); }
 
@@ -58,7 +57,7 @@ export function PersonalAreaDashboard({ data }: { data: PersonalAreaData }) {
 
         {/* Desktop sidebar */}
         <aside className="hidden w-[300px] shrink-0 border-r border-[#f8efe5]/10 bg-[#2a1a0e] lg:block">
-          <DashboardMenu activeSection={activeSection} data={data} guide={guide} onSectionChange={changeSection} pastCount={pastEnrollments.length} />
+          <DashboardMenu activeSection={activeSection} data={data} guide={guide} onSectionChange={changeSection} pastCount={data.attendanceStats.checkedIn} />
         </aside>
 
         {/* Main content */}
@@ -78,11 +77,10 @@ export function PersonalAreaDashboard({ data }: { data: PersonalAreaData }) {
                 <EventsSection
                   attendanceStats={data.attendanceStats}
                   futureEnrollments={futureEnrollments}
-                  pastEnrollments={pastEnrollments}
                   nextEnrollment={nextEnrollment}
                 />
               ) : null}
-              {activeSection === "guide"   ? <AnimalGuideSection guide={guide} pastCount={pastEnrollments.length} /> : null}
+              {activeSection === "guide"   ? <AnimalGuideSection guide={guide} pastCount={data.attendanceStats.checkedIn} /> : null}
               {activeSection === "path"    ? <AttendanceHistorySection history={data.attendanceHistory} /> : null}
               {activeSection === "profile" ? <ProfileSection data={data} nicknameOverride={nicknameOverride} onNicknameUpdate={setNicknameOverride} /> : null}
             </main>
@@ -341,10 +339,9 @@ function OverviewSection({ guide, nextEnrollment, otherFutureCount, onSectionCha
 
 // ── Events section ────────────────────────────────────────────────────────────
 
-function EventsSection({ attendanceStats, futureEnrollments, pastEnrollments, nextEnrollment }: {
+function EventsSection({ attendanceStats, futureEnrollments, nextEnrollment }: {
   attendanceStats: PersonalAreaData["attendanceStats"];
   futureEnrollments: Enrollment[];
-  pastEnrollments: Enrollment[];
   nextEnrollment: Enrollment | null;
 }) {
   const [modalEnrollment, setModalEnrollment] = useState<Enrollment | null>(null);
@@ -379,7 +376,7 @@ function EventsSection({ attendanceStats, futureEnrollments, pastEnrollments, ne
       <SectionIntro
         eyebrow="Eventi"
         title="I tuoi appuntamenti"
-        text="Date future, eventi passati e informazioni utili per ogni appuntamento."
+        text="Prossimi eventi e informazioni utili per partecipare."
       />
 
       {/* Prossimo evento */}
@@ -404,23 +401,14 @@ function EventsSection({ attendanceStats, futureEnrollments, pastEnrollments, ne
         </Panel>
       ) : null}
 
-      {pastEnrollments.length > 0 ? (
-        <Panel>
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">Eventi passati</p>
-          <div className="grid gap-2">
-            {pastEnrollments.map((e) => <EventRow key={e.id} enrollment={resolveEnrollment(e)} onOpen={setModalEnrollment} onConfirmPartner={handleConfirmPartner} />)}
-          </div>
-        </Panel>
-      ) : null}
-
       {/* Card fissa informazioni spazio */}
       <SpaceInfoCard />
 
       <div className="grid gap-3 md:grid-cols-2">
         <EventStatCard
-          label="EVENTI PRENOTATI"
+          label="EVENTI FUTURI"
           value={attendanceStats.booked}
-          text="Biglietti collegati alla tua email."
+          text="Appuntamenti futuri collegati alla tua email."
         />
         <EventStatCard
           label="CHECK-IN EFFETTUATI"
@@ -842,35 +830,32 @@ function AttendanceHistorySection({ history }: { history: PersonalAreaData["atte
     <div className="grid gap-5">
       <SectionIntro
         eyebrow="Storico"
-        title="I corsi che hai frequentato"
-        text="Basato sui check-in agli eventi Peony Studio."
+        title="I tuoi eventi"
+        text="Eventi a cui hai partecipato dal settembre 2025, confermati dal check-in Ticket Tailor."
       />
-      <Panel>
+      <Panel className="p-0">
         {history.length === 0 ? (
-          <p className="text-sm text-[#f8efe5]/55">Nessun corso frequentato ancora.</p>
+          <p className="p-5 text-sm text-[#f8efe5]/55">
+            Non risultano ancora eventi con check-in collegati alla tua email.
+          </p>
         ) : (
-          <div className="grid gap-2">
+          <div className="divide-y divide-[#f8efe5]/10">
             {history.map((item, index) => (
               <div
-                key={`${item.title}-${index}`}
-                className="flex items-center justify-between gap-3 rounded-[12px] border border-[#f8efe5]/10 bg-[#f8efe5]/6 px-4 py-3"
+                key={`${item.title}-${item.starts_at ?? index}`}
+                className="grid gap-2 px-5 py-4 sm:grid-cols-[130px_minmax(0,1fr)] sm:items-center sm:gap-5"
               >
+                <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#d8b5a5]">
+                  {item.starts_at ? formatShortDate(item.starts_at) : "Data non disponibile"}
+                </span>
                 <div className="min-w-0">
-                  <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
-                    <Badge>{item.category ?? "evento"}</Badge>
-                    {item.starts_at ? (
-                      <span className="text-xs text-[#f8efe5]/45">{formatShortDate(item.starts_at)}</span>
-                    ) : null}
-                  </div>
-                  <p className="font-serif text-base font-medium leading-snug text-[#f8efe5]">
+                  <p className="font-serif text-lg font-medium leading-snug text-[#f8efe5]">
                     {item.title}
                   </p>
+                  <p className="mt-1 text-xs text-[#f8efe5]/48">
+                    {formatEventCategory(item.category)}
+                  </p>
                 </div>
-                {item.count > 1 ? (
-                  <span className="shrink-0 rounded-full border border-[#f8efe5]/15 bg-[#f8efe5]/8 px-2 py-0.5 text-[11px] font-semibold text-[#f8efe5]/55">
-                    × {item.count}
-                  </span>
-                ) : null}
               </div>
             ))}
           </div>
@@ -889,8 +874,10 @@ function ProfileSection({ data, nicknameOverride, onNicknameUpdate }: {
 }) {
   const status    = data.profile?.association_status ?? null;
   const expiresAt = data.profile?.association_expires_at;
-  const membershipOk  = status === "verified" || status === "not_required";
-  const membershipBad = status === "expired" || status === "missing" || status === "pending" || status === "unknown";
+  const membershipOk = status === "verified" || status === "not_required";
+  const membershipExpired = status === "expired";
+  const membershipNeedsReview =
+    status === "missing" || status === "pending" || status === "unknown" || !status;
 
   const [nickname, setNickname] = useState(nicknameOverride ?? "");
   const [saving,   setSaving]   = useState(false);
@@ -931,10 +918,15 @@ function ProfileSection({ data, nicknameOverride, onNicknameUpdate }: {
           <span>✓</span>
           <span>Tessera aggiornata</span>
         </div>
-      ) : membershipBad ? (
+      ) : membershipExpired ? (
         <div className="flex items-center gap-2.5 rounded-[12px] border border-amber-500/30 bg-amber-900/22 px-4 py-3 text-sm font-medium text-amber-300">
           <span>⚠</span>
-          <span>Verifica la tua tessera — contattaci per aggiornarla</span>
+          <span>Tessera da rinnovare</span>
+        </div>
+      ) : membershipNeedsReview ? (
+        <div className="flex items-center gap-2.5 rounded-[12px] border border-amber-500/30 bg-amber-900/22 px-4 py-3 text-sm font-medium text-amber-300">
+          <span>⚠</span>
+          <span>Tessera da verificare</span>
         </div>
       ) : null}
 
@@ -1104,6 +1096,27 @@ function formatShortDate(value?: string | null) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat("it-IT", { day: "2-digit", month: "short", year: "numeric" }).format(date);
+}
+
+function formatEventCategory(category: string | null) {
+  if (!category) return "Evento";
+  const labels: Record<string, string> = {
+    community: "Evento sociale",
+    percorso: "Percorso",
+    course: "Percorso",
+    courses: "Percorso",
+    path: "Percorso",
+    workshop: "Workshop",
+    pratica: "Pratica",
+    practice: "Pratica",
+    class: "Classe",
+    system: "Evento",
+    altro: "Evento",
+  };
+  const normalized = category.trim().toLowerCase();
+  if (labels[normalized]) return labels[normalized];
+  const readable = normalized.replace(/[-_]+/g, " ");
+  return readable.charAt(0).toUpperCase() + readable.slice(1);
 }
 
 function formatAssociationStatus(status: string | null) {
