@@ -227,9 +227,12 @@ function buildPreview(
       existingBySourceRowId,
       existingByName,
     );
+    const preserveManualStatus = match.member
+      ? shouldPreserveManualStatus(match.member.membership_status)
+      : false;
     const action = !match.member
       ? "create"
-      : match.member.source_hash === row.source_hash
+      : isAssociationMemberUpToDate(match.member, row, preserveManualStatus)
         ? "unchanged"
         : "update";
 
@@ -240,9 +243,7 @@ function buildPreview(
       errors: row.errors,
       notes: match.member ? getManualStatusNotes(match.member) : [],
       existingMemberId: match.member?.id ?? null,
-      preserveManualStatus: match.member
-        ? shouldPreserveManualStatus(match.member.membership_status)
-        : false,
+      preserveManualStatus,
     };
   });
   const validSourceRows = sheetResult.rows.filter((row) =>
@@ -350,6 +351,33 @@ function mapSheetRowToMemberUpdatePayload(
   }
 
   return payload;
+}
+
+function isAssociationMemberUpToDate(
+  member: AssociationMemberRecord,
+  row: GoogleSheetMemberRow,
+  preserveManualStatus: boolean,
+) {
+  return (
+    normalizeNullableText(member.first_name) === normalizeNullableText(row.first_name) &&
+    normalizeNullableText(member.last_name) === normalizeNullableText(row.last_name) &&
+    normalizeNullableEmail(member.email) === normalizeNullableEmail(row.email) &&
+    normalizeNullableText(member.contact) === normalizeNullableText(row.contact) &&
+    member.membership_starts_at === row.membership_starts_at &&
+    member.membership_expires_at === row.membership_expires_at &&
+    member.source === row.source &&
+    member.source_row_id === row.source_row_id &&
+    member.source_hash === row.source_hash &&
+    (preserveManualStatus || member.membership_status === row.membership_status)
+  );
+}
+
+function normalizeNullableText(value: string | null | undefined) {
+  return value?.trim().replace(/\s+/g, " ") ?? "";
+}
+
+function normalizeNullableEmail(value: string | null | undefined) {
+  return value?.trim().toLowerCase() ?? "";
 }
 
 function shouldPreserveManualStatus(status: string | null) {
