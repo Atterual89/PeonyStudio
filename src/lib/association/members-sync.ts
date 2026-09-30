@@ -174,6 +174,7 @@ async function loadExistingAssociationMembers(supabase: SupabaseClient) {
   const { data, error } = await supabase
     .from("association_members")
     .select(ASSOCIATION_MEMBER_FIELDS)
+    .eq("source", "google_sheet")
     .range(0, 9999);
 
   if (error) {
