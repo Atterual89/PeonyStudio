@@ -989,7 +989,21 @@ export default function TicketTailorAdminPage() {
         method: "POST",
         headers: { "x-admin-sync-secret": secret },
       });
-      const payload = (await response.json()) as Record<string, unknown>;
+      const rawBody = await response.text();
+      let payload: Record<string, unknown>;
+
+      try {
+        payload = JSON.parse(rawBody) as Record<string, unknown>;
+      } catch {
+        setProfilesSyncResult({
+          ok: false,
+          message:
+            `Il server non ha restituito una risposta valida (HTTP ${response.status}). ` +
+            "Probabile timeout o errore della funzione server.",
+        });
+        return;
+      }
+
       setProfilesSyncResult(payload);
     } catch (error) {
       setProfilesSyncResult({
