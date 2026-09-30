@@ -26,13 +26,15 @@ export async function PATCH(request: NextRequest, { params }: PatchContext) {
     partner_name?: string | null;
   };
 
+  const partnerEmail = body.partner_email?.trim() || null;
+  const partnerName = body.partner_name?.trim() || null;
   const supabase = createSupabaseAdminClient();
   const { error } = await supabase
     .from("user_event_enrollments")
     .update({
-      partner_email: body.partner_email ?? null,
-      partner_name: body.partner_name ?? null,
-      partner_source: "user",
+      partner_email: partnerEmail,
+      partner_name: partnerName,
+      partner_source: partnerEmail || partnerName ? "admin" : null,
     })
     .eq("id", id);
 
