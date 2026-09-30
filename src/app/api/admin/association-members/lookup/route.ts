@@ -72,11 +72,7 @@ export async function GET(request: NextRequest) {
       .select(
         "first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at",
       )
-      .in("source", [
-      "google_sheet",
-      "legacy_members_2025",
-      "official_members_book",
-    ])
+      .in("source", ["google_sheet", "official_members_book"])
       .range(0, 9999),
     profilesQuery.range(0, 99),
   ]);
@@ -100,8 +96,7 @@ export async function GET(request: NextRequest) {
 
   const matchingFormRows = members.filter(
     (row) =>
-      (row.source === "google_sheet" ||
-        row.source === "legacy_members_2025") &&
+      row.source === "google_sheet" &&
       (email
         ? normalizeMembershipEmail(row.email) === email
         : normalizeMembershipNameKey(row.first_name, row.last_name) ===
