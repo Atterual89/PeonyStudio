@@ -93,22 +93,43 @@ export async function GET(request: NextRequest) {
   const tickets = ((ticketData ?? []) as TicketRow[]).filter((ticket) =>
     isActiveTicketStatus(ticket.status),
   );
-  const { data: memberData, error: membersError } = await supabase
-    .from("association_members")
-    .select(
-      "first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at",
-    )
-    .in("source", ["google_sheet", "official_members_book"])
-    .range(0, 9999);
+  const [
+    { data: formMemberData, error: formMembersError },
+    { data: bookMemberData, error: bookMembersError },
+  ] = await Promise.all([
+    supabase
+      .from("association_members")
+      .select(
+        "first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at",
+      )
+      .eq("source", "google_sheet")
+      .range(0, 9999),
+    supabase
+      .from("association_members")
+      .select(
+        "first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at",
+      )
+      .eq("source", "official_members_book")
+      .range(0, 9999),
+  ]);
 
-  if (membersError) {
+  if (formMembersError || bookMembersError) {
     return NextResponse.json(
-      { ok: false, message: membersError.message },
+      {
+        ok: false,
+        message:
+          formMembersError?.message ??
+          bookMembersError?.message ??
+          "Errore caricamento tesseramenti.",
+      },
       { status: 500 },
     );
   }
 
-  const membershipRows = (memberData ?? []) as MemberRow[];
+  const membershipRows = [
+    ...((formMemberData ?? []) as MemberRow[]),
+    ...((bookMemberData ?? []) as MemberRow[]),
+  ];
 
   const eventIds = events.map((event) => event.id);
   const enrollmentByEventOrder = new Map<string, EnrollmentRow>();
