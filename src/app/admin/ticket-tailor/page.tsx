@@ -192,12 +192,13 @@ export default function TicketTailorAdminHome() {
         const created = readNumber(payload.created);
         const updated = readNumber(payload.updated);
         const unchanged = readNumber(payload.unchanged);
+        const removed = readNumber(payload.removed);
         const invalid = readNumber(payload.invalidRows);
 
         summaries.push(
           `${endpoint.label}: +${created}, aggiornati ${updated}, invariati ${unchanged}${
-            invalid > 0 ? `, invalidi ${invalid}` : ""
-          }`,
+            removed > 0 ? `, rimossi ${removed}` : ""
+          }${invalid > 0 ? `, invalidi ${invalid}` : ""}`,
         );
       }
 

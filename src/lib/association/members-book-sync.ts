@@ -132,10 +132,18 @@ export async function applyOfficialMembersBookSync(supabase: SupabaseClient) {
     }
   }
 
+  const removed = await removeStaleSourceRows(
+    supabase,
+    "official_members_book",
+    new Set(preview.validSourceRows.map((row) => row.source_row_id)),
+    errors,
+  );
+
   return {
     ...serializeOfficialMembersBookPreview(preview),
     created,
     updated,
+    removed,
     errors,
   };
 }
@@ -157,6 +165,61 @@ export function serializeOfficialMembersBookPreview(
     detectedColumns: preview.detectedColumns,
     previewRows: preview.previewRows,
   };
+}
+
+async function removeStaleSourceRows(
+  supabase: SupabaseClient,
+  source: string,
+  currentSourceRowIds: Set<string>,
+  errors: string[],
+) {
+  const existing: Array<{ id: string; source_row_id: string | null }> = [];
+  const pageSize = 500;
+
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await supabase
+      .from("association_members")
+      .select("id,source_row_id")
+      .eq("source", source)
+      .range(offset, offset + pageSize - 1);
+
+    if (error) {
+      errors.push(`Pulizia ${source}: ${error.message}`);
+      return 0;
+    }
+
+    const page = (data ?? []) as Array<{
+      id: string;
+      source_row_id: string | null;
+    }>;
+    existing.push(...page);
+
+    if (page.length < pageSize) break;
+  }
+
+  const staleIds = existing
+    .filter(
+      (row) =>
+        !row.source_row_id || !currentSourceRowIds.has(row.source_row_id),
+    )
+    .map((row) => row.id);
+
+  let removed = 0;
+  for (let index = 0; index < staleIds.length; index += 100) {
+    const ids = staleIds.slice(index, index + 100);
+    const { error } = await supabase
+      .from("association_members")
+      .delete()
+      .in("id", ids);
+
+    if (error) {
+      errors.push(`Pulizia ${source}: ${error.message}`);
+    } else {
+      removed += ids.length;
+    }
+  }
+
+  return removed;
 }
 
 async function loadExistingMembers(supabase: SupabaseClient) {
