@@ -99,7 +99,7 @@ export async function applyAssociationMembersSync(supabase: SupabaseClient) {
     }
 
     const sourceRow = preview.validSourceRows.find(
-      (row) => row.rowNumber === previewRow.rowNumber,
+      (row) => row.source_row_id === previewRow.source_row_id,
     );
 
     if (!sourceRow) {
@@ -248,7 +248,7 @@ function buildPreview(
   const validSourceRows = sheetResult.rows.filter((row) =>
     previewRows.some(
       (previewRow) =>
-        previewRow.rowNumber === row.rowNumber &&
+        previewRow.source_row_id === row.source_row_id &&
         previewRow.action !== "invalid" &&
         previewRow.action !== "skipped",
     ),

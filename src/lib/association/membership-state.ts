@@ -133,7 +133,18 @@ function isCurrentYearPayment(row: MembershipEvidenceRow) {
 }
 
 export function normalizeMembershipEmail(value?: string | null) {
-  return value?.trim().toLowerCase() ?? "";
+  const normalized = value?.trim().toLowerCase() ?? "";
+  if (!normalized.includes("@")) return normalized;
+
+  const [rawLocal, rawDomain] = normalized.split("@");
+  const domain = rawDomain === "googlemail.com" ? "gmail.com" : rawDomain;
+
+  if (domain !== "gmail.com") {
+    return `${rawLocal}@${domain}`;
+  }
+
+  const local = rawLocal.split("+")[0].replace(/\./g, "");
+  return `${local}@gmail.com`;
 }
 
 export function normalizeMembershipNameKey(
