@@ -32,47 +32,18 @@ export function deriveMembershipState(
     identity.firstName,
     identity.lastName,
   );
-  const identitySources = new Set(["google_sheet", "legacy_members_2025"]);
-  const identityRows = rows.filter((row) => identitySources.has(row.source ?? ""));
 
-  const emailMatches = targetEmail
-    ? identityRows.filter(
-        (row) => normalizeEmail(row.email) === targetEmail,
-      )
-    : [];
-  const nameMatches = explicitNameKey
-    ? identityRows.filter(
-        (row) =>
-          normalizeNameKey(row.first_name, row.last_name) ===
-          explicitNameKey,
-      )
-    : [];
+  const formRows = rows.filter((row) => {
+    if (row.source !== "google_sheet") return false;
 
-  let matchedIdentityRows: MembershipEvidenceRow[] = [];
+    const emailMatches =
+      Boolean(targetEmail) && normalizeEmail(row.email) === targetEmail;
+    const nameMatches =
+      Boolean(explicitNameKey) &&
+      normalizeNameKey(row.first_name, row.last_name) === explicitNameKey;
 
-  if (emailMatches.length > 0) {
-    const distinctNameKeys = new Set(
-      emailMatches
-        .map((row) => normalizeNameKey(row.first_name, row.last_name))
-        .filter(Boolean),
-    );
-
-    if (explicitNameKey && distinctNameKeys.size > 1) {
-      const disambiguated = emailMatches.filter(
-        (row) =>
-          normalizeNameKey(row.first_name, row.last_name) ===
-          explicitNameKey,
-      );
-      matchedIdentityRows =
-        disambiguated.length > 0 ? disambiguated : emailMatches;
-    } else {
-      matchedIdentityRows = emailMatches;
-    }
-  } else if (nameMatches.length > 0) {
-    matchedIdentityRows = nameMatches;
-  }
-
-  const formPresent = matchedIdentityRows.length > 0;
+    return emailMatches || nameMatches;
+  });
 
   const directEmailPayment = targetEmail
     ? rows.find(
@@ -86,7 +57,7 @@ export function deriveMembershipState(
   if (directEmailPayment) {
     return {
       status: "valid",
-      formPresent,
+      formPresent: formRows.length > 0,
       currentYearPaid: true,
       membershipStartsAt: directEmailPayment.membership_starts_at,
       membershipExpiresAt: directEmailPayment.membership_expires_at,
@@ -98,49 +69,39 @@ export function deriveMembershipState(
     new Set(
       [
         explicitNameKey,
-        ...matchedIdentityRows.map((row) =>
+        ...formRows.map((row) =>
           normalizeNameKey(row.first_name, row.last_name),
         ),
       ].filter(Boolean),
     ),
   );
 
-  // If an email maps to more than one historical person and Ticket Tailor
-  // gives no usable name, do not guess which person owns the current payment.
-  const emailIsAmbiguous =
-    emailMatches.length > 0 &&
-    new Set(
-      emailMatches
-        .map((row) => normalizeNameKey(row.first_name, row.last_name))
-        .filter(Boolean),
-    ).size > 1 &&
-    !explicitNameKey;
+  for (const nameKey of candidateNameKeys) {
+    const officialMatches = rows.filter(
+      (row) =>
+        row.source === "official_members_book" &&
+        normalizeNameKey(row.first_name, row.last_name) === nameKey,
+    );
 
-  if (!emailIsAmbiguous) {
-    for (const nameKey of candidateNameKeys) {
-      const officialMatches = rows.filter(
-        (row) =>
-          row.source === "official_members_book" &&
-          normalizeNameKey(row.first_name, row.last_name) === nameKey,
-      );
+    // Accept a name match only if it resolves to one unique official record.
+    if (officialMatches.length !== 1) continue;
 
-      if (officialMatches.length !== 1) continue;
+    const officialRow = officialMatches[0];
+    if (!isCurrentYearPayment(officialRow)) continue;
 
-      const officialRow = officialMatches[0];
-      if (!isCurrentYearPayment(officialRow)) continue;
-
-      return {
-        status: "valid",
-        formPresent: true,
-        currentYearPaid: true,
-        membershipStartsAt: officialRow.membership_starts_at,
-        membershipExpiresAt: officialRow.membership_expires_at,
-        paymentMatchMethod: "name",
-      };
-    }
+    // The official members book is authoritative for legacy members whose
+    // historical form response is no longer present in the current form tabs.
+    return {
+      status: "valid",
+      formPresent: true,
+      currentYearPaid: true,
+      membershipStartsAt: officialRow.membership_starts_at,
+      membershipExpiresAt: officialRow.membership_expires_at,
+      paymentMatchMethod: "name",
+    };
   }
 
-  if (!formPresent) {
+  if (formRows.length === 0) {
     return {
       status: "missing_form",
       formPresent: false,
