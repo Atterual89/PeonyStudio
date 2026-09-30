@@ -36,6 +36,7 @@ type MemberRow = {
 };
 
 type EnrollmentRow = {
+  id: string;
   event_id: string | null;
   ticket_tailor_event_id: string | null;
   ticket_tailor_order_id: string | null;
@@ -137,7 +138,7 @@ export async function GET(request: NextRequest) {
     const { data: enrollmentData, error: enrollmentError } = await supabase
       .from("user_event_enrollments")
       .select(
-        "event_id,ticket_tailor_event_id,ticket_tailor_order_id,partner_source,partner_email,partner_name",
+        "id,event_id,ticket_tailor_event_id,ticket_tailor_order_id,partner_source,partner_email,partner_name",
       )
       .in("event_id", eventIds)
       .range(0, 4999);
@@ -200,8 +201,10 @@ export async function GET(request: NextRequest) {
         const partnerStatus = !partnerCheckRequired
           ? "not_required"
           : enrollment?.partner_source === "user"
-            ? "provided"
-            : "missing";
+            ? "user_provided"
+            : enrollment?.partner_source === "admin"
+              ? "admin_provided"
+              : "missing";
 
         return {
           id: ticket.ticket_tailor_issued_ticket_id,
@@ -213,6 +216,7 @@ export async function GET(request: NextRequest) {
           membership_status: membership.status,
           membership_expires_at: membership.membershipExpiresAt,
           partner_status: partnerStatus,
+          enrollment_id: enrollment?.id ?? null,
           partner_name: enrollment?.partner_name ?? null,
           partner_email: enrollment?.partner_email ?? null,
           partner_source: enrollment?.partner_source ?? null,
