@@ -165,10 +165,6 @@ export default function TicketTailorAdminHome() {
         path: "/api/admin/association-members/sync-apply",
       },
       {
-        label: "Registro storico",
-        path: "/api/admin/association-members/legacy-2025-sync-apply",
-      },
-      {
         label: "Libro Soci",
         path: "/api/admin/association-members/book-sync-apply",
       },
