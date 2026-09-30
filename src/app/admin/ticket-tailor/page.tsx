@@ -387,6 +387,36 @@ type PartnerEnrollmentRow = {
   event_starts_at: string | null;
 };
 
+type FutureEventParticipantRow = {
+  id: string;
+  ticket_tailor_order_id: string | null;
+  ticket_type_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  membership_status: "missing_form" | "payment_missing" | "valid";
+  membership_expires_at: string | null;
+  partner_status: "not_required" | "provided" | "missing";
+  partner_name: string | null;
+  partner_email: string | null;
+  partner_source: string | null;
+};
+
+type FutureEventParticipantEvent = {
+  id: string;
+  title: string | null;
+  category: string | null;
+  starts_at: string | null;
+  ticket_tailor_event_id: string | null;
+  partner_check_required: boolean;
+  participants: FutureEventParticipantRow[];
+};
+
+type FutureParticipantDetail = {
+  event: FutureEventParticipantEvent;
+  participant: FutureEventParticipantRow;
+};
+
 const associationStatuses = [
   "unknown",
   "missing",
@@ -496,6 +526,14 @@ export default function TicketTailorAdminPage() {
   const [partnerEventFilter, setPartnerEventFilter] = useState("");
   const [partnerSourceFilter, setPartnerSourceFilter] = useState("");
   const [loadingParticipants, setLoadingParticipants] = useState(false);
+  const [loadingFutureEventParticipants, setLoadingFutureEventParticipants] =
+    useState(false);
+  const [futureEventParticipantEvents, setFutureEventParticipantEvents] =
+    useState<FutureEventParticipantEvent[]>([]);
+  const [futureEventParticipantsError, setFutureEventParticipantsError] =
+    useState<string | null>(null);
+  const [futureParticipantDetail, setFutureParticipantDetail] =
+    useState<FutureParticipantDetail | null>(null);
   const [syncResults, setSyncResults] = useState<SyncResult[]>([]);
   const [openAdminSections, setOpenAdminSections] = useState<
     Record<AdminStepId, boolean>
@@ -951,7 +989,21 @@ export default function TicketTailorAdminPage() {
         method: "POST",
         headers: { "x-admin-sync-secret": secret },
       });
-      const payload = (await response.json()) as Record<string, unknown>;
+      const rawBody = await response.text();
+      let payload: Record<string, unknown>;
+
+      try {
+        payload = JSON.parse(rawBody) as Record<string, unknown>;
+      } catch {
+        setProfilesSyncResult({
+          ok: false,
+          message:
+            `Il server non ha restituito una risposta valida (HTTP ${response.status}). ` +
+            "Probabile timeout o errore della funzione server.",
+        });
+        return;
+      }
+
       setProfilesSyncResult(payload);
     } catch (error) {
       setProfilesSyncResult({
@@ -1101,6 +1153,46 @@ export default function TicketTailorAdminPage() {
         error instanceof Error ? error.message : "Errore sconosciuto.",
       );
       return [];
+    }
+  }
+
+  async function loadFutureEventParticipants() {
+    if (!secret.trim()) {
+      setFutureEventParticipantsError("Inserisci il codice admin.");
+      return;
+    }
+
+    setLoadingFutureEventParticipants(true);
+    setFutureEventParticipantsError(null);
+
+    try {
+      const response = await fetch("/api/admin/future-event-participants", {
+        headers: {
+          "x-admin-sync-secret": secret,
+        },
+      });
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        events?: FutureEventParticipantEvent[];
+        message?: string;
+      };
+
+      if (!response.ok || payload.ok === false) {
+        setFutureEventParticipantEvents([]);
+        setFutureEventParticipantsError(
+          payload.message ?? "Errore caricamento prossimi eventi.",
+        );
+        return;
+      }
+
+      setFutureEventParticipantEvents(payload.events ?? []);
+    } catch (error) {
+      setFutureEventParticipantEvents([]);
+      setFutureEventParticipantsError(
+        error instanceof Error ? error.message : "Errore sconosciuto.",
+      );
+    } finally {
+      setLoadingFutureEventParticipants(false);
     }
   }
 
@@ -3140,524 +3232,130 @@ export default function TicketTailorAdminPage() {
 
         <AdminStepSection
           isOpen={openAdminSections.participants}
-          summary={adminSectionSummaries.participants}
-          title="Partecipanti evento / dettaglio tecnico"
+          summary="Solo eventi futuri, stato tessera e partner indicato nell'area personale."
+          title="Prossimi eventi e partecipanti"
           onToggle={() => toggleAdminSection("participants")}
         >
-          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div className="flex gap-4">
-              <div>
-                <p className="text-sm font-semibold text-[#8b5e4a]">
-                  Dettaglio tecnico
-                </p>
-                <h2 className="mt-2 font-serif text-3xl font-medium">
-                  Partecipanti evento / dettaglio tecnico
-                </h2>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f524c]">
-                  Mostra acquirenti, partecipanti, check-in e stato tessera
-                  dopo la verifica. Il check-in riguarda solo i partecipanti.
-                </p>
-              </div>
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-[#8b5e4a]">
+                Vista operativa
+              </p>
+              <h2 className="mt-2 font-serif text-3xl font-medium">
+                Prossimi eventi
+              </h2>
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-[#5f524c]">
+                Ogni partecipante è mostrato su una sola riga. Il pallino indica
+                lo stato del tesseramento; il partner risulta indicato solo se è
+                stato confermato nell&apos;area personale.
+              </p>
             </div>
-          </div>
-
-          <form
-            className="mt-5 grid gap-3 md:grid-cols-5"
-            onSubmit={loadParticipants}
-          >
-            <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-              Evento
-              <select
-                className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-[#f4efe8]/80 px-3 py-2 text-sm normal-case tracking-normal outline-none focus:border-[#8b5e4a]"
-                value={filters.ticket_tailor_event_id}
-                onChange={(event) =>
-                  setFilters((current) => ({
-                    ...current,
-                    ticket_tailor_event_id: event.target.value,
-                  }))
-                }
-              >
-                <option value="">Tutti gli eventi</option>
-                {events
-                  .filter((event) => event.ticket_tailor_event_id)
-                  .map((event) => (
-                    <option
-                      key={event.id}
-                      value={event.ticket_tailor_event_id ?? ""}
-                    >
-                      {formatEventOptionLabel(event)}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-              Tipo
-              <select
-                className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-[#f4efe8]/80 px-3 py-2 text-sm normal-case tracking-normal outline-none focus:border-[#8b5e4a]"
-                value={filters.participant_type}
-                onChange={(event) =>
-                  setFilters((current) => ({
-                    ...current,
-                    participant_type: event.target.value,
-                  }))
-                }
-              >
-                <option value="">Tutti</option>
-                <option value="attendee">Partecipanti</option>
-                <option value="buyer">Acquirenti</option>
-              </select>
-            </label>
-            <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-              Check-in
-              <select
-                className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-[#f4efe8]/80 px-3 py-2 text-sm normal-case tracking-normal outline-none focus:border-[#8b5e4a]"
-                value={filters.checked_in}
-                onChange={(event) =>
-                  setFilters((current) => ({
-                    ...current,
-                    checked_in: event.target.value,
-                  }))
-                }
-              >
-                <option value="">Tutti</option>
-                <option value="true">Sì</option>
-                <option value="false">No</option>
-              </select>
-            </label>
-            <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-              Stato tessera
-              <select
-                className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-[#f4efe8]/80 px-3 py-2 text-sm normal-case tracking-normal outline-none focus:border-[#8b5e4a]"
-                value={filters.association_status}
-                onChange={(event) =>
-                  setFilters((current) => ({
-                    ...current,
-                    association_status: event.target.value,
-                  }))
-                }
-              >
-                <option value="">Tutti</option>
-                {associationStatuses.map((status) => (
-                  <option key={status} value={status}>
-                    {formatAssociationStatusLabel(status)}
-                  </option>
-                ))}
-              </select>
-            </label>
             <button
-              className="rounded-full border border-[#211815]/20 px-5 py-2.5 text-sm font-semibold text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55 md:self-end"
-              type="submit"
-              disabled={loadingParticipants}
+              className="rounded-full bg-[#211815] px-5 py-2.5 text-sm font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+              type="button"
+              disabled={loadingFutureEventParticipants}
+              onClick={loadFutureEventParticipants}
             >
-              {loadingParticipants ? "Carico..." : "Carica partecipanti"}
+              {loadingFutureEventParticipants ? "Carico..." : "Carica prossimi eventi"}
             </button>
-          </form>
-
-          <p className="mt-3 rounded-[8px] border border-[#8b5e4a]/15 bg-[#8b5e4a]/5 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-            Mostriamo solo ordini/eventi dal 01/09/2025 in poi.
-            {hiddenBeforeSeasonParticipants > 0
-              ? ` Esclusi perché precedenti al 01/09/2025: ${hiddenBeforeSeasonParticipants}.`
-              : ""}
-            {participantsWithoutReliableDate > 0
-              ? ` Data non disponibile: ${participantsWithoutReliableDate} righe mantenute visibili.`
-              : ""}
-          </p>
-
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            {[
-              ["Righe mostrate", participantSummary.total],
-              ["Check-in fatto", participantSummary.checkedIn],
-              ["Check-in mancante", participantSummary.notCheckedIn],
-              ["Da verificare", participantSummary.toVerify],
-              ["Tessere valide", participantSummary.verified],
-            ].map(([label, value]) => (
-              <div
-                className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-3"
-                key={label}
-              >
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
-                  {label}
-                </p>
-                <p className="mt-2 font-serif text-3xl text-[#211815]">
-                  {value}
-                </p>
-              </div>
-            ))}
           </div>
 
-          <div className="mt-5 rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/70 p-4">
-            <div className="grid gap-3 lg:grid-cols-[minmax(220px,1.4fr)_repeat(3,minmax(160px,0.8fr))_auto] lg:items-end">
-              <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-                Cerca
-                <input
-                  className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
-                  value={participantListFilters.search}
-                  onChange={(event) =>
-                    {
-                      setParticipantListFilters((current) => ({
-                        ...current,
-                        search: event.target.value,
-                      }));
-                      setParticipantListPage(1);
-                    }
-                  }
-                  placeholder="Cerca nome, email, ordine o evento"
-                />
-              </label>
-
-              <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-                Stato tessera
-                <select
-                  className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
-                  value={participantListFilters.associationStatus}
-                  onChange={(event) =>
-                    {
-                      setParticipantListFilters((current) => ({
-                        ...current,
-                        associationStatus: event.target.value,
-                      }));
-                      setParticipantListPage(1);
-                    }
-                  }
-                >
-                  <option value="">Tutte</option>
-                  <option value="verified">Tessera valida</option>
-                  <option value="pending">Da validare</option>
-                  <option value="expired">Scaduta</option>
-                  <option value="archived">Archiviata</option>
-                  <option value="not_found">Non trovata</option>
-                  <option value="manual_review">Da controllare</option>
-                  <option value="unknown">Da verificare</option>
-                </select>
-              </label>
-
-              <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-                Check-in
-                <select
-                  className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
-                  value={participantListFilters.checkedIn}
-                  onChange={(event) =>
-                    {
-                      setParticipantListFilters((current) => ({
-                        ...current,
-                        checkedIn: event.target.value,
-                      }));
-                      setParticipantListPage(1);
-                    }
-                  }
-                >
-                  <option value="">Tutti</option>
-                  <option value="true">Check-in effettuato</option>
-                  <option value="false">Check-in non effettuato</option>
-                </select>
-              </label>
-
-              <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-                Tipo
-                <select
-                  className="mt-2 w-full rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm normal-case tracking-normal text-[#211815] outline-none focus:border-[#8b5e4a]"
-                  value={participantListFilters.participantType}
-                  onChange={(event) =>
-                    {
-                      setParticipantListFilters((current) => ({
-                        ...current,
-                        participantType: event.target.value,
-                      }));
-                      setParticipantListPage(1);
-                    }
-                  }
-                >
-                  <option value="">Tutti</option>
-                  <option value="attendee">Solo partecipanti</option>
-                  <option value="buyer">Solo acquirenti</option>
-                </select>
-              </label>
-
-              <button
-                className="rounded-full border border-[#211815]/20 px-5 py-2.5 text-sm font-semibold text-[#211815] transition hover:-translate-y-0.5"
-                type="button"
-                onClick={() => {
-                  setParticipantListFilters({
-                    search: "",
-                    associationStatus: "",
-                    checkedIn: "",
-                    participantType: "",
-                  });
-                  setQuickFilterMode("none");
-                  setParticipantListPage(1);
-                }}
-              >
-                Reset filtri
-              </button>
-            </div>
-
-            <p className="mt-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-              Mostrati {displayedParticipants.length} di{" "}
-              {quickFilteredParticipants.length} partecipanti
-            </p>
+          <div className="mt-4 flex flex-wrap gap-4 text-xs text-[#5f524c]">
+            <span className="inline-flex items-center gap-2">
+              <MembershipDot status="valid" /> Tesseramento in regola
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <MembershipDot status="payment_missing" /> Quota non registrata
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <MembershipDot status="missing_form" /> Modulo non trovato
+            </span>
           </div>
 
-          {eventsError ? (
+          {futureEventParticipantsError ? (
             <p className="mt-4 rounded-[8px] border border-[#8b2f2a]/20 bg-[#8b2f2a]/5 p-3 text-sm text-[#8b2f2a]">
-              {eventsError}
-            </p>
-          ) : null}
-
-          {participantError ? (
-            <p className="mt-4 rounded-[8px] border border-[#8b2f2a]/20 bg-[#8b2f2a]/5 p-3 text-sm text-[#8b2f2a]">
-              {participantError}
+              {futureEventParticipantsError}
             </p>
           ) : null}
 
           <div className="mt-5 space-y-4">
-            {participantOrderGroups.length > 0 ? (
-              participantOrderGroups.map((group) => (
-                <div
-                  className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/60 p-4"
-                  key={group.key}
+            {futureEventParticipantEvents.length > 0 ? (
+              futureEventParticipantEvents.map((event) => (
+                <article
+                  key={event.id}
+                  className="overflow-hidden rounded-[10px] border border-[#211815]/10 bg-[#f4efe8]/65"
                 >
-                  <div className="flex flex-col gap-2 border-b border-[#211815]/10 pb-3 md:flex-row md:items-end md:justify-between">
+                  <div className="flex flex-col gap-2 border-b border-[#211815]/10 px-4 py-4 md:flex-row md:items-end md:justify-between">
                     <div>
                       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
-                        Ordine
+                        {event.starts_at ? formatDate(event.starts_at) : "Data da verificare"}
                       </p>
                       <h3 className="mt-1 font-serif text-2xl text-[#211815]">
-                        {group.orderId ?? "Senza codice ordine"}
+                        {event.title ?? "Evento Peony Studio"}
                       </h3>
                     </div>
                     <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-                      {group.buyers.length} acquirenti · {group.attendees.length} partecipanti
+                      {event.participants.length} partecipanti
                     </p>
                   </div>
 
-                  {group.hiddenRows > 0 ? (
-                    <p className="mt-3 rounded-[8px] border border-[#8b5e4a]/20 bg-[#8b5e4a]/5 p-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-                      Alcune righe dell&apos;ordine sono nascoste dai filtri.
-                    </p>
-                  ) : null}
-
-                  <div className="mt-4 space-y-3">
-                    {group.buyers.length > 0 ? (
-                      group.buyers.map((buyer) => (
-                        <ParticipantOrderRow
-                          key={buyer.id}
-                          participant={buyer}
-                          roleLabel="Acquirente"
-                          variant="buyer"
-                          onEdit={() => setEditingParticipantId(buyer.id)}
-                        />
-                      ))
-                    ) : (
-                      <div className="rounded-[8px] border border-[#8b5e4a]/20 bg-[#8b5e4a]/5 p-3 text-sm text-[#5f524c]">
-                        Acquirente esplicito non presente per questo ordine.
-                      </div>
-                    )}
-
-                    {group.attendees.length > 0 ? (
-                      <div className="space-y-2 border-l border-[#211815]/15 pl-3 md:ml-5 md:pl-5">
-                        {group.attendees.map((attendee) => (
-                          <ParticipantOrderRow
-                            key={attendee.id}
-                            participant={attendee}
-                            roleLabel="Partecipante"
-                            variant="attendee"
-                            onEdit={() => setEditingParticipantId(attendee.id)}
-                          />
+                  {event.participants.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <div className="min-w-[860px]">
+                        <div className="grid grid-cols-[minmax(220px,1.5fr)_minmax(120px,0.8fr)_minmax(140px,0.9fr)_90px_150px_100px] gap-3 border-b border-[#211815]/10 bg-white/35 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+                          <span>Email</span>
+                          <span>Nome</span>
+                          <span>Cognome</span>
+                          <span>Tessera</span>
+                          <span>Partner</span>
+                          <span />
+                        </div>
+                        {event.participants.map((participant) => (
+                          <div
+                            key={participant.id}
+                            className="grid grid-cols-[minmax(220px,1.5fr)_minmax(120px,0.8fr)_minmax(140px,0.9fr)_90px_150px_100px] items-center gap-3 border-b border-[#211815]/8 px-4 py-3 text-sm text-[#211815] last:border-b-0"
+                          >
+                            <span className="truncate" title={participant.email ?? ""}>
+                              {participant.email ?? "-"}
+                            </span>
+                            <span>{participant.first_name ?? "-"}</span>
+                            <span>{participant.last_name ?? "-"}</span>
+                            <span>
+                              <MembershipDot
+                                status={participant.membership_status}
+                                withLabel
+                              />
+                            </span>
+                            <span className={participant.partner_status === "missing" ? "font-semibold text-[#9a6b30]" : "text-[#5f524c]"}>
+                              {formatPartnerStatus(participant.partner_status)}
+                            </span>
+                            <button
+                              className="rounded-full border border-[#211815]/20 px-3 py-1.5 text-xs font-semibold text-[#211815] transition hover:bg-white/60"
+                              type="button"
+                              onClick={() =>
+                                setFutureParticipantDetail({ event, participant })
+                              }
+                            >
+                              Dettagli
+                            </button>
+                          </div>
                         ))}
                       </div>
-                    ) : (
-                      <p className="pl-1 text-sm text-[#5f524c]">
-                        Nessun partecipante collegato a questo ordine.
-                      </p>
-                    )}
-                  </div>
-                </div>
+                    </div>
+                  ) : (
+                    <p className="px-4 py-6 text-sm text-[#5f524c]">
+                      Nessun partecipante registrato per questo evento.
+                    </p>
+                  )}
+                </article>
               ))
             ) : (
               <div className="rounded-[8px] border border-[#211815]/10 bg-[#f4efe8]/60 px-4 py-8 text-center text-sm text-[#5f524c]">
-                Nessun partecipante caricato.
+                {loadingFutureEventParticipants
+                  ? "Caricamento in corso..."
+                  : "Carica i prossimi eventi per visualizzare i partecipanti."}
               </div>
             )}
-          </div>
-
-          <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-              {participantListDisplayStart}-{participantListDisplayEnd} di{" "}
-              {displayedParticipants.length}
-            </p>
-            <div className="flex items-center gap-3">
-              <button
-                className="rounded-full border border-[#211815]/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
-                type="button"
-                disabled={safeParticipantListPage <= 1}
-                onClick={() =>
-                  setParticipantListPage((page) => Math.max(1, page - 1))
-                }
-              >
-                Precedente
-              </button>
-              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-                Pagina {safeParticipantListPage} di {participantListTotalPages}
-              </span>
-              <button
-                className="rounded-full border border-[#211815]/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#211815] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
-                type="button"
-                disabled={safeParticipantListPage >= participantListTotalPages}
-                onClick={() =>
-                  setParticipantListPage((page) =>
-                    Math.min(participantListTotalPages, page + 1),
-                  )
-                }
-              >
-                Successiva
-              </button>
-            </div>
-          </div>
-
-          <div className="hidden">
-            <table className="min-w-[1600px] w-full border-collapse bg-[#f4efe8]/60 text-left text-sm">
-              <thead className="bg-[#211815]/5 text-[11px] uppercase tracking-[0.14em] text-[#5f524c]">
-                <tr>
-                  {[
-                    "first_name",
-                    "last_name",
-                    "email",
-                    "participant_type",
-                    "ticket_tailor_event_id",
-                    "association_status",
-                    "association_expires_at",
-                    "notes_admin",
-                    "checked_in",
-                    "checked_in_source",
-                    "ticket_tailor_order_id",
-                    "azioni",
-                  ].map((column) => (
-                    <th className="border-b border-[#211815]/10 px-3 py-3" key={column}>
-                      {column}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {displayedParticipants.length > 0 ? (
-                  displayedParticipants.map((participant) => (
-                    <tr
-                      className={`border-b border-[#211815]/8 ${participantRowClass(participant)}`}
-                      key={participant.id}
-                    >
-                      <td className="px-3 py-3">{participant.first_name ?? "-"}</td>
-                      <td className="px-3 py-3">{participant.last_name ?? "-"}</td>
-                      <td className="px-3 py-3">{participant.email ?? "-"}</td>
-                      <td className="px-3 py-3">{participant.participant_type ?? "-"}</td>
-                      <td className="px-3 py-3">{participant.ticket_tailor_event_id ?? "-"}</td>
-                      <td className="px-3 py-3">
-                        <StatusBadge status={participant.association_status} />
-                        <select
-                          className="mt-2 w-full min-w-[150px] rounded-[8px] border border-[#211815]/15 bg-white/70 px-2 py-2 text-sm outline-none focus:border-[#8b5e4a]"
-                          value={
-                            participantDrafts[participant.id]?.association_status ??
-                            participant.association_status ??
-                            "unknown"
-                          }
-                          onChange={(event) =>
-                            updateParticipantDraft(
-                              participant.id,
-                              "association_status",
-                              event.target.value,
-                            )
-                          }
-                        >
-                          {associationStatuses.map((status) => (
-                            <option key={status} value={status}>
-                              {formatAssociationStatusLabel(status)}
-                            </option>
-                          ))}
-                        </select>
-                        <AssociationStatusDateWarning
-                          status={
-                            participantDrafts[participant.id]?.association_status ??
-                            participant.association_status
-                          }
-                          expiresAt={
-                            participantDrafts[participant.id]
-                              ?.association_expires_at ??
-                            participant.association_expires_at
-                          }
-                          compact
-                        />
-                      </td>
-                      <td className="px-3 py-3">
-                        <input
-                          className="w-full min-w-[150px] rounded-[8px] border border-[#211815]/15 bg-white/70 px-2 py-2 text-sm outline-none focus:border-[#8b5e4a]"
-                          type="date"
-                          value={
-                            participantDrafts[participant.id]
-                              ?.association_expires_at ??
-                            participant.association_expires_at ??
-                            ""
-                          }
-                          onChange={(event) =>
-                            updateParticipantDraft(
-                              participant.id,
-                              "association_expires_at",
-                              event.target.value,
-                            )
-                          }
-                        />
-                      </td>
-                      <td className="px-3 py-3">
-                        <input
-                          className="w-full min-w-[220px] rounded-[8px] border border-[#211815]/15 bg-white/70 px-2 py-2 text-sm outline-none focus:border-[#8b5e4a]"
-                          value={
-                            participantDrafts[participant.id]?.notes_admin ??
-                            participant.notes_admin ??
-                            ""
-                          }
-                          onChange={(event) =>
-                            updateParticipantDraft(
-                              participant.id,
-                              "notes_admin",
-                              event.target.value,
-                            )
-                          }
-                          placeholder="Nota admin"
-                        />
-                      </td>
-                      <td className="px-3 py-3">
-                        <CheckedInBadge checkedIn={participant.checked_in} />
-                        <span className="sr-only">
-                        {participant.checked_in === null
-                          ? "-"
-                          : participant.checked_in
-                            ? "Sì"
-                            : "No"}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3">{participant.checked_in_source ?? "-"}</td>
-                      <td className="px-3 py-3">{participant.ticket_tailor_order_id ?? "-"}</td>
-                      <td className="px-3 py-3">
-                        <button
-                          className="rounded-full bg-[#211815] px-4 py-2 text-xs font-semibold text-[#f4efe8] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
-                          type="button"
-                          disabled={savingParticipantId === participant.id}
-                          onClick={() => saveParticipantAssociation(participant.id)}
-                        >
-                          {savingParticipantId === participant.id
-                            ? "Salvo..."
-                            : "Salva"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td className="px-3 py-8 text-center text-[#5f524c]" colSpan={12}>
-                      Nessun partecipante caricato.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
           </div>
         </AdminStepSection>
 
@@ -4341,7 +4039,143 @@ export default function TicketTailorAdminPage() {
           onSave={saveEditingParticipantAssociation}
         />
       ) : null}
+      {futureParticipantDetail ? (
+        <FutureParticipantDetailModal
+          detail={futureParticipantDetail}
+          onClose={() => setFutureParticipantDetail(null)}
+        />
+      ) : null}
+
     </main>
+  );
+}
+
+function MembershipDot({
+  status,
+  withLabel = false,
+}: {
+  status: FutureEventParticipantRow["membership_status"];
+  withLabel?: boolean;
+}) {
+  const config = {
+    valid: { dot: "bg-[#6f8f72]", label: "OK" },
+    payment_missing: { dot: "bg-[#b69755]", label: "Quota" },
+    missing_form: { dot: "bg-[#9d5d56]", label: "Modulo" },
+  } as const;
+  const current = config[status];
+
+  return (
+    <span
+      className="inline-flex items-center gap-2"
+      title={membershipStatusLabel(status)}
+      aria-label={membershipStatusLabel(status)}
+    >
+      <span className={`h-3 w-3 shrink-0 rounded-full ${current.dot}`} />
+      {withLabel ? (
+        <span className="text-xs font-semibold text-[#5f524c]">{current.label}</span>
+      ) : null}
+    </span>
+  );
+}
+
+function membershipStatusLabel(
+  status: FutureEventParticipantRow["membership_status"],
+) {
+  if (status === "valid") return "Tesseramento in regola";
+  if (status === "payment_missing") {
+    return "Modulo presente, quota non registrata dal 01/09/2025";
+  }
+  return "Modulo associativo non trovato";
+}
+
+function formatPartnerStatus(
+  status: FutureEventParticipantRow["partner_status"],
+) {
+  if (status === "provided") return "✓ indicato";
+  if (status === "missing") return "⚠ non indicato";
+  return "—";
+}
+
+function FutureParticipantDetailModal({
+  detail,
+  onClose,
+}: {
+  detail: FutureParticipantDetail;
+  onClose: () => void;
+}) {
+  const { event, participant } = detail;
+
+  return (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-[#211815]/55 p-4">
+      <button
+        aria-label="Chiudi dettaglio"
+        className="absolute inset-0"
+        type="button"
+        onClick={onClose}
+      />
+      <div className="relative z-10 w-full max-w-2xl rounded-[12px] border border-[#211815]/10 bg-[#f4efe8] p-5 shadow-2xl">
+        <div className="flex items-start justify-between gap-4 border-b border-[#211815]/10 pb-4">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b5e4a]">
+              Dettaglio partecipante
+            </p>
+            <h3 className="mt-2 font-serif text-3xl text-[#211815]">
+              {participant.first_name ?? "-"} {participant.last_name ?? "-"}
+            </h3>
+            <p className="mt-1 text-sm text-[#5f524c]">{participant.email ?? "-"}</p>
+          </div>
+          <button
+            className="rounded-full border border-[#211815]/15 px-3 py-1.5 text-sm text-[#211815]"
+            type="button"
+            onClick={onClose}
+          >
+            Chiudi
+          </button>
+        </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <DetailField label="Evento" value={event.title ?? "Evento Peony Studio"} />
+          <DetailField
+            label="Data"
+            value={event.starts_at ? formatDate(event.starts_at) : "-"}
+          />
+          <DetailField
+            label="Tesseramento"
+            value={membershipStatusLabel(participant.membership_status)}
+          />
+          <DetailField
+            label="Partner"
+            value={formatPartnerStatus(participant.partner_status)}
+          />
+          <DetailField
+            label="Tipo biglietto"
+            value={participant.ticket_type_name ?? "-"}
+          />
+          <DetailField
+            label="Ordine Ticket Tailor"
+            value={participant.ticket_tailor_order_id ?? "-"}
+          />
+        </div>
+
+        {participant.partner_status === "provided" ? (
+          <div className="mt-4 rounded-[8px] border border-[#211815]/10 bg-white/55 p-3 text-sm text-[#5f524c]">
+            <span className="font-semibold text-[#211815]">Partner indicato:</span>{" "}
+            {participant.partner_name ?? participant.partner_email ?? "confermato nell'area personale"}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function DetailField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[8px] border border-[#211815]/10 bg-white/55 p-3">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8b5e4a]">
+        {label}
+      </p>
+      <p className="mt-1 text-sm font-medium text-[#211815]">{value}</p>
+    </div>
   );
 }
 

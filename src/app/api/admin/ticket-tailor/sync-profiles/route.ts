@@ -36,18 +36,19 @@ export async function POST(request: NextRequest) {
   let enrollmentsSkipped = 0;
   let partnerPrefilled = 0;
 
-  // Step 1: Read all orders with buyer_email
-  const { data: ordersData, error: ordersError } = await supabase
-    .from("ticket_tailor_orders")
-    .select(
-      "ticket_tailor_order_id,ticket_tailor_event_id,event_id,buyer_email,buyer_first_name,buyer_last_name,raw_payload",
-    )
-    .not("buyer_email", "is", null)
-    .range(0, 999);
+  // Step 1: Profiles/enrollments are only needed operationally for future
+  // events. Historical attendance is read directly from issued tickets.
+  const { data: futureEventsData, error: futureEventsError } = await supabase
+    .from("events")
+    .select("id")
+    .gte("starts_at", new Date().toISOString())
+    .order("starts_at", { ascending: true, nullsFirst: false })
+    .range(0, 499);
 
-  if (ordersError) {
+  if (futureEventsError) {
     return NextResponse.json({
       ok: false,
+      futureEvents: 0,
       ordersRead: 0,
       profilesCreated,
       profilesSkipped,
@@ -57,7 +58,53 @@ export async function POST(request: NextRequest) {
       errors: [
         {
           level: "error",
-          message: "Could not load orders: " + ordersError.message,
+          message: "Could not load future events: " + futureEventsError.message,
+        },
+      ],
+    });
+  }
+
+  const futureEventIds = (futureEventsData ?? [])
+    .map((event) => event.id)
+    .filter((id): id is string => typeof id === "string" && id.length > 0);
+
+  if (futureEventIds.length === 0) {
+    return NextResponse.json({
+      ok: true,
+      futureEvents: 0,
+      ordersRead: 0,
+      profilesCreated,
+      profilesSkipped,
+      enrollmentsCreated,
+      enrollmentsSkipped,
+      partnerPrefilled,
+      errors,
+    });
+  }
+
+  const { data: ordersData, error: ordersError } = await supabase
+    .from("ticket_tailor_orders")
+    .select(
+      "ticket_tailor_order_id,ticket_tailor_event_id,event_id,buyer_email,buyer_first_name,buyer_last_name,raw_payload",
+    )
+    .in("event_id", futureEventIds)
+    .not("buyer_email", "is", null)
+    .range(0, 999);
+
+  if (ordersError) {
+    return NextResponse.json({
+      ok: false,
+      futureEvents: futureEventIds.length,
+      ordersRead: 0,
+      profilesCreated,
+      profilesSkipped,
+      enrollmentsCreated,
+      enrollmentsSkipped,
+      partnerPrefilled,
+      errors: [
+        {
+          level: "error",
+          message: "Could not load future orders: " + ordersError.message,
         },
       ],
     });
@@ -237,6 +284,7 @@ export async function POST(request: NextRequest) {
   }
 
   console.log("[sync-profiles]", {
+    futureEvents: futureEventIds.length,
     ordersRead: orders.length,
     profilesCreated,
     profilesSkipped,
@@ -248,6 +296,7 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({
     ok: !errors.some((e) => e.level === "error"),
+    futureEvents: futureEventIds.length,
     ordersRead: orders.length,
     profilesCreated,
     profilesSkipped,

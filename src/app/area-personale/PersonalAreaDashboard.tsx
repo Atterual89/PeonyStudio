@@ -68,6 +68,7 @@ export function PersonalAreaDashboard({ data }: { data: PersonalAreaData }) {
               {activeSection === "overview" ? (
                 <OverviewSection
                   guide={guide}
+                  membership={data.membership}
                   nextEnrollment={nextEnrollment}
                   otherFutureCount={otherFutureEnrollments.length}
                   onSectionChange={changeSection}
@@ -254,8 +255,9 @@ function DashboardMenu({ activeSection, data, guide, onSectionChange, pastCount 
 
 // ── Overview section ──────────────────────────────────────────────────────────
 
-function OverviewSection({ guide, nextEnrollment, otherFutureCount, onSectionChange }: {
+function OverviewSection({ guide, membership, nextEnrollment, otherFutureCount, onSectionChange }: {
   guide: AnimalGuide;
+  membership: PersonalAreaData["membership"];
   nextEnrollment: Enrollment | null;
   otherFutureCount: number;
   onSectionChange: (id: SectionId) => void;
@@ -263,6 +265,8 @@ function OverviewSection({ guide, nextEnrollment, otherFutureCount, onSectionCha
   return (
     <div className="grid gap-4">
       <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#d8b5a5]">Home</p>
+
+      <MembershipStatusCard membership={membership} onOpenProfile={() => onSectionChange("profile")} />
 
       {/* Prossimo evento */}
       {nextEnrollment ? (
@@ -856,12 +860,7 @@ function ProfileSection({ data, nicknameOverride, onNicknameUpdate }: {
   nicknameOverride: string | null;
   onNicknameUpdate: (v: string | null) => void;
 }) {
-  const status    = data.profile?.association_status ?? null;
-  const expiresAt = data.profile?.association_expires_at;
-  const membershipOk = status === "verified" || status === "not_required";
-  const membershipExpired = status === "expired";
-  const membershipNeedsReview =
-    status === "missing" || status === "pending" || status === "unknown" || !status;
+  const membership = data.membership;
 
   const [nickname, setNickname] = useState(nicknameOverride ?? "");
   const [saving,   setSaving]   = useState(false);
@@ -897,22 +896,7 @@ function ProfileSection({ data, nicknameOverride, onNicknameUpdate }: {
 
   return (
     <div className="grid gap-5">
-      {membershipOk ? (
-        <div className="flex items-center gap-2.5 rounded-[12px] border border-emerald-500/30 bg-emerald-900/25 px-4 py-3 text-sm font-medium text-emerald-300">
-          <span>✓</span>
-          <span>Tessera aggiornata</span>
-        </div>
-      ) : membershipExpired ? (
-        <div className="flex items-center gap-2.5 rounded-[12px] border border-amber-500/30 bg-amber-900/22 px-4 py-3 text-sm font-medium text-amber-300">
-          <span>⚠</span>
-          <span>Tessera da rinnovare</span>
-        </div>
-      ) : membershipNeedsReview ? (
-        <div className="flex items-center gap-2.5 rounded-[12px] border border-amber-500/30 bg-amber-900/22 px-4 py-3 text-sm font-medium text-amber-300">
-          <span>⚠</span>
-          <span>Tessera da verificare</span>
-        </div>
-      ) : null}
+      <MembershipStatusCard membership={membership} />
 
       <SectionIntro
         eyebrow="Profilo"
@@ -928,10 +912,15 @@ function ProfileSection({ data, nicknameOverride, onNicknameUpdate }: {
         </Panel>
         <Panel>
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d8b5a5]">Tessera associativa</p>
-          <h3 className="mt-2 font-serif text-3xl font-medium">{formatAssociationStatus(status)}</h3>
-          <p className="mt-2 text-sm text-[#f8efe5]/60">
-            Scadenza: {expiresAt ? formatShortDate(expiresAt) : "da verificare"}
+          <h3 className="mt-2 font-serif text-3xl font-medium">{membershipTitle(membership.status)}</h3>
+          <p className="mt-2 text-sm leading-6 text-[#f8efe5]/60">
+            {membershipDetail(membership)}
           </p>
+          {membership.status === "valid" && membership.membershipExpiresAt ? (
+            <p className="mt-1 text-sm text-[#f8efe5]/50">
+              Scadenza: {formatShortDate(membership.membershipExpiresAt)}
+            </p>
+          ) : null}
         </Panel>
       </div>
 
@@ -976,6 +965,84 @@ function ProfileSection({ data, nicknameOverride, onNicknameUpdate }: {
 }
 
 // ── Shared UI components ──────────────────────────────────────────────────────
+
+function MembershipStatusCard({
+  membership,
+  onOpenProfile,
+}: {
+  membership: PersonalAreaData["membership"];
+  onOpenProfile?: () => void;
+}) {
+  const styles = {
+    valid: {
+      border: "border-[#6f8f72]/45",
+      background: "bg-[#6f8f72]/16",
+      dot: "bg-[#7fa184]",
+      title: "text-[#b8cfb9]",
+    },
+    payment_missing: {
+      border: "border-[#b69755]/45",
+      background: "bg-[#b69755]/14",
+      dot: "bg-[#c1a15d]",
+      title: "text-[#d6c184]",
+    },
+    missing_form: {
+      border: "border-[#9d5d56]/45",
+      background: "bg-[#9d5d56]/14",
+      dot: "bg-[#b46b62]",
+      title: "text-[#d8a09a]",
+    },
+  } as const;
+  const style = styles[membership.status];
+
+  const content = (
+    <>
+      <span className={`mt-1 h-3 w-3 shrink-0 rounded-full ${style.dot}`} aria-hidden="true" />
+      <span className="min-w-0">
+        <span className={`block text-[10px] font-semibold uppercase tracking-[0.2em] ${style.title}`}>
+          Tesseramento
+        </span>
+        <span className="mt-1 block font-serif text-xl font-medium text-[#f8efe5]">
+          {membershipTitle(membership.status)}
+        </span>
+        <span className="mt-1 block text-sm leading-5 text-[#f8efe5]/62">
+          {membershipDetail(membership)}
+        </span>
+      </span>
+      {onOpenProfile ? <span className="ml-auto text-[#f8efe5]/45" aria-hidden="true">→</span> : null}
+    </>
+  );
+
+  return onOpenProfile ? (
+    <button
+      type="button"
+      onClick={onOpenProfile}
+      className={`flex w-full items-start gap-3 rounded-[18px] border p-4 text-left transition hover:bg-[#f8efe5]/8 ${style.border} ${style.background}`}
+    >
+      {content}
+    </button>
+  ) : (
+    <div className={`flex items-start gap-3 rounded-[18px] border p-4 ${style.border} ${style.background}`}>
+      {content}
+    </div>
+  );
+}
+
+function membershipTitle(status: PersonalAreaData["membership"]["status"]) {
+  if (status === "valid") return "Tesseramento in regola";
+  if (status === "payment_missing") return "Quota da regolarizzare";
+  return "Iscrizione da completare";
+}
+
+function membershipDetail(membership: PersonalAreaData["membership"]) {
+  if (membership.status === "valid") {
+    return "Modulo associativo presente e quota registrata per l’anno sociale corrente.";
+  }
+  if (membership.status === "payment_missing") {
+    return "Modulo associativo presente, ma non risulta il pagamento della quota dal 01/09/2025.";
+  }
+  return "Non risulta il modulo associativo compilato per questa email.";
+}
 
 function SectionIntro({ eyebrow, title, text }: { eyebrow: string; title: string; text: string }) {
   return (

@@ -40,6 +40,14 @@ export type AttendanceHistoryGrouped = {
   count: number;
 };
 
+export type MembershipState = {
+  status: "missing_form" | "payment_missing" | "valid";
+  formPresent: boolean;
+  currentYearPaid: boolean;
+  membershipStartsAt: string | null;
+  membershipExpiresAt: string | null;
+};
+
 export type PersonalAreaData = {
   email: string;
   profile: Profile | null;
@@ -50,6 +58,7 @@ export type PersonalAreaData = {
     booked: number;
     checkedIn: number;
   };
+  membership: MembershipState;
   enrollments: Enrollment[];
   attendanceHistory: AttendanceHistoryGrouped[];
 };
@@ -77,7 +86,10 @@ export async function getOrCreatePersonalAreaData(
     email,
     partnerEnrollments,
   );
-  const attendanceHistory = await loadAttendanceHistory(supabase, email);
+  const [attendanceHistory, membership] = await Promise.all([
+    loadAttendanceHistory(supabase, email),
+    loadMembershipState(supabase, email),
+  ]);
   const attendanceStats = {
     booked: enrollments.length,
     checkedIn: attendanceHistory.length,
@@ -90,8 +102,76 @@ export async function getOrCreatePersonalAreaData(
     claimedBuyerParticipants: claimResult.claimedBuyerParticipants,
     createdEnrollments: claimResult.createdEnrollments,
     attendanceStats,
+    membership,
     enrollments,
     attendanceHistory,
+  };
+}
+
+const CURRENT_MEMBERSHIP_START = "2025-09-01";
+
+async function loadMembershipState(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  email: string,
+): Promise<MembershipState> {
+  const { data, error } = await supabase
+    .from("association_members")
+    .select(
+      "email,source,membership_status,membership_starts_at,membership_expires_at",
+    )
+    .ilike("email", email)
+    .in("source", ["google_sheet", "official_members_book"])
+    .range(0, 99);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const rows = (data ?? []) as Array<{
+    email: string | null;
+    source: string | null;
+    membership_status: string | null;
+    membership_starts_at: string | null;
+    membership_expires_at: string | null;
+  }>;
+
+  const formPresent = rows.some((row) => row.source === "google_sheet");
+  const validPaymentRow = rows.find(
+    (row) =>
+      row.source === "official_members_book" &&
+      row.membership_status === "verified" &&
+      Boolean(
+        row.membership_starts_at &&
+          row.membership_starts_at >= CURRENT_MEMBERSHIP_START,
+      ),
+  );
+
+  if (!formPresent) {
+    return {
+      status: "missing_form",
+      formPresent: false,
+      currentYearPaid: Boolean(validPaymentRow),
+      membershipStartsAt: validPaymentRow?.membership_starts_at ?? null,
+      membershipExpiresAt: validPaymentRow?.membership_expires_at ?? null,
+    };
+  }
+
+  if (!validPaymentRow) {
+    return {
+      status: "payment_missing",
+      formPresent: true,
+      currentYearPaid: false,
+      membershipStartsAt: null,
+      membershipExpiresAt: null,
+    };
+  }
+
+  return {
+    status: "valid",
+    formPresent: true,
+    currentYearPaid: true,
+    membershipStartsAt: validPaymentRow.membership_starts_at,
+    membershipExpiresAt: validPaymentRow.membership_expires_at,
   };
 }
 
