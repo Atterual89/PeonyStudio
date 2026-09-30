@@ -5742,13 +5742,19 @@ function summarizePayload(payload: Record<string, unknown>) {
     "errors",
   ];
 
-  return keys
+  const summary = keys
     .filter((key) => key in payload)
     .map((key) => {
       const value = payload[key];
       return `${key}: ${Array.isArray(value) ? value.length : String(value)}`;
     })
     .join(" · ");
+
+  if (typeof payload.message === "string" && payload.message.trim()) {
+    return summary ? `${payload.message} · ${summary}` : payload.message;
+  }
+
+  return summary || "Errore senza dettagli.";
 }
 
 function formatEventOptionLabel(event: AdminEvent) {
