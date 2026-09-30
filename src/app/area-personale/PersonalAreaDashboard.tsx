@@ -761,22 +761,6 @@ function SpaceInfoContent() {
         <p className="font-semibold text-[#f8efe5]">Contatto emergenza</p>
         <p>+39 320 6486577 — WhatsApp/Telegram</p>
       </div>
-      <div>
-        <p className="font-semibold text-[#f8efe5]">Pagamento quota</p>
-        <p>
-          Sul posto oppure via{" "}
-          <a href="https://web.satispay.com/download/qrcode/S6Y-CON--992EF584-115F-4A05-8B24-E650872EB2A8?locale=it" target="_blank" rel="noopener noreferrer" className="text-[#d8b5a5] underline">Satispay</a>
-          {" "}(oggetto: nome evento + nome cognome).
-        </p>
-      </div>
-      <div>
-        <p className="font-semibold text-[#f8efe5]">Iscrizione associazione</p>
-        <p>
-          {"Se hai acquistato \"Non associati\" e non sei ancora iscritto ad UR Expression, completa l'iscrizione prima dell'evento:"}{" "}
-          <a href="https://forms.gle/f6osniuC39UhXGoV8" target="_blank" rel="noopener noreferrer" className="text-[#d8b5a5] underline">Modulo iscrizione</a>.
-          {" Se hai iscritto anche il/la partner, condividi il link del modulo."}
-        </p>
-      </div>
     </div>
   );
 }
