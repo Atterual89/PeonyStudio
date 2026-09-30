@@ -439,10 +439,10 @@ const processSummaryRows = [
   },
   {
     phase: "3. Biglietti Ticket Tailor",
-    updates: "Eventi, ordini, biglietti, acquirenti, partecipanti e check-in",
+    updates: "Eventi, biglietti intestati e check-in",
     source: "Ticket Tailor",
     action: "Aggiorna dati Ticket Tailor",
-    result: "Partecipanti evento aggiornati",
+    result: "Area personale e check-in aggiornati",
   },
   {
     phase: "4. Verifica tessere",
@@ -473,16 +473,8 @@ const syncSteps: SyncStep[] = [
     endpoint: "/api/admin/ticket-tailor/sync-events",
   },
   {
-    label: "Ordini",
-    endpoint: "/api/admin/ticket-tailor/sync-orders",
-  },
-  {
-    label: "Ticket emessi",
+    label: "Ticket emessi e check-in",
     endpoint: "/api/admin/ticket-tailor/sync-issued-tickets",
-  },
-  {
-    label: "Partecipanti",
-    endpoint: "/api/admin/ticket-tailor/sync-participants",
   },
 ];
 

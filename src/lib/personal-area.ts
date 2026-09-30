@@ -71,9 +71,17 @@ export async function getOrCreatePersonalAreaData(
   const profileId = profile.id;
   const claimResult = await claimBuyerEvents(supabase, profileId, email);
   const rawEnrollments = await loadEnrollments(supabase, profileId);
-  const enrollments = await ensurePartnerData(supabase, rawEnrollments);
-  const attendanceStats = await loadAttendanceStats(supabase, email);
+  const partnerEnrollments = await ensurePartnerData(supabase, rawEnrollments);
+  const enrollments = await loadFutureTicketEnrollments(
+    supabase,
+    email,
+    partnerEnrollments,
+  );
   const attendanceHistory = await loadAttendanceHistory(supabase, email);
+  const attendanceStats = {
+    booked: enrollments.length,
+    checkedIn: attendanceHistory.length,
+  };
 
   return {
     email,
@@ -400,96 +408,266 @@ async function ensurePartnerData(
   });
 }
 
+const PERSONAL_AREA_HISTORY_START_MS = new Date("2025-09-01T00:00:00+02:00").getTime();
+
+type IssuedTicketRow = {
+  ticket_tailor_issued_ticket_id: string;
+  ticket_tailor_order_id: string | null;
+  event_id: string | null;
+  ticket_tailor_event_id: string | null;
+  status: string | null;
+  checked_in: boolean | null;
+};
+
+type EventRow = {
+  id: string;
+  ticket_tailor_event_id: string | null;
+  title: string | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  category: string | null;
+  booking_url: string | null;
+  requires_partner: boolean | null;
+};
+
+async function loadFutureTicketEnrollments(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  email: string,
+  existingEnrollments: Enrollment[],
+): Promise<Enrollment[]> {
+  const { data, error } = await supabase
+    .from("ticket_tailor_issued_tickets")
+    .select(
+      "ticket_tailor_issued_ticket_id,ticket_tailor_order_id,event_id,ticket_tailor_event_id,status,checked_in",
+    )
+    .ilike("holder_email", email)
+    .limit(500);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const tickets = ((data ?? []) as IssuedTicketRow[]).filter((ticket) =>
+    isActiveFutureTicketStatus(ticket.status),
+  );
+  const { byId, byTicketTailorId } = await loadEventsForTickets(
+    supabase,
+    tickets,
+  );
+
+  const enrollmentByOrderId = new Map(
+    existingEnrollments
+      .filter((enrollment) => enrollment.ticket_tailor_order_id)
+      .map((enrollment) => [
+        enrollment.ticket_tailor_order_id as string,
+        enrollment,
+      ]),
+  );
+  const enrollmentByEventId = new Map(
+    existingEnrollments
+      .filter((enrollment) => enrollment.event_id)
+      .map((enrollment) => [enrollment.event_id as string, enrollment]),
+  );
+  const enrollmentByTicketTailorEventId = new Map(
+    existingEnrollments
+      .filter((enrollment) => enrollment.ticket_tailor_event_id)
+      .map((enrollment) => [
+        enrollment.ticket_tailor_event_id as string,
+        enrollment,
+      ]),
+  );
+
+  const now = Date.now();
+  const result = new Map<string, Enrollment>();
+
+  for (const ticket of tickets) {
+    const event =
+      (ticket.event_id ? byId.get(ticket.event_id) : undefined) ??
+      (ticket.ticket_tailor_event_id
+        ? byTicketTailorId.get(ticket.ticket_tailor_event_id)
+        : undefined);
+
+    if (!event?.starts_at) continue;
+
+    const eventTime = new Date(event.starts_at).getTime();
+    if (Number.isNaN(eventTime) || eventTime < now) continue;
+
+    const key = getTicketEventKey(ticket);
+    if (!key || result.has(key)) continue;
+
+    const existing =
+      (ticket.ticket_tailor_order_id
+        ? enrollmentByOrderId.get(ticket.ticket_tailor_order_id)
+        : undefined) ??
+      (ticket.event_id ? enrollmentByEventId.get(ticket.event_id) : undefined) ??
+      (ticket.ticket_tailor_event_id
+        ? enrollmentByTicketTailorEventId.get(ticket.ticket_tailor_event_id)
+        : undefined);
+
+    if (existing) {
+      result.set(key, { ...existing, events: event });
+      continue;
+    }
+
+    result.set(key, {
+      id: `ticket:${ticket.ticket_tailor_issued_ticket_id}`,
+      event_id: ticket.event_id,
+      ticket_tailor_order_id: ticket.ticket_tailor_order_id,
+      ticket_tailor_event_id: ticket.ticket_tailor_event_id,
+      enrollment_status: "active",
+      partner_email: null,
+      partner_name: null,
+      partner_source: null,
+      events: {
+        ...event,
+        requires_partner: false,
+      },
+    });
+  }
+
+  return Array.from(result.values()).sort((a, b) => {
+    const aTime = a.events?.starts_at
+      ? new Date(a.events.starts_at).getTime()
+      : Number.MAX_SAFE_INTEGER;
+    const bTime = b.events?.starts_at
+      ? new Date(b.events.starts_at).getTime()
+      : Number.MAX_SAFE_INTEGER;
+    return aTime - bTime;
+  });
+}
+
 async function loadAttendanceHistory(
   supabase: ReturnType<typeof createSupabaseAdminClient>,
   email: string,
 ): Promise<AttendanceHistoryGrouped[]> {
   const { data, error } = await supabase
     .from("ticket_tailor_issued_tickets")
-    .select("event_id,ticket_tailor_event_id,ticket_type_name,events(title,category,starts_at)")
-    .eq("holder_email", email)
+    .select(
+      "ticket_tailor_issued_ticket_id,ticket_tailor_order_id,event_id,ticket_tailor_event_id,status,checked_in",
+    )
+    .ilike("holder_email", email)
     .eq("checked_in", true)
-    .limit(50);
-
-  if (error || !data) return [];
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rows = data as any[];
-
-  const filtered = rows.filter((row) => {
-    const cat = row.events?.category as string | null | undefined;
-    return row.events != null && cat !== "community" && cat !== "system";
-  });
-
-  filtered.sort((a, b) => {
-    const aTime = a.events?.starts_at ? new Date(a.events.starts_at as string).getTime() : 0;
-    const bTime = b.events?.starts_at ? new Date(b.events.starts_at as string).getTime() : 0;
-    return bTime - aTime;
-  });
-
-  const groupMap = new Map<string, AttendanceHistoryGrouped>();
-  for (const row of filtered) {
-    const title = (row.events?.title as string | null) ?? "Evento senza titolo";
-    const existing = groupMap.get(title);
-    if (existing) {
-      existing.count += 1;
-    } else {
-      groupMap.set(title, {
-        title,
-        category: (row.events?.category as string | null) ?? null,
-        starts_at: (row.events?.starts_at as string | null) ?? null,
-        count: 1,
-      });
-    }
-  }
-
-  return Array.from(groupMap.values()).slice(0, 10);
-}
-
-async function loadAttendanceStats(
-  supabase: ReturnType<typeof createSupabaseAdminClient>,
-  email: string,
-) {
-  const { data, error } = await supabase
-    .from("event_participants")
-    .select("event_id,ticket_tailor_event_id,checked_in")
-    .eq("participant_type", "attendee")
-    .eq("email", email);
+    .limit(500);
 
   if (error) {
     throw new Error(error.message);
   }
 
-  const bookedEventKeys = new Set<string>();
-  const checkedInEventKeys = new Set<string>();
+  const tickets = (data ?? []) as IssuedTicketRow[];
+  const { byId, byTicketTailorId } = await loadEventsForTickets(
+    supabase,
+    tickets,
+  );
+  const now = Date.now();
+  const history = new Map<string, AttendanceHistoryGrouped>();
 
-  for (const participant of data ?? []) {
-    const eventKey = getParticipantEventKey(participant);
-    if (!eventKey) continue;
+  for (const ticket of tickets) {
+    const event =
+      (ticket.event_id ? byId.get(ticket.event_id) : undefined) ??
+      (ticket.ticket_tailor_event_id
+        ? byTicketTailorId.get(ticket.ticket_tailor_event_id)
+        : undefined);
 
-    bookedEventKeys.add(eventKey);
-    if (participant.checked_in === true) {
-      checkedInEventKeys.add(eventKey);
+    if (!event?.starts_at) continue;
+
+    const eventTime = new Date(event.starts_at).getTime();
+    if (
+      Number.isNaN(eventTime) ||
+      eventTime < PERSONAL_AREA_HISTORY_START_MS ||
+      eventTime > now
+    ) {
+      continue;
     }
+
+    const key = getTicketEventKey(ticket);
+    if (!key || history.has(key)) continue;
+
+    history.set(key, {
+      title: event.title ?? "Evento Peony Studio",
+      category: event.category,
+      starts_at: event.starts_at,
+      count: 1,
+    });
   }
 
+  return Array.from(history.values()).sort((a, b) => {
+    const aTime = a.starts_at ? new Date(a.starts_at).getTime() : 0;
+    const bTime = b.starts_at ? new Date(b.starts_at).getTime() : 0;
+    return bTime - aTime;
+  });
+}
+
+async function loadEventsForTickets(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  tickets: IssuedTicketRow[],
+) {
+  const eventIds = Array.from(
+    new Set(
+      tickets
+        .map((ticket) => ticket.event_id)
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
+  const ticketTailorEventIds = Array.from(
+    new Set(
+      tickets
+        .map((ticket) => ticket.ticket_tailor_event_id)
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
+
+  const rows = new Map<string, EventRow>();
+
+  if (eventIds.length > 0) {
+    const { data, error } = await supabase
+      .from("events")
+      .select(
+        "id,ticket_tailor_event_id,title,starts_at,ends_at,category,booking_url,requires_partner",
+      )
+      .in("id", eventIds);
+
+    if (error) throw new Error(error.message);
+    for (const event of (data ?? []) as EventRow[]) rows.set(event.id, event);
+  }
+
+  if (ticketTailorEventIds.length > 0) {
+    const { data, error } = await supabase
+      .from("events")
+      .select(
+        "id,ticket_tailor_event_id,title,starts_at,ends_at,category,booking_url,requires_partner",
+      )
+      .in("ticket_tailor_event_id", ticketTailorEventIds);
+
+    if (error) throw new Error(error.message);
+    for (const event of (data ?? []) as EventRow[]) rows.set(event.id, event);
+  }
+
+  const all = Array.from(rows.values());
   return {
-    booked: bookedEventKeys.size,
-    checkedIn: checkedInEventKeys.size,
+    byId: new Map(all.map((event) => [event.id, event])),
+    byTicketTailorId: new Map(
+      all
+        .filter((event) => event.ticket_tailor_event_id)
+        .map((event) => [event.ticket_tailor_event_id as string, event]),
+    ),
   };
 }
 
-function getParticipantEventKey(participant: {
+function getTicketEventKey(ticket: {
   event_id: string | null;
   ticket_tailor_event_id: string | null;
 }) {
-  if (participant.event_id?.trim()) {
-    return `event:${participant.event_id.trim()}`;
+  if (ticket.event_id?.trim()) return `event:${ticket.event_id.trim()}`;
+  if (ticket.ticket_tailor_event_id?.trim()) {
+    return `ticket-tailor:${ticket.ticket_tailor_event_id.trim()}`;
   }
-
-  if (participant.ticket_tailor_event_id?.trim()) {
-    return `ticket-tailor:${participant.ticket_tailor_event_id.trim()}`;
-  }
-
   return null;
+}
+
+function isActiveFutureTicketStatus(status: string | null) {
+  if (!status) return true;
+  const normalized = status.toLowerCase();
+  return !["void", "cancelled", "canceled", "refunded", "deleted", "inactive"].some(
+    (blocked) => normalized.includes(blocked),
+  );
 }

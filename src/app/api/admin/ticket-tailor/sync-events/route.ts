@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createSupabaseAdminClient();
-  const events = await getTicketTailorEvents();
+  const events = await getTicketTailorEvents({ since: "2025-09-01" });
   const errors: SyncError[] = [];
   let upserted = 0;
   let skipped = 0;
