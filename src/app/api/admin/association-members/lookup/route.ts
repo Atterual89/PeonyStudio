@@ -1,20 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import {
+  deriveMembershipState,
+  normalizeMembershipEmail,
+  normalizeMembershipNameKey,
+  type MembershipEvidenceRow,
+} from "@/lib/association/membership-state";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
-
-const CURRENT_MEMBERSHIP_START = "2025-09-01";
-
-type MemberRow = {
-  first_name: string | null;
-  last_name: string | null;
-  email: string | null;
-  source: string | null;
-  membership_status: string | null;
-  membership_starts_at: string | null;
-  membership_expires_at: string | null;
-};
 
 type ProfileRow = {
   first_name: string | null;
@@ -40,11 +34,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, message: "Unauthorized." }, { status: 401 });
   }
 
-  const email = normalizeEmail(request.nextUrl.searchParams.get("email"));
+  const email = normalizeMembershipEmail(request.nextUrl.searchParams.get("email"));
   const firstName = normalizeText(request.nextUrl.searchParams.get("first_name"));
   const lastName = normalizeText(request.nextUrl.searchParams.get("last_name"));
+  const searchNameKey = normalizeMembershipNameKey(firstName, lastName);
 
-  if (!email && !(firstName && lastName)) {
+  if (!email && !searchNameKey) {
     return NextResponse.json(
       {
         ok: false,
@@ -55,21 +50,6 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = createSupabaseAdminClient();
-
-  let membersQuery = supabase
-    .from("association_members")
-    .select(
-      "first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at",
-    )
-    .in("source", ["google_sheet", "official_members_book"]);
-
-  if (email) {
-    membersQuery = membersQuery.ilike("email", email);
-  } else {
-    membersQuery = membersQuery
-      .ilike("first_name", firstName)
-      .ilike("last_name", lastName);
-  }
 
   let profilesQuery = supabase
     .from("profiles")
@@ -87,7 +67,13 @@ export async function GET(request: NextRequest) {
     { data: memberData, error: memberError },
     { data: profileData, error: profileError },
   ] = await Promise.all([
-    membersQuery.range(0, 99),
+    supabase
+      .from("association_members")
+      .select(
+        "first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at",
+      )
+      .in("source", ["google_sheet", "official_members_book"])
+      .range(0, 9999),
     profilesQuery.range(0, 99),
   ]);
 
@@ -105,49 +91,77 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const members = (memberData ?? []) as MemberRow[];
+  const members = (memberData ?? []) as MembershipEvidenceRow[];
   const profiles = (profileData ?? []) as ProfileRow[];
-  const grouped = new Map<
+
+  const matchingFormRows = members.filter(
+    (row) =>
+      row.source === "google_sheet" &&
+      (email
+        ? normalizeMembershipEmail(row.email) === email
+        : normalizeMembershipNameKey(row.first_name, row.last_name) ===
+          searchNameKey),
+  );
+
+  const matchingOfficialRows = email
+    ? members.filter(
+        (row) =>
+          row.source === "official_members_book" &&
+          normalizeMembershipEmail(row.email) === email,
+      )
+    : members.filter(
+        (row) =>
+          row.source === "official_members_book" &&
+          normalizeMembershipNameKey(row.first_name, row.last_name) ===
+            searchNameKey,
+      );
+
+  const identities = new Map<
     string,
-    {
-      first_name: string | null;
-      last_name: string | null;
-      email: string | null;
-      rows: MemberRow[];
-    }
+    { first_name: string | null; last_name: string | null; email: string | null }
   >();
 
-  for (const row of members) {
-    const key = personKey(row.email, row.first_name, row.last_name);
-    const current = grouped.get(key) ?? {
-      first_name: row.first_name,
-      last_name: row.last_name,
-      email: row.email,
-      rows: [],
-    };
+  function addIdentity(identity: {
+    first_name: string | null;
+    last_name: string | null;
+    email: string | null;
+  }) {
+    const normalizedEmail = normalizeMembershipEmail(identity.email);
+    const nameKey = normalizeMembershipNameKey(
+      identity.first_name,
+      identity.last_name,
+    );
 
-    current.first_name ||= row.first_name;
-    current.last_name ||= row.last_name;
-    current.email ||= row.email;
-    current.rows.push(row);
-    grouped.set(key, current);
-  }
+    if (normalizedEmail) {
+      identities.set(`email:${normalizedEmail}`, identity);
+      return;
+    }
 
-  for (const profile of profiles) {
-    const key = personKey(profile.email, profile.first_name, profile.last_name);
-    if (!grouped.has(key)) {
-      grouped.set(key, {
-        first_name: profile.first_name,
-        last_name: profile.last_name,
-        email: profile.email,
-        rows: [],
-      });
+    if (nameKey) {
+      const existingByName = Array.from(identities.values()).find(
+        (candidate) =>
+          normalizeMembershipNameKey(
+            candidate.first_name,
+            candidate.last_name,
+          ) === nameKey,
+      );
+      if (!existingByName) {
+        identities.set(`name:${nameKey}`, identity);
+      }
     }
   }
 
-  const candidates: Candidate[] = Array.from(grouped.values())
+  for (const row of matchingFormRows) addIdentity(row);
+  for (const profile of profiles) addIdentity(profile);
+  for (const row of matchingOfficialRows) addIdentity(row);
+
+  const candidates: Candidate[] = Array.from(identities.values())
     .map((person) => {
-      const state = getMembershipState(person.rows);
+      const state = deriveMembershipState(members, {
+        email: person.email,
+        firstName: person.first_name,
+        lastName: person.last_name,
+      });
 
       return {
         first_name: person.first_name,
@@ -171,59 +185,6 @@ export async function GET(request: NextRequest) {
   });
 }
 
-function getMembershipState(rows: MemberRow[]) {
-  const formPresent = rows.some((row) => row.source === "google_sheet");
-  const paidRow = rows.find(
-    (row) =>
-      row.source === "official_members_book" &&
-      row.membership_status === "verified" &&
-      Boolean(
-        row.membership_starts_at &&
-          row.membership_starts_at >= CURRENT_MEMBERSHIP_START,
-      ),
-  );
-
-  if (!formPresent) {
-    return {
-      status: "missing_form" as const,
-      formPresent: false,
-      currentYearPaid: Boolean(paidRow),
-      membershipExpiresAt: paidRow?.membership_expires_at ?? null,
-    };
-  }
-
-  if (!paidRow) {
-    return {
-      status: "payment_missing" as const,
-      formPresent: true,
-      currentYearPaid: false,
-      membershipExpiresAt: null,
-    };
-  }
-
-  return {
-    status: "valid" as const,
-    formPresent: true,
-    currentYearPaid: true,
-    membershipExpiresAt: paidRow.membership_expires_at,
-  };
-}
-
-function normalizeEmail(value: string | null) {
-  return value?.trim().toLowerCase() ?? "";
-}
-
 function normalizeText(value: string | null) {
   return value?.trim().replace(/\s+/g, " ") ?? "";
-}
-
-function personKey(
-  email: string | null,
-  firstName: string | null,
-  lastName: string | null,
-) {
-  const normalizedEmail = normalizeEmail(email);
-  if (normalizedEmail) return `email:${normalizedEmail}`;
-
-  return `name:${normalizeText(firstName).toLowerCase()}|${normalizeText(lastName).toLowerCase()}`;
 }

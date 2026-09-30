@@ -70,9 +70,6 @@ const ASSOCIATION_MEMBER_FIELDS = [
   "notes_admin",
 ].join(",");
 
-const MEMBERSHIP_VALID_FROM = "2025-09-01";
-const SKIPPED_BEFORE_VALID_FROM_REASON =
-  "Compilazione precedente al 01/09/2025: da verificare manualmente.";
 const MANUAL_STATUS_VALUES = new Set(["pending", "manual_review", "expired"]);
 
 export async function buildAssociationMembersSyncPreview(
@@ -218,18 +215,6 @@ function buildPreview(
         matchMethod: "none",
         action: "invalid",
         errors: row.errors,
-        notes: [],
-        existingMemberId: null,
-        preserveManualStatus: false,
-      };
-    }
-
-    if (row.membership_starts_at < MEMBERSHIP_VALID_FROM) {
-      return {
-        ...mapBasePreviewRow(row),
-        matchMethod: "none",
-        action: "skipped",
-        errors: [...row.errors, SKIPPED_BEFORE_VALID_FROM_REASON],
         notes: [],
         existingMemberId: null,
         preserveManualStatus: false,
