@@ -295,16 +295,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const orderUpserts = await upsertInBatches(
-      "ticket_tailor_orders",
-      orderRows,
-      "ticket_tailor_order_id",
-    );
-    const ticketUpserts = await upsertInBatches(
-      "ticket_tailor_issued_tickets",
-      ticketRows,
-      "ticket_tailor_issued_ticket_id",
-    );
+    const orderUpserts = await upsertOrderRows(orderRows);
+    const ticketUpserts = await upsertIssuedTicketRows(ticketRows);
 
     return NextResponse.json({
       ok: !errors.some((error) => error.level === "error"),
@@ -339,23 +331,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    async function upsertInBatches<T extends Record<string, unknown>>(
-      table: string,
-      rows: T[],
-      onConflict: string,
-    ) {
+    async function upsertOrderRows(rows: SupabaseOrderRow[]) {
       let upserted = 0;
 
       for (let index = 0; index < rows.length; index += UPSERT_BATCH_SIZE) {
         const batch = rows.slice(index, index + UPSERT_BATCH_SIZE);
         const { error } = await supabase
-          .from(table)
-          .upsert(batch, { onConflict });
+          .from("ticket_tailor_orders")
+          .upsert(batch, { onConflict: "ticket_tailor_order_id" });
 
         if (error) {
           errors.push({
             level: "error",
-            message: `${table}: ${error.message}`,
+            message: `ticket_tailor_orders: ${error.message}`,
+          });
+          continue;
+        }
+
+        upserted += batch.length;
+      }
+
+      return upserted;
+    }
+
+    async function upsertIssuedTicketRows(rows: SupabaseIssuedTicketRow[]) {
+      let upserted = 0;
+
+      for (let index = 0; index < rows.length; index += UPSERT_BATCH_SIZE) {
+        const batch = rows.slice(index, index + UPSERT_BATCH_SIZE);
+        const { error } = await supabase
+          .from("ticket_tailor_issued_tickets")
+          .upsert(batch, { onConflict: "ticket_tailor_issued_ticket_id" });
+
+        if (error) {
+          errors.push({
+            level: "error",
+            message: `ticket_tailor_issued_tickets: ${error.message}`,
           });
           continue;
         }
