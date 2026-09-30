@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import {
+  deriveMembershipState,
+  type MembershipEvidenceRow,
+} from "@/lib/association/membership-state";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
-
-const CURRENT_MEMBERSHIP_START = "2025-09-01";
 
 type EventRow = {
   id: string;
@@ -27,13 +29,7 @@ type TicketRow = {
   status: string | null;
 };
 
-type MemberRow = {
-  email: string | null;
-  source: string | null;
-  membership_status: string | null;
-  membership_starts_at: string | null;
-  membership_expires_at: string | null;
-};
+type MemberRow = MembershipEvidenceRow;
 
 type EnrollmentRow = {
   id: string;
@@ -97,38 +93,22 @@ export async function GET(request: NextRequest) {
   const tickets = ((ticketData ?? []) as TicketRow[]).filter((ticket) =>
     isActiveTicketStatus(ticket.status),
   );
-  const emails = Array.from(
-    new Set(
-      tickets
-        .map((ticket) => normalizeEmail(ticket.holder_email))
-        .filter(Boolean),
-    ),
-  );
+  const { data: memberData, error: membersError } = await supabase
+    .from("association_members")
+    .select(
+      "first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at",
+    )
+    .in("source", ["google_sheet", "official_members_book"])
+    .range(0, 9999);
 
-  const membersByEmail = new Map<string, MemberRow[]>();
-  if (emails.length > 0) {
-    const { data: memberData, error: membersError } = await supabase
-      .from("association_members")
-      .select(
-        "email,source,membership_status,membership_starts_at,membership_expires_at",
-      )
-      .in("source", ["google_sheet", "official_members_book"])
-      .in("email", emails)
-      .range(0, 4999);
-
-    if (membersError) {
-      return NextResponse.json(
-        { ok: false, message: membersError.message },
-        { status: 500 },
-      );
-    }
-
-    for (const member of (memberData ?? []) as MemberRow[]) {
-      const email = normalizeEmail(member.email);
-      if (!email) continue;
-      membersByEmail.set(email, [...(membersByEmail.get(email) ?? []), member]);
-    }
+  if (membersError) {
+    return NextResponse.json(
+      { ok: false, message: membersError.message },
+      { status: 500 },
+    );
   }
+
+  const membershipRows = (memberData ?? []) as MemberRow[];
 
   const eventIds = events.map((event) => event.id);
   const enrollmentByEventOrder = new Map<string, EnrollmentRow>();
@@ -185,7 +165,7 @@ export async function GET(request: NextRequest) {
     const participants = eventTickets
       .map((ticket) => {
         const email = normalizeEmail(ticket.holder_email);
-        const membership = getMembershipState(membersByEmail.get(email) ?? []);
+        const membership = deriveMembershipState(membershipRows, { email });
         const enrollment =
           (ticket.ticket_tailor_order_id
             ? enrollmentByEventOrder.get(
@@ -240,38 +220,6 @@ export async function GET(request: NextRequest) {
   });
 
   return NextResponse.json({ ok: true, events: result });
-}
-
-function getMembershipState(rows: MemberRow[]) {
-  const formPresent = rows.some((row) => row.source === "google_sheet");
-  const paid = rows.find(
-    (row) =>
-      row.source === "official_members_book" &&
-      row.membership_status === "verified" &&
-      Boolean(
-        row.membership_starts_at &&
-          row.membership_starts_at >= CURRENT_MEMBERSHIP_START,
-      ),
-  );
-
-  if (!formPresent) {
-    return {
-      status: "missing_form" as const,
-      membershipExpiresAt: paid?.membership_expires_at ?? null,
-    };
-  }
-
-  if (!paid) {
-    return {
-      status: "payment_missing" as const,
-      membershipExpiresAt: null,
-    };
-  }
-
-  return {
-    status: "valid" as const,
-    membershipExpiresAt: paid.membership_expires_at,
-  };
 }
 
 function eventNeedsPartnerCheck(event: EventRow) {
