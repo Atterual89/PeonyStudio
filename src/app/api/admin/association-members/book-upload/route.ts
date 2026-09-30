@@ -173,7 +173,7 @@ function parseWorkbook(buffer: Buffer): CellValue[][] {
   const workbook = readEntry(entries, "xl/workbook.xml");
   const rels = readEntry(entries, "xl/_rels/workbook.xml.rels");
 
-  const sheetAttrs = Array.from(workbook.matchAll(/<sheet\\b([^>]*)\\/?\\s*>/g))
+  const sheetAttrs = Array.from(workbook.matchAll(/<sheet\b([^>]*)\/?\s*>/g))
     .map((match) => parseAttributes(match[1]))
     .find((attrs) => attrs.name === TARGET_SHEET);
 
@@ -182,7 +182,7 @@ function parseWorkbook(buffer: Buffer): CellValue[][] {
   }
 
   const relation = Array.from(
-    rels.matchAll(/<Relationship\\b([^>]*)\\/?\\s*>/g),
+    rels.matchAll(/<Relationship\b([^>]*)\/?\s*>/g),
   )
     .map((match) => parseAttributes(match[1]))
     .find((attrs) => attrs.Id === sheetAttrs["r:id"]);
@@ -206,9 +206,9 @@ function parseWorkbook(buffer: Buffer): CellValue[][] {
 
   const values: CellValue[][] = [];
 
-  for (const rowMatch of worksheet.matchAll(/<row\\b[^>]*>([\\s\\S]*?)<\\/row>/g)) {
+  for (const rowMatch of worksheet.matchAll(/<row\b[^>]*>([\s\S]*?)<\/row>/g)) {
     for (const cellMatch of rowMatch[1].matchAll(
-      /<c\\b([^>]*)>([\\s\\S]*?)<\\/c>|<c\\b([^>]*)\\/>/g,
+      /<c\b([^>]*)>([\s\S]*?)<\/c>|<c\b([^>]*)\/>/g,
     )) {
       const attrs = parseAttributes(cellMatch[1] ?? cellMatch[3] ?? "");
       if (!attrs.r) continue;
@@ -307,12 +307,12 @@ function parseCell(
   dateStyles: Set<number>,
 ): CellValue {
   if (type === "inlineStr") {
-    return Array.from(body.matchAll(/<t(?:\\s[^>]*)?>([\\s\\S]*?)<\\/t>/g))
+    return Array.from(body.matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g))
       .map((match) => decodeXml(match[1]))
       .join("");
   }
 
-  const raw = decodeXml(body.match(/<v>([\\s\\S]*?)<\\/v>/)?.[1] ?? "").trim();
+  const raw = decodeXml(body.match(/<v>([\s\S]*?)<\/v>/)?.[1] ?? "").trim();
   if (!raw) return "";
   if (type === "s") return sharedStrings[Number(raw)] ?? "";
   if (type === "b") return raw === "1";
@@ -329,8 +329,8 @@ function parseCell(
 }
 
 function parseSharedStrings(xml: string) {
-  return Array.from(xml.matchAll(/<si>([\\s\\S]*?)<\\/si>/g)).map((match) =>
-    Array.from(match[1].matchAll(/<t(?:\\s[^>]*)?>([\\s\\S]*?)<\\/t>/g))
+  return Array.from(xml.matchAll(/<si>([\s\S]*?)<\/si>/g)).map((match) =>
+    Array.from(match[1].matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g))
       .map((textMatch) => decodeXml(textMatch[1]))
       .join(""),
   );
@@ -339,7 +339,7 @@ function parseSharedStrings(xml: string) {
 function parseDateStyles(xml: string) {
   const customFormats = new Map<number, string>();
 
-  for (const match of xml.matchAll(/<numFmt\\b([^>]*)\\/?\\s*>/g)) {
+  for (const match of xml.matchAll(/<numFmt\b([^>]*)\/?\s*>/g)) {
     const attrs = parseAttributes(match[1]);
     const id = Number(attrs.numFmtId);
     if (Number.isFinite(id) && attrs.formatCode) {
@@ -348,10 +348,10 @@ function parseDateStyles(xml: string) {
   }
 
   const result = new Set<number>();
-  const cellXfs = xml.match(/<cellXfs\\b[^>]*>([\\s\\S]*?)<\\/cellXfs>/)?.[1] ?? "";
+  const cellXfs = xml.match(/<cellXfs\b[^>]*>([\s\S]*?)<\/cellXfs>/)?.[1] ?? "";
   let index = 0;
 
-  for (const match of cellXfs.matchAll(/<xf\\b([^>]*)\\/?\\s*>/g)) {
+  for (const match of cellXfs.matchAll(/<xf\b([^>]*)\/?\s*>/g)) {
     const attrs = parseAttributes(match[1]);
     const id = Number(attrs.numFmtId ?? 0);
     const format = (customFormats.get(id) ?? "").replace(/"[^"]*"/g, "");
@@ -397,7 +397,7 @@ function validateMembersBook(values: CellValue[][]) {
 function parseAttributes(value: string) {
   const attrs: Record<string, string> = {};
 
-  for (const match of value.matchAll(/([\\w:-]+)="([^"]*)"/g)) {
+  for (const match of value.matchAll(/([\w:-]+)="([^"]*)"/g)) {
     attrs[match[1]] = decodeXml(match[2]);
   }
 
@@ -405,7 +405,7 @@ function parseAttributes(value: string) {
 }
 
 function cellPosition(reference: string) {
-  const match = reference.match(/^([A-Z]+)(\\d+)$/i);
+  const match = reference.match(/^([A-Z]+)(\d+)$/i);
   if (!match) return { rowIndex: -1, columnIndex: -1 };
 
   let column = 0;
@@ -434,7 +434,7 @@ function decodeXml(value: string) {
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&apos;/g, "'")
-    .replace(/&#(\\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)))
+    .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)))
     .replace(/&#x([0-9a-f]+);/gi, (_, code: string) =>
       String.fromCodePoint(parseInt(code, 16)),
     )
@@ -446,14 +446,14 @@ function normalizeHeader(value: string) {
     .trim()
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\\u0300-\\u036f]/g, "")
-    .replace(/\\s+/g, " ");
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ");
 }
 
 function normalizePath(value: string) {
   const parts: string[] = [];
 
-  for (const part of value.replace(/\\\\/g, "/").split("/")) {
+  for (const part of value.replace(/\\/g, "/").split("/")) {
     if (!part || part === ".") continue;
     if (part === "..") parts.pop();
     else parts.push(part);
