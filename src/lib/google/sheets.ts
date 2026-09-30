@@ -50,6 +50,13 @@ export type GoogleSheetMembersReadResult = {
   detectedColumns: DetectedGoogleSheetColumns;
 };
 
+const ENGLISH_REGISTRATION_SPREADSHEET_ID =
+  process.env.GOOGLE_ENGLISH_SHEET_ID?.trim() ||
+  "1Q2hDnDccR8dZYlFzkIOzf2y0zYHZl_VeP_SOQ63Vc4M";
+const ENGLISH_REGISTRATION_RANGE =
+  process.env.GOOGLE_ENGLISH_SHEET_RANGE?.trim() ||
+  "'Risposte del modulo 1'!A:T";
+
 const COLUMN_PRIORITY: Record<SheetColumnKey, string[]> = {
   membership_starts_at: [
     "informazioni cronologiche",
@@ -91,16 +98,34 @@ export async function readAssociationMembersFromGoogleSheet() {
     scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
   });
   const sheets = google.sheets({ version: "v4", auth });
-  const response = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range,
-  });
-  const values = response.data.values ?? [];
 
-  return normalizeGoogleSheetRows(values);
+  const [italianResponse, englishResponse] = await Promise.all([
+    sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range,
+    }),
+    sheets.spreadsheets.values.get({
+      spreadsheetId: ENGLISH_REGISTRATION_SPREADSHEET_ID,
+      range: ENGLISH_REGISTRATION_RANGE,
+    }),
+  ]);
+
+  const italian = normalizeGoogleSheetRows(
+    italianResponse.data.values ?? [],
+    "",
+  );
+  const english = normalizeGoogleSheetRows(
+    englishResponse.data.values ?? [],
+    "eng:",
+  );
+
+  return mergeGoogleSheetResults([italian, english]);
 }
 
-function normalizeGoogleSheetRows(values: unknown[][]): GoogleSheetMembersReadResult {
+function normalizeGoogleSheetRows(
+  values: unknown[][],
+  sourceRowPrefix: string,
+): GoogleSheetMembersReadResult {
   const [headers, ...dataRows] = values;
   const errors: string[] = [];
 
@@ -115,14 +140,12 @@ function normalizeGoogleSheetRows(values: unknown[][]): GoogleSheetMembersReadRe
 
   const columns = mapColumns(headers.map((header) => String(header ?? "")));
 
-  if (columns.first_name.index === null) {
+  if (
+    columns.first_name.index === null &&
+    columns.last_name.index === null
+  ) {
     errors.push(
-      `Missing nome column. Available normalized headers: ${columns.availableHeaders.join(", ")}`,
-    );
-  }
-  if (columns.last_name.index === null) {
-    errors.push(
-      `Missing cognome column. Available normalized headers: ${columns.availableHeaders.join(", ")}`,
+      `Missing name column. Available normalized headers: ${columns.availableHeaders.join(", ")}`,
     );
   }
 
@@ -130,8 +153,18 @@ function normalizeGoogleSheetRows(values: unknown[][]): GoogleSheetMembersReadRe
   const rows = dataRows.map<GoogleSheetMemberRow>((row, index) => {
     const rowNumber = index + 2;
     const rowErrors: string[] = [];
-    const firstName = normalizeText(readCell(row, columns.first_name.index));
-    const lastName = normalizeText(readCell(row, columns.last_name.index));
+    const rawFirstName = normalizeText(
+      readCell(row, columns.first_name.index),
+    );
+    const rawLastName = normalizeText(
+      readCell(row, columns.last_name.index),
+    );
+    const { firstName, lastName } = normalizePersonName(
+      rawFirstName,
+      rawLastName,
+      columns.first_name.index !== null &&
+        columns.first_name.index === columns.last_name.index,
+    );
     const email =
       normalizeEmail(readCell(row, columns.email.index)) ??
       normalizeEmail(readCell(row, columns.email_confirm.index));
@@ -141,13 +174,13 @@ function normalizeGoogleSheetRows(values: unknown[][]): GoogleSheetMembersReadRe
     );
     const membershipStartsAt = parsedStartDate ?? today;
 
-    if (!firstName) rowErrors.push("Nome mancante.");
-    if (!lastName) rowErrors.push("Cognome mancante.");
-    if (!parsedStartDate) rowErrors.push("Data iscrizione non valida: usata data corrente.");
+    if (!parsedStartDate) {
+      rowErrors.push("Data iscrizione non valida: usata data corrente.");
+    }
 
     const baseRow = {
       rowNumber,
-      source_row_id: String(rowNumber),
+      source_row_id: `${sourceRowPrefix}${rowNumber}`,
       first_name: firstName,
       last_name: lastName,
       email,
@@ -172,6 +205,73 @@ function normalizeGoogleSheetRows(values: unknown[][]): GoogleSheetMembersReadRe
     errors,
     detectedColumns: toDetectedColumns(columns),
   };
+}
+
+function mergeGoogleSheetResults(
+  results: GoogleSheetMembersReadResult[],
+): GoogleSheetMembersReadResult {
+  const rowsByIdentity = new Map<string, GoogleSheetMemberRow>();
+
+  for (const result of results) {
+    for (const row of result.rows) {
+      const key =
+        row.email
+          ? `email:${row.email}`
+          : createLooseNameKey(row.first_name, row.last_name) ||
+            `source:${row.source_row_id}`;
+      const current = rowsByIdentity.get(key);
+
+      if (
+        !current ||
+        row.membership_starts_at >= current.membership_starts_at
+      ) {
+        rowsByIdentity.set(key, row);
+      }
+    }
+  }
+
+  return {
+    totalRows: results.reduce((sum, result) => sum + result.totalRows, 0),
+    rows: Array.from(rowsByIdentity.values()),
+    errors: results.flatMap((result) => result.errors),
+    detectedColumns:
+      results[0]?.detectedColumns ?? createEmptyDetectedColumns(),
+  };
+}
+
+function normalizePersonName(
+  firstName: string,
+  lastName: string,
+  sameColumn: boolean,
+) {
+  if (sameColumn) {
+    return {
+      firstName: firstName || lastName,
+      lastName: "",
+    };
+  }
+
+  if (firstName && lastName) {
+    return { firstName, lastName };
+  }
+
+  const combinedName = firstName || lastName;
+  return {
+    firstName: combinedName,
+    lastName: "",
+  };
+}
+
+function createLooseNameKey(firstName: string, lastName: string) {
+  const tokens = normalizeText(`${firstName} ${lastName}`)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .sort();
+
+  return tokens.length >= 2 ? tokens.join(" ") : "";
 }
 
 function mapColumns(headers: string[]) {
