@@ -128,11 +128,7 @@ async function loadMembershipState(
     .select(
       "first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at",
     )
-    .in("source", [
-      "google_sheet",
-      "legacy_members_2025",
-      "official_members_book",
-    ])
+    .in("source", ["google_sheet", "official_members_book"])
     .range(0, 9999);
 
   if (error) throw new Error(error.message);
