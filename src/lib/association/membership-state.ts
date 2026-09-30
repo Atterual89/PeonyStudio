@@ -136,9 +136,14 @@ export function normalizeMembershipNameKey(
   firstName?: string | null,
   lastName?: string | null,
 ) {
-  const first = normalizeNamePart(firstName);
-  const last = normalizeNamePart(lastName);
-  return first && last ? `${first} ${last}` : "";
+  const tokens = normalizeNamePart(
+    [firstName, lastName].filter(Boolean).join(" "),
+  )
+    .split(/\s+/)
+    .filter(Boolean)
+    .sort();
+
+  return tokens.length >= 2 ? tokens.join(" ") : "";
 }
 
 function normalizeEmail(value?: string | null) {
