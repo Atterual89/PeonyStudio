@@ -133,14 +133,23 @@ export default function TicketTailorAdminHome() {
 
   async function runMembershipSync() {
     await runAction("memberships", "Tesseramenti aggiornati.", async () => {
-      const response = await fetch("/api/admin/association-members/refresh", {
-        method: "POST",
-        headers: { "x-admin-sync-secret": secret.trim() },
-      });
-      const payload = await readJsonResponse(response);
+      const endpoints = [
+        "/api/admin/association-members/sync-apply",
+        "/api/admin/association-members/book-sync-apply",
+      ];
 
-      if (!response.ok || payload.ok === false) {
-        throw new Error(readMessage(payload, "Errore aggiornamento tesseramenti."));
+      for (const endpoint of endpoints) {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "x-admin-sync-secret": secret.trim() },
+        });
+        const payload = await readJsonResponse(response);
+
+        if (!response.ok || payload.ok === false) {
+          throw new Error(
+            readMessage(payload, "Errore aggiornamento tesseramenti."),
+          );
+        }
       }
     });
   }
