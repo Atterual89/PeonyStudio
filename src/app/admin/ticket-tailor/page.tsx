@@ -52,7 +52,7 @@ type MemberCandidate = {
 };
 
 type ActionState = {
-  key: "ticket-tailor" | "profiles" | "memberships";
+  key: "ticket-tailor" | "profiles" | "memberships" | "members-book-upload";
   ok: boolean;
   message: string;
 };
