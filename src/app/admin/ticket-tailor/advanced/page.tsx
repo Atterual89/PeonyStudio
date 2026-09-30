@@ -1894,6 +1894,12 @@ export default function TicketTailorAdminPage() {
   return (
     <main className="min-h-screen bg-[#f4efe8] px-5 py-8 text-[#211815] sm:px-6">
       <div className="mx-auto flex max-w-7xl flex-col">
+        <a
+          href="/admin/ticket-tailor"
+          className="mb-4 w-fit text-sm font-semibold text-[#8b5e4a] transition hover:text-[#211815]"
+        >
+          ← Torna alla dashboard admin
+        </a>
         <section className="order-1 rounded-[8px] border border-[#211815]/10 bg-white/55 p-5 shadow-[0_12px_36px_rgba(33,24,21,0.06)] md:p-7">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b5e4a]">
             Admin
