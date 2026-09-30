@@ -165,6 +165,7 @@ async function loadExistingMembers(supabase: SupabaseClient) {
   const { data, error } = await supabase
     .from("association_members")
     .select(OFFICIAL_MEMBER_FIELDS)
+    .eq("source", "official_members_book")
     .range(0, 9999);
 
   if (error) throw new Error(error.message);
