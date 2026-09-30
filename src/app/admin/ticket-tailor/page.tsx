@@ -1,10 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type MembershipStatus = "missing_form" | "payment_missing" | "valid";
-type PartnerStatus = "not_required" | "provided" | "missing";
+type PartnerStatus =
+  | "not_required"
+  | "user_provided"
+  | "admin_provided"
+  | "missing";
 
 type ParticipantRow = {
   id: string;
@@ -16,6 +20,7 @@ type ParticipantRow = {
   membership_status: MembershipStatus;
   membership_expires_at: string | null;
   partner_status: PartnerStatus;
+  enrollment_id: string | null;
   partner_name: string | null;
   partner_email: string | null;
   partner_source: string | null;
@@ -34,6 +39,16 @@ type FutureEvent = {
 type ParticipantDetail = {
   event: FutureEvent;
   participant: ParticipantRow;
+};
+
+type MemberCandidate = {
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  membership_status: MembershipStatus;
+  membership_expires_at: string | null;
+  form_present: boolean;
+  current_year_paid: boolean;
 };
 
 type ActionState = {
@@ -328,6 +343,8 @@ export default function TicketTailorAdminHome() {
                 <EventCard
                   key={event.id}
                   event={event}
+                  secret={secret.trim()}
+                  onReload={loadDashboard}
                   onDetail={(participant) => setDetail({ event, participant })}
                 />
               ))
@@ -407,11 +424,16 @@ function SummaryCard({
 
 function EventCard({
   event,
+  secret,
+  onReload,
   onDetail,
 }: {
   event: FutureEvent;
+  secret: string;
+  onReload: () => Promise<void>;
   onDetail: (participant: ParticipantRow) => void;
 }) {
+  const [expandedPartnerId, setExpandedPartnerId] = useState<string | null>(null);
   const warningMemberships = event.participants.filter(
     (participant) => participant.membership_status !== "valid",
   ).length;
@@ -462,30 +484,51 @@ function EventCard({
             {event.participants.map((participant) => (
               <div
                 key={participant.id}
-                className="grid grid-cols-[minmax(220px,1.5fr)_minmax(120px,0.8fr)_minmax(140px,0.9fr)_100px_155px_100px] items-center gap-3 border-b border-[#211815]/8 px-4 py-3 text-sm text-[#211815] last:border-b-0"
+                className="border-b border-[#211815]/8 last:border-b-0"
               >
-                <span className="truncate" title={participant.email ?? ""}>
-                  {participant.email ?? "-"}
-                </span>
-                <span>{participant.first_name ?? "-"}</span>
-                <span>{participant.last_name ?? "-"}</span>
-                <MembershipCell status={participant.membership_status} />
-                <span
-                  className={
-                    participant.partner_status === "missing"
-                      ? "font-semibold text-[#9a6b30]"
-                      : "text-[#5f524c]"
-                  }
-                >
-                  {formatPartnerStatus(participant.partner_status)}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => onDetail(participant)}
-                  className="rounded-full border border-[#211815]/18 px-3 py-1.5 text-xs font-semibold transition hover:bg-[#f4efe8]"
-                >
-                  Dettagli
-                </button>
+                <div className="grid grid-cols-[minmax(220px,1.5fr)_minmax(120px,0.8fr)_minmax(140px,0.9fr)_100px_155px_100px] items-center gap-3 px-4 py-3 text-sm text-[#211815]">
+                  <span className="truncate" title={participant.email ?? ""}>
+                    {participant.email ?? "-"}
+                  </span>
+                  <span>{participant.first_name ?? "-"}</span>
+                  <span>{participant.last_name ?? "-"}</span>
+                  <MembershipCell status={participant.membership_status} />
+                  {participant.partner_status === "not_required" ? (
+                    <span className="text-[#5f524c]">—</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandedPartnerId((current) =>
+                          current === participant.id ? null : participant.id,
+                        )
+                      }
+                      className={`w-fit rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                        participant.partner_status === "missing"
+                          ? "border-[#b69755]/35 bg-[#b69755]/9 text-[#866d36]"
+                          : "border-[#211815]/15 text-[#5f524c] hover:bg-[#f4efe8]"
+                      }`}
+                    >
+                      {formatPartnerStatus(participant.partner_status)}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => onDetail(participant)}
+                    className="rounded-full border border-[#211815]/18 px-3 py-1.5 text-xs font-semibold transition hover:bg-[#f4efe8]"
+                  >
+                    Dettagli
+                  </button>
+                </div>
+
+                {expandedPartnerId === participant.id &&
+                participant.partner_status !== "not_required" ? (
+                  <PartnerExpandedRow
+                    participant={participant}
+                    secret={secret}
+                    onSaved={onReload}
+                  />
+                ) : null}
               </div>
             ))}
           </div>
@@ -497,6 +540,306 @@ function EventCard({
       )}
     </article>
   );
+}
+
+function PartnerExpandedRow({
+  participant,
+  secret,
+  onSaved,
+}: {
+  participant: ParticipantRow;
+  secret: string;
+  onSaved: () => Promise<void>;
+}) {
+  const initialName = splitPartnerName(participant.partner_name);
+  const [email, setEmail] = useState(participant.partner_email ?? "");
+  const [firstName, setFirstName] = useState(initialName.firstName);
+  const [lastName, setLastName] = useState(initialName.lastName);
+  const [editing, setEditing] = useState(participant.partner_status === "missing");
+  const [searching, setSearching] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [candidates, setCandidates] = useState<MemberCandidate[]>([]);
+  const [searched, setSearched] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (
+      participant.partner_status !== "missing" &&
+      (participant.partner_email || participant.partner_name)
+    ) {
+      void lookupMember(
+        participant.partner_email ?? "",
+        initialName.firstName,
+        initialName.lastName,
+        true,
+      );
+    }
+    // Run only when a different participant row is opened.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [participant.id]);
+
+  async function lookupMember(
+    lookupEmail = email,
+    lookupFirstName = firstName,
+    lookupLastName = lastName,
+    silent = false,
+  ) {
+    if (!secret) {
+      setMessage("Inserisci il codice admin.");
+      return;
+    }
+
+    const normalizedEmail = lookupEmail.trim();
+    const normalizedFirstName = lookupFirstName.trim();
+    const normalizedLastName = lookupLastName.trim();
+
+    if (!normalizedEmail && !(normalizedFirstName && normalizedLastName)) {
+      setMessage("Inserisci email oppure nome e cognome.");
+      return;
+    }
+
+    setSearching(true);
+    if (!silent) setMessage(null);
+
+    const params = new URLSearchParams();
+    if (normalizedEmail) {
+      params.set("email", normalizedEmail);
+    } else {
+      params.set("first_name", normalizedFirstName);
+      params.set("last_name", normalizedLastName);
+    }
+
+    try {
+      const response = await fetch(
+        `/api/admin/association-members/lookup?${params.toString()}`,
+        { headers: { "x-admin-sync-secret": secret } },
+      );
+      const payload = await readJsonResponse(response);
+
+      if (!response.ok || payload.ok === false) {
+        throw new Error(readMessage(payload, "Errore ricerca membro."));
+      }
+
+      const nextCandidates = Array.isArray(payload.candidates)
+        ? (payload.candidates as MemberCandidate[])
+        : [];
+      setCandidates(nextCandidates);
+      setSearched(true);
+
+      if (!silent && nextCandidates.length === 0) {
+        setMessage(
+          "Nessun membro trovato. Puoi comunque salvare questi dati; il partner risulterà con modulo non trovato.",
+        );
+      }
+    } catch (error) {
+      setCandidates([]);
+      setSearched(true);
+      setMessage(error instanceof Error ? error.message : "Errore sconosciuto.");
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  function useCandidate(candidate: MemberCandidate) {
+    setEmail(candidate.email ?? "");
+    setFirstName(candidate.first_name ?? "");
+    setLastName(candidate.last_name ?? "");
+    setCandidates([candidate]);
+    setMessage("Membro selezionato. Salva per associarlo come partner.");
+  }
+
+  async function savePartner() {
+    if (!participant.enrollment_id) {
+      setMessage(
+        "Collegamento profilo non disponibile. Esegui prima “Aggiorna profili”.",
+      );
+      return;
+    }
+
+    if (!email.trim() && !(firstName.trim() && lastName.trim())) {
+      setMessage("Inserisci email oppure nome e cognome.");
+      return;
+    }
+
+    setSaving(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch(
+        `/api/admin/partner-enrollments/${participant.enrollment_id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "x-admin-sync-secret": secret,
+          },
+          body: JSON.stringify({
+            partner_email: email.trim() || null,
+            partner_name:
+              [firstName.trim(), lastName.trim()].filter(Boolean).join(" ") ||
+              null,
+          }),
+        },
+      );
+      const payload = await readJsonResponse(response);
+
+      if (!response.ok || payload.ok === false) {
+        throw new Error(readMessage(payload, "Errore salvataggio partner."));
+      }
+
+      setEditing(false);
+      setMessage("Partner salvato dallo staff.");
+      await onSaved();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Errore sconosciuto.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const displayedCandidate =
+    candidates.length === 1 ? candidates[0] : null;
+  const fallbackStatus: MembershipStatus = searched
+    ? "missing_form"
+    : "missing_form";
+
+  return (
+    <div className="ml-8 border-l-2 border-[#8b5e4a]/22 bg-[#f4efe8]/45 px-4 py-3 md:ml-12">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8b5e4a]">
+          Partner · {partnerSourceLabel(participant.partner_source)}
+        </p>
+        {!editing ? (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="text-xs font-semibold text-[#8b5e4a] hover:text-[#211815]"
+          >
+            Modifica / cerca
+          </button>
+        ) : null}
+      </div>
+
+      {!editing ? (
+        <div className="mt-2 grid grid-cols-[minmax(220px,1.5fr)_minmax(120px,0.8fr)_minmax(140px,0.9fr)_minmax(180px,1fr)] items-center gap-3 rounded-[8px] border border-[#211815]/8 bg-white/45 px-3 py-2.5 text-sm">
+          <span>{participant.partner_email ?? "-"}</span>
+          <span>{initialName.firstName || "-"}</span>
+          <span>{initialName.lastName || "-"}</span>
+          <span className="inline-flex items-center gap-2">
+            <Dot status={displayedCandidate?.membership_status ?? fallbackStatus} />
+            <span className="text-xs font-semibold text-[#5f524c]">
+              {displayedCandidate
+                ? membershipLabel(displayedCandidate.membership_status)
+                : searching
+                  ? "Verifica..."
+                  : "Modulo non trovato"}
+            </span>
+          </span>
+        </div>
+      ) : (
+        <>
+          <div className="mt-2 grid gap-2 md:grid-cols-[1.2fr_0.8fr_0.8fr_auto]">
+            <input
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="Email"
+              className="rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm outline-none focus:border-[#8b5e4a]"
+            />
+            <input
+              value={firstName}
+              onChange={(event) => setFirstName(event.target.value)}
+              placeholder="Nome"
+              className="rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm outline-none focus:border-[#8b5e4a]"
+            />
+            <input
+              value={lastName}
+              onChange={(event) => setLastName(event.target.value)}
+              placeholder="Cognome"
+              className="rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm outline-none focus:border-[#8b5e4a]"
+            />
+            <button
+              type="button"
+              onClick={() => void lookupMember()}
+              disabled={searching}
+              className="rounded-full border border-[#211815]/18 px-4 py-2 text-xs font-semibold disabled:opacity-50"
+            >
+              {searching ? "Cerco..." : "Cerca membro"}
+            </button>
+          </div>
+
+          {candidates.length > 0 ? (
+            <div className="mt-3 space-y-2">
+              {candidates.map((candidate, index) => (
+                <div
+                  key={`${candidate.email ?? "no-email"}-${candidate.first_name ?? ""}-${candidate.last_name ?? ""}-${index}`}
+                  className="grid grid-cols-[minmax(220px,1.4fr)_minmax(200px,1fr)_minmax(180px,0.8fr)_auto] items-center gap-3 rounded-[8px] border border-[#211815]/10 bg-white/60 px-3 py-2.5 text-sm"
+                >
+                  <span>{candidate.email ?? "-"}</span>
+                  <span>
+                    {[candidate.first_name, candidate.last_name]
+                      .filter(Boolean)
+                      .join(" ") || "-"}
+                  </span>
+                  <span className="inline-flex items-center gap-2">
+                    <Dot status={candidate.membership_status} />
+                    <span className="text-xs font-semibold text-[#5f524c]">
+                      {membershipLabel(candidate.membership_status)}
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => useCandidate(candidate)}
+                    className="rounded-full border border-[#211815]/18 px-3 py-1.5 text-xs font-semibold"
+                  >
+                    Usa
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={savePartner}
+              disabled={saving}
+              className="rounded-full bg-[#211815] px-4 py-2 text-xs font-semibold text-[#f4efe8] disabled:opacity-50"
+            >
+              {saving ? "Salvo..." : "Salva partner"}
+            </button>
+            {participant.partner_source === "ticket_tailor" ? (
+              <span className="text-xs text-[#5f524c]">
+                Dato precompilato da Ticket Tailor: va confermato dallo staff.
+              </span>
+            ) : null}
+          </div>
+        </>
+      )}
+
+      {message ? (
+        <p className="mt-2 text-xs leading-5 text-[#5f524c]">{message}</p>
+      ) : null}
+    </div>
+  );
+}
+
+function splitPartnerName(value: string | null) {
+  const parts = (value ?? "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length <= 1) {
+    return { firstName: parts[0] ?? "", lastName: "" };
+  }
+
+  return {
+    firstName: parts.slice(0, -1).join(" "),
+    lastName: parts[parts.length - 1],
+  };
+}
+
+function partnerSourceLabel(source: string | null) {
+  if (source === "user") return "inserito dall’utente";
+  if (source === "admin") return "inserito dallo staff";
+  if (source === "ticket_tailor") return "dato Ticket Tailor da confermare";
+  return "da inserire";
 }
 
 function LegendDot({
@@ -601,7 +944,8 @@ function ParticipantDetailModal({
           />
         </div>
 
-        {participant.partner_status === "provided" ? (
+        {participant.partner_status === "user_provided" ||
+        participant.partner_status === "admin_provided" ? (
           <div className="mt-4 rounded-[9px] border border-[#211815]/10 bg-white/50 p-3 text-sm text-[#5f524c]">
             <span className="font-semibold text-[#211815]">Partner indicato:</span>{" "}
             {participant.partner_name ??
@@ -667,8 +1011,9 @@ function membershipLabel(status: MembershipStatus) {
 }
 
 function formatPartnerStatus(status: PartnerStatus) {
-  if (status === "provided") return "✓ indicato";
-  if (status === "missing") return "⚠ non indicato";
+  if (status === "user_provided") return "Partner · utente";
+  if (status === "admin_provided") return "Partner · staff";
+  if (status === "missing") return "Partner · da inserire";
   return "—";
 }
 
