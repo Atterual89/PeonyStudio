@@ -100,7 +100,8 @@ export async function GET(request: NextRequest) {
 
   const matchingFormRows = members.filter(
     (row) =>
-      row.source === "google_sheet" &&
+      (row.source === "google_sheet" ||
+        row.source === "legacy_members_2025") &&
       (email
         ? normalizeMembershipEmail(row.email) === email
         : normalizeMembershipNameKey(row.first_name, row.last_name) ===
