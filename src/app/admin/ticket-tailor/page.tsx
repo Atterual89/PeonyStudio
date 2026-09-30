@@ -147,14 +147,38 @@ export default function TicketTailorAdminHome() {
   }
 
   async function runMembershipSync() {
-    await runAction("memberships", "Tesseramenti aggiornati.", async () => {
-      const endpoints = [
-        "/api/admin/association-members/sync-apply",
-        "/api/admin/association-members/book-sync-apply",
-      ];
+    if (!secret.trim()) {
+      setActionState({
+        key: "memberships",
+        ok: false,
+        message: "Inserisci il codice admin.",
+      });
+      return;
+    }
+
+    setRunningAction("memberships");
+    setActionState(null);
+
+    const endpoints = [
+      {
+        label: "Form ITA/ENG",
+        path: "/api/admin/association-members/sync-apply",
+      },
+      {
+        label: "Registro storico",
+        path: "/api/admin/association-members/legacy-2025-sync-apply",
+      },
+      {
+        label: "Libro Soci",
+        path: "/api/admin/association-members/book-sync-apply",
+      },
+    ];
+
+    try {
+      const summaries: string[] = [];
 
       for (const endpoint of endpoints) {
-        const response = await fetch(endpoint, {
+        const response = await fetch(endpoint.path, {
           method: "POST",
           headers: { "x-admin-sync-secret": secret.trim() },
         });
@@ -162,11 +186,40 @@ export default function TicketTailorAdminHome() {
 
         if (!response.ok || payload.ok === false) {
           throw new Error(
-            readMessage(payload, "Errore aggiornamento tesseramenti."),
+            `${endpoint.label}: ${readMessage(
+              payload,
+              "Errore aggiornamento tesseramenti.",
+            )}`,
           );
         }
+
+        const created = readNumber(payload.created);
+        const updated = readNumber(payload.updated);
+        const unchanged = readNumber(payload.unchanged);
+        const invalid = readNumber(payload.invalidRows);
+
+        summaries.push(
+          `${endpoint.label}: +${created}, aggiornati ${updated}, invariati ${unchanged}${
+            invalid > 0 ? `, invalidi ${invalid}` : ""
+          }`,
+        );
       }
-    });
+
+      setActionState({
+        key: "memberships",
+        ok: true,
+        message: `Tesseramenti aggiornati. ${summaries.join(" · ")}`,
+      });
+      await loadDashboard();
+    } catch (error) {
+      setActionState({
+        key: "memberships",
+        ok: false,
+        message: error instanceof Error ? error.message : "Errore sconosciuto.",
+      });
+    } finally {
+      setRunningAction(null);
+    }
   }
 
   async function runAction(
@@ -988,6 +1041,10 @@ async function readJsonResponse(response: Response) {
       `Il server non ha restituito una risposta valida (HTTP ${response.status}). Probabile timeout o errore server.`,
     );
   }
+}
+
+function readNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
 function readMessage(payload: Record<string, unknown>, fallback: string) {
