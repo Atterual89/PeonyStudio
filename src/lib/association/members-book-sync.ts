@@ -74,8 +74,6 @@ const OFFICIAL_MEMBER_FIELDS = [
   "notes_admin",
 ].join(",");
 
-const PRESERVED_MANUAL_STATUSES = new Set(["pending", "manual_review"]);
-
 export async function buildOfficialMembersBookSyncPreview(
   supabase: SupabaseClient,
 ) {
@@ -110,7 +108,7 @@ export async function applyOfficialMembersBookSync(supabase: SupabaseClient) {
       const { error } = await supabase
         .from("association_members")
         .update({
-          ...mapBookRowToUpdatePayload(sourceRow, previewRow.preserveManualStatus),
+          ...mapBookRowToUpdatePayload(sourceRow),
           updated_at: new Date().toISOString(),
         })
         .eq("id", previewRow.existingMemberId);
@@ -192,12 +190,10 @@ function buildPreview(
     }
 
     const match = findExistingMember(row, indexes);
-    const preserveManualStatus = shouldPreserveManualStatus(
-      match.member?.membership_status ?? null,
-    );
+    const preserveManualStatus = false;
     const action = !match.member
       ? "create"
-      : match.member.source_hash === row.source_hash
+      : isOfficialMemberUpToDate(match.member, row)
         ? "unchanged"
         : "update";
 
@@ -212,9 +208,7 @@ function buildPreview(
         ...(match.method === "name"
           ? ["Match fallback su nome/cognome normalizzati."]
           : []),
-        ...(preserveManualStatus && match.member?.membership_status
-          ? [`Status manuale conservato: ${match.member.membership_status}`]
-          : []),
+
       ],
     };
   });
@@ -336,16 +330,14 @@ function mapBookRowToInsertPayload(row: OfficialMembersBookRow) {
   };
 }
 
-function mapBookRowToUpdatePayload(
-  row: OfficialMembersBookRow,
-  preserveManualStatus: boolean,
-) {
-  const payload: Record<string, string | null> = {
+function mapBookRowToUpdatePayload(row: OfficialMembersBookRow) {
+  return {
     first_name: row.first_name,
     last_name: row.last_name,
     email: row.email,
     fiscal_code: row.fiscal_code,
     birth_date: row.birth_date,
+    membership_status: row.membership_status,
     membership_starts_at: row.membership_starts_at,
     membership_expires_at: row.membership_expires_at,
     membership_card_number: row.membership_card_number,
@@ -353,16 +345,35 @@ function mapBookRowToUpdatePayload(
     source_row_id: row.source_row_id,
     source_hash: row.source_hash,
   };
-
-  if (!preserveManualStatus) {
-    payload.membership_status = row.membership_status;
-  }
-
-  return payload;
 }
 
-function shouldPreserveManualStatus(status: string | null) {
-  return PRESERVED_MANUAL_STATUSES.has(status?.trim() ?? "");
+function isOfficialMemberUpToDate(
+  member: OfficialMemberRecord,
+  row: OfficialMembersBookRow,
+) {
+  return (
+    normalizeNullableText(member.first_name) === normalizeNullableText(row.first_name) &&
+    normalizeNullableText(member.last_name) === normalizeNullableText(row.last_name) &&
+    normalizeNullableEmail(member.email) === normalizeNullableEmail(row.email) &&
+    normalizeNullableText(member.fiscal_code) === normalizeNullableText(row.fiscal_code) &&
+    member.birth_date === row.birth_date &&
+    member.membership_status === row.membership_status &&
+    member.membership_starts_at === row.membership_starts_at &&
+    member.membership_expires_at === row.membership_expires_at &&
+    normalizeNullableText(member.membership_card_number) ===
+      normalizeNullableText(row.membership_card_number) &&
+    member.source === row.source &&
+    member.source_row_id === row.source_row_id &&
+    member.source_hash === row.source_hash
+  );
+}
+
+function normalizeNullableText(value: string | null | undefined) {
+  return value?.trim().replace(/\s+/g, " ") ?? "";
+}
+
+function normalizeNullableEmail(value: string | null | undefined) {
+  return value?.trim().toLowerCase() ?? "";
 }
 
 function createNameBirthKey(
