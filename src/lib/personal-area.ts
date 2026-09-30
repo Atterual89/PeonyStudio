@@ -2,6 +2,10 @@ import "server-only";
 
 import type { User } from "@supabase/supabase-js";
 
+import {
+  deriveMembershipState,
+  type MembershipEvidenceRow,
+} from "@/lib/association/membership-state";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type Profile = {
@@ -108,70 +112,48 @@ export async function getOrCreatePersonalAreaData(
   };
 }
 
-const CURRENT_MEMBERSHIP_START = "2025-09-01";
-
 async function loadMembershipState(
   supabase: ReturnType<typeof createSupabaseAdminClient>,
   email: string,
 ): Promise<MembershipState> {
-  const { data, error } = await supabase
-    .from("association_members")
-    .select(
-      "email,source,membership_status,membership_starts_at,membership_expires_at",
-    )
-    .ilike("email", email)
-    .in("source", ["google_sheet", "official_members_book"])
-    .range(0, 99);
+  const [
+    { data: formData, error: formError },
+    { data: officialData, error: officialError },
+  ] = await Promise.all([
+    supabase
+      .from("association_members")
+      .select(
+        "first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at",
+      )
+      .eq("source", "google_sheet")
+      .ilike("email", email)
+      .range(0, 99),
+    supabase
+      .from("association_members")
+      .select(
+        "first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at",
+      )
+      .eq("source", "official_members_book")
+      .range(0, 9999),
+  ]);
 
-  if (error) {
-    throw new Error(error.message);
-  }
+  if (formError) throw new Error(formError.message);
+  if (officialError) throw new Error(officialError.message);
 
-  const rows = (data ?? []) as Array<{
-    email: string | null;
-    source: string | null;
-    membership_status: string | null;
-    membership_starts_at: string | null;
-    membership_expires_at: string | null;
-  }>;
-
-  const formPresent = rows.some((row) => row.source === "google_sheet");
-  const validPaymentRow = rows.find(
-    (row) =>
-      row.source === "official_members_book" &&
-      row.membership_status === "verified" &&
-      Boolean(
-        row.membership_starts_at &&
-          row.membership_starts_at >= CURRENT_MEMBERSHIP_START,
-      ),
+  const state = deriveMembershipState(
+    [
+      ...((formData ?? []) as MembershipEvidenceRow[]),
+      ...((officialData ?? []) as MembershipEvidenceRow[]),
+    ],
+    { email },
   );
 
-  if (!formPresent) {
-    return {
-      status: "missing_form",
-      formPresent: false,
-      currentYearPaid: Boolean(validPaymentRow),
-      membershipStartsAt: validPaymentRow?.membership_starts_at ?? null,
-      membershipExpiresAt: validPaymentRow?.membership_expires_at ?? null,
-    };
-  }
-
-  if (!validPaymentRow) {
-    return {
-      status: "payment_missing",
-      formPresent: true,
-      currentYearPaid: false,
-      membershipStartsAt: null,
-      membershipExpiresAt: null,
-    };
-  }
-
   return {
-    status: "valid",
-    formPresent: true,
-    currentYearPaid: true,
-    membershipStartsAt: validPaymentRow.membership_starts_at,
-    membershipExpiresAt: validPaymentRow.membership_expires_at,
+    status: state.status,
+    formPresent: state.formPresent,
+    currentYearPaid: state.currentYearPaid,
+    membershipStartsAt: state.membershipStartsAt,
+    membershipExpiresAt: state.membershipExpiresAt,
   };
 }
 
