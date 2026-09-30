@@ -165,7 +165,11 @@ export async function GET(request: NextRequest) {
     const participants = eventTickets
       .map((ticket) => {
         const email = normalizeEmail(ticket.holder_email);
-        const membership = deriveMembershipState(membershipRows, { email });
+        const membership = deriveMembershipState(membershipRows, {
+          email,
+          firstName: ticket.holder_first_name,
+          lastName: ticket.holder_last_name,
+        });
         const enrollment =
           (ticket.ticket_tailor_order_id
             ? enrollmentByEventOrder.get(

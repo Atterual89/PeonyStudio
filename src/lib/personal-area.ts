@@ -92,7 +92,12 @@ export async function getOrCreatePersonalAreaData(
   );
   const [attendanceHistory, membership] = await Promise.all([
     loadAttendanceHistory(supabase, email),
-    loadMembershipState(supabase, email),
+    loadMembershipState(
+      supabase,
+      email,
+      profile.first_name,
+      profile.last_name,
+    ),
   ]);
   const attendanceStats = {
     booked: enrollments.length,
@@ -115,37 +120,26 @@ export async function getOrCreatePersonalAreaData(
 async function loadMembershipState(
   supabase: ReturnType<typeof createSupabaseAdminClient>,
   email: string,
+  firstName: string | null,
+  lastName: string | null,
 ): Promise<MembershipState> {
-  const [
-    { data: formData, error: formError },
-    { data: officialData, error: officialError },
-  ] = await Promise.all([
-    supabase
-      .from("association_members")
-      .select(
-        "first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at",
-      )
-      .eq("source", "google_sheet")
-      .ilike("email", email)
-      .range(0, 99),
-    supabase
-      .from("association_members")
-      .select(
-        "first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at",
-      )
-      .eq("source", "official_members_book")
-      .range(0, 9999),
-  ]);
+  const { data, error } = await supabase
+    .from("association_members")
+    .select(
+      "first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at",
+    )
+    .in("source", ["google_sheet", "official_members_book"])
+    .range(0, 9999);
 
-  if (formError) throw new Error(formError.message);
-  if (officialError) throw new Error(officialError.message);
+  if (error) throw new Error(error.message);
 
   const state = deriveMembershipState(
-    [
-      ...((formData ?? []) as MembershipEvidenceRow[]),
-      ...((officialData ?? []) as MembershipEvidenceRow[]),
-    ],
-    { email },
+    (data ?? []) as MembershipEvidenceRow[],
+    {
+      email,
+      firstName,
+      lastName,
+    },
   );
 
   return {
