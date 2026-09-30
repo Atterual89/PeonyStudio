@@ -4,18 +4,37 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
-const TICKET_TAILOR_ISSUED_TICKETS_ENDPOINT =
-  "https://api.tickettailor.com/v1/issued_tickets";
-const MAX_PAGES = 100;
+const TICKET_TAILOR_ORDERS_ENDPOINT = "https://api.tickettailor.com/v1/orders";
 const PAGE_SIZE = 100;
+const MAX_PAGES = 100;
 const UPSERT_BATCH_SIZE = 200;
 
 type TicketTailorRecord = Record<string, unknown>;
 
 type SyncMessage = {
   level: "warning" | "error";
+  ticketTailorOrderId?: string;
   ticketTailorIssuedTicketId?: string;
   message: string;
+};
+
+type TargetEvent = {
+  id: string;
+  ticket_tailor_event_id: string;
+};
+
+type SupabaseOrderRow = {
+  ticket_tailor_order_id: string;
+  buyer_email: string | null;
+  buyer_first_name: string | null;
+  buyer_last_name: string | null;
+  ticket_tailor_event_id: string | null;
+  event_id: string | null;
+  payment_status: string | null;
+  order_status: string | null;
+  total_tickets: number | null;
+  raw_payload: TicketTailorRecord;
+  last_synced_at: string;
 };
 
 type SupabaseIssuedTicketRow = {
@@ -30,7 +49,7 @@ type SupabaseIssuedTicketRow = {
   checked_in: boolean | null;
   checked_in_at: string | null;
   status: string | null;
-  raw_payload: Record<string, unknown>;
+  raw_payload: TicketTailorRecord;
   last_synced_at: string;
 };
 
@@ -57,159 +76,308 @@ export async function POST(request: NextRequest) {
   const errors: SyncMessage[] = [];
 
   try {
-    const [{ records, pagesRead }, eventIdByTicketTailorId] = await Promise.all([
-      fetchIssuedTickets(apiKey),
-      loadEventMap(),
+    const [targetEvents, orderResult] = await Promise.all([
+      loadTargetEvents(),
+      fetchOrders(apiKey),
     ]);
 
-    const rows: SupabaseIssuedTicketRow[] = [];
-    let skipped = 0;
+    const eventIdByTicketTailorId = new Map(
+      targetEvents.map((event) => [event.ticket_tailor_event_id, event.id]),
+    );
 
-    for (const ticket of records) {
-      const ticketId = findString(ticket, [
+    const orderRows: SupabaseOrderRow[] = [];
+    const ticketRows: SupabaseIssuedTicketRow[] = [];
+    let ignoredOrders = 0;
+    let skippedTickets = 0;
+
+    for (const order of orderResult.records) {
+      const orderId = findString(order, [
         "id",
-        "issued_ticket_id",
-        "issuedTicketId",
-        "ticket_id",
-        "barcode",
-        "reference",
-      ]);
-
-      if (!ticketId) {
-        skipped += 1;
-        errors.push({
-          level: "warning",
-          message: "Issued ticket skipped because its id is missing.",
-        });
-        continue;
-      }
-
-      const orderId = findString(ticket, [
         "order_id",
         "orderId",
-        "order.id",
-        "order.object_id",
+        "object_id",
       ]);
+
       if (!orderId) {
-        skipped += 1;
-        errors.push({
-          level: "warning",
-          ticketTailorIssuedTicketId: ticketId,
-          message: "Issued ticket skipped because its order id is missing.",
-        });
+        ignoredOrders += 1;
         continue;
       }
 
-      const ticketTailorEventId = findString(ticket, [
+      const issuedTickets = getIssuedTickets(order);
+      const orderEventId = findString(order, [
+        "ticket_tailor_event_id",
         "event_id",
         "eventId",
+        "event_summary.id",
+        "event_summary.event_id",
+        "event_summary.eventId",
         "event.id",
         "event.event_id",
-        "ticket_tailor_event_id",
+        "event.object_id",
       ]);
 
-      rows.push({
-        ticket_tailor_issued_ticket_id: ticketId,
-        ticket_tailor_order_id: orderId,
-        ticket_tailor_event_id: ticketTailorEventId,
-        event_id: ticketTailorEventId
-          ? eventIdByTicketTailorId.get(ticketTailorEventId) ?? null
-          : null,
-        ticket_type_name: findString(ticket, [
-          "ticket_type_name",
-          "ticket_type",
-          "ticket_type.name",
-          "ticket_type.description",
-          "ticket_group_name",
-        ]),
-        holder_first_name: findString(ticket, [
-          "first_name",
-          "holder_first_name",
-          "attendee_first_name",
-          "ticket_holder.first_name",
-          "holder.first_name",
-        ]),
-        holder_last_name: findString(ticket, [
-          "last_name",
-          "holder_last_name",
-          "attendee_last_name",
-          "ticket_holder.last_name",
-          "holder.last_name",
-        ]),
-        holder_email: normalizeEmail(
-          findString(ticket, [
-            "email",
-            "holder_email",
-            "attendee_email",
-            "ticket_holder.email",
-            "holder.email",
-          ]),
-        ),
-        checked_in: findBoolean(ticket, [
-          "checked_in",
-          "checkedIn",
-          "check_in.checked_in",
-          "checkin.checked_in",
-        ]),
-        checked_in_at: findIsoTimestamp(ticket, [
-          "checked_in_at",
-          "checkedInAt",
-          "check_in.checked_in_at",
-          "checkin.checked_in_at",
-        ]),
-        status: findString(ticket, ["status", "state"]),
-        raw_payload: ticket,
-        last_synced_at: new Date().toISOString(),
-      });
-    }
+      const matchesTarget =
+        (orderEventId ? eventIdByTicketTailorId.has(orderEventId) : false) ||
+        issuedTickets.some((ticket) => {
+          const ticketEventId = findString(ticket, [
+            "ticket_tailor_event_id",
+            "event_id",
+            "eventId",
+            "event.id",
+            "event.event_id",
+          ]);
+          return ticketEventId
+            ? eventIdByTicketTailorId.has(ticketEventId)
+            : false;
+        });
 
-    let upserted = 0;
-
-    for (let index = 0; index < rows.length; index += UPSERT_BATCH_SIZE) {
-      const batch = rows.slice(index, index + UPSERT_BATCH_SIZE);
-      const { error } = await supabase
-        .from("ticket_tailor_issued_tickets")
-        .upsert(batch, { onConflict: "ticket_tailor_issued_ticket_id" });
-
-      if (error) {
-        errors.push({ level: "error", message: error.message });
+      if (!matchesTarget) {
+        ignoredOrders += 1;
         continue;
       }
 
-      upserted += batch.length;
+      const localEventId = orderEventId
+        ? eventIdByTicketTailorId.get(orderEventId) ?? null
+        : null;
+
+      orderRows.push({
+        ticket_tailor_order_id: orderId,
+        buyer_email: normalizeEmail(
+          findString(order, [
+            "buyer_email",
+            "email",
+            "customer_email",
+            "purchaser_email",
+            "buyer.email",
+            "customer.email",
+            "buyer_details.email",
+            "order.email",
+          ]),
+        ),
+        buyer_first_name: findString(order, [
+          "buyer_first_name",
+          "first_name",
+          "customer_first_name",
+          "purchaser_first_name",
+          "buyer.first_name",
+          "customer.first_name",
+          "buyer_details.first_name",
+          "order.first_name",
+        ]),
+        buyer_last_name: findString(order, [
+          "buyer_last_name",
+          "last_name",
+          "customer_last_name",
+          "purchaser_last_name",
+          "buyer.last_name",
+          "customer.last_name",
+          "buyer_details.last_name",
+          "order.last_name",
+        ]),
+        ticket_tailor_event_id: orderEventId,
+        event_id: localEventId,
+        payment_status: findString(order, [
+          "payment_status",
+          "paymentStatus",
+          "payment_state",
+          "payment.status",
+          "payment.state",
+        ]),
+        order_status: findString(order, ["order_status", "status", "state"]),
+        total_tickets:
+          findNumber(order, [
+            "total_tickets",
+            "ticket_quantity",
+            "quantity",
+            "num_tickets",
+            "number_of_tickets",
+            "total_issued_tickets",
+          ]) ?? issuedTickets.length,
+        raw_payload: order,
+        last_synced_at: new Date().toISOString(),
+      });
+
+      for (const ticket of issuedTickets) {
+        const ticketId = findString(ticket, [
+          "id",
+          "issued_ticket_id",
+          "issuedTicketId",
+          "ticket_id",
+          "barcode",
+          "reference",
+        ]);
+
+        if (!ticketId) {
+          skippedTickets += 1;
+          errors.push({
+            level: "warning",
+            ticketTailorOrderId: orderId,
+            message: "Issued ticket skipped because its id is missing.",
+          });
+          continue;
+        }
+
+        const ticketEventId =
+          findString(ticket, [
+            "ticket_tailor_event_id",
+            "event_id",
+            "eventId",
+            "event.id",
+            "event.event_id",
+          ]) ?? orderEventId;
+
+        if (
+          ticketEventId &&
+          !eventIdByTicketTailorId.has(ticketEventId)
+        ) {
+          continue;
+        }
+
+        ticketRows.push({
+          ticket_tailor_issued_ticket_id: ticketId,
+          ticket_tailor_order_id: orderId,
+          ticket_tailor_event_id: ticketEventId,
+          event_id: ticketEventId
+            ? eventIdByTicketTailorId.get(ticketEventId) ?? localEventId
+            : localEventId,
+          ticket_type_name: findString(ticket, [
+            "ticket_type_name",
+            "ticket_type",
+            "ticket_type.name",
+            "ticket_type.description",
+            "ticket_group_name",
+            "name",
+          ]),
+          holder_first_name:
+            findString(ticket, [
+              "holder_first_name",
+              "first_name",
+              "attendee_first_name",
+              "ticket_holder.first_name",
+              "holder.first_name",
+            ]) ??
+            findString(order, ["buyer_details.first_name", "buyer.first_name"]),
+          holder_last_name:
+            findString(ticket, [
+              "holder_last_name",
+              "last_name",
+              "attendee_last_name",
+              "ticket_holder.last_name",
+              "holder.last_name",
+            ]) ??
+            findString(order, ["buyer_details.last_name", "buyer.last_name"]),
+          holder_email: normalizeEmail(
+            findString(ticket, [
+              "holder_email",
+              "email",
+              "attendee_email",
+              "ticket_holder.email",
+              "holder.email",
+            ]) ??
+              findString(order, ["buyer_details.email", "buyer.email", "email"]),
+          ),
+          checked_in: findBoolean(ticket, [
+            "checked_in",
+            "checkedIn",
+            "check_in.checked_in",
+            "checkin.checked_in",
+          ]),
+          checked_in_at: findIsoTimestamp(ticket, [
+            "checked_in_at",
+            "checkedInAt",
+            "check_in.checked_in_at",
+            "checkin.checked_in_at",
+          ]),
+          status: findString(ticket, ["status", "state"]),
+          raw_payload: ticket,
+          last_synced_at: new Date().toISOString(),
+        });
+      }
     }
+
+    const orderUpserts = await upsertOrderRows(orderRows);
+    const ticketUpserts = await upsertIssuedTicketRows(ticketRows);
 
     return NextResponse.json({
       ok: !errors.some((error) => error.level === "error"),
-      fetched: records.length,
-      pagesRead,
-      upserted,
-      skipped,
+      pagesRead: orderResult.pagesRead,
+      fetched: orderResult.records.length,
+      targetEvents: targetEvents.length,
+      matchedOrders: orderRows.length,
+      ordersUpserted: orderUpserts,
+      ticketsFound: ticketRows.length,
+      upserted: ticketUpserts,
+      skipped: skippedTickets,
+      ignoredOrders,
       errors,
     });
 
-    async function loadEventMap() {
+    async function loadTargetEvents() {
       const { data, error } = await supabase
         .from("events")
         .select("id,ticket_tailor_event_id")
-        .not("ticket_tailor_event_id", "is", null);
+        .not("ticket_tailor_event_id", "is", null)
+        .range(0, 999);
 
       if (error) {
         throw new Error(error.message);
       }
 
-      return new Map(
-        (data ?? [])
-          .filter(
-            (event): event is { id: string; ticket_tailor_event_id: string } =>
-              typeof event.id === "string" &&
-              typeof event.ticket_tailor_event_id === "string",
-          )
-          .map((event) => [event.ticket_tailor_event_id, event.id]),
+      return (data ?? []).filter(
+        (event): event is TargetEvent =>
+          typeof event.id === "string" &&
+          typeof event.ticket_tailor_event_id === "string" &&
+          event.ticket_tailor_event_id.trim().length > 0,
       );
     }
+
+    async function upsertOrderRows(rows: SupabaseOrderRow[]) {
+      let upserted = 0;
+
+      for (let index = 0; index < rows.length; index += UPSERT_BATCH_SIZE) {
+        const batch = rows.slice(index, index + UPSERT_BATCH_SIZE);
+        const { error } = await supabase
+          .from("ticket_tailor_orders")
+          .upsert(batch, { onConflict: "ticket_tailor_order_id" });
+
+        if (error) {
+          errors.push({
+            level: "error",
+            message: `ticket_tailor_orders: ${error.message}`,
+          });
+          continue;
+        }
+
+        upserted += batch.length;
+      }
+
+      return upserted;
+    }
+
+    async function upsertIssuedTicketRows(rows: SupabaseIssuedTicketRow[]) {
+      let upserted = 0;
+
+      for (let index = 0; index < rows.length; index += UPSERT_BATCH_SIZE) {
+        const batch = rows.slice(index, index + UPSERT_BATCH_SIZE);
+        const { error } = await supabase
+          .from("ticket_tailor_issued_tickets")
+          .upsert(batch, { onConflict: "ticket_tailor_issued_ticket_id" });
+
+        if (error) {
+          errors.push({
+            level: "error",
+            message: `ticket_tailor_issued_tickets: ${error.message}`,
+          });
+          continue;
+        }
+
+        upserted += batch.length;
+      }
+
+      return upserted;
+    }
   } catch (error) {
-    console.error("[ticket-tailor sync] Direct issued-ticket sync failed", error);
+    console.error("[ticket-tailor sync] Order-based ticket sync failed", error);
 
     return NextResponse.json(
       {
@@ -217,25 +385,27 @@ export async function POST(request: NextRequest) {
         message:
           error instanceof Error
             ? error.message
-            : "Unexpected issued-ticket sync error.",
+            : "Unexpected order-based ticket sync error.",
       },
       { status: 500 },
     );
   }
 }
 
-async function fetchIssuedTickets(apiKey: string) {
+async function fetchOrders(apiKey: string) {
   const records: TicketTailorRecord[] = [];
   let pagesRead = 0;
-  let nextUrl: string | null =
-    `${TICKET_TAILOR_ISSUED_TICKETS_ENDPOINT}?limit=${PAGE_SIZE}`;
+  let startingAfter: string | null = null;
 
-  while (nextUrl && pagesRead < MAX_PAGES) {
-    const response = await fetch(nextUrl, {
-      headers: {
-        Accept: "application/json",
-        Authorization: `Basic ${Buffer.from(`${apiKey}:`).toString("base64")}`,
-      },
+  while (pagesRead < MAX_PAGES) {
+    const url = new URL(TICKET_TAILOR_ORDERS_ENDPOINT);
+    url.searchParams.set("limit", String(PAGE_SIZE));
+    if (startingAfter) {
+      url.searchParams.set("starting_after", startingAfter);
+    }
+
+    const response = await fetch(url.toString(), {
+      headers: getTicketTailorHeaders(apiKey),
       cache: "no-store",
     });
 
@@ -244,16 +414,44 @@ async function fetchIssuedTickets(apiKey: string) {
     if (!response.ok) {
       const body = await response.text();
       throw new Error(
-        `Ticket Tailor issued_tickets returned ${response.status}: ${body.slice(0, 240)}`,
+        `Ticket Tailor orders returned ${response.status}: ${body.slice(0, 240)}`,
       );
     }
 
     const payload = (await response.json()) as unknown;
-    records.push(...extractRecords(payload));
-    nextUrl = normalizeNextUrl(findNextPageUrl(payload));
+    const page = extractRecords(payload);
+    records.push(...page);
+
+    if (page.length < PAGE_SIZE) {
+      break;
+    }
+
+    const lastOrderId = findString(page[page.length - 1], [
+      "id",
+      "order_id",
+      "orderId",
+      "object_id",
+    ]);
+
+    if (!lastOrderId || lastOrderId === startingAfter) {
+      break;
+    }
+
+    startingAfter = lastOrderId;
   }
 
   return { records, pagesRead };
+}
+
+function getIssuedTickets(order: TicketTailorRecord) {
+  const candidates = [
+    getPath(order, "issued_tickets"),
+    getPath(order, "tickets"),
+    getPath(order, "order.issued_tickets"),
+  ];
+
+  const tickets = candidates.find(Array.isArray);
+  return Array.isArray(tickets) ? tickets.filter(isRecord) : [];
 }
 
 function extractRecords(payload: unknown): TicketTailorRecord[] {
@@ -267,34 +465,20 @@ function extractRecords(payload: unknown): TicketTailorRecord[] {
 
   const candidates = [
     payload.data,
-    payload.issued_tickets,
+    payload.orders,
     payload.items,
     payload.results,
   ];
-  const array = candidates.find(Array.isArray);
+  const records = candidates.find(Array.isArray);
 
-  return Array.isArray(array) ? array.filter(isRecord) : [];
+  return Array.isArray(records) ? records.filter(isRecord) : [];
 }
 
-function findNextPageUrl(payload: unknown) {
-  if (!isRecord(payload)) return null;
-
-  return (
-    getString(getPath(payload, "links.next")) ??
-    getString(getPath(payload, "links.next.href")) ??
-    getString(getPath(payload, "pagination.next")) ??
-    null
-  );
-}
-
-function normalizeNextUrl(value: string | null) {
-  if (!value) return null;
-
-  try {
-    return new URL(value, TICKET_TAILOR_ISSUED_TICKETS_ENDPOINT).toString();
-  } catch {
-    return null;
-  }
+function getTicketTailorHeaders(apiKey: string) {
+  return {
+    Accept: "application/json",
+    Authorization: `Basic ${Buffer.from(`${apiKey}:`).toString("base64")}`,
+  };
 }
 
 function findString(record: TicketTailorRecord, paths: string[]) {
@@ -306,9 +490,23 @@ function findString(record: TicketTailorRecord, paths: string[]) {
   return null;
 }
 
+function findNumber(record: TicketTailorRecord, paths: string[]) {
+  for (const path of paths) {
+    const value = getPath(record, path);
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim()) {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+
+  return null;
+}
+
 function findBoolean(record: TicketTailorRecord, paths: string[]) {
   for (const path of paths) {
     const value = getPath(record, path);
+
     if (typeof value === "boolean") return value;
 
     if (typeof value === "string") {
@@ -350,6 +548,10 @@ function normalizeTimestamp(value: unknown): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
+function normalizeEmail(value: string | null) {
+  return value?.trim().toLowerCase() || null;
+}
+
 function getPath(record: TicketTailorRecord, path: string): unknown {
   return path.split(".").reduce<unknown>((value, segment) => {
     if (!isRecord(value)) return undefined;
@@ -359,10 +561,6 @@ function getPath(record: TicketTailorRecord, path: string): unknown {
 
 function getString(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
-}
-
-function normalizeEmail(value: string | null) {
-  return value?.trim().toLowerCase() || null;
 }
 
 function isRecord(value: unknown): value is TicketTailorRecord {
