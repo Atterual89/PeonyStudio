@@ -25,6 +25,7 @@ type Candidate = {
   email: string | null;
   membership_status: "missing_form" | "payment_missing" | "valid";
   membership_expires_at: string | null;
+  membership_match_method: "email" | "name" | "manual" | null;
   form_present: boolean;
   current_year_paid: boolean;
 };
@@ -213,6 +214,7 @@ export async function GET(request: NextRequest) {
         email: person.email,
         membership_status: state.status,
         membership_expires_at: state.membershipExpiresAt,
+        membership_match_method: state.paymentMatchMethod,
         form_present: state.formPresent,
         current_year_paid: state.currentYearPaid,
       };

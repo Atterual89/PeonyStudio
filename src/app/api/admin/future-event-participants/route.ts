@@ -236,6 +236,7 @@ export async function GET(request: NextRequest) {
           email: ticket.holder_email,
           membership_status: membership.status,
           membership_expires_at: membership.membershipExpiresAt,
+          membership_match_method: membership.paymentMatchMethod,
           partner_status: partnerStatus,
           enrollment_id: enrollment?.id ?? null,
           partner_name: enrollment?.partner_name ?? null,
@@ -244,6 +245,8 @@ export async function GET(request: NextRequest) {
           partner_membership_status: partnerMembership?.status ?? null,
           partner_membership_expires_at:
             partnerMembership?.membershipExpiresAt ?? null,
+          partner_membership_match_method:
+            partnerMembership?.paymentMatchMethod ?? null,
         };
       })
       .sort((a, b) => {
