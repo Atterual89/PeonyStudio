@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { applyOfficialMembersBookSync } from "@/lib/association/members-book-sync";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { withSupabaseClockSkewReportRetry } from "@/lib/supabase/retry";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,10 @@ export async function POST(request: NextRequest) {
   if (unauthorizedResponse) return unauthorizedResponse;
 
   try {
-    const report = await applyOfficialMembersBookSync(createSupabaseAdminClient());
+    const supabase = createSupabaseAdminClient();
+    const report = await withSupabaseClockSkewReportRetry(() =>
+      applyOfficialMembersBookSync(supabase),
+    );
 
     return NextResponse.json({
       ok: report.errors.length === 0,
