@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { withSupabaseClockSkewRetry } from "@/lib/supabase/retry";
 
 export const dynamic = "force-dynamic";
 
@@ -29,14 +30,18 @@ export async function PATCH(request: NextRequest, { params }: PatchContext) {
   const partnerEmail = body.partner_email?.trim() || null;
   const partnerName = body.partner_name?.trim() || null;
   const supabase = createSupabaseAdminClient();
-  const { error } = await supabase
-    .from("user_event_enrollments")
-    .update({
-      partner_email: partnerEmail,
-      partner_name: partnerName,
-      partner_source: partnerEmail || partnerName ? "admin" : null,
-    })
-    .eq("id", id);
+  const { error } = await withSupabaseClockSkewRetry(
+    async () =>
+      await supabase
+        .from("user_event_enrollments")
+        .update({
+          partner_email: partnerEmail,
+          partner_name: partnerName,
+          partner_source: partnerEmail || partnerName ? "admin" : null,
+        })
+        .eq("id", id),
+    (result) => result.error,
+  );
 
   if (error) {
     return NextResponse.json({ ok: false, message: error.message }, { status: 500 });

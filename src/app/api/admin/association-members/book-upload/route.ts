@@ -6,6 +6,7 @@ import { google } from "googleapis";
 import { applyAssociationMembersSync } from "@/lib/association/members-sync";
 import { applyOfficialMembersBookSync } from "@/lib/association/members-book-sync";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { withSupabaseClockSkewReportRetry } from "@/lib/supabase/retry";
 
 export const dynamic = "force-dynamic";
 
@@ -51,8 +52,12 @@ export async function POST(request: NextRequest) {
     const upload = await replaceMembersBook(values);
 
     const supabase = createSupabaseAdminClient();
-    const formReport = await applyAssociationMembersSync(supabase);
-    const bookReport = await applyOfficialMembersBookSync(supabase);
+    const formReport = await withSupabaseClockSkewReportRetry(() =>
+      applyAssociationMembersSync(supabase),
+    );
+    const bookReport = await withSupabaseClockSkewReportRetry(() =>
+      applyOfficialMembersBookSync(supabase),
+    );
 
     const errors = [...formReport.errors, ...bookReport.errors];
 

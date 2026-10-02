@@ -709,6 +709,7 @@ function PartnerExpandedRow({
   const [saving, setSaving] = useState(false);
   const [candidates, setCandidates] = useState<MemberCandidate[]>([]);
   const [searched, setSearched] = useState(false);
+  const [lookupFailed, setLookupFailed] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -748,6 +749,7 @@ function PartnerExpandedRow({
     }
 
     setSearching(true);
+    setLookupFailed(false);
     if (!silent) setMessage(null);
 
     const params = new URLSearchParams();
@@ -783,6 +785,7 @@ function PartnerExpandedRow({
     } catch (error) {
       setCandidates([]);
       setSearched(true);
+      setLookupFailed(true);
       setMessage(error instanceof Error ? error.message : "Errore sconosciuto.");
     } finally {
       setSearching(false);
@@ -875,13 +878,19 @@ function PartnerExpandedRow({
           <span>{initialName.firstName || "-"}</span>
           <span>{initialName.lastName || "-"}</span>
           <span className="inline-flex items-center gap-2">
-            <Dot status={displayedCandidate?.membership_status ?? fallbackStatus} />
+            {lookupFailed ? (
+              <span className="h-3 w-3 shrink-0 rounded-full bg-[#8f8a84]" />
+            ) : (
+              <Dot status={displayedCandidate?.membership_status ?? fallbackStatus} />
+            )}
             <span className="text-xs font-semibold text-[#5f524c]">
               {displayedCandidate
                 ? membershipLabel(displayedCandidate.membership_status)
                 : searching
                   ? "Verifica..."
-                  : "Modulo non trovato"}
+                  : lookupFailed
+                    ? "Verifica temporaneamente non disponibile"
+                    : "Modulo non trovato"}
             </span>
           </span>
         </div>

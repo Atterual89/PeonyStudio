@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { applyAssociationMembersSync } from "@/lib/association/members-sync";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { withSupabaseClockSkewReportRetry } from "@/lib/supabase/retry";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,9 @@ export async function POST(request: NextRequest) {
 
   try {
     const supabase = createSupabaseAdminClient();
-    const report = await applyAssociationMembersSync(supabase);
+    const report = await withSupabaseClockSkewReportRetry(() =>
+      applyAssociationMembersSync(supabase),
+    );
 
     return NextResponse.json({
       ok: report.errors.length === 0,

@@ -7,6 +7,7 @@ import {
   type MembershipEvidenceRow,
 } from "@/lib/association/membership-state";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { withSupabaseClockSkewRetry } from "@/lib/supabase/retry";
 
 export const dynamic = "force-dynamic";
 
@@ -51,31 +52,40 @@ export async function GET(request: NextRequest) {
 
   const supabase = createSupabaseAdminClient();
 
-  let profilesQuery = supabase
-    .from("profiles")
-    .select("first_name,last_name,email");
+  const [memberResult, profileResult] = await Promise.all([
+    withSupabaseClockSkewRetry(
+      async () =>
+        await supabase
+          .from("association_members")
+          .select(
+            "first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at",
+          )
+          .in("source", ["google_sheet", "official_members_book"])
+          .range(0, 9999),
+      (result) => result.error,
+    ),
+    withSupabaseClockSkewRetry(
+      async () => {
+        let query = supabase
+          .from("profiles")
+          .select("first_name,last_name,email");
 
-  if (email) {
-    profilesQuery = profilesQuery.ilike("email", email);
-  } else {
-    profilesQuery = profilesQuery
-      .ilike("first_name", firstName)
-      .ilike("last_name", lastName);
-  }
+        if (email) {
+          query = query.ilike("email", email);
+        } else {
+          query = query
+            .ilike("first_name", firstName)
+            .ilike("last_name", lastName);
+        }
 
-  const [
-    { data: memberData, error: memberError },
-    { data: profileData, error: profileError },
-  ] = await Promise.all([
-    supabase
-      .from("association_members")
-      .select(
-        "first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at",
-      )
-      .in("source", ["google_sheet", "official_members_book"])
-      .range(0, 9999),
-    profilesQuery.range(0, 99),
+        return await query.range(0, 99);
+      },
+      (result) => result.error,
+    ),
   ]);
+
+  const { data: memberData, error: memberError } = memberResult;
+  const { data: profileData, error: profileError } = profileResult;
 
   if (memberError) {
     return NextResponse.json(
