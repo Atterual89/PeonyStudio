@@ -37,3 +37,30 @@ export function isClockSkewError(error: SupabaseLikeError | null | undefined) {
 
   return code === "PGRST303" || message.includes("jwt issued at future");
 }
+
+
+export async function withSupabaseClockSkewReportRetry<
+  T extends { errors: string[] },
+>(operation: () => Promise<T>) {
+  let lastResult: T | null = null;
+
+  for (let attempt = 0; attempt < RETRY_DELAYS_MS.length; attempt += 1) {
+    const delay = RETRY_DELAYS_MS[attempt];
+    if (delay > 0) {
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+
+    const result = await operation();
+    lastResult = result;
+
+    const hasClockSkewError = result.errors.some((message) =>
+      isClockSkewError({ message }),
+    );
+
+    if (!hasClockSkewError || attempt === RETRY_DELAYS_MS.length - 1) {
+      return result;
+    }
+  }
+
+  return lastResult as T;
+}
