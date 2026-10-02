@@ -19,6 +19,7 @@ type ParticipantRow = {
   email: string | null;
   membership_status: MembershipStatus;
   membership_expires_at: string | null;
+  membership_match_method: "email" | "name" | "manual" | null;
   partner_status: PartnerStatus;
   enrollment_id: string | null;
   partner_name: string | null;
@@ -26,6 +27,7 @@ type ParticipantRow = {
   partner_source: string | null;
   partner_membership_status: MembershipStatus | null;
   partner_membership_expires_at: string | null;
+  partner_membership_match_method: "email" | "name" | "manual" | null;
 };
 
 type FutureEvent = {
@@ -49,6 +51,7 @@ type MemberCandidate = {
   email: string | null;
   membership_status: MembershipStatus;
   membership_expires_at: string | null;
+  membership_match_method: "email" | "name" | "manual" | null;
   form_present: boolean;
   current_year_paid: boolean;
 };
@@ -643,7 +646,10 @@ function EventCard({
                   </span>
                   <span>{participant.first_name ?? "-"}</span>
                   <span>{participant.last_name ?? "-"}</span>
-                  <MembershipCell status={participant.membership_status} />
+                  <MembershipCell
+                    status={participant.membership_status}
+                    manual={participant.membership_match_method === "manual"}
+                  />
                   {participant.partner_status === "not_required" ? (
                     <span className="text-[#5f524c]">—</span>
                   ) : (
@@ -661,9 +667,14 @@ function EventCard({
                         participant.partner_source === "ticket_tailor"
                           ? "Dato Ticket Tailor da confermare"
                           : participant.partner_membership_status
-                            ? membershipLabel(
+                            ? `${membershipLabel(
                                 participant.partner_membership_status,
-                              )
+                              )}${
+                                participant.partner_membership_match_method ===
+                                "manual"
+                                  ? " · Validazione manuale"
+                                  : ""
+                              }`
                             : "Partner da inserire"
                       }
                     >
@@ -675,6 +686,10 @@ function EventCard({
                             {membershipShortLabel(
                               participant.partner_membership_status,
                             )}
+                            {participant.partner_membership_match_method ===
+                            "manual"
+                              ? " · M"
+                              : ""}
                             {participant.partner_source === "ticket_tailor"
                               ? " · conferma"
                               : ""}
@@ -1025,6 +1040,9 @@ function PartnerExpandedRow({
                     <Dot status={candidate.membership_status} />
                     <span className="text-xs font-semibold text-[#5f524c]">
                       {membershipLabel(candidate.membership_status)}
+                      {candidate.membership_match_method === "manual"
+                        ? " · M"
+                        : ""}
                     </span>
                   </span>
                   <button
@@ -1115,14 +1133,29 @@ function LegendDot({
   );
 }
 
-function MembershipCell({ status }: { status: MembershipStatus }) {
+function MembershipCell({
+  status,
+  manual = false,
+}: {
+  status: MembershipStatus;
+  manual?: boolean;
+}) {
   return (
     <span
       className="inline-flex items-center gap-2 text-xs font-semibold text-[#5f524c]"
-      title={membershipLabel(status)}
+      title={
+        manual
+          ? `${membershipLabel(status)} · Validazione manuale`
+          : membershipLabel(status)
+      }
     >
       <Dot status={status} />
       {membershipShortLabel(status)}
+      {manual ? (
+        <span className="rounded-full border border-[#8b5e4a]/25 bg-[#8b5e4a]/8 px-1.5 py-0.5 text-[9px] font-bold text-[#8b5e4a]">
+          M
+        </span>
+      ) : null}
     </span>
   );
 }
@@ -1207,7 +1240,11 @@ function ParticipantDetailModal({
           />
           <DetailField
             label="Tesseramento"
-            value={membershipLabel(participant.membership_status)}
+            value={`${membershipLabel(participant.membership_status)}${
+              participant.membership_match_method === "manual"
+                ? " · M (manuale)"
+                : ""
+            }`}
           />
           <DetailField
             label="Partner"
@@ -1217,7 +1254,13 @@ function ParticipantDetailModal({
             label="Tessera partner"
             value={
               participant.partner_membership_status
-                ? membershipShortLabel(participant.partner_membership_status)
+                ? `${membershipShortLabel(
+                    participant.partner_membership_status,
+                  )}${
+                    participant.partner_membership_match_method === "manual"
+                      ? " · M (manuale)"
+                      : ""
+                  }`
                 : participant.partner_status === "not_required"
                   ? "—"
                   : "Partner non inserito"
