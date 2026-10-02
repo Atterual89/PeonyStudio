@@ -4,6 +4,8 @@ import {
   deriveMembershipState,
   type MembershipEvidenceRow,
 } from "@/lib/association/membership-state";
+import { readAssociationMembersFromGoogleSheet } from "@/lib/google/sheets";
+import { readOfficialMembersBookFromGoogleSheet } from "@/lib/google/members-book";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -93,42 +95,30 @@ export async function GET(request: NextRequest) {
   const tickets = ((ticketData ?? []) as TicketRow[]).filter((ticket) =>
     isActiveTicketStatus(ticket.status),
   );
-  const [
-    { data: formMemberData, error: formMembersError },
-    { data: bookMemberData, error: bookMembersError },
-  ] = await Promise.all([
-    supabase
-      .from("association_members")
-      .select(
-        "first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at",
-      )
-      .eq("source", "google_sheet")
-      .range(0, 9999),
-    supabase
-      .from("association_members")
-      .select(
-        "first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at",
-      )
-      .eq("source", "official_members_book")
-      .range(0, 9999),
+  const [formSource, bookSource] = await Promise.all([
+    readAssociationMembersFromGoogleSheet(),
+    readOfficialMembersBookFromGoogleSheet(),
   ]);
 
-  if (formMembersError || bookMembersError) {
-    return NextResponse.json(
-      {
-        ok: false,
-        message:
-          formMembersError?.message ??
-          bookMembersError?.message ??
-          "Errore caricamento tesseramenti.",
-      },
-      { status: 500 },
-    );
-  }
-
-  const membershipRows = [
-    ...((formMemberData ?? []) as MemberRow[]),
-    ...((bookMemberData ?? []) as MemberRow[]),
+  const membershipRows: MemberRow[] = [
+    ...formSource.rows.map((row) => ({
+      first_name: row.first_name,
+      last_name: row.last_name,
+      email: row.email,
+      source: row.source,
+      membership_status: row.membership_status,
+      membership_starts_at: row.membership_starts_at,
+      membership_expires_at: row.membership_expires_at,
+    })),
+    ...bookSource.rows.map((row) => ({
+      first_name: row.first_name,
+      last_name: row.last_name,
+      email: row.email,
+      source: row.source,
+      membership_status: row.membership_status,
+      membership_starts_at: row.membership_starts_at,
+      membership_expires_at: row.membership_expires_at,
+    })),
   ];
 
   const eventIds = events.map((event) => event.id);
@@ -211,6 +201,12 @@ export async function GET(request: NextRequest) {
               ? "admin_provided"
               : "missing";
 
+        const partnerIdentity = getPartnerIdentity(enrollment);
+        const partnerMembership =
+          partnerCheckRequired && partnerIdentity
+            ? deriveMembershipState(membershipRows, partnerIdentity)
+            : null;
+
         return {
           id: ticket.ticket_tailor_issued_ticket_id,
           ticket_tailor_order_id: ticket.ticket_tailor_order_id,
@@ -225,6 +221,9 @@ export async function GET(request: NextRequest) {
           partner_name: enrollment?.partner_name ?? null,
           partner_email: enrollment?.partner_email ?? null,
           partner_source: enrollment?.partner_source ?? null,
+          partner_membership_status: partnerMembership?.status ?? null,
+          partner_membership_expires_at:
+            partnerMembership?.membershipExpiresAt ?? null,
         };
       })
       .sort((a, b) => {
@@ -245,6 +244,25 @@ export async function GET(request: NextRequest) {
   });
 
   return NextResponse.json({ ok: true, events: result });
+}
+
+function getPartnerIdentity(enrollment: EnrollmentRow | undefined) {
+  if (!enrollment) return null;
+
+  const email = normalizeEmail(enrollment.partner_email);
+  const nameParts = (enrollment.partner_name ?? "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (!email && nameParts.length < 2) return null;
+
+  return {
+    email: email || null,
+    firstName:
+      nameParts.length >= 2 ? nameParts.slice(0, -1).join(" ") : null,
+    lastName: nameParts.length >= 2 ? nameParts[nameParts.length - 1] : null,
+  };
 }
 
 function eventNeedsPartnerCheck(event: EventRow) {
