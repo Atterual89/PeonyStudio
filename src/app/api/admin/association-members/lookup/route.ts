@@ -52,22 +52,10 @@ export async function GET(request: NextRequest) {
 
   const supabase = createSupabaseAdminClient();
 
-  let profilesQuery = supabase
-    .from("profiles")
-    .select("first_name,last_name,email");
-
-  if (email) {
-    profilesQuery = profilesQuery.ilike("email", email);
-  } else {
-    profilesQuery = profilesQuery
-      .ilike("first_name", firstName)
-      .ilike("last_name", lastName);
-  }
-
   const [memberResult, profileResult] = await Promise.all([
     withSupabaseClockSkewRetry(
-      () =>
-        supabase
+      async () =>
+        await supabase
           .from("association_members")
           .select(
             "first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at",
@@ -77,7 +65,21 @@ export async function GET(request: NextRequest) {
       (result) => result.error,
     ),
     withSupabaseClockSkewRetry(
-      () => profilesQuery.range(0, 99),
+      async () => {
+        let query = supabase
+          .from("profiles")
+          .select("first_name,last_name,email");
+
+        if (email) {
+          query = query.ilike("email", email);
+        } else {
+          query = query
+            .ilike("first_name", firstName)
+            .ilike("last_name", lastName);
+        }
+
+        return await query.range(0, 99);
+      },
       (result) => result.error,
     ),
   ]);
