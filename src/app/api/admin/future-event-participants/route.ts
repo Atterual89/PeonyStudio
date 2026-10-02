@@ -7,6 +7,7 @@ import {
 import { readAssociationMembersFromGoogleSheet } from "@/lib/google/sheets";
 import { readOfficialMembersBookFromGoogleSheet } from "@/lib/google/members-book";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { withSupabaseClockSkewRetry } from "@/lib/supabase/retry";
 
 export const dynamic = "force-dynamic";
 
@@ -95,10 +96,28 @@ export async function GET(request: NextRequest) {
   const tickets = ((ticketData ?? []) as TicketRow[]).filter((ticket) =>
     isActiveTicketStatus(ticket.status),
   );
-  const [formSource, bookSource] = await Promise.all([
+  const [formSource, bookSource, manualResult] = await Promise.all([
     readAssociationMembersFromGoogleSheet(),
     readOfficialMembersBookFromGoogleSheet(),
+    withSupabaseClockSkewRetry(
+      async () =>
+        await supabase
+          .from("association_members")
+          .select(
+            "first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at",
+          )
+          .eq("source", "manual_override")
+          .range(0, 9999),
+      (result) => result.error,
+    ),
   ]);
+
+  if (manualResult.error) {
+    return NextResponse.json(
+      { ok: false, message: manualResult.error.message },
+      { status: 500 },
+    );
+  }
 
   const membershipRows: MemberRow[] = [
     ...formSource.rows.map((row) => ({
@@ -119,6 +138,7 @@ export async function GET(request: NextRequest) {
       membership_starts_at: row.membership_starts_at,
       membership_expires_at: row.membership_expires_at,
     })),
+    ...((manualResult.data ?? []) as MemberRow[]),
   ];
 
   const eventIds = events.map((event) => event.id);
