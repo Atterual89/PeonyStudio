@@ -7,6 +7,7 @@ import {
   type MembershipEvidenceRow,
 } from "@/lib/association/membership-state";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { withSupabaseClockSkewRetry } from "@/lib/supabase/retry";
 
 export const dynamic = "force-dynamic";
 
@@ -63,19 +64,26 @@ export async function GET(request: NextRequest) {
       .ilike("last_name", lastName);
   }
 
-  const [
-    { data: memberData, error: memberError },
-    { data: profileData, error: profileError },
-  ] = await Promise.all([
-    supabase
-      .from("association_members")
-      .select(
-        "first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at",
-      )
-      .in("source", ["google_sheet", "official_members_book"])
-      .range(0, 9999),
-    profilesQuery.range(0, 99),
+  const [memberResult, profileResult] = await Promise.all([
+    withSupabaseClockSkewRetry(
+      () =>
+        supabase
+          .from("association_members")
+          .select(
+            "first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at",
+          )
+          .in("source", ["google_sheet", "official_members_book"])
+          .range(0, 9999),
+      (result) => result.error,
+    ),
+    withSupabaseClockSkewRetry(
+      () => profilesQuery.range(0, 99),
+      (result) => result.error,
+    ),
   ]);
+
+  const { data: memberData, error: memberError } = memberResult;
+  const { data: profileData, error: profileError } = profileResult;
 
   if (memberError) {
     return NextResponse.json(
