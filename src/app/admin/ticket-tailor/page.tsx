@@ -731,7 +731,9 @@ function PartnerExpandedRow({
   const [editing, setEditing] = useState(participant.partner_status === "missing");
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [manualValidating, setManualValidating] = useState(false);
   const [candidates, setCandidates] = useState<MemberCandidate[]>([]);
+  const [lookupCompleted, setLookupCompleted] = useState(false);
   const [lookupFailed, setLookupFailed] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -772,6 +774,7 @@ function PartnerExpandedRow({
     }
 
     setSearching(true);
+    setLookupCompleted(false);
     setLookupFailed(false);
     if (!silent) setMessage(null);
 
@@ -798,6 +801,7 @@ function PartnerExpandedRow({
         ? (payload.candidates as MemberCandidate[])
         : [];
       setCandidates(nextCandidates);
+      setLookupCompleted(true);
 
       if (!silent && nextCandidates.length === 0) {
         setMessage(
@@ -806,6 +810,7 @@ function PartnerExpandedRow({
       }
     } catch (error) {
       setCandidates([]);
+      setLookupCompleted(false);
       setLookupFailed(true);
       setMessage(error instanceof Error ? error.message : "Errore sconosciuto.");
     } finally {
@@ -819,6 +824,55 @@ function PartnerExpandedRow({
     setLastName(candidate.last_name ?? "");
     setCandidates([candidate]);
     setMessage("Membro selezionato. Salva per associarlo come partner.");
+  }
+
+  async function validateMemberManually() {
+    if (!secret) {
+      setMessage("Inserisci il codice admin.");
+      return;
+    }
+
+    if (!email.trim() && !(firstName.trim() && lastName.trim())) {
+      setMessage("Inserisci email oppure nome e cognome.");
+      return;
+    }
+
+    setManualValidating(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch(
+        "/api/admin/association-members/manual-validate",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-admin-sync-secret": secret,
+          },
+          body: JSON.stringify({
+            email: email.trim() || null,
+            first_name: firstName.trim() || null,
+            last_name: lastName.trim() || null,
+          }),
+        },
+      );
+      const payload = await readJsonResponse(response);
+
+      if (!response.ok || payload.ok === false) {
+        throw new Error(
+          readMessage(payload, "Errore validazione manuale del socio."),
+        );
+      }
+
+      await lookupMember(email, firstName, lastName, true);
+      setMessage(
+        "Socio validato manualmente per l’anno sociale corrente. Salva il partner per associarlo all’iscrizione.",
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Errore sconosciuto.");
+    } finally {
+      setManualValidating(false);
+    }
   }
 
   async function savePartner() {
@@ -919,19 +973,28 @@ function PartnerExpandedRow({
           <div className="mt-2 grid gap-2 md:grid-cols-[1.2fr_0.8fr_0.8fr_auto]">
             <input
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) => {
+                setEmail(event.target.value);
+                setLookupCompleted(false);
+              }}
               placeholder="Email"
               className="rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm outline-none focus:border-[#8b5e4a]"
             />
             <input
               value={firstName}
-              onChange={(event) => setFirstName(event.target.value)}
+              onChange={(event) => {
+                setFirstName(event.target.value);
+                setLookupCompleted(false);
+              }}
               placeholder="Nome"
               className="rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm outline-none focus:border-[#8b5e4a]"
             />
             <input
               value={lastName}
-              onChange={(event) => setLastName(event.target.value)}
+              onChange={(event) => {
+                setLastName(event.target.value);
+                setLookupCompleted(false);
+              }}
               placeholder="Cognome"
               className="rounded-[8px] border border-[#211815]/15 bg-white/75 px-3 py-2 text-sm outline-none focus:border-[#8b5e4a]"
             />
@@ -973,6 +1036,23 @@ function PartnerExpandedRow({
                   </button>
                 </div>
               ))}
+            </div>
+          ) : null}
+
+          {lookupCompleted && !lookupFailed && candidates.length === 0 ? (
+            <div className="mt-3 rounded-[8px] border border-[#b69755]/25 bg-[#b69755]/8 p-3">
+              <p className="text-xs leading-5 text-[#5f524c]">
+                Il socio non è stato trovato automaticamente. Se hai verificato manualmente
+                che il tesseramento è valido, puoi marcarlo come OK.
+              </p>
+              <button
+                type="button"
+                onClick={validateMemberManually}
+                disabled={manualValidating}
+                className="mt-2 rounded-full border border-[#6f8f72]/40 bg-[#6f8f72]/10 px-4 py-2 text-xs font-semibold text-[#416248] disabled:opacity-50"
+              >
+                {manualValidating ? "Validazione..." : "Valida manualmente"}
+              </button>
             </div>
           ) : null}
 

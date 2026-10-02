@@ -1,4 +1,5 @@
 export const CURRENT_MEMBERSHIP_START = "2025-09-01";
+export const CURRENT_MEMBERSHIP_EXPIRY = "2026-12-31";
 
 export type MembershipEvidenceRow = {
   first_name: string | null;
@@ -16,7 +17,7 @@ export type DerivedMembershipState = {
   currentYearPaid: boolean;
   membershipStartsAt: string | null;
   membershipExpiresAt: string | null;
-  paymentMatchMethod: "email" | "name" | null;
+  paymentMatchMethod: "email" | "name" | "manual" | null;
 };
 
 export function deriveMembershipState(
@@ -32,6 +33,31 @@ export function deriveMembershipState(
     identity.firstName,
     identity.lastName,
   );
+
+  const manualOverride = rows.find((row) => {
+    if (row.source !== "manual_override" || !isCurrentYearPayment(row)) {
+      return false;
+    }
+
+    const emailMatches =
+      Boolean(targetEmail) && normalizeEmail(row.email) === targetEmail;
+    const nameMatches =
+      Boolean(explicitNameKey) &&
+      normalizeNameKey(row.first_name, row.last_name) === explicitNameKey;
+
+    return emailMatches || nameMatches;
+  });
+
+  if (manualOverride) {
+    return {
+      status: "valid",
+      formPresent: true,
+      currentYearPaid: true,
+      membershipStartsAt: manualOverride.membership_starts_at,
+      membershipExpiresAt: manualOverride.membership_expires_at,
+      paymentMatchMethod: "manual",
+    };
+  }
 
   const formRows = rows.filter((row) => {
     if (row.source !== "google_sheet") return false;

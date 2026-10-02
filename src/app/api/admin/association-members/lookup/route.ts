@@ -54,9 +54,20 @@ export async function GET(request: NextRequest) {
 
   const supabase = createSupabaseAdminClient();
 
-  const [formSource, bookSource, profileResult] = await Promise.all([
+  const [formSource, bookSource, manualResult, profileResult] = await Promise.all([
     readAssociationMembersFromGoogleSheet(),
     readOfficialMembersBookFromGoogleSheet(),
+    withSupabaseClockSkewRetry(
+      async () =>
+        await supabase
+          .from("association_members")
+          .select(
+            "first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at",
+          )
+          .eq("source", "manual_override")
+          .range(0, 9999),
+      (result) => result.error,
+    ),
     withSupabaseClockSkewRetry(
       async () => {
         let query = supabase
@@ -77,7 +88,15 @@ export async function GET(request: NextRequest) {
     ),
   ]);
 
+  const { data: manualData, error: manualError } = manualResult;
   const { data: profileData, error: profileError } = profileResult;
+
+  if (manualError) {
+    return NextResponse.json(
+      { ok: false, message: manualError.message },
+      { status: 500 },
+    );
+  }
 
   if (profileError) {
     return NextResponse.json(
@@ -105,6 +124,7 @@ export async function GET(request: NextRequest) {
       membership_starts_at: row.membership_starts_at,
       membership_expires_at: row.membership_expires_at,
     })),
+    ...((manualData ?? []) as MembershipEvidenceRow[]),
   ];
   const profiles = (profileData ?? []) as ProfileRow[];
 
@@ -129,6 +149,15 @@ export async function GET(request: NextRequest) {
           normalizeMembershipNameKey(row.first_name, row.last_name) ===
             searchNameKey,
       );
+
+  const matchingManualRows = members.filter(
+    (row) =>
+      row.source === "manual_override" &&
+      (email
+        ? normalizeMembershipEmail(row.email) === email
+        : normalizeMembershipNameKey(row.first_name, row.last_name) ===
+          searchNameKey),
+  );
 
   const identities = new Map<
     string,
@@ -168,6 +197,7 @@ export async function GET(request: NextRequest) {
   for (const row of matchingFormRows) addIdentity(row);
   for (const profile of profiles) addIdentity(profile);
   for (const row of matchingOfficialRows) addIdentity(row);
+  for (const row of matchingManualRows) addIdentity(row);
 
   const candidates: Candidate[] = Array.from(identities.values())
     .map((person) => {
