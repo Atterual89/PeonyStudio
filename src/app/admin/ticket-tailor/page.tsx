@@ -24,6 +24,8 @@ type ParticipantRow = {
   partner_name: string | null;
   partner_email: string | null;
   partner_source: string | null;
+  partner_membership_status: MembershipStatus | null;
+  partner_membership_expires_at: string | null;
 };
 
 type FutureEvent = {
@@ -620,8 +622,8 @@ function EventCard({
 
       {event.participants.length > 0 ? (
         <div className="overflow-x-auto">
-          <div className="min-w-[850px]">
-            <div className="grid grid-cols-[minmax(220px,1.5fr)_minmax(120px,0.8fr)_minmax(140px,0.9fr)_100px_155px_100px] gap-3 border-b border-[#211815]/10 bg-[#f4efe8]/65 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
+          <div className="min-w-[900px]">
+            <div className="grid grid-cols-[minmax(220px,1.5fr)_minmax(120px,0.8fr)_minmax(140px,0.9fr)_100px_205px_100px] gap-3 border-b border-[#211815]/10 bg-[#f4efe8]/65 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
               <span>Email</span>
               <span>Nome</span>
               <span>Cognome</span>
@@ -635,7 +637,7 @@ function EventCard({
                 key={participant.id}
                 className="border-b border-[#211815]/8 last:border-b-0"
               >
-                <div className="grid grid-cols-[minmax(220px,1.5fr)_minmax(120px,0.8fr)_minmax(140px,0.9fr)_100px_155px_100px] items-center gap-3 px-4 py-3 text-sm text-[#211815]">
+                <div className="grid grid-cols-[minmax(220px,1.5fr)_minmax(120px,0.8fr)_minmax(140px,0.9fr)_100px_205px_100px] items-center gap-3 px-4 py-3 text-sm text-[#211815]">
                   <span className="truncate" title={participant.email ?? ""}>
                     {participant.email ?? "-"}
                   </span>
@@ -652,13 +654,35 @@ function EventCard({
                           current === participant.id ? null : participant.id,
                         )
                       }
-                      className={`w-fit rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                        participant.partner_status === "missing"
-                          ? "border-[#b69755]/35 bg-[#b69755]/9 text-[#866d36]"
-                          : "border-[#211815]/15 text-[#5f524c] hover:bg-[#f4efe8]"
-                      }`}
+                      className={`inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${partnerBadgeClass(
+                        participant.partner_membership_status,
+                      )}`}
+                      title={
+                        participant.partner_source === "ticket_tailor"
+                          ? "Dato Ticket Tailor da confermare"
+                          : participant.partner_membership_status
+                            ? membershipLabel(
+                                participant.partner_membership_status,
+                              )
+                            : "Partner da inserire"
+                      }
                     >
-                      {formatPartnerStatus(participant.partner_status)}
+                      {participant.partner_membership_status ? (
+                        <>
+                          <Dot status={participant.partner_membership_status} />
+                          <span>
+                            Partner ·{" "}
+                            {membershipShortLabel(
+                              participant.partner_membership_status,
+                            )}
+                            {participant.partner_source === "ticket_tailor"
+                              ? " · conferma"
+                              : ""}
+                          </span>
+                        </>
+                      ) : (
+                        <span>Partner · da inserire</span>
+                      )}
                     </button>
                   )}
                   <button
@@ -851,9 +875,8 @@ function PartnerExpandedRow({
 
   const displayedCandidate =
     candidates.length === 1 ? candidates[0] : null;
-  const fallbackStatus: MembershipStatus = searched
-    ? "missing_form"
-    : "missing_form";
+  const fallbackStatus: MembershipStatus =
+    participant.partner_membership_status ?? "missing_form";
 
   return (
     <div className="ml-8 border-l-2 border-[#8b5e4a]/22 bg-[#f4efe8]/45 px-4 py-3 md:ml-12">
@@ -1016,18 +1039,39 @@ function LegendDot({
 }
 
 function MembershipCell({ status }: { status: MembershipStatus }) {
-  const shortLabel =
-    status === "valid" ? "OK" : status === "payment_missing" ? "Quota" : "Modulo";
-
   return (
     <span
       className="inline-flex items-center gap-2 text-xs font-semibold text-[#5f524c]"
       title={membershipLabel(status)}
     >
       <Dot status={status} />
-      {shortLabel}
+      {membershipShortLabel(status)}
     </span>
   );
+}
+
+function membershipShortLabel(status: MembershipStatus) {
+  return status === "valid"
+    ? "OK"
+    : status === "payment_missing"
+      ? "Quota"
+      : "Modulo";
+}
+
+function partnerBadgeClass(status: MembershipStatus | null) {
+  if (status === "valid") {
+    return "border-[#6f8f72]/35 bg-[#6f8f72]/10 text-[#416248] hover:bg-[#6f8f72]/15";
+  }
+
+  if (status === "payment_missing") {
+    return "border-[#b69755]/35 bg-[#b69755]/10 text-[#866d36] hover:bg-[#b69755]/15";
+  }
+
+  if (status === "missing_form") {
+    return "border-[#9d5d56]/35 bg-[#9d5d56]/10 text-[#844c46] hover:bg-[#9d5d56]/15";
+  }
+
+  return "border-[#b69755]/35 bg-[#b69755]/9 text-[#866d36] hover:bg-[#b69755]/14";
 }
 
 function Dot({ status }: { status: MembershipStatus }) {
@@ -1091,6 +1135,16 @@ function ParticipantDetailModal({
           <DetailField
             label="Partner"
             value={formatPartnerStatus(participant.partner_status)}
+          />
+          <DetailField
+            label="Tessera partner"
+            value={
+              participant.partner_membership_status
+                ? membershipShortLabel(participant.partner_membership_status)
+                : participant.partner_status === "not_required"
+                  ? "—"
+                  : "Partner non inserito"
+            }
           />
           <DetailField
             label="Tipo biglietto"
