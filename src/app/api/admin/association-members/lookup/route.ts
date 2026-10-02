@@ -6,6 +6,8 @@ import {
   normalizeMembershipNameKey,
   type MembershipEvidenceRow,
 } from "@/lib/association/membership-state";
+import { readAssociationMembersFromGoogleSheet } from "@/lib/google/sheets";
+import { readOfficialMembersBookFromGoogleSheet } from "@/lib/google/members-book";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { withSupabaseClockSkewRetry } from "@/lib/supabase/retry";
 
@@ -52,18 +54,9 @@ export async function GET(request: NextRequest) {
 
   const supabase = createSupabaseAdminClient();
 
-  const [memberResult, profileResult] = await Promise.all([
-    withSupabaseClockSkewRetry(
-      async () =>
-        await supabase
-          .from("association_members")
-          .select(
-            "first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at",
-          )
-          .in("source", ["google_sheet", "official_members_book"])
-          .range(0, 9999),
-      (result) => result.error,
-    ),
+  const [formSource, bookSource, profileResult] = await Promise.all([
+    readAssociationMembersFromGoogleSheet(),
+    readOfficialMembersBookFromGoogleSheet(),
     withSupabaseClockSkewRetry(
       async () => {
         let query = supabase
@@ -84,15 +77,7 @@ export async function GET(request: NextRequest) {
     ),
   ]);
 
-  const { data: memberData, error: memberError } = memberResult;
   const { data: profileData, error: profileError } = profileResult;
-
-  if (memberError) {
-    return NextResponse.json(
-      { ok: false, message: memberError.message },
-      { status: 500 },
-    );
-  }
 
   if (profileError) {
     return NextResponse.json(
@@ -101,7 +86,26 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const members = (memberData ?? []) as MembershipEvidenceRow[];
+  const members: MembershipEvidenceRow[] = [
+    ...formSource.rows.map((row) => ({
+      first_name: row.first_name,
+      last_name: row.last_name,
+      email: row.email,
+      source: row.source,
+      membership_status: row.membership_status,
+      membership_starts_at: row.membership_starts_at,
+      membership_expires_at: row.membership_expires_at,
+    })),
+    ...bookSource.rows.map((row) => ({
+      first_name: row.first_name,
+      last_name: row.last_name,
+      email: row.email,
+      source: row.source,
+      membership_status: row.membership_status,
+      membership_starts_at: row.membership_starts_at,
+      membership_expires_at: row.membership_expires_at,
+    })),
+  ];
   const profiles = (profileData ?? []) as ProfileRow[];
 
   const matchingFormRows = members.filter(
