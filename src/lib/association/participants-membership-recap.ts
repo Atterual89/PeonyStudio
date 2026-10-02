@@ -184,7 +184,7 @@ async function loadMembers(supabase: SupabaseClient) {
   const { data, error } = await supabase
     .from("association_members")
     .select(MEMBER_FIELDS)
-    .in("source", ["official_members_book", "google_sheet"])
+    .in("source", ["official_members_book", "google_sheet", "manual_override"])
     .range(0, 9999);
 
   if (error) throw new Error(error.message);
