@@ -732,7 +732,6 @@ function PartnerExpandedRow({
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
   const [candidates, setCandidates] = useState<MemberCandidate[]>([]);
-  const [searched, setSearched] = useState(false);
   const [lookupFailed, setLookupFailed] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -799,7 +798,6 @@ function PartnerExpandedRow({
         ? (payload.candidates as MemberCandidate[])
         : [];
       setCandidates(nextCandidates);
-      setSearched(true);
 
       if (!silent && nextCandidates.length === 0) {
         setMessage(
@@ -808,7 +806,6 @@ function PartnerExpandedRow({
       }
     } catch (error) {
       setCandidates([]);
-      setSearched(true);
       setLookupFailed(true);
       setMessage(error instanceof Error ? error.message : "Errore sconosciuto.");
     } finally {
