@@ -409,6 +409,9 @@ export const it = {
     contactSubtitle: "Hai domande? Usa il form qui sotto oppure trovaci sui social.",
     contactInstagram: "@peony.studio.turin",
     contactTelegram: "Canale Telegram",
+    contactEmailIntro: "Hai domande? Scrivici direttamente via email.",
+    heroImageAlt: "Peony Studio a Torino",
+    closeLightbox: "Chiudi",
   },
   howToStart: {
     fewQuestions: "Poche domande",
@@ -435,6 +438,7 @@ export const it = {
       "A volte il modo più semplice per capire se un luogo fa per te è guardarlo.",
     finalCtaTitle: "Vuoi vedere le prossime date?",
     finalCtaCtaLabel: "Guarda il calendario",
+    heroImageAlt: "Ingresso beginner Peony Studio",
   },
   practice: {
     eventsEyebrow: "Calendario",

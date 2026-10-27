@@ -405,6 +405,9 @@ export const en: typeof it = {
     contactSubtitle: "Got questions? Use the form below or find us on social.",
     contactInstagram: "@peony.studio.turin",
     contactTelegram: "Telegram Channel",
+    contactEmailIntro: "Got questions? Email us directly.",
+    heroImageAlt: "Peony Studio in Turin",
+    closeLightbox: "Close",
   },
   howToStart: {
     fewQuestions: "A few questions",
@@ -431,6 +434,7 @@ export const en: typeof it = {
       "Sometimes the simplest way to know if a place is right for you is to look at it.",
     finalCtaTitle: "Want to see the upcoming dates?",
     finalCtaCtaLabel: "View the calendar",
+    heroImageAlt: "Beginner entrance at Peony Studio",
   },
   practice: {
     eventsEyebrow: "Calendar",

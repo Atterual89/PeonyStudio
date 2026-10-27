@@ -108,7 +108,7 @@ export function PeonyPageClient({ galleryImages }: Props) {
               <div className="peony-reveal peony-reveal-delay-1 relative overflow-hidden rounded-[8px] border border-[#211815]/10 bg-[#efe4d7] shadow-[0_18px_50px_rgba(33,24,21,0.10)]">
                 <Image
                   src="/images/home/hero-studio.jpg"
-                  alt="Peony Studio a Torino"
+                  alt={p.heroImageAlt}
                   width={980}
                   height={620}
                   priority
@@ -309,10 +309,10 @@ export function PeonyPageClient({ galleryImages }: Props) {
 
       {/* ── Sezione Contatti — sempre visibile ── */}
       <section id="contatti" className="mx-auto max-w-6xl px-5 py-10 sm:px-6">
-        <p className="text-xs tracking-widest uppercase text-[#b07a5a] mb-2">Contatti</p>
-        <h2 className="font-serif text-3xl mb-4">Scrivici.</h2>
+        <p className="text-xs tracking-widest uppercase text-[#b07a5a] mb-2">{p.contactEyebrow}</p>
+        <h2 className="font-serif text-3xl mb-4">{p.contactTitle}</h2>
         <p className="text-sm text-[#6b5a4e] mb-6">
-          Hai domande? Scrivici direttamente via email.
+          {p.contactEmailIntro}
         </p>
         <a
           href="mailto:peony.studio.turin@gmail.com"
@@ -437,6 +437,7 @@ const SPACE_PHOTO_MAP: Record<number, string> = {
 };
 
 function SpacePhotoSection({ cards }: { cards: { title: string; text: string }[] }) {
+  const { dictionary } = useLanguage();
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   return (
@@ -484,7 +485,7 @@ function SpacePhotoSection({ cards }: { cards: { title: string; text: string }[]
         >
           <button
             type="button"
-            aria-label="Chiudi"
+            aria-label={dictionary.peony.closeLightbox}
             className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/15 text-xl text-white transition hover:bg-white/25"
             onClick={(e) => { e.stopPropagation(); setLightboxImage(null); }}
           >

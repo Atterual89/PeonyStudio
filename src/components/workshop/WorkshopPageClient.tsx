@@ -81,7 +81,7 @@ export function WorkshopPageClient({ cards }: Props) {
             </svg>
             <input
               type="search"
-              placeholder={w.searchPlaceholder ?? "Cerca workshop..."}
+              placeholder={w.searchPlaceholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1 bg-transparent text-sm text-[#211815] placeholder:text-[#8b5e4a]/60 outline-none"
@@ -102,7 +102,7 @@ export function WorkshopPageClient({ cards }: Props) {
           </div>
         ) : searchQuery ? (
           <p className="px-4 text-sm text-[#6b5c52]">
-            Nessun workshop trovato per &ldquo;{searchQuery}&rdquo;.
+            {w.noWorkshopsSearch} &ldquo;{searchQuery}&rdquo;.
           </p>
         ) : (
           <p className="text-[15px] text-[#5f524c]">

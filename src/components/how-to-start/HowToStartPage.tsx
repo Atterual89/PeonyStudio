@@ -20,7 +20,6 @@ import {
   type SoftCta,
   type howToStartContent,
 } from "@/content/how-to-start";
-import { homeContent } from "@/content/home";
 
 const HTS_ICON_MAP = { User, Users, Sprout, BookOpen, Ribbon, Eye } as const;
 type HtsIconName = keyof typeof HTS_ICON_MAP;
@@ -125,7 +124,7 @@ export function HowToStartPage({ content }: HowToStartPageProps) {
             <div className="overflow-hidden rounded-[8px] border border-[#211815]/10 shadow-[0_24px_60px_rgba(33,24,21,0.12)]">
               <Image
                 src="/images/home/entry-beginner.jpg"
-                alt="Ingresso beginner Peony Studio"
+                alt={hts.heroImageAlt}
                 width={900}
                 height={680}
                 priority
