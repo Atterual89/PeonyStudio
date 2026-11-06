@@ -53,7 +53,7 @@ export function EmailTab({ rows }: { rows: EmailRow[] }) {
         <summary className="min-h-12 cursor-pointer p-3 text-sm font-semibold">
           Cambia destinatari · {count} selezionati
         </summary>
-      <ul className="divide-y divide-[#211815]/5 border-t border-[#211815]/10">
+        <ul className="divide-y divide-[#211815]/5 border-t border-[#211815]/10">
         {rows.map((row) => (
           <li key={row.personId} className={row.confirmed ? "" : "text-[#5f524c]"}>
             <label className={`flex min-h-10 items-start gap-3 px-3 py-2 ${row.email ? "cursor-pointer" : ""}`}>
@@ -80,7 +80,7 @@ export function EmailTab({ rows }: { rows: EmailRow[] }) {
             )}
           </li>
         ))}
-      </ul>
+        </ul>
       </details>
 
       {/* In basso, vicino al pollice. */}
@@ -101,7 +101,7 @@ export function EmailTab({ rows }: { rows: EmailRow[] }) {
         <button type="button" className={`${buttonClass.primary} w-full sm:w-auto`} disabled={count === 0} onClick={copy}>
           Copia {count} indirizzi → campo Ccn
         </button>
-        <p className="text-xs text-[#5f524c]">Questo pulsante copia soltanto gli indirizzi. Oggetto, corpo HTML e registrazione degli invii saranno gestiti dalla nuova FASE 7.</p>
+        <p className="text-xs text-[#5f524c]">Questo pulsante copia soltanto gli indirizzi. La copia non registra alcun invio. Dopo aver incollato in Gmail, verifica sempre i destinatari.</p>
         {withoutEmail.length > 0 ? (
           <p className="text-sm text-[#9b2c2c]">
             {withoutEmail.length === 1 ? "1 persona senza email" : `${withoutEmail.length} persone senza email`}
