@@ -16,6 +16,7 @@ beforeAll(async () => {
   organizer = await t.operator("Email Organizer");
   await t.db.query("update gw_operators set role='admin' where id=$1", [admin]);
   workshop = await t.value<string>("select gw_ensure_workshop_for_event($1,'eeeeeeee-0000-4000-8000-000000000801','Kinbaku LuXuria Test','2026-11-14',null) v", [admin]);
+  await t.value("select gw_update_workshop_settings($1,$2,(select version from gw_workshops where id=$2), $3::jsonb) v", [admin,workshop,JSON.stringify({default_fee_cents:40000})]);
   const booking = await t.value<string>("select gw_create_registration($1,$2,$3::jsonb,'prenotato',null,null,null) v", [organizer,workshop,JSON.stringify(["Persona Email"])]);
   person = await t.value<string>("select person_id v from gw_booking_participants where booking_id=$1", [booking]);
   await t.db.exec(readEmailMigration());
