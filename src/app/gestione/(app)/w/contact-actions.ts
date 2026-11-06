@@ -69,6 +69,7 @@ export async function markGroupSentAction(input: {
   group: ContactGroup;
   personIds: string[];
   includeInterested?: boolean;
+  sentOn?: string;
 }): Promise<ActionResult<{ count: number }>> {
   const operator = await requireAdmin();
   const target = await periodOf(input?.workshopId);
@@ -83,13 +84,17 @@ export async function markGroupSentAction(input: {
     return INVALID;
   }
 
+  const sentOn = input.sentOn ?? todayInRome();
+  const dateError = sentOnError(sentOn);
+  if (dateError) return { ok: false, error: dateError };
+
   const copied = new Set(input.personIds);
   const people = bccList(peopleInGroup(await getWorkshopBookings(target.workshop), input.group, { includeInterested: input.includeInterested }))
     .withEmail.map((entry) => entry.person.id)
     .filter((id) => copied.has(id));
   if (people.length === 0) return { ok: false, error: "Nessuna persona da segnare: ricarica la pagina." };
 
-  const result = await addMembershipContacts(operator.id, people, target.periodKey, todayInRome());
+  const result = await addMembershipContacts(operator.id, people, target.periodKey, sentOn);
   if (!result.ok) return result;
   refreshGestione();
   return { ok: true, data: { count: result.data } };
