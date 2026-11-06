@@ -9,6 +9,7 @@ export type PartnerUnknownInput = WorkshopEmailData & {
 export function partnerUnknownEmail(input: PartnerUnknownInput): string {
   const intro = emailParagraph("You are receiving this email because you are going to take part in " + input.title + " at Peony Studio.") +
     emailParagraph("Your membership is still valid (expiration: " + input.membershipExpiresOn + ").") +
+    emailParagraph("You are attending a workshop organized by " + (input.associationName || "UR Expression APS") + ", represented by " + (input.associationPresident || "Andrea") + " (President) and " + (input.associationVicePresident || "Shiawase") + " (Vice-President).") +
     emailParagraph("We now need to know who your partner will be for the class, and whether they are already registered.");
   const sections = [
     emailSection("1. Check with your partner", emailParagraph("If your partner has already visited Peony Studio, we only need to check whether their membership is still valid.") +
