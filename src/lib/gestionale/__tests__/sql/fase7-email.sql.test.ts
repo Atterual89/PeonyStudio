@@ -54,6 +54,16 @@ describe("028 — email persistence and security", () => {
       expect(await t.value<boolean>("select has_table_privilege($1,'gw_email_sends','insert') v",[role])).toBe(false);
       expect(await t.value<boolean>("select has_function_privilege($1,'gw_mark_email_sends(uuid,uuid,uuid[],gw_email_kind,date)','execute') v",[role])).toBe(false);
     }
+    expect(await t.value<boolean>("select has_table_privilege('service_role','gw_email_texts','select') v")).toBe(true);
+    expect(await t.value<boolean>("select has_table_privilege('service_role','gw_email_sends','insert') v")).toBe(true);
+    for (const signature of [
+      "gw_save_email_texts(uuid,uuid,integer,jsonb)",
+      "gw_save_email_defaults(uuid,integer,jsonb)",
+      "gw_mark_email_sends(uuid,uuid,uuid[],gw_email_kind,date)",
+      "gw_delete_email_send(uuid,uuid)",
+    ]) {
+      expect(await t.value<boolean>("select has_function_privilege('service_role',$1,'execute') v",[signature])).toBe(true);
+    }
   });
 
   it("rollback and reapply",async()=>{

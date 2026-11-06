@@ -42,6 +42,9 @@ alter table public.gw_email_texts enable row level security;
 alter table public.gw_settings enable row level security;
 alter table public.gw_email_sends enable row level security;
 revoke all on public.gw_email_texts, public.gw_settings, public.gw_email_sends from public, anon, authenticated;
+-- La chiave service_role usa PostgREST: RLS bypass da sola non conferisce privilegi SQL.
+grant select, insert, update, delete on public.gw_email_texts, public.gw_settings, public.gw_email_sends to service_role;
+grant usage on type public.gw_email_kind to service_role;
 
 create function public.gw_save_email_texts(p_operator_id uuid,p_workshop_id uuid,p_version integer,p_fields jsonb)
 returns integer language plpgsql set search_path=public,pg_temp as $$
@@ -135,5 +138,10 @@ revoke all on function public.gw_save_email_texts(uuid,uuid,integer,jsonb) from 
 revoke all on function public.gw_save_email_defaults(uuid,integer,jsonb) from public,anon,authenticated;
 revoke all on function public.gw_mark_email_sends(uuid,uuid,uuid[],public.gw_email_kind,date) from public,anon,authenticated;
 revoke all on function public.gw_delete_email_send(uuid,uuid) from public,anon,authenticated;
+-- RPC invocate esclusivamente dal server Next.js con credenziali service_role.
+grant execute on function public.gw_save_email_texts(uuid,uuid,integer,jsonb) to service_role;
+grant execute on function public.gw_save_email_defaults(uuid,integer,jsonb) to service_role;
+grant execute on function public.gw_mark_email_sends(uuid,uuid,uuid[],public.gw_email_kind,date) to service_role;
+grant execute on function public.gw_delete_email_send(uuid,uuid) to service_role;
 notify pgrst, 'reload schema';
 commit;
