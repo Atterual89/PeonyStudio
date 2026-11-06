@@ -20,6 +20,11 @@ export function workshopDetailsEmail(input: WorkshopEmailData): string {
     emailSection("Location & Arrival", emailParagraph(input.location + ". Intercom: " + input.intercom + ".") +
       emailButton("Google Maps", input.mapsUrl) +
       '<img src="https://peonystudio.net/email/peony-entrance.jpg" alt="Peony Studio entrance" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;border-radius:12px;margin:18px auto 0;">'),
+    emailBox("How to access the venue", emailList(input.accessInfo || [])),
+    emailSection("Lunch and facilities", emailList(input.lunchInfo || [])),
+    emailSection("Venue Rules & Etiquette", emailList(input.venueRules || [])),
+    emailBox("Photo / Video Policy", emailList(input.photoPolicy || [])),
+    emailBox("Emergency Contact", input.emergencyContact ? emailParagraph(input.emergencyContact) : ""),
     emailSection("Additional information", input.extraNotes ? emailParagraph(input.extraNotes) : ""),
   ];
   return peonyEmailLayout({ workshopTitle: input.title, dateLabel: input.dateLabel, intro, sections,
