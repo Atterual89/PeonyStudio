@@ -62,8 +62,15 @@ export function peonyEmailLayout(input: EmailLayoutInput): string {
   const intro = '<tr><td style="padding:34px 38px 8px;font-size:16px;line-height:1.75;"><p style="margin:0 0 18px;">Dear,</p>' +
     input.intro + "</td></tr>";
   const footer = '<tr><td style="padding:28px 38px 35px;border-top:1px solid #c7b9a8;font-size:15px;line-height:1.7;">' +
-    escapeHtml(input.signature || "Peony Studio Staff") +
-    '<div style="margin-top:12px;color:#8f2635;font-weight:bold;">PEONY STUDIO</div></td></tr>';
+    'Thank you for your cooperation,<p style="margin:10px 0 0;"><strong>' + escapeHtml(input.signature || "Peony Studio Staff") + '</strong></p></td></tr>' +
+    '<tr><td align="center" style="padding:28px 40px 32px;background:#1d1814;color:#eadfce;">' +
+    '<div style="font-family:Georgia,Times New Roman,serif;font-size:20px;line-height:26px;color:#fff;margin-bottom:8px;">Peony Studio</div>' +
+    '<div style="font-size:13px;line-height:22px;color:#d8c7b2;">Torino</div>' +
+    '<div style="font-size:13px;line-height:22px;margin-top:14px;">' +
+    '<a href="https://www.instagram.com/peony.studio.turin/" style="color:#fff;text-decoration:underline;">Instagram</a>&nbsp;&nbsp;|&nbsp;&nbsp;' +
+    '<a href="https://peonystudio.net/" style="color:#fff;text-decoration:underline;">Website</a>&nbsp;&nbsp;|&nbsp;&nbsp;' +
+    '<a href="https://www.tickettailor.com/events/peonystudio1" style="color:#fff;text-decoration:underline;">Ticket Tailor</a>' +
+    '</div></td></tr>';
   return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="x-apple-disable-message-reformatting">' +
     '<meta name="color-scheme" content="light"><title>' + escapeHtml(input.workshopTitle) + " – Peony Studio</title></head>" +
     '<body style="margin:0;padding:0;background:#e9e0d3;font-family:Arial,Helvetica,sans-serif;color:#302822;">' +
