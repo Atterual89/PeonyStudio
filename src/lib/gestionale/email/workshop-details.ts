@@ -21,9 +21,11 @@ export function workshopDetailsEmail(input: WorkshopEmailData): string {
       emailButton("Google Maps", input.mapsUrl) +
       '<img src="https://peonystudio.net/email/peony-entrance.jpg" alt="Peony Studio entrance" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;border-radius:12px;margin:18px auto 0;">'),
     emailBox("How to access the venue", emailList(input.accessInfo || [])),
-    emailSection("Lunch and facilities", emailList(input.lunchInfo || [])),
+    emailSection("Lunch and facilities", emailList(input.lunchInfo || []) +
+      (input.lunchMapUrl ? emailButton("Lunch suggestions on Google Maps", input.lunchMapUrl) : "")),
     emailSection("Venue Rules & Etiquette", emailList(input.venueRules || [])),
     emailBox("Photo / Video Policy", emailList(input.photoPolicy || [])),
+    emailBox("Registration to the Studio Cultural Association", emailParagraph("All participants must complete their association registration at least 48 hours before the workshop. Deadline: " + input.membershipDeadline + ". The membership fee is €" + input.membershipFeeEuro + " per person.")) +
     emailBox("Emergency Contact", input.emergencyContact ? emailParagraph(input.emergencyContact) : ""),
     emailSection("Additional information", input.extraNotes ? emailParagraph(input.extraNotes) : ""),
   ];
