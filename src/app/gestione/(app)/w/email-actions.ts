@@ -3,6 +3,8 @@
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
 import { getWorkshopBookings, getWorkshopView } from "@/lib/gestionale/server/data";
+import { emailRecipients } from "@/lib/gestionale/email/recipients";
+import type { EmailSendRow } from "@/lib/gestionale/server/email";
 import { refreshGestione } from "@/lib/gestionale/server/refresh";
 import { todayInRome } from "@/lib/gestionale/workshops";
 import { isIsoDate, isUuidLike } from "@/lib/gestionale/validation";
@@ -87,8 +89,18 @@ export async function markEmailSentAction(input: {
   if (!workshop) return INVALID;
   // Revalidate all recipients against current bookings before writing, avoiding stale UI data.
   const bookings = await getWorkshopBookings(workshop);
-  const valid = new Set(bookings.filter((b) => (input.kind === "workshop_details" ? ["acconto","saldato"] : ["prenotato","acconto","saldato"]).includes(b.status))
-    .flatMap((b) => b.people).filter((p) => p.person.email && !p.person.merged_into).map((p) => p.person.id));
+  const { data: sendRows, error: sendsError } = await getGestionaleDb()
+    .from("gw_email_sends").select("id,person_id,kind,number,sent_on")
+    .eq("workshop_id", workshop.id).is("deleted_at", null);
+  if (sendsError) return { ok: false, error: "Impossibile verificare gli invii precedenti." };
+  const sends: EmailSendRow[] = (sendRows ?? []).map((row) => ({
+    id: row.id, personId: row.person_id, kind: row.kind, number: row.number, sentOn: row.sent_on,
+  }));
+  const recipientKind = input.kind === "workshop_details" ? "workshop_details"
+    : input.kind === "partner_reminder" ? "partner_reminder" : "partner";
+  const valid = new Set(emailRecipients(bookings, sends)
+    .filter((candidate) => candidate.type === recipientKind && candidate.email)
+    .map((candidate) => candidate.personId));
   const ids = [...new Set(input.personIds)];
   if (!ids.every((id) => valid.has(id))) return { ok: false, error: "Una persona non è più idonea. Ricarica la pagina." };
   const { data, error } = await getGestionaleDb().rpc("gw_mark_email_sends", {
