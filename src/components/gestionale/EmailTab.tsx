@@ -54,7 +54,7 @@ export function EmailTab({ rows, bookings, workshopId, today }: { rows: EmailRow
         <h2 className="text-base font-semibold">Comunicazioni associative</h2>
         <p className="mt-1 text-sm text-[#5f524c]">Il sistema propone le persone da contattare. La copia degli indirizzi e la registrazione dell’invio sono due azioni separate.</p>
       </div>
-      <details className={`${cardClass} p-3`} open={firstRequests.some((p) => Boolean(p.person.email))}>
+      <details className={`${cardClass} p-3`} defaultOpen={firstRequests.some((p) => Boolean(p.person.email))}>
         <summary className="min-h-10 cursor-pointer font-semibold">1 · Richiesta di associazione — {firstRequests.length} persone</summary>
         <ContactGroupTools key="request" workshopId={workshopId} group="da_contattare" people={firstRequests} includeInterested={false} today={today} />
       </details>
