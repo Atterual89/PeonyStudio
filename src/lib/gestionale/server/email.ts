@@ -13,7 +13,7 @@ export type EmailSendRow = {
 };
 
 export type EmailSavedFields = { version: number; fields: Partial<WorkshopEmailData> };
-export type EmailDefaults = { version: number; fields: Record<string, string | number> };
+export type EmailDefaults = { version: number; fields: Partial<WorkshopEmailData> };
 
 function fail(error: { message: string } | null): never {
   throw new Error("Gestionale Email: " + (error?.message || "errore sconosciuto"));
@@ -35,7 +35,7 @@ export async function loadEmailState(workshop: WorkshopView): Promise<{
   if (sends.error) fail(sends.error);
   return {
     workshopFields: { version: texts.data?.version ?? 0, fields: (texts.data?.fields ?? {}) as Partial<WorkshopEmailData> },
-    defaults: { version: settings.data?.version ?? 0, fields: (settings.data?.fields ?? {}) as Record<string, string | number> },
+    defaults: { version: settings.data?.version ?? 0, fields: (settings.data?.fields ?? {}) as Partial<WorkshopEmailData> },
     sends: (sends.data ?? []).map((s): EmailSendRow => ({
       id: s.id, personId: s.person_id, kind: s.kind, number: s.number, sentOn: s.sent_on,
     })),
