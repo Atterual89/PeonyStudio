@@ -1,0 +1,20 @@
+export type WorkshopEmailData = {
+  title: string;
+  dateLabel: string;
+  location: string;
+  intercom: string;
+  mapsUrl: string;
+  membershipFormUrl: string;
+  membershipFeeEuro: number;
+  membershipDeadline: string;
+  intro?: string;
+  program?: string[];
+  prerequisitesRiggers?: string[];
+  prerequisitesModels?: string[];
+  ropes?: string;
+  clothing?: string;
+  schedule?: string[];
+  arrival?: string;
+  extraNotes?: string;
+  signature?: string;
+};
