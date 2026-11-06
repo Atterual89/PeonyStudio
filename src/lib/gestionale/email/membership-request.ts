@@ -1,4 +1,4 @@
-import { emailBox, emailButton, emailParagraph, emailSection, escapeHtml, peonyEmailLayout } from "./layout";
+import { emailBox, emailButton, emailParagraph, emailSection, peonyEmailLayout } from "./layout";
 import type { WorkshopEmailData } from "./types";
 
 export type MembershipRequestInput = WorkshopEmailData & {
