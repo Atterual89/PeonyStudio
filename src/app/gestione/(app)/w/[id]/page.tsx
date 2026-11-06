@@ -81,6 +81,23 @@ export default async function WorkshopDetailPage({
         </div>
       ) : null}
 
+      {isAdmin && bookings && active === "partecipanti" ? (
+        <div className="mt-4 rounded-xl border border-[#211815]/10 bg-white/70 p-3">
+          <h2 className="text-base font-semibold">Da verificare</h2>
+          <p className="mt-1 text-sm text-[#5f524c]">Situazione delle iscrizioni confermate.</p>
+          <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+            <div className="rounded-lg bg-[#f2ede3] p-3">
+              <strong className="block text-xl">{bookings.filter((b) => ["prenotato", "acconto", "saldato"].includes(b.status) && b.people.some((p) => p.membership.kind !== "in_regola")).length}</strong>
+              <span>Iscrizioni con associazione da verificare</span>
+            </div>
+            <Link prefetch={false} href={`/gestione/w/${workshop.id}?tab=email`} className="rounded-lg bg-[#f2ede3] p-3">
+              <strong className="block text-xl">{new Set(bookings.filter((b) => ["prenotato", "acconto", "saldato"].includes(b.status)).flatMap((b) => b.people).filter((p) => !p.person.email).map((p) => p.person.id)).size}</strong>
+              <span>Persone senza email · Apri Email</span>
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
       {/* Il tab attivo sta nell'URL: il tasto indietro del telefono funziona. */}
       <nav aria-label="Sezioni del workshop" className="-mx-4 mt-4 flex overflow-x-auto border-b border-[#211815]/10 px-4">
         {WORKSHOP_TABS[operator.role].map((t) => (
