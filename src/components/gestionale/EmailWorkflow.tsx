@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { markGroupSentAction } from "@/app/gestione/(app)/w/contact-actions";
 import { markEmailSentAction } from "@/app/gestione/(app)/w/email-actions";
 import type { EmailRecipient } from "@/lib/gestionale/email/recipients";
@@ -74,7 +74,8 @@ export function EmailWorkflow({ kind, recipients, workshopId, today, fields, val
     kind === "partner_reminder" ? "Reminder – workshop partner – "+fields.title :
     "Practical information – "+fields.title;
 
-  const html = useMemo(()=>{
+  // Render from the current selection on every render: never reuse another recipient's HTML.
+  const html = (()=>{
     if (!chosen.length || mixed) return "";
     if (kind==="membership_request" || kind==="membership_reminder") {
       const selectedRow = chosen[0];
@@ -85,7 +86,7 @@ export function EmailWorkflow({ kind, recipients, workshopId, today, fields, val
     if (kind==="partner") return partnerUnknownEmail(data);
     if (kind==="partner_reminder") return partnerReminderEmail(data);
     return workshopDetailsEmail(fields);
-  },[fields,kind,chosen.length,variant,mixed,validUntil,renewalUntil]);
+  })();
 
   async function copyText(value: string, type: "bcc"|"subject") {
     try {
