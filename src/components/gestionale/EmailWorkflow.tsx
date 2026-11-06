@@ -156,7 +156,7 @@ export function EmailWorkflow({ kind, recipients, workshopId, today, fields, val
                 onChange={(e)=>{setSelected((prev)=>e.target.checked ? [...prev,r.personId] : prev.filter((id)=>id!==r.personId));setCopied(null);setMessage(null)}} />
               <span>{r.name} <span className="block break-all text-xs text-[#5f524c]">{r.email||"Email mancante"} {kind.startsWith("membership") ? "· "+(r.partnerStatus==="unknown"?"partner sconosciuto":"partner noto"):""}</span></span>
             </label>
-            {!r.email ? <Link href={"/gestione/p/"+r.personId} className="underline">Completa scheda</Link> : null}
+            {!r.email ? <Link prefetch={false} href={"/gestione/p/"+r.personId} className="underline">Completa scheda</Link> : null}
           </li>)}
         </ul> : null}
         {mixed ? <Notice tone="warning">Sono stati selezionati casi con partner diversi. Seleziona solo persone con la stessa situazione: il testo cambia.</Notice> : null}
