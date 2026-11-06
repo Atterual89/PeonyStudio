@@ -8,7 +8,7 @@ import { ParticipantsTab } from "@/components/gestionale/ParticipantsTab";
 import { RegistrationsTab } from "@/components/gestionale/RegistrationsTab";
 import { CopySettings, OrganizerSettingsForm, WorkshopSettingsForm } from "@/components/gestionale/WorkshopSettingsForm";
 import { Notice, cardClass } from "@/components/gestionale/ui";
-import { emailRows } from "@/lib/gestionale/email-list";
+import { loadEmailState } from "@/lib/gestionale/server/email";
 import { formatDateRange } from "@/lib/gestionale/format";
 import { presentCount, showPresence } from "@/lib/gestionale/presence";
 import { getAccounts, getTaxNotes, listCarryoverDestinations } from "@/lib/gestionale/server/accounts";
@@ -52,6 +52,7 @@ export default async function WorkshopDetailPage({
   const today = todayInRome();
   const presence = showPresence(workshop.startsOn, today);
   const present = presentCount(bookings ?? registrations ?? []);
+  const emailState = isAdmin && active === "email" ? await loadEmailState(workshop) : null;
 
   return (
     <section>
@@ -128,7 +129,7 @@ export default async function WorkshopDetailPage({
           />
         ) : null}
         {/* D27: solo nome, email e stato arrivano al browser. */}
-        {active === "email" && bookings ? <EmailTab rows={emailRows(bookings)} bookings={bookings} workshopId={workshop.id} today={today} /> : null}
+        {active === "email" && bookings && emailState ? <EmailTab workshop={workshop} bookings={bookings} saved={emailState.workshopFields} defaults={emailState.defaults} sends={emailState.sends} today={today} /> : null}
         {active === "conti" ? <AccountsSection workshop={workshop} isAdmin={isAdmin} /> : null}
         {active === "info" ? (
           <InfoTab workshop={workshop} isAdmin={isAdmin} hasBookings={statuses.length > 0} />
