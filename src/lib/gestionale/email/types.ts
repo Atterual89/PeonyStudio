@@ -17,4 +17,9 @@ export type WorkshopEmailData = {
   arrival?: string;
   extraNotes?: string;
   signature?: string;
+  accessInfo?: string[];
+  lunchInfo?: string[];
+  venueRules?: string[];
+  photoPolicy?: string[];
+  emergencyContact?: string;
 };
