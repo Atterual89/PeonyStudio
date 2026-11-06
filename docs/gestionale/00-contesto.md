@@ -508,3 +508,16 @@ Dettagli e numeri in `revisione-ale.md` (colonna Esito). Nessuna migrazione: tut
 - **Scheda persona:** "Scollega dal libro soci" (conferma sul posto) quando c'è un collegamento esplicito; "Segna quota associativa pagata" resta la correzione manuale (D11, non `gw_membership_overrides`).
 - **Caricamento:** `loading.tsx` per soci (Google Sheet) e storico (`PageLoading` in `ui.tsx`).
 
+
+
+---
+
+## D30 — Tab Email del gestionale (FASE 7)
+
+Le comunicazioni ai partecipanti stanno esclusivamente nel tab **Email** degli admin. Il tab Partecipanti mantiene gli stati associativi e gli ultimi contatti ma non azioni di invio. Il percorso è: dettagli condivisi del workshop, scelta del messaggio, destinatari proposti, copia di Ccn/oggetto/corpo HTML in Gmail, conferma esplicita dell'avvenuto invio. Copiare **non** equivale a inviare. I riquadri sono compatti e apribili a richiesta; si parte dalla prima comunicazione con destinatari da contattare.
+
+Le quattro categorie sono **richiesta di associazione**, **partner da conoscere**, **sollecito** (associazione e partner distinti) e **dettagli del workshop**. La richiesta e i solleciti associativi riusano `gw_membership_contacts` per persona e periodo; gli altri invii usano `gw_email_sends` per persona e workshop. Le registrazioni sono manuali, con data validata, eliminazione logica e audit. Le persone senza email non sono selezionabili; l'admin può correggere la scheda. I gruppi sono ricalcolati dal server per evitare registrazioni non più appropriate.
+
+Tutte le email sono HTML, con lo stesso layout grafico del modello Level 2+ (680px, palette sabbia/bordeaux, logo, riquadri ◆ e pulsanti, CSS inline). Sorgenti originali in `docs/gestionale/email/`, asset in `public/email/` con URL assoluti. `src/lib/gestionale/email/` contiene i generatori e l'escaping dei testi. L'interfaccia presenta anteprima sandbox e copia Gmail HTML e plain text. I dati variabili del workshop sono versionati in `gw_email_texts`, quelli globali in `gw_settings` (`email_defaults`), modificabili solo dagli admin in `/gestione/altro/impostazioni-email`. La migrazione è `028_gw_email.sql` con rollback, da applicare separatamente dopo i test; nessuna scrittura automatica sul database reale.
+
+La FASE 7 non si considera completata senza TypeScript, test del gestionale, test SQL, verifica di Gmail desktop e valutazione del comportamento mobile. La pull request rimane draft finché queste verifiche non sono completate.
