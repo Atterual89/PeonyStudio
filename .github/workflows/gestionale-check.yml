@@ -2,8 +2,6 @@ name: Gestionale checks
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [feat/gestionale-usability-email]
 jobs:
   test:
     runs-on: ubuntu-latest
