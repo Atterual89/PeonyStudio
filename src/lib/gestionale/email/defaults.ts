@@ -42,6 +42,29 @@ export function workshopEmailDefaults(workshop: Pick<WorkshopView, "displayName"
     clothing: "",
     arrival: "",
     extraNotes: "",
+    accessInfo: [
+      "Metro: Marche station, Via Eritrea exit; about 5 minutes on foot.",
+      "Street parking is available nearby.",
+      "Do not wait in a large group in front of the building.",
+      "Ring the UR Expression intercom twice, then go to floor -1.",
+      "Please be quiet on the stairs: the building is residential.",
+    ],
+    lunchInfo: [
+      "Several restaurants and supermarkets are close to the studio. Check opening hours, especially on Sundays.",
+      "You may use the studio kitchen (refrigerator, microwave and kettle) and bring your own food.",
+    ],
+    venueRules: [
+      "The venue is shoes-free. Remove your shoes at the entrance.",
+      "Smoking and vaping are not allowed inside.",
+      "No open beverages in the workshop area; closed bottles are permitted.",
+    ],
+    photoPolicy: [
+      "Photos may be taken during exercise demonstrations.",
+      "Video and audio recording are not allowed unless teachers specify otherwise.",
+      "Photos of your partner require their explicit consent; do not include other participants without their consent.",
+      "Recording devices such as smart glasses are not allowed.",
+    ],
+    emergencyContact: "For urgent assistance on the day of the event, call Andrea at +39 320 648 6577 (WhatsApp / Telegram).",
   };
 }
 
