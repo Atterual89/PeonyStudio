@@ -58,8 +58,8 @@ describe("four HTML message types", () => {
   it("reminders retain the same HTML and add the deadline", () => {
     const membership = membershipReminderEmail({ ...base, partnerStatus: "unknown", coupleBooking: true });
     const partner = partnerReminderEmail({ ...base, membershipExpiresOn: "31 December 2026", nextMembershipExpiresOn: "31 December 2027" });
-    expect(membership).toContain("We haven't received your registration yet.");
-    expect(partner).toContain("We still don't know who your partner will be.");
+    expect(membership).toContain("We haven&#39;t received your registration yet.");
+    expect(partner).toContain("We still don&#39;t know who your partner will be.");
     expect(membership).toContain(base.membershipDeadline);
   });
   it("workshop details omits empty optional sections", () => {
