@@ -77,7 +77,7 @@ function EditWorkshopDetails({workshop,defaults,saved,onSave}:{workshop:Workshop
       } else setMessage({tone:"error",text:result.error});
     });
   }
-  const missing=[!data.schedule.length?"Orari":null,!data.program.length?"Programma":null,!data.ropes.trim()?"Corde":null,!data.clothing.trim()?"Abbigliamento":null].filter(Boolean);
+  const missing=[!data.schedule?.length?"Orari":null,!data.program?.length?"Programma":null,!data.ropes?.trim()?"Corde":null,!data.clothing?.trim()?"Abbigliamento":null].filter(Boolean);
   return <details className={cardClass+" p-3"}>
     <summary className="min-h-11 cursor-pointer font-semibold">Dettagli del workshop · {missing.length ? "Da completare: "+missing.join(", ") : "Completi ✓"}</summary>
     <p className="mt-2 text-sm text-[#5f524c]">Compila una volta i dettagli condivisi dalle email. Programma e prerequisiti non vengono inventati o copiati automaticamente da altri workshop.</p>
