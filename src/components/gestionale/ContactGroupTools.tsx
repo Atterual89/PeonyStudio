@@ -39,6 +39,7 @@ export function ContactGroupTools({
   const [asking, setAsking] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
+  const [sentOn, setSentOn] = useState(() => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()));
 
   if (people.length === 0) return null;
 
@@ -81,7 +82,7 @@ export function ContactGroupTools({
   function markSent() {
     if (!copied) return;
     startTransition(async () => {
-      const result = await markGroupSentAction({ workshopId, group, personIds: copied.ids, includeInterested });
+      const result = await markGroupSentAction({ workshopId, group, personIds: copied.ids, includeInterested, sentOn });
       setAsking(false);
       if (result.ok) {
         setCopied(null);
@@ -133,9 +134,10 @@ export function ContactGroupTools({
           )}
           {asking ? (
             <div className="space-y-2">
-              <p className="font-semibold">
-                Registrare con la data di oggi la richiesta (o il sollecito successivo) per {count} {count === 1 ? "persona" : "persone"}?
-              </p>
+              <p className="font-semibold">Hai inviato davvero la richiesta o il sollecito a {count} {count === 1 ? "persona" : "persone"}?</p>
+              <label className="block text-sm font-medium">Data invio
+                <input type="date" value={sentOn} onChange={(event) => setSentOn(event.target.value)} className={`${inputClass} mt-1 max-w-52`} />
+              </label>
               <div className="flex flex-wrap gap-2">
                 <button type="button" className={buttonClass.primary} disabled={pending} onClick={markSent}>
                   {pending ? "Salvataggio…" : "Conferma"}
@@ -147,7 +149,7 @@ export function ContactGroupTools({
             </div>
           ) : (
             <button type="button" className={buttonClass.primary} onClick={() => setAsking(true)}>
-              Registra come inviata ({count})
+              Sì, l’ho inviata a {count} {count === 1 ? "persona" : "persone"}
             </button>
           )}
         </div>
