@@ -10,7 +10,7 @@ export type MembershipRequestInput = WorkshopEmailData & {
 export function membershipRequestEmail(input: MembershipRequestInput): string {
   const fee = input.membershipFeeEuro;
   const introduction = emailParagraph("You are receiving this email because you are going to take part in " + input.title + " at Peony Studio.") +
-    emailParagraph("To take part in the workshop, everyone must be a registered member of UR Expression APS, the cultural association of Peony Studio.");
+    emailParagraph("To take part in the workshop, everyone must be a registered member of " + (input.associationName || "UR Expression APS") + ", the cultural association of Peony Studio, represented by " + (input.associationPresident || "Andrea") + " (President) and " + (input.associationVicePresident || "Shiawase") + " (Vice-President).");
   const membership = emailParagraph("If you have never registered before, please complete the association form. After submitting it, you will receive the instructions for paying the membership fee of €" + fee + ".") +
     emailButton("Register to the association", input.membershipFormUrl);
   const partner = input.partnerStatus === "unknown"
@@ -21,7 +21,7 @@ export function membershipRequestEmail(input: MembershipRequestInput): string {
       ? emailBox("Your partner also needs to be registered", emailParagraph((input.partnerName || "Your partner") + " also needs to register with the association."))
       : "";
   const transfer = (input.coupleBooking || input.partnerStatus === "unknown")
-    ? emailParagraph("You can pay both membership fees in a single transfer (€" + (fee * 2) + "). In the payment description, please write: Membership fee + your full names.")
+    ? emailParagraph("You can pay both membership fees in a single transfer (€" + (fee * 2) + "). In the payment description, please write: " + (input.transferInstructions || "Membership fee + your full names") + ".")
     : "";
   const sections = [
     emailSection("1. Register to the association", membership + transfer),
