@@ -200,7 +200,7 @@ export function ParticipantsTab({
             </Chip>
           ))}
         </div>
-        <details key={["confermati", "interessati", "non_soci"].includes(filter) ? "main" : "extra"} className="rounded-lg border border-[#211815]/10 bg-white/70 p-2" defaultOpen={!["confermati", "interessati", "non_soci"].includes(filter)}>
+        <details key={["confermati", "interessati", "non_soci"].includes(filter) ? "main" : "extra"} className="rounded-lg border border-[#211815]/10 bg-white/70 p-2" open={!["confermati", "interessati", "non_soci"].includes(filter)}>
           <summary className="min-h-10 cursor-pointer px-2 py-2 text-sm font-semibold text-[#5f524c]">
             Altri filtri {["confermati", "interessati", "non_soci"].includes(filter) ? "" : "· filtro attivo"}
           </summary>
