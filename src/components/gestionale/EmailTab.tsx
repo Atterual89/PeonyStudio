@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { saveWorkshopEmailAction, deleteEmailSentAction } from "@/app/gestione/(app)/w/email-actions";
 import { deleteContactAction } from "@/app/gestione/(app)/w/contact-actions";
-import type { WorkshopEmailData } from "@/lib/gestionale/email/types";
+import { WORKSHOP_EMAIL_KEYS, type WorkshopEmailData } from "@/lib/gestionale/email/types";
 import { emailRecipients, type EmailRecipient } from "@/lib/gestionale/email/recipients";
 import { workshopEmailDefaults, emailMembershipDates } from "@/lib/gestionale/email/defaults";
 import type { EmailSavedFields, EmailDefaults, EmailSendRow } from "@/lib/gestionale/server/email";
@@ -81,9 +82,10 @@ function EditWorkshopDetails({workshop,defaults,saved,onSave}:{workshop:Workshop
   return <details className={cardClass+" p-3"}>
     <summary className="min-h-11 cursor-pointer font-semibold">Dettagli del workshop · {missing.length ? "Da completare: "+missing.join(", ") : "Completi ✓"}</summary>
     <p className="mt-2 text-sm text-[#5f524c]">Compila una volta i dettagli condivisi dalle email. Programma e prerequisiti non vengono inventati o copiati automaticamente da altri workshop.</p>
-    {SECTIONS.map(section=><details key={section.label} className="mt-3 rounded-lg border border-[#211815]/10 p-3">
+    <p className="mt-2 text-sm"><Link href="/gestione/altro/impostazioni-email" className="text-[#8f2635] underline">Modifica impostazioni generali: associazione, indirizzo, regole, firma</Link></p>
+    {SECTIONS.filter(section=>section.keys.some(key=>WORKSHOP_EMAIL_KEYS.some(k=>k===key))).map(section=><details key={section.label} className="mt-3 rounded-lg border border-[#211815]/10 p-3">
       <summary className="min-h-10 cursor-pointer font-medium">{section.label}</summary>
-      <div className="mt-3 space-y-3">{FIELDS.filter(f=>section.keys.some(key=>key===f.key)).map(field=>{
+      <div className="mt-3 space-y-3">{FIELDS.filter(f=>WORKSHOP_EMAIL_KEYS.some(k=>k===f.key) && section.keys.some(key=>key===f.key)).map(field=>{
         const value=data[field.key];
         const text=Array.isArray(value)?value.join("\n"):String(value??"");
         return <label key={field.key} className="block text-sm font-medium">
