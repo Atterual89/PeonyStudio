@@ -80,7 +80,7 @@ export async function markEmailSentAction(input: {
   sentOn: string;
 }): Promise<ActionResult<{ count: number }>> {
   const operator = await requireAdmin();
-  if (!isUuidLike(input?.workshopId) || !VALID_TYPES.includes(input?.kind) || !isIsoDate(input?.sentOn) ||
+  if (!isUuidLike(input?.workshopId) || !(typeof input?.kind === "string" && (VALID_TYPES as readonly string[]).includes(input.kind)) || !isIsoDate(input?.sentOn) ||
       input.sentOn > todayInRome() || !Array.isArray(input.personIds) || !input.personIds.length ||
       input.personIds.length > 500 || !input.personIds.every(isUuidLike)) return INVALID;
   const workshop = await getWorkshopView(input.workshopId);
