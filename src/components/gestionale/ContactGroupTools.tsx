@@ -27,11 +27,13 @@ export function ContactGroupTools({
   group,
   people,
   includeInterested,
+  today,
 }: {
   workshopId: string;
   group: ContactGroup;
   people: BookingPersonView[];
   includeInterested: boolean;
+  today: string;
 }) {
   // Spunte: tutte attive; si tolgono quelle a cui non si scrive.
   const [unchecked, setUnchecked] = useState<Set<string>>(new Set());
@@ -39,6 +41,7 @@ export function ContactGroupTools({
   const [asking, setAsking] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
+  const [sentOn, setSentOn] = useState(today);
 
   if (people.length === 0) return null;
 
@@ -79,9 +82,10 @@ export function ContactGroupTools({
   }
 
   function markSent() {
-    if (!copied) return;
+    const personIds = list.withEmail.map((entry) => entry.person.id);
+    if (personIds.length === 0) return;
     startTransition(async () => {
-      const result = await markGroupSentAction({ workshopId, group, personIds: copied.ids, includeInterested });
+      const result = await markGroupSentAction({ workshopId, group, personIds, includeInterested, sentOn });
       setAsking(false);
       if (result.ok) {
         setCopied(null);
@@ -90,7 +94,7 @@ export function ContactGroupTools({
     });
   }
 
-  const count = copied?.ids.length ?? 0;
+  const count = list.withEmail.length;
 
   return (
     <div className="mt-3 space-y-2 rounded-xl bg-[#f2ede3] p-3 text-sm">
@@ -104,7 +108,8 @@ export function ContactGroupTools({
               <input
                 type="checkbox"
                 className="h-5 w-5 accent-[#a8583e]"
-                checked={!unchecked.has(entry.person.id)}
+                checked={!unchecked.has(entry.person.id) && Boolean(entry.person.email)}
+                disabled={!entry.person.email}
                 onChange={(e) => toggle(entry.person.id, e.target.checked)}
               />
               <span className="font-medium">{personNames(entry).main}</span>
@@ -124,20 +129,22 @@ export function ContactGroupTools({
         <p className="text-[#7a5212]">Senza email: {list.withoutEmail.map((entry) => personNames(entry).main).join(", ")}</p>
       ) : null}
 
-      {copied ? (
-        <div className="space-y-2">
-          {copied.manual ? (
+      <div className="space-y-2">
+        {copied ? (
+          copied.manual ? (
             <textarea readOnly className={`${inputClass} min-h-16 py-2`} rows={2} value={copied.text} onFocus={(e) => e.currentTarget.select()} />
           ) : (
-            <p className="text-[#2f5d3b]">Copiate {count} email.</p>
-          )}
+            <p className="text-[#2f5d3b]">Copiati {copied.ids.length} indirizzi.</p>
+          )
+        ) : null}
           {asking ? (
             <div className="space-y-2">
-              <p className="font-semibold">
-                Registrare con la data di oggi la richiesta (o il sollecito successivo) per {count} {count === 1 ? "persona" : "persone"}?
-              </p>
+              <p className="font-semibold">Hai inviato davvero la richiesta o il sollecito a {count} {count === 1 ? "persona" : "persone"}?</p>
+              <label className="block text-sm font-medium">Data invio
+                <input type="date" value={sentOn} onChange={(event) => setSentOn(event.target.value)} className={`${inputClass} mt-1 max-w-52`} />
+              </label>
               <div className="flex flex-wrap gap-2">
-                <button type="button" className={buttonClass.primary} disabled={pending} onClick={markSent}>
+                <button type="button" className={buttonClass.primary} disabled={pending || !sentOn} onClick={markSent}>
                   {pending ? "Salvataggio…" : "Conferma"}
                 </button>
                 <button type="button" className={buttonClass.ghost} disabled={pending} onClick={() => setAsking(false)} autoFocus>
@@ -146,12 +153,11 @@ export function ContactGroupTools({
               </div>
             </div>
           ) : (
-            <button type="button" className={buttonClass.primary} onClick={() => setAsking(true)}>
-              Registra come inviata ({count})
+            <button type="button" className={buttonClass.primary} disabled={count === 0} onClick={() => setAsking(true)}>
+              Sì, l’ho inviata a {count} {count === 1 ? "persona" : "persone"}
             </button>
           )}
         </div>
-      ) : null}
       {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
     </div>
   );

@@ -18,7 +18,6 @@ import { canMarkPresent } from "@/lib/gestionale/presence";
 import type { BookingView } from "@/lib/gestionale/types";
 
 import { BookingDetails } from "./BookingDetails";
-import { ContactGroupTools } from "./ContactGroupTools";
 import { DeleteBookingConfirm } from "./Deletion";
 import { ExactMatches } from "./ExactMatches";
 import { MembershipBadge } from "./MembershipBadge";
@@ -118,6 +117,7 @@ export function ParticipantsTab({
   bookings: BookingView[];
 }) {
   const [filter, setFilter] = useState<BookingFilter>("confermati");
+  const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sort, setSort] = useState<{ key: SortKey; asc: boolean }>({ key: "nome", asc: true });
@@ -129,14 +129,18 @@ export function ParticipantsTab({
   const summary = membershipSummary(bookings);
 
   const visible = useMemo(() => {
-    const rows = bookings.filter((b) => matchesBookingFilter(b, filter, { includeInterested }));
+    const normalizedQuery = query.trim().toLocaleLowerCase("it");
+    const rows = bookings.filter((b) => matchesBookingFilter(b, filter, { includeInterested }) && (
+      !normalizedQuery || [bookingTitle(b), ...b.people.flatMap((p) => [p.displayName, p.fullName ?? "", p.person.nickname ?? "", p.person.email ?? ""])]
+        .some((value) => value.toLocaleLowerCase("it").includes(normalizedQuery))
+    ));
     return rows.sort((a, b) => {
       const av = sortValue(a, sort.key);
       const bv = sortValue(b, sort.key);
       const cmp = av < bv ? -1 : av > bv ? 1 : bookingTitle(a).localeCompare(bookingTitle(b));
       return sort.asc ? cmp : -cmp;
     });
-  }, [bookings, filter, sort, includeInterested]);
+  }, [bookings, filter, sort, includeInterested, query]);
   const notLinked = new Set(bookings.flatMap((b) => b.people).filter((p) => p.membership.kind === "non_collegata").map((p) => p.person.id)).size;
 
   function toggle(id: string) {
@@ -174,36 +178,53 @@ export function ParticipantsTab({
       </div>
       <ExactMatches workshopId={workshopId} notLinked={notLinked} />
 
-      <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1">
-        {BOOKING_FILTERS.map(({ key, label }) => (
-          <Chip key={key} active={filter === key} onClick={() => setFilter(key)}>
-            {label} ({isContactGroup(key) ? `${peopleInGroup(bookings, key, scope).length} pers.` : bookings.filter((b) => matchesBookingFilter(b, key)).length})
-          </Chip>
-        ))}
+      <div className="mt-4 space-y-3">
+        <label className="block text-sm font-medium text-[#5f524c]">
+          Cerca partecipante
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Nome, nickname o email"
+            className="mt-1 h-10 w-full rounded-lg border border-[#211815]/15 bg-white px-3 text-[15px] text-[#211815] focus:border-[#a8583e] focus:outline-none focus:ring-2 focus:ring-[#a8583e]/20"
+          />
+        </label>
+        <div className="flex flex-wrap gap-2" aria-label="Viste principali">
+          {([
+            { key: "confermati", label: "Confermati" },
+            { key: "interessati", label: "Interessati" },
+            { key: "non_soci", label: "Da verificare" },
+          ] as const).map(({ key, label }) => (
+            <Chip key={key} active={filter === key} onClick={() => setFilter(key)}>
+              {label} ({bookings.filter((b) => matchesBookingFilter(b, key)).length})
+            </Chip>
+          ))}
+        </div>
+        <details key={["confermati", "interessati", "non_soci"].includes(filter) ? "main" : "extra"} className="rounded-lg border border-[#211815]/10 bg-white/70 p-2" open={!["confermati", "interessati", "non_soci"].includes(filter)}>
+          <summary className="min-h-10 cursor-pointer px-2 py-2 text-sm font-semibold text-[#5f524c]">
+            Altri filtri {["confermati", "interessati", "non_soci"].includes(filter) ? "" : "· filtro attivo"}
+          </summary>
+          <div className="flex flex-wrap gap-2 px-2 pb-2">
+            {BOOKING_FILTERS.filter(({ key }) => !["confermati", "interessati", "non_soci"].includes(key)).map(({ key, label }) => (
+              <Chip key={key} active={filter === key} onClick={() => setFilter(key)}>
+                {label} ({isContactGroup(key) ? `${peopleInGroup(bookings, key, scope).length} pers.` : bookings.filter((b) => matchesBookingFilter(b, key)).length})
+              </Chip>
+            ))}
+          </div>
+        </details>
       </div>
       {isContactGroup(filter) ? (
-        <>
-          <label className="mt-2 flex min-h-10 items-center gap-2 text-sm font-medium">
-            <input
-              type="checkbox"
-              className="h-5 w-5 accent-[#a8583e]"
-              checked={includeInterested}
-              onChange={(e) => setIncludeInterested(e.target.checked)}
-            />
-            Includi interessati
+        <div className="mt-3 rounded-lg bg-[#f2ede3] p-3 text-sm text-[#5f524c]">
+          <label className="flex min-h-10 items-center gap-2">
+            <input type="checkbox" className="h-5 w-5 accent-[#a8583e]" checked={includeInterested} onChange={(e) => setIncludeInterested(e.target.checked)} />
+            Includi interessati nel filtro
           </label>
-          <ContactGroupTools
-            key={`${filter}-${includeInterested}`}
-            workshopId={workshopId}
-            group={filter}
-            people={peopleInGroup(bookings, filter, scope)}
-            includeInterested={includeInterested}
-          />
-        </>
+          <p className="mt-1">Le comunicazioni e le conferme d’invio si gestiscono nel tab Email.</p>
+        </div>
       ) : null}
 
       {visible.length === 0 ? (
-        <p className="mt-3 text-sm text-[#5f524c]">Nessuna iscrizione in questo elenco.</p>
+        <p className="mt-3 text-sm text-[#5f524c]">{query.trim() ? "Nessun risultato per questa ricerca." : "Nessuna iscrizione in questo elenco."}</p>
       ) : !isDesktop ? (
         /* Mobile e tablet: una riga per iscrizione, si apre sul posto. */
         <ul className="mt-4 space-y-2">

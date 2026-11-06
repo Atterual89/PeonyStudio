@@ -1,4 +1,4 @@
-import { ChevronRight, History, UserCheck } from "lucide-react";
+import { ChevronRight, History, Mail, UserCheck } from "lucide-react";
 import Link from "next/link";
 
 import { LogoutButton } from "@/components/gestionale/LogoutButton";
@@ -22,6 +22,15 @@ export default async function AltroPage() {
             <Link prefetch={false} href="/gestione/altro/soci" className="flex min-h-12 items-center gap-3 px-3">
               <UserCheck className="h-5 w-5 text-[#a8583e]" aria-hidden="true" />
               <span className="flex-1 font-semibold">Collega al libro soci</span>
+              <ChevronRight className="h-5 w-5 text-[#5f524c]" aria-hidden="true" />
+            </Link>
+          </li>
+        ) : null}
+        {operator.role === "admin" ? (
+          <li>
+            <Link prefetch={false} href="/gestione/altro/impostazioni-email" className="flex min-h-12 items-center gap-3 px-3">
+              <Mail className="h-5 w-5 text-[#a8583e]" aria-hidden="true" />
+              <span className="flex-1 font-semibold">Impostazioni email</span>
               <ChevronRight className="h-5 w-5 text-[#5f524c]" aria-hidden="true" />
             </Link>
           </li>

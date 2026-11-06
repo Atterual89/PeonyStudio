@@ -8,7 +8,7 @@ import { ParticipantsTab } from "@/components/gestionale/ParticipantsTab";
 import { RegistrationsTab } from "@/components/gestionale/RegistrationsTab";
 import { CopySettings, OrganizerSettingsForm, WorkshopSettingsForm } from "@/components/gestionale/WorkshopSettingsForm";
 import { Notice, cardClass } from "@/components/gestionale/ui";
-import { emailRows } from "@/lib/gestionale/email-list";
+import { loadEmailState, loadPreviousEmailConfigs } from "@/lib/gestionale/server/email";
 import { formatDateRange } from "@/lib/gestionale/format";
 import { presentCount, showPresence } from "@/lib/gestionale/presence";
 import { getAccounts, getTaxNotes, listCarryoverDestinations } from "@/lib/gestionale/server/accounts";
@@ -52,6 +52,12 @@ export default async function WorkshopDetailPage({
   const today = todayInRome();
   const presence = showPresence(workshop.startsOn, today);
   const present = presentCount(bookings ?? registrations ?? []);
+  const emailState = isAdmin && active === "email" ? await loadEmailState(workshop) : null;
+  const previousEmails = emailState ? await loadPreviousEmailConfigs(workshop.id) : [];
+  const previousWorkshops = emailState ? await listWorkshopsForCopy(workshop.id) : [];
+  const pastWorkshopNames = new Map(previousWorkshops.map(item => [item.id, item.displayName]));
+  const previousConfigs = previousEmails.filter(item => pastWorkshopNames.has(item.workshopId))
+    .map(item => ({ ...item, name: pastWorkshopNames.get(item.workshopId) || "Workshop precedente" }));
 
   return (
     <section>
@@ -78,6 +84,23 @@ export default async function WorkshopDetailPage({
       {workshop.eventNotice ? (
         <div className="mt-3">
           <Notice tone="warning">{workshop.eventNotice}: nome e date sono l&apos;ultima copia salvata.</Notice>
+        </div>
+      ) : null}
+
+      {isAdmin && bookings && active === "partecipanti" ? (
+        <div className="mt-4 rounded-xl border border-[#211815]/10 bg-white/70 p-3">
+          <h2 className="text-base font-semibold">Da verificare</h2>
+          <p className="mt-1 text-sm text-[#5f524c]">Situazione delle iscrizioni confermate.</p>
+          <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+            <div className="rounded-lg bg-[#f2ede3] p-3">
+              <strong className="block text-xl">{bookings.filter((b) => ["prenotato", "acconto", "saldato"].includes(b.status) && b.people.some((p) => p.membership.kind !== "in_regola")).length}</strong>
+              <span>Iscrizioni con associazione da verificare</span>
+            </div>
+            <Link prefetch={false} href={`/gestione/w/${workshop.id}?tab=email`} className="rounded-lg bg-[#f2ede3] p-3">
+              <strong className="block text-xl">{new Set(bookings.filter((b) => ["prenotato", "acconto", "saldato"].includes(b.status)).flatMap((b) => b.people).filter((p) => !p.person.email).map((p) => p.person.id)).size}</strong>
+              <span>Persone senza email · Apri Email</span>
+            </Link>
+          </div>
         </div>
       ) : null}
 
@@ -111,7 +134,7 @@ export default async function WorkshopDetailPage({
           />
         ) : null}
         {/* D27: solo nome, email e stato arrivano al browser. */}
-        {active === "email" && bookings ? <EmailTab rows={emailRows(bookings)} /> : null}
+        {active === "email" && bookings && emailState ? <EmailTab workshop={workshop} bookings={bookings} saved={emailState.workshopFields} defaults={emailState.defaults} sends={emailState.sends} today={today} previousConfigs={previousConfigs} /> : null}
         {active === "conti" ? <AccountsSection workshop={workshop} isAdmin={isAdmin} /> : null}
         {active === "info" ? (
           <InfoTab workshop={workshop} isAdmin={isAdmin} hasBookings={statuses.length > 0} />
