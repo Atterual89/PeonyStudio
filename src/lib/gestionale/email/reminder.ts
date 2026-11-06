@@ -1,4 +1,4 @@
-import { emailBox, emailParagraph, peonyEmailLayout } from "./layout";
+import { emailBox, emailParagraph } from "./layout";
 import { membershipRequestEmail, type MembershipRequestInput } from "./membership-request";
 import { partnerUnknownEmail, type PartnerUnknownInput } from "./partner-unknown";
 
