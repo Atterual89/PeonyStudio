@@ -1,6 +1,8 @@
 // D30: migration 028 in-memory only (never the real database).
 import { beforeAll, describe, expect, it } from "vitest";
-import { MIGRATIONS, createTestDb, readMigration, type TestDb } from "./pglite";
+import { readFileSync } from "node:fs";
+import { MIGRATIONS, createTestDb, type TestDb } from "./pglite";
+const readEmailMigration = (suffix = "") => readFileSync("supabase/migrations/028_gw_email" + suffix + ".sql", "utf8");
 
 let t: TestDb;
 let admin: string;
@@ -16,7 +18,7 @@ beforeAll(async () => {
   workshop = await t.value<string>("select gw_ensure_workshop_for_event($1,'eeeeeeee-0000-4000-8000-000000000801','Kinbaku LuXuria Test','2026-11-14',null) v", [admin]);
   const booking = await t.value<string>("select gw_create_registration($1,$2,$3::jsonb,'prenotato',null,null,null) v", [organizer,workshop,JSON.stringify(["Persona Email"])]);
   person = await t.value<string>("select person_id v from gw_booking_participants where booking_id=$1", [booking]);
-  await t.db.exec(readMigration("028_gw_email"));
+  await t.db.exec(readEmailMigration());
 });
 
 describe("028 — email persistence and security", () => {
@@ -54,9 +56,9 @@ describe("028 — email persistence and security", () => {
   });
 
   it("rollback and reapply",async()=>{
-    await t.db.exec(readMigration("028_gw_email","down"));
+    await t.db.exec(readEmailMigration(".down"));
     expect(await t.value("select to_regclass('public.gw_email_sends') v")).toBeNull();
-    await t.db.exec(readMigration("028_gw_email"));
+    await t.db.exec(readEmailMigration());
     expect(await t.value("select to_regclass('public.gw_email_sends') v")).not.toBeNull();
   });
 });
