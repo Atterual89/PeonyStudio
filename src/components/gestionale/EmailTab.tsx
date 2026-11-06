@@ -165,13 +165,14 @@ export function EmailTab({workshop,bookings,saved,defaults,sends,today,previousC
   const groups=(["membership_request","partner","membership_reminder","partner_reminder","workshop_details"] as EmailWorkflowKind[])
     .map(kind=>({kind,recipients:candidates.filter(r=>r.type===kind)}));
   const first=groups.find(g=>g.recipients.some(r=>r.email))?.kind;
+  const [openKind,setOpenKind]=useState<EmailWorkflowKind|null>(first||null);
   const dates=emailMembershipDates(workshop.startsOn);
   return <div className="max-w-2xl space-y-3">
     <EditWorkshopDetails workshop={workshop} defaults={defaults} saved={saved} onSave={setFields} previousConfigs={previousConfigs} />
     <div><h2 className="text-lg font-semibold">Quale email vuoi mandare?</h2>
       <p className="mt-1 text-sm text-[#5f524c]">Sono proposte soltanto le persone idonee. Copia l'HTML in Gmail; segna l'invio soltanto dopo averlo davvero effettuato.</p></div>
     {groups.map(group=><EmailWorkflow key={group.kind} kind={group.kind} recipients={group.recipients} workshopId={workshop.id}
-      today={today} fields={fields} validUntil={dates.validUntil} renewalUntil={dates.renewalUntil} initiallyOpen={first===group.kind} />)}
+      today={today} fields={fields} validUntil={dates.validUntil} renewalUntil={dates.renewalUntil} open={openKind===group.kind} onToggle={()=>setOpenKind(prev=>prev===group.kind?null:group.kind)} />)}
     <SendHistory bookings={bookings} sends={sends} />
   </div>;
 }
