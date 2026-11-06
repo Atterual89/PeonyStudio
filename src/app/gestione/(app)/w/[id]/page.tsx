@@ -128,7 +128,7 @@ export default async function WorkshopDetailPage({
           />
         ) : null}
         {/* D27: solo nome, email e stato arrivano al browser. */}
-        {active === "email" && bookings ? <EmailTab rows={emailRows(bookings)} /> : null}
+        {active === "email" && bookings ? <EmailTab rows={emailRows(bookings)} bookings={bookings} workshopId={workshop.id} today={today} /> : null}
         {active === "conti" ? <AccountsSection workshop={workshop} isAdmin={isAdmin} /> : null}
         {active === "info" ? (
           <InfoTab workshop={workshop} isAdmin={isAdmin} hasBookings={statuses.length > 0} />
