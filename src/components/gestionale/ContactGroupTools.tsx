@@ -27,11 +27,13 @@ export function ContactGroupTools({
   group,
   people,
   includeInterested,
+  today,
 }: {
   workshopId: string;
   group: ContactGroup;
   people: BookingPersonView[];
   includeInterested: boolean;
+  today: string;
 }) {
   // Spunte: tutte attive; si tolgono quelle a cui non si scrive.
   const [unchecked, setUnchecked] = useState<Set<string>>(new Set());
@@ -39,7 +41,7 @@ export function ContactGroupTools({
   const [asking, setAsking] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
-  const [sentOn, setSentOn] = useState(() => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()));
+  const [sentOn, setSentOn] = useState(today);
 
   if (people.length === 0) return null;
 
