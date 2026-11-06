@@ -22,4 +22,9 @@ export type WorkshopEmailData = {
   venueRules?: string[];
   photoPolicy?: string[];
   emergencyContact?: string;
+  associationName?: string;
+  associationPresident?: string;
+  associationVicePresident?: string;
+  transferInstructions?: string;
+  lunchMapUrl?: string;
 };
