@@ -20,6 +20,7 @@ type Props = {
   defaults: EmailDefaults;
   sends: EmailSendRow[];
   today: string;
+  previousConfigs: { workshopId: string; name: string; fields: Partial<WorkshopEmailData> }[];
 };
 
 const FIELDS: { key: keyof WorkshopEmailData; label: string; multiline?: boolean; list?: boolean; reusable?: boolean }[] = [
@@ -60,14 +61,16 @@ function initialData(workshop: WorkshopView, defaults: EmailDefaults, saved: Ema
   return { ...workshopEmailDefaults(workshop), ...defaults.fields, ...saved.fields } as WorkshopEmailData;
 }
 
-function EditWorkshopDetails({workshop,defaults,saved,onSave}:{workshop:WorkshopView;defaults:EmailDefaults;saved:EmailSavedFields;onSave:(data:WorkshopEmailData)=>void}) {
+function EditWorkshopDetails({workshop,defaults,saved,onSave,previousConfigs}:{workshop:WorkshopView;defaults:EmailDefaults;saved:EmailSavedFields;onSave:(data:WorkshopEmailData)=>void;previousConfigs:Props["previousConfigs"]}) {
   const router=useRouter();
   const [data,setData]=useState<WorkshopEmailData>(()=>initialData(workshop,defaults,saved));
   const [version,setVersion]=useState(saved.version);
+  const [sourceId,setSourceId]=useState("");
   const [pending,startTransition]=useTransition();
   const [message,setMessage]=useState<{tone:"success"|"error";text:string}|null>(null);
   function update(key:keyof WorkshopEmailData,value:string,list=false) {
-    setData(prev=>({...prev,[key]:key==="membershipFeeEuro"?Number(value):list?value.split("\n").map(s=>s.trim()).filter(Boolean):value}));
+    const next={...data,[key]:key==="membershipFeeEuro"?Number(value):list?value.split("\n").map(s=>s.trim()).filter(Boolean):value};
+    setData(next);onSave(next);
     setMessage(null);
   }
   function save() {
@@ -83,6 +86,26 @@ function EditWorkshopDetails({workshop,defaults,saved,onSave}:{workshop:Workshop
     <summary className="min-h-10 cursor-pointer font-semibold">Dettagli del workshop · {missing.length ? "Da completare: "+missing.join(", ") : "Completi ✓"}</summary>
     <p className="mt-2 text-sm text-[#5f524c]">Compila una volta i dettagli condivisi dalle email. Programma e prerequisiti non vengono inventati o copiati automaticamente da altri workshop.</p>
     <p className="mt-2 text-sm"><Link prefetch={false} href="/gestione/altro/impostazioni-email" className="text-[#8f2635] underline">Modifica impostazioni generali: associazione, indirizzo, regole, firma</Link></p>
+    {previousConfigs.length ? <div className="mt-3 rounded-lg bg-[#f2ede3] p-3">
+      <label className="block text-sm font-medium">Copia testi da un workshop precedente
+        <select className={inputClass+" mt-1 w-full"} value={sourceId} onChange={e=>setSourceId(e.target.value)}>
+          <option value="">Seleziona un workshop</option>
+          {previousConfigs.map(item=><option key={item.workshopId} value={item.workshopId}>{item.name}</option>)}
+        </select>
+      </label>
+      <button type="button" disabled={!sourceId} className={buttonClass.secondary+" mt-2"} onClick={()=>{
+        const source=previousConfigs.find(item=>item.workshopId===sourceId);
+        if(!source)return;
+        const next={...data};
+        for(const key of WORKSHOP_EMAIL_KEYS){
+          if(["title","dateLabel","membershipDeadline"].includes(key))continue;
+          const value=source.fields[key];
+          if(value!==undefined)Object.assign(next,{[key]:value});
+        }
+        setData(next);onSave(next);
+        setMessage({tone:"success",text:"Testi copiati nella bozza. Verifica programma e orari, poi salva."});
+      }}>Copia testi nella bozza</button>
+    </div> : null}
     {SECTIONS.filter(section=>section.keys.some(key=>WORKSHOP_EMAIL_KEYS.some(k=>k===key))).map(section=><details key={section.label} className="mt-3 rounded-lg border border-[#211815]/10 p-3">
       <summary className="min-h-10 cursor-pointer font-medium">{section.label}</summary>
       <div className="mt-3 space-y-3">{FIELDS.filter(f=>WORKSHOP_EMAIL_KEYS.some(k=>k===f.key) && section.keys.some(key=>key===f.key)).map(field=>{
@@ -136,7 +159,7 @@ function SendHistory({bookings,sends}:{bookings:BookingView[];sends:EmailSendRow
   </details>;
 }
 
-export function EmailTab({workshop,bookings,saved,defaults,sends,today}:Props) {
+export function EmailTab({workshop,bookings,saved,defaults,sends,today,previousConfigs}:Props) {
   const [fields,setFields]=useState<WorkshopEmailData>(()=>initialData(workshop,defaults,saved));
   const candidates=emailRecipients(bookings,sends);
   const groups=(["membership_request","partner","membership_reminder","partner_reminder","workshop_details"] as EmailWorkflowKind[])
@@ -144,7 +167,7 @@ export function EmailTab({workshop,bookings,saved,defaults,sends,today}:Props) {
   const first=groups.find(g=>g.recipients.some(r=>r.email))?.kind;
   const dates=emailMembershipDates(workshop.startsOn);
   return <div className="max-w-2xl space-y-3">
-    <EditWorkshopDetails workshop={workshop} defaults={defaults} saved={saved} onSave={setFields} />
+    <EditWorkshopDetails workshop={workshop} defaults={defaults} saved={saved} onSave={setFields} previousConfigs={previousConfigs} />
     <div><h2 className="text-lg font-semibold">Quale email vuoi mandare?</h2>
       <p className="mt-1 text-sm text-[#5f524c]">Sono proposte soltanto le persone idonee. Copia l'HTML in Gmail; segna l'invio soltanto dopo averlo davvero effettuato.</p></div>
     {groups.map(group=><EmailWorkflow key={group.kind} kind={group.kind} recipients={group.recipients} workshopId={workshop.id}
