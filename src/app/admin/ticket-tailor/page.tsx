@@ -747,6 +747,7 @@ function PartnerExpandedRow({
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
   const [manualValidating, setManualValidating] = useState(false);
+  const [manualRevoking, setManualRevoking] = useState(false);
   const [candidates, setCandidates] = useState<MemberCandidate[]>([]);
   const [lookupCompleted, setLookupCompleted] = useState(false);
   const [lookupFailed, setLookupFailed] = useState(false);
@@ -887,6 +888,57 @@ function PartnerExpandedRow({
       setMessage(error instanceof Error ? error.message : "Errore sconosciuto.");
     } finally {
       setManualValidating(false);
+    }
+  }
+
+  async function revokeManualValidation() {
+    if (!secret) {
+      setMessage("Inserisci il codice admin.");
+      return;
+    }
+
+    if (!email.trim() && !(firstName.trim() && lastName.trim())) {
+      setMessage("Inserisci email oppure nome e cognome.");
+      return;
+    }
+
+    setManualRevoking(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch(
+        "/api/admin/association-members/manual-revoke",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-admin-sync-secret": secret,
+          },
+          body: JSON.stringify({
+            email: email.trim() || null,
+            first_name: firstName.trim() || null,
+            last_name: lastName.trim() || null,
+          }),
+        },
+      );
+      const payload = await readJsonResponse(response);
+
+      if (!response.ok || payload.ok === false) {
+        throw new Error(
+          readMessage(payload, "Errore annullamento della validazione manuale."),
+        );
+      }
+
+      await lookupMember(email, firstName, lastName, true);
+      setMessage(
+        payload.revoked
+          ? "Validazione manuale annullata."
+          : "Nessuna validazione manuale da annullare per questi dati.",
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Errore sconosciuto.");
+    } finally {
+      setManualRevoking(false);
     }
   }
 
@@ -1072,6 +1124,37 @@ function PartnerExpandedRow({
                 {manualValidating ? "Validazione..." : "Valida manualmente"}
               </button>
             </div>
+          ) : null}
+          {lookupCompleted &&
+          !lookupFailed &&
+          candidates.length > 0 &&
+          candidates.every((candidate) => candidate.membership_status !== "valid") ? (
+            <div className="mt-3 rounded-[8px] border border-[#b69755]/25 bg-[#b69755]/8 p-3">
+              <p className="text-xs leading-5 text-[#5f524c]">
+                Il socio è stato trovato ma la quota non risulta in regola. Se hai verificato
+                manualmente che la quota è pagata, puoi segnarla come OK.
+              </p>
+              <button
+                type="button"
+                onClick={validateMemberManually}
+                disabled={manualValidating}
+                className="mt-2 rounded-full border border-[#6f8f72]/40 bg-[#6f8f72]/10 px-4 py-2 text-xs font-semibold text-[#416248] disabled:opacity-50"
+              >
+                {manualValidating ? "Validazione..." : "Segna quota ok"}
+              </button>
+            </div>
+          ) : null}
+          {lookupCompleted &&
+          !lookupFailed &&
+          candidates.some((candidate) => candidate.membership_match_method === "manual") ? (
+            <button
+              type="button"
+              onClick={revokeManualValidation}
+              disabled={manualRevoking}
+              className="mt-3 rounded-full border border-[#9b2c2c]/30 px-4 py-2 text-xs font-semibold text-[#9b2c2c] disabled:opacity-50"
+            >
+              {manualRevoking ? "Annullamento..." : "Annulla validazione manuale"}
+            </button>
           ) : null}
 
           <div className="mt-3 flex flex-wrap items-center gap-3">

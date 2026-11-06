@@ -12,6 +12,8 @@ export function GlobalFooter() {
 
   // Not shown in area personale
   if (pathname.startsWith("/area-personale")) return null;
+  // Not shown in gestionale
+  if (pathname.startsWith("/gestione")) return null;
 
   return (
     <footer className="border-t border-[#211815]/10 bg-[#efe4d7] px-5 py-6 pb-24 sm:px-6">

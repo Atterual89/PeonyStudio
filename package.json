@@ -6,11 +6,20 @@
     "dev": "next dev",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:gestionale": "vitest run --config vitest.config.mts",
+    "test:gestionale:sql": "vitest run --config vitest.sql.config.mts",
+    "gw:set-pin": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/gestionale/set-pin.mjs",
+    "gw:revoke-sessions": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/gestionale/revoke-sessions.mjs",
+    "gw:unlock": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/gestionale/unlock.mjs",
+    "gw:list-operators": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/gestionale/list-operators.mjs",
+    "gw:rename-operator": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/gestionale/rename-operator.mjs",
+    "gw:set-role": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/gestionale/set-role.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.107.0",
+    "exceljs": "4.4.0",
     "framer-motion": "^12.40.0",
     "googleapis": "^173.0.0",
     "lucide-react": "^1.17.0",
@@ -19,6 +28,7 @@
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.12",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -26,6 +36,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.12"
   }
 }

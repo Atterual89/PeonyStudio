@@ -80,6 +80,9 @@ export function BottomNav() {
   const { dictionary } = useLanguage();
   const labels = dictionary.nav.bottomNav;
 
+  // Il gestionale ha una propria navigazione.
+  if (pathname.startsWith("/gestione")) return null;
+
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden border-t border-[#211815]/10 bg-[#f4efe8]/[0.97] backdrop-blur-[14px]"

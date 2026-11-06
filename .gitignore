@@ -41,3 +41,8 @@ yarn-error.log*
 next-env.d.ts
 work/
 *.local.json
+
+# gestionale: specifica completa, solo in locale
+docs/gestionale/specifica.md
+# gestionale: documenti di lavoro con dati reali (es. elenchi iscritti), solo in locale
+docs/gestionale/*.docx

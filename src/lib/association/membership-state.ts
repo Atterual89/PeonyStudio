@@ -1,5 +1,9 @@
-export const CURRENT_MEMBERSHIP_START = "2025-09-01";
-export const CURRENT_MEMBERSHIP_EXPIRY = "2026-12-31";
+import { FIRST_MEMBERSHIP_PERIOD } from "./membership-periods";
+
+// Periodo in corso per la pagina admin (stessi valori di prima: 2025-09-01 e
+// 2026-12-31), definito in membership-periods.ts.
+export const CURRENT_MEMBERSHIP_START = FIRST_MEMBERSHIP_PERIOD.paymentsFrom;
+export const CURRENT_MEMBERSHIP_EXPIRY = FIRST_MEMBERSHIP_PERIOD.validUntil;
 
 export type MembershipEvidenceRow = {
   first_name: string | null;
@@ -20,6 +24,21 @@ export type DerivedMembershipState = {
   paymentMatchMethod: "email" | "name" | "manual" | null;
 };
 
+export type DeriveMembershipOptions = {
+  /**
+   * Data da cui conta un pagamento (YYYY-MM-DD, inclusa): l'inizio pagamenti
+   * del periodo associativo (membership-periods.ts). Senza, come sempre:
+   * CURRENT_MEMBERSHIP_START.
+   */
+  paymentsFrom?: string;
+  /**
+   * Ultimo giorno (incluso) in cui un pagamento conta: la fine validità del
+   * periodo, così una quota del periodo dopo non vale per questo. Senza,
+   * nessun limite (come sempre).
+   */
+  paymentsUntil?: string;
+};
+
 export function deriveMembershipState(
   rows: MembershipEvidenceRow[],
   identity: {
@@ -27,7 +46,13 @@ export function deriveMembershipState(
     firstName?: string | null;
     lastName?: string | null;
   },
+  options: DeriveMembershipOptions = {},
 ): DerivedMembershipState {
+  const paymentWindow = {
+    from: options.paymentsFrom ?? CURRENT_MEMBERSHIP_START,
+    until: options.paymentsUntil ?? null,
+  };
+  const isCurrentYearPayment = (row: MembershipEvidenceRow) => isPaymentInWindow(row, paymentWindow);
   const targetEmail = normalizeEmail(identity.email);
   const explicitNameKey = normalizeNameKey(
     identity.firstName,
@@ -148,12 +173,16 @@ export function deriveMembershipState(
   };
 }
 
-function isCurrentYearPayment(row: MembershipEvidenceRow) {
+function isPaymentInWindow(
+  row: MembershipEvidenceRow,
+  window: { from: string; until: string | null },
+) {
   return (
     row.membership_status === "verified" &&
     Boolean(
       row.membership_starts_at &&
-        row.membership_starts_at >= CURRENT_MEMBERSHIP_START,
+        row.membership_starts_at >= window.from &&
+        (window.until === null || row.membership_starts_at.slice(0, 10) <= window.until),
     )
   );
 }

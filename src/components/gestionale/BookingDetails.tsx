@@ -1,0 +1,304 @@
+"use client";
+
+import Link from "next/link";
+import { useState, useTransition } from "react";
+
+import { setPartnerAction, updateBookingNotesAction, applyEnteredEmailAction } from "@/app/gestione/(app)/w/actions";
+import { membershipPeriodFor } from "@/lib/association/membership-periods";
+import { personNames } from "@/lib/gestionale/bookings";
+import { formatDate, normalizeText } from "@/lib/gestionale/format";
+import { PARTY_LABELS, UI_LABELS } from "@/lib/gestionale/labels";
+import type { PersonChoice } from "@/lib/gestionale/person-choice";
+import type { BookingPersonView, BookingView } from "@/lib/gestionale/types";
+
+import { FlashMessage, FlashProvider, useFlash } from "./Flash";
+import { MatchPanel } from "./MatchPanel";
+import { MembershipContacts } from "./MembershipContacts";
+import { MemberCard } from "./MemberCard";
+import { MemberLinker } from "./MemberLinker";
+import { MembershipBadge } from "./MembershipBadge";
+import { PersonInlineEditor } from "./PersonInlineEditor";
+import { PersonPicker } from "./PersonPicker";
+import { MarkQuotaOk, RevokeQuotaOk, canRevokeQuotaOk } from "./QuotaOk";
+import { StatusDot } from "./StatusPicker";
+import { Field, RowMenu, buttonClass, textareaClass } from "./ui";
+
+const BOOKING_SCOPE = "iscrizione";
+
+/** 4d (B2): email scritta da Ale diversa da quella della scheda (che non si sovrascrive da sola). */
+function EnteredEmailHint({ entry }: { entry: BookingPersonView }) {
+  const [pending, startTransition] = useTransition();
+  const flash = useFlash(entry.person.id);
+  const email = entry.enteredEmail;
+  if (!email || !entry.person.email || email === entry.person.email.trim().toLowerCase()) return null;
+  return (
+    <p className="flex flex-wrap items-center gap-x-2 text-sm text-[#7a5212]">
+      <span>
+        {PARTY_LABELS.redsabbath} ha indicato: <strong className="break-all">{email}</strong> —
+      </span>
+      <button
+        type="button"
+        className="min-h-10 font-semibold underline"
+        disabled={pending}
+        onClick={() =>
+          startTransition(async () => {
+            flash.result(await applyEnteredEmailAction({ participantId: entry.participantId }), "Email aggiornata.");
+          })
+        }
+      >
+        usa questa
+      </button>
+    </p>
+  );
+}
+
+/**
+ * Una persona della prenotazione (4d), in quest'ordine: Nome Cognome
+ * (nickname piccolo) · badge tessera; email o "email mancante"; una sola
+ * azione principale secondo lo stato (non collegata → "Cerca nel libro soci";
+ * collegata e non in regola → "Segna quota ok"; in regola → niente, solo
+ * "Annulla validazione" nel menu "…" se è manuale); in fondo, piccolo,
+ * "Modifica dati" · "Inserito da Ale come: X". Il riquadro dell'abbinamento
+ * (017) resta per le persone non collegate e senza email. Un solo messaggio
+ * di esito per volta (Flash).
+ */
+function PersonBlock({
+  entry,
+  partnerOf,
+  booking,
+  workshopId,
+  workshopStartsOn,
+  today,
+}: {
+  entry: BookingPersonView;
+  partnerOf: string | null;
+  booking: BookingView;
+  workshopId: string;
+  workshopStartsOn: string;
+  today: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [linking, setLinking] = useState(false);
+  const [revoking, setRevoking] = useState(false);
+  const { person, membership: badge } = entry;
+  const names = personNames(entry);
+  const notLinked = badge.kind === "non_collegata";
+  const showMatchPanel = notLinked && !person.email;
+  const enteredByAle = booking.createdBy?.role === "organizzatrice" && entry.enteredAs ? entry.enteredAs : null;
+  const showEnteredAs = Boolean(enteredByAle) && !showMatchPanel && normalizeText(enteredByAle) !== normalizeText(names.main);
+  const target = { personId: person.id, name: names.main, referenceDate: workshopStartsOn, workshopId };
+
+  return (
+    <div className="space-y-2 rounded-xl border border-[#211815]/10 bg-white p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="font-semibold">
+          <Link prefetch={false} href={`/gestione/p/${person.id}`} className="underline-offset-2 hover:underline">
+            {names.main}
+          </Link>
+          {names.alias ? <span className="ml-2 text-sm font-normal text-[#5f524c]">{names.alias}</span> : null}
+          {partnerOf ? <span className="ml-2 text-sm font-normal text-[#5f524c]">partner di {partnerOf}</span> : null}
+        </p>
+        <span className="flex items-center gap-1">
+          <MembershipBadge badge={badge} />
+          {canRevokeQuotaOk(badge) ? (
+            <RowMenu
+              label="Altre azioni sulla tessera"
+              items={[{ label: UI_LABELS.revokeValidation, danger: true, onClick: () => setRevoking(true) }]}
+            />
+          ) : null}
+        </span>
+      </div>
+      <p className={`break-all text-sm ${person.email ? "text-[#5f524c]" : "font-medium text-[#9b2c2c]"}`}>{person.email ?? UI_LABELS.missingEmail}</p>
+      <EnteredEmailHint entry={entry} />
+
+      {entry.possibleDuplicate && !showMatchPanel ? (
+        <p className="text-xs font-semibold text-[#7a5212]">
+          Possibile doppia iscrizione:{" "}
+          <Link prefetch={false} href={`/gestione/p/${entry.possibleDuplicate.id}`} className="underline">
+            {entry.possibleDuplicate.displayName}
+          </Link>{" "}
+          è già iscritta a questo workshop.
+        </p>
+      ) : null}
+
+      {revoking ? <RevokeQuotaOk {...target} onClose={() => setRevoking(false)} /> : null}
+
+      {editing ? (
+        <PersonInlineEditor person={person} member={entry.member} onDone={() => setEditing(false)} />
+      ) : notLinked ? (
+        linking ? (
+          <MemberLinker
+            person={{ id: person.id, version: person.version }}
+            initialQuery={[person.first_name, person.last_name].filter(Boolean).join(" ") || person.nickname || person.email || ""}
+            referenceDate={workshopStartsOn}
+          />
+        ) : (
+          <button type="button" className={buttonClass.primary} onClick={() => setLinking(true)}>
+            Cerca nel libro soci
+          </button>
+        )
+      ) : (
+        <MarkQuotaOk {...target} badge={badge} canMark={Boolean(entry.fullName || person.email || entry.member?.email)} />
+      )}
+
+      {badge.kind !== "in_regola" && !editing && membershipPeriodFor(workshopStartsOn) ? (
+        <MembershipContacts personId={person.id} name={names.main} contacts={entry.contacts} workshopId={workshopId} today={today} />
+      ) : null}
+
+      <FlashMessage scope={person.id} />
+
+      {showMatchPanel && !editing ? <MatchPanel booking={booking} workshopId={workshopId} entry={entry} /> : null}
+      {entry.member && !editing ? <MemberCard person={person} member={entry.member} badge={badge} compact /> : null}
+
+      <p className="flex flex-wrap items-center gap-x-2 text-xs text-[#5f524c]">
+        {!editing ? (
+          <button type="button" className="min-h-10 font-semibold underline" onClick={() => setEditing(true)}>
+            Modifica dati
+          </button>
+        ) : null}
+        {showEnteredAs ? (
+          <span>
+            {!editing ? "· " : ""}Inserito da {PARTY_LABELS.redsabbath} come: {enteredByAle}
+          </span>
+        ) : null}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Contenuto della prenotazione aperta (admin): stato in sola lettura (lo
+ * aggiornano Ale e i pagamenti), note, persone, partner, abbinamento (D20).
+ * Niente quota né "Separa" (creerebbe una prenotazione con parte economica).
+ */
+export function BookingDetails(props: { booking: BookingView; workshopId: string; workshopStartsOn: string; today: string }) {
+  return (
+    <FlashProvider>
+      <BookingDetailsContent {...props} />
+    </FlashProvider>
+  );
+}
+
+function BookingDetailsContent({
+  booking,
+  workshopId,
+  workshopStartsOn,
+  today,
+}: {
+  booking: BookingView;
+  workshopId: string;
+  workshopStartsOn: string;
+  today: string;
+}) {
+  const [notes, setNotes] = useState(booking.notes ?? "");
+  const [partnerMode, setPartnerMode] = useState<"idle" | "change" | "add">("idle");
+  const [newPartner, setNewPartner] = useState<PersonChoice | null>(null);
+  const [pending, startTransition] = useTransition();
+  const flash = useFlash(BOOKING_SCOPE);
+
+  const primary = booking.people.find((p) => p.isPrimary) ?? booking.people[0];
+  const partner = booking.people.find((p) => p !== primary) ?? null;
+
+  function savePartner() {
+    if (!newPartner) return;
+    flash.clear();
+    startTransition(async () => {
+      const result = await setPartnerAction({
+        bookingId: booking.bookingId,
+        version: booking.version,
+        // "Cambia partner" sostituisce solo il secondario.
+        removeParticipantId: partnerMode === "change" ? partner?.participantId ?? null : null,
+        person: newPartner,
+      });
+      flash.result(result, partnerMode === "change" ? "Partner cambiato." : "Partner aggiunto.");
+      if (result.ok) {
+        setPartnerMode("idle");
+        setNewPartner(null);
+      }
+    });
+  }
+
+  // Come per Ale (9.3b): le note si salvano all'uscita dal campo.
+  function saveNotes() {
+    if (notes.trim() === (booking.notes ?? "").trim()) return;
+    flash.clear();
+    startTransition(async () => {
+      flash.result(await updateBookingNotesAction({ bookingId: booking.bookingId, version: booking.version, notes }), "Note salvate.");
+    });
+  }
+
+  return (
+    <div className="space-y-3 border-t border-[#211815]/10 px-4 pb-5 pt-4">
+      <div className="space-y-3">
+        <p className="flex flex-wrap items-center gap-2 text-sm text-[#5f524c]">
+          Stato:
+          <span className="font-semibold text-[#211815]">
+            <StatusDot status={booking.status} withLabel />
+          </span>
+          <span>(lo aggiorna {PARTY_LABELS.redsabbath})</span>
+        </p>
+        <Field label="Note">
+          <textarea
+            rows={1}
+            className={textareaClass}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            onBlur={saveNotes}
+          />
+        </Field>
+        <FlashMessage scope={BOOKING_SCOPE} />
+      </div>
+
+      <div className="space-y-2">
+        {booking.people.map((entry) => (
+          <PersonBlock
+            key={entry.participantId}
+            entry={entry}
+            partnerOf={entry === partner && primary ? personNames(primary).main : null}
+            booking={booking}
+            workshopId={workshopId}
+            workshopStartsOn={workshopStartsOn}
+            today={today}
+          />
+        ))}
+        {booking.formerPartners.map((former) => (
+          <p key={`${former.displayName}-${former.removedAt}`} className="text-sm text-[#5f524c]">
+            Partner precedente: {former.displayName}, rimosso il {formatDate(former.removedAt)}
+          </p>
+        ))}
+      </div>
+
+      {partnerMode === "idle" ? (
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className={buttonClass.secondary} onClick={() => setPartnerMode(partner ? "change" : "add")}>
+            {partner ? "Cambia partner" : "+ Partner"}
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3 rounded-xl bg-[#f2ede3] p-3">
+          <PersonPicker
+            workshopId={workshopId}
+            label={partnerMode === "change" ? `Nuovo partner di ${primary?.displayName ?? ""}` : `Partner di ${primary?.displayName ?? ""}`}
+            value={newPartner}
+            onChange={setNewPartner}
+          />
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className={buttonClass.primary} onClick={savePartner} disabled={!newPartner || pending}>
+              Salva
+            </button>
+            <button
+              type="button"
+              className={buttonClass.ghost}
+              onClick={() => {
+                setPartnerMode("idle");
+                setNewPartner(null);
+              }}
+            >
+              Chiudi
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

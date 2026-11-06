@@ -76,7 +76,7 @@ export async function readOfficialMembersBookFromGoogleSheet() {
   return normalizeOfficialMembersBookRows(response.data.values ?? []);
 }
 
-function normalizeOfficialMembersBookRows(
+export function normalizeOfficialMembersBookRows(
   values: unknown[][],
 ): OfficialMembersBookReadResult {
   const [mainHeaders, subHeaders, ...dataRows] = values;
@@ -252,7 +252,7 @@ function findColumn(
 
   for (const priority of priorities) {
     const partialIndex = headers.findIndex((header) =>
-      header.normalizedHeader.includes(priority),
+      containsWords(header.normalizedHeader, priority),
     );
 
     if (partialIndex >= 0) return toDetectedColumn(headers, partialIndex);
@@ -274,6 +274,13 @@ function toDetectedColumn(
     header: headers[index].header,
     normalizedHeader: headers[index].normalizedHeader,
   };
+}
+
+// Corrispondenza parziale a parole intere: "nome" non deve trovare "cognome"
+// (intestazioni a due righe come "Socio / Cognome" e "Socio / Nome").
+function containsWords(header: string, words: string) {
+  const spaced = (value: string) => ` ${value.replace(/[^a-z0-9]+/g, " ").trim()} `;
+  return spaced(header).includes(spaced(words));
 }
 
 function readCell(row: unknown[], index: number | null | undefined) {
