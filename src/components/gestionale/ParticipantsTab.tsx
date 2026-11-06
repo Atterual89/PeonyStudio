@@ -18,7 +18,6 @@ import { canMarkPresent } from "@/lib/gestionale/presence";
 import type { BookingView } from "@/lib/gestionale/types";
 
 import { BookingDetails } from "./BookingDetails";
-import { ContactGroupTools } from "./ContactGroupTools";
 import { DeleteBookingConfirm } from "./Deletion";
 import { ExactMatches } from "./ExactMatches";
 import { MembershipBadge } from "./MembershipBadge";
@@ -215,24 +214,13 @@ export function ParticipantsTab({
         </details>
       </div>
       {isContactGroup(filter) ? (
-        <>
-          <label className="mt-2 flex min-h-10 items-center gap-2 text-sm font-medium">
-            <input
-              type="checkbox"
-              className="h-5 w-5 accent-[#a8583e]"
-              checked={includeInterested}
-              onChange={(e) => setIncludeInterested(e.target.checked)}
-            />
-            Includi interessati
+        <div className="mt-3 rounded-lg bg-[#f2ede3] p-3 text-sm text-[#5f524c]">
+          <label className="flex min-h-10 items-center gap-2">
+            <input type="checkbox" className="h-5 w-5 accent-[#a8583e]" checked={includeInterested} onChange={(e) => setIncludeInterested(e.target.checked)} />
+            Includi interessati nel filtro
           </label>
-          <ContactGroupTools
-            key={`${filter}-${includeInterested}`}
-            workshopId={workshopId}
-            group={filter}
-            people={peopleInGroup(bookings, filter, scope)}
-            includeInterested={includeInterested}
-          />
-        </>
+          <p className="mt-1">Le comunicazioni e le conferme d’invio si gestiscono nel tab Email.</p>
+        </div>
       ) : null}
 
       {visible.length === 0 ? (
