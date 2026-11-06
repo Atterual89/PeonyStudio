@@ -61,7 +61,7 @@ export async function saveWorkshopEmailAction(input: { workshopId: string; versi
   return { ok: true, data: { version: data as number } };
 }
 
-export async function saveEmailDefaultsAction(input: { version: number; fields: Partial<WorkshopEmailData> }): Promise<ActionResult<{ version: number }>> {
+export async function saveEmailDefaultsAction(input: { version: number; fields: Partial<WorkshopEmailData> | Record<string, string | number> }): Promise<ActionResult<{ version: number }>> {
   const operator = await requireAdmin();
   const fields = validateFields(input?.fields);
   if (!Number.isInteger(input?.version) || input.version < 0 || !fields) return INVALID;
