@@ -4,7 +4,6 @@ import { partnerUnknownEmail, type PartnerUnknownInput } from "./partner-unknown
 
 /** Compose the corresponding real email body with an unmistakable reminder notice. */
 function insertReminder(html: string, notice: string, deadline: string): string {
-  const marker = "</table></td></tr></table></body></html>";
   const panel = emailBox("Reminder — action needed", emailParagraph(notice) + emailParagraph("Deadline: " + deadline));
   const index = html.indexOf("<!-- PEONY REMINDER INSERT -->");
   if (index >= 0) return html.replace("<!-- PEONY REMINDER INSERT -->", panel);
