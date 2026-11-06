@@ -10,8 +10,8 @@ import type { WorkshopEmailData } from "@/lib/gestionale/email/types";
 import type { ActionResult } from "@/lib/gestionale/types";
 
 const INVALID: ActionResult<never> = { ok: false, error: "Dati non validi. Ricarica la pagina e riprova." };
-const TEXT_FIELDS = ["title","dateLabel","location","intercom","mapsUrl","membershipFormUrl","membershipDeadline","intro","ropes","clothing","arrival","extraNotes","signature"] as const;
-const ARRAY_FIELDS = ["program","prerequisitesRiggers","prerequisitesModels","schedule"] as const;
+const TEXT_FIELDS = ["title","dateLabel","location","intercom","mapsUrl","membershipFormUrl","membershipDeadline","intro","ropes","clothing","arrival","extraNotes","signature","emergencyContact"] as const;
+const ARRAY_FIELDS = ["program","prerequisitesRiggers","prerequisitesModels","schedule","accessInfo","lunchInfo","venueRules","photoPolicy"] as const;
 const VALID_TYPES = ["partner","partner_reminder","workshop_details"] as const;
 
 function validateFields(value: unknown): Partial<WorkshopEmailData> | null {
