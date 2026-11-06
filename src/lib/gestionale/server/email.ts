@@ -41,3 +41,15 @@ export async function loadEmailState(workshop: WorkshopView): Promise<{
     })),
   };
 }
+
+export type PreviousEmailConfig = { workshopId: string; fields: Partial<WorkshopEmailData> };
+
+export async function loadPreviousEmailConfigs(workshopId: string): Promise<PreviousEmailConfig[]> {
+  const { data, error } = await getGestionaleDb().from("gw_email_texts")
+    .select("workshop_id,fields").neq("workshop_id", workshopId).limit(100);
+  if (error) fail(error);
+  return (data ?? []).map((row) => ({
+    workshopId: row.workshop_id,
+    fields: row.fields as Partial<WorkshopEmailData>,
+  }));
+}
