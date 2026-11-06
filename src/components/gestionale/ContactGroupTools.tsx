@@ -131,7 +131,7 @@ export function ContactGroupTools({
 
       <div className="space-y-2">
         {copied ? (
-          {copied.manual ? (
+          copied.manual ? (
             <textarea readOnly className={`${inputClass} min-h-16 py-2`} rows={2} value={copied.text} onFocus={(e) => e.currentTarget.select()} />
           ) : (
             <p className="text-[#2f5d3b]">Copiati {copied.ids.length} indirizzi.</p>
