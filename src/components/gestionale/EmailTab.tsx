@@ -106,6 +106,7 @@ function SendHistory({bookings,sends}:{bookings:BookingView[];sends:EmailSendRow
   const router=useRouter();
   const [busy,start]=useTransition();
   const [error,setError]=useState("");
+  const [confirmId,setConfirmId]=useState<string|null>(null);
   const names=new Map(bookings.flatMap(b=>b.people).map(p=>[p.person.id,p.fullName||p.displayName]));
   const contacts=[...new Map(bookings.flatMap(b=>b.people).map(p=>[p.person.id,p])).values()]
     .flatMap(p=>p.contacts.map(c=>({id:c.id,personId:p.person.id,kind:c.kind,sentOn:c.sentOn,number:c.number})));
@@ -118,12 +119,18 @@ function SendHistory({bookings,sends}:{bookings:BookingView[];sends:EmailSendRow
         <div><strong>{names.get(item.personId)||"Persona non presente nell'elenco attuale"}</strong>
           <span className="block text-[#5f524c]">{item.kind==="richiesta"?"Richiesta associazione":item.kind==="sollecito"?"Sollecito associazione "+item.number:
             item.kind==="partner"?"Richiesta partner":item.kind==="partner_reminder"?"Sollecito partner "+item.number:"Dettagli workshop"} · {item.sentOn}</span></div>
-        <button type="button" disabled={busy} className={buttonClass.ghost} onClick={()=>{
-          if(!window.confirm("Segnare questa email come non inviata? L'operazione verrà registrata nello storico."))return;
-          start(async()=>{const result=item.kind==="richiesta"||item.kind==="sollecito"?
-            await deleteContactAction({id:item.id}):await deleteEmailSentAction(item.id);
-            if(result.ok){setError("");router.refresh()}else setError(result.error)});
-        }}>Segna non inviata</button>
+        {confirmId===item.id ? <div className="w-full rounded-lg bg-[#f2ede3] p-2">
+          <p className="mb-2 text-sm font-medium">Segnare questo messaggio come non inviato?</p>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className={buttonClass.danger} disabled={busy} onClick={()=>start(async()=>{
+              const result=item.kind==="richiesta"||item.kind==="sollecito" ?
+                await deleteContactAction({id:item.id}) : await deleteEmailSentAction(item.id);
+              if(result.ok){setError("");setConfirmId(null);router.refresh();}
+              else setError(result.error);
+            })}>{busy?"Salvataggio…":"Conferma"}</button>
+            <button type="button" className={buttonClass.ghost} disabled={busy} onClick={()=>setConfirmId(null)}>Chiudi</button>
+          </div>
+        </div> : <button type="button" disabled={busy} className={buttonClass.ghost} onClick={()=>setConfirmId(item.id)}>Segna non inviata</button>}
       </li>)}
     </ul>}
   </details>;
