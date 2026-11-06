@@ -35,7 +35,7 @@ type Props = {
 
 function primaryVariant(row: EmailRecipient): string {
   // Per richieste/solleciti associativi non mischiare testi che citano il partner in modo diverso.
-  return row.partnerStatus || "unknown";
+  return row.partnerStatus==="not_registered" ? "not_registered:"+(row.partnerName||"") : (row.partnerStatus || "unknown");
 }
 
 function proposedSelection(kind: EmailWorkflowKind, recipients: EmailRecipient[]): string[] {
@@ -77,7 +77,7 @@ export function EmailWorkflow({ kind, recipients, workshopId, today, fields, val
     if (!chosen.length || mixed) return "";
     if (kind==="membership_request" || kind==="membership_reminder") {
       const selectedRow = chosen[0];
-      const data = { ...fields, partnerStatus: selectedRow.partnerStatus || "unknown", coupleBooking: Boolean(selectedRow.coupleBooking) };
+      const data = { ...fields, partnerStatus: selectedRow.partnerStatus || "unknown", partnerName: selectedRow.partnerName, coupleBooking: Boolean(selectedRow.coupleBooking) };
       return kind==="membership_request" ? membershipRequestEmail(data) : membershipReminderEmail(data);
     }
     const data = { ...fields, membershipExpiresOn: validUntil, nextMembershipExpiresOn: renewalUntil };
