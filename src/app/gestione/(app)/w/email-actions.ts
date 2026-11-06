@@ -12,7 +12,7 @@ import type { WorkshopEmailData } from "@/lib/gestionale/email/types";
 import type { ActionResult } from "@/lib/gestionale/types";
 
 const INVALID: ActionResult<never> = { ok: false, error: "Dati non validi. Ricarica la pagina e riprova." };
-const TEXT_FIELDS = ["title","dateLabel","location","intercom","mapsUrl","membershipFormUrl","membershipDeadline","intro","ropes","clothing","arrival","extraNotes","signature","emergencyContact"] as const;
+const TEXT_FIELDS = ["title","dateLabel","location","intercom","mapsUrl","membershipFormUrl","membershipDeadline","intro","ropes","clothing","arrival","extraNotes","signature","emergencyContact","associationName","associationPresident","associationVicePresident","transferInstructions","lunchMapUrl"] as const;
 const ARRAY_FIELDS = ["program","prerequisitesRiggers","prerequisitesModels","schedule","accessInfo","lunchInfo","venueRules","photoPolicy"] as const;
 const VALID_TYPES = ["partner","partner_reminder","workshop_details"] as const;
 
@@ -40,6 +40,7 @@ function validateFields(value: unknown): Partial<WorkshopEmailData> | null {
   }
   if (result.mapsUrl && !/^https:\/\/(?:maps\.app\.goo\.gl|www\.google\.com|google\.com)\//i.test(String(result.mapsUrl))) return null;
   if (result.membershipFormUrl && !/^https:\/\/(?:forms\.gle|docs\.google\.com)\//i.test(String(result.membershipFormUrl))) return null;
+  if (result.lunchMapUrl && !/^https:\/\/www\.google\.com\/maps\//i.test(String(result.lunchMapUrl))) return null;
   return result as Partial<WorkshopEmailData>;
 }
 
