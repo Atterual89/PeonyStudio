@@ -8,7 +8,7 @@ import type { EmailSendRow } from "@/lib/gestionale/server/email";
 import { refreshGestione } from "@/lib/gestionale/server/refresh";
 import { todayInRome } from "@/lib/gestionale/workshops";
 import { isIsoDate, isUuidLike } from "@/lib/gestionale/validation";
-import type { WorkshopEmailData } from "@/lib/gestionale/email/types";
+import { WORKSHOP_EMAIL_KEYS, GLOBAL_EMAIL_KEYS, type WorkshopEmailData } from "@/lib/gestionale/email/types";
 import type { ActionResult } from "@/lib/gestionale/types";
 
 const INVALID: ActionResult<never> = { ok: false, error: "Dati non validi. Ricarica la pagina e riprova." };
@@ -56,8 +56,9 @@ export async function saveWorkshopEmailAction(input: { workshopId: string; versi
   if (!isUuidLike(input?.workshopId) || !Number.isInteger(input.version) || input.version < 0 || !fields) return INVALID;
   const workshop = await getWorkshopView(input.workshopId);
   if (!workshop) return INVALID;
+  const workshopOnly = Object.fromEntries(WORKSHOP_EMAIL_KEYS.filter((key) => key in fields).map((key) => [key, fields[key]]));
   const { data, error } = await getGestionaleDb().rpc("gw_save_email_texts", {
-    p_operator_id: operator.id, p_workshop_id: workshop.id, p_version: input.version, p_fields: fields,
+    p_operator_id: operator.id, p_workshop_id: workshop.id, p_version: input.version, p_fields: workshopOnly,
   });
   if (error) return rpcFailure(error);
   refreshGestione();
@@ -68,8 +69,9 @@ export async function saveEmailDefaultsAction(input: { version: number; fields: 
   const operator = await requireAdmin();
   const fields = validateFields(input?.fields);
   if (!Number.isInteger(input?.version) || input.version < 0 || !fields) return INVALID;
+  const globalOnly = Object.fromEntries(GLOBAL_EMAIL_KEYS.filter((key) => key in fields).map((key) => [key, fields[key]]));
   const { data, error } = await getGestionaleDb().rpc("gw_save_email_defaults", {
-    p_operator_id: operator.id, p_version: input.version, p_fields: fields,
+    p_operator_id: operator.id, p_version: input.version, p_fields: globalOnly,
   });
   if (error) return rpcFailure(error);
   refreshGestione();
