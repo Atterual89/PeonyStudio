@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { markGroupSentAction } from "@/app/gestione/(app)/w/contact-actions";
 import { markEmailSentAction } from "@/app/gestione/(app)/w/email-actions";
 import type { EmailRecipient } from "@/lib/gestionale/email/recipients";
@@ -46,6 +46,7 @@ function proposedSelection(kind: EmailWorkflowKind, recipients: EmailRecipient[]
 
 export function EmailWorkflow({ kind, recipients, workshopId, today, fields, validUntil, renewalUntil, initiallyOpen = false }: Props) {
   const router = useRouter();
+  const previewRef = useRef<HTMLIFrameElement>(null);
   const [selected, setSelected] = useState<string[]>(() => proposedSelection(kind, recipients));
   const [open, setOpen] = useState(initiallyOpen);
   const [showPeople, setShowPeople] = useState(false);
@@ -106,9 +107,28 @@ export function EmailWorkflow({ kind, recipients, workshopId, today, fields, val
       })]);
       setCopied("html");setCopyFallback(false);setMessage({tone:"success",text:"HTML copiato. Incolla nel corpo di Gmail e controlla il risultato."});
     } catch {
-      setCopied(null);
-      setCopyFallback(false);
-      setMessage({tone:"error",text:"Questo browser non permette di copiare HTML formattato. Usa Gmail da un browser desktop compatibile; il codice non è stato copiato."});
+      // Fallback storico di Gmail: seleziona il contenuto visibile in un iframe
+      // sandboxed (script non consentiti) e usa il comando nativo di copia.
+      try {
+        const doc = previewRef.current?.contentDocument;
+        const selection = doc?.getSelection();
+        if (!doc?.body || !selection) throw new Error("Anteprima non disponibile");
+        const range = doc.createRange();
+        range.selectNodeContents(doc.body);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        const ok = doc.execCommand("copy");
+        selection.removeAllRanges();
+        if (!ok) throw new Error("Copia non supportata");
+        setCopied("html");
+        setCopyFallback(false);
+        setMessage({tone:"success",text:"Email formattata copiata dall'anteprima. Controlla l'incolla in Gmail."});
+      } catch {
+        setCopied(null);
+        setCopyFallback(false);
+        setShowPreview(true);
+        setMessage({tone:"error",text:"La copia HTML formattata non è disponibile su questo browser. Apri l'anteprima e prova da Chrome desktop."});
+      }
     }
   }
 
@@ -172,7 +192,8 @@ export function EmailWorkflow({ kind, recipients, workshopId, today, fields, val
         {copied ? <p className="mt-2 text-[#426149]">{copied==="html"?"HTML copiato":copied==="bcc"?"Indirizzi copiati":"Oggetto copiato"} — non equivale a inviare.</p> : null}
         {copyFallback ? <textarea readOnly className={inputClass+" mt-2 min-h-16 w-full"} onFocus={(e)=>e.currentTarget.select()} value={copied==="bcc" ? emails.join(", "):subject} />:null}
         <button type="button" disabled={!canPrepare} className="mt-2 min-h-10 text-[#8f2635] underline" onClick={()=>setShowPreview((v)=>!v)}>{showPreview?"Chiudi anteprima":"Anteprima HTML"}</button>
-        {showPreview && canPrepare ? <iframe title={"Anteprima "+TITLES[kind]} sandbox="" srcDoc={html} className="mt-2 h-[470px] w-full rounded-lg border border-[#211815]/10 bg-white" /> : null}
+        {canPrepare ? <iframe ref={previewRef} title={"Anteprima "+TITLES[kind]} sandbox="allow-same-origin" srcDoc={html}
+          className={showPreview ? "mt-2 h-[470px] w-full rounded-lg border border-[#211815]/10 bg-white" : "absolute h-0 w-0 overflow-hidden border-0 opacity-0"} /> : null}
       </div>
       <div className="border-t border-[#211815]/10 pt-3">
         <p className="font-semibold">3. Hai inviato davvero il messaggio?</p>
