@@ -30,7 +30,8 @@ type Props = {
   fields: WorkshopEmailData;
   validUntil: string;
   renewalUntil: string;
-  initiallyOpen?: boolean;
+  open: boolean;
+  onToggle: () => void;
 };
 
 function primaryVariant(row: EmailRecipient): string {
@@ -44,11 +45,10 @@ function proposedSelection(kind: EmailWorkflowKind, recipients: EmailRecipient[]
   return first ? recipients.filter((r)=>r.email && primaryVariant(r)===primaryVariant(first)).map((r)=>r.personId) : [];
 }
 
-export function EmailWorkflow({ kind, recipients, workshopId, today, fields, validUntil, renewalUntil, initiallyOpen = false }: Props) {
+export function EmailWorkflow({ kind, recipients, workshopId, today, fields, validUntil, renewalUntil, open, onToggle }: Props) {
   const router = useRouter();
   const previewRef = useRef<HTMLIFrameElement>(null);
   const [selected, setSelected] = useState<string[]>(() => proposedSelection(kind, recipients));
-  const [open, setOpen] = useState(initiallyOpen);
   const [showPeople, setShowPeople] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -155,7 +155,7 @@ export function EmailWorkflow({ kind, recipients, workshopId, today, fields, val
   }
 
   return <section className={cardClass+" overflow-hidden"}>
-    <button type="button" onClick={()=>setOpen((v)=>!v)} aria-expanded={open}
+    <button type="button" onClick={onToggle} aria-expanded={open}
       className="flex min-h-14 w-full items-center justify-between gap-3 p-3 text-left">
       <span className="font-semibold">{TITLES[kind]}</span>
       <span className="shrink-0 text-sm text-[#5f524c]">{recipients.length ? recipients.length+" da inviare" : "Nessuna"} {open ? "−" : "+"}</span>
