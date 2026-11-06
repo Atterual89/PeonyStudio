@@ -65,6 +65,11 @@ export function workshopEmailDefaults(workshop: Pick<WorkshopView, "displayName"
       "Recording devices such as smart glasses are not allowed.",
     ],
     emergencyContact: "For urgent assistance on the day of the event, call Andrea at +39 320 648 6577 (WhatsApp / Telegram).",
+    associationName: "UR Expression APS",
+    associationPresident: "Andrea (Kurogami)",
+    associationVicePresident: "Shiawase",
+    transferInstructions: "Membership fee + your full names",
+    lunchMapUrl: "https://www.google.com/maps/d/u/1/edit?mid=1-0Kk4XI6J6-GaER13vBTEmm2Bse3-uM&usp=sharing",
   };
 }
 
