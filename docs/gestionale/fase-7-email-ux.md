@@ -37,5 +37,5 @@ Unificare tutte le comunicazioni nel tab Email, solo admin; il tab Partecipanti 
 ## Test prima del merge
 Destinatari proposti e casi limite, partner aggiunto dopo la richiesta, modifica della validità associativa, storico pregresso, numerazione dei solleciti, rollback invii, escaping HTML, date, copia Gmail desktop e telefono, permessi admin/organizzatrice. Eseguire tsc, lint, build, test:gestionale e test:gestionale:sql.
 
-## Blocco rilevato su main
-La specifica originale fa riferimento a tre file non presenti in GitHub: docs/gestionale/email/esempio-email-level2plus.html, testo-richiesta-associazione.txt, testo-partner-sconosciuto.txt. Prima di implementare fedelmente i quattro generatori occorre aggiungere gli esempi reali: non inventare il testo amministrativo, le immagini o i contenuti delle comunicazioni.
+## Modelli recuperati
+I tre file originali sono stati recuperati dalle risorse del progetto e aggiunti a docs/gestionale/email/. I due asset del modello HTML sono disponibili in public/email/ (logo PNG e foto JPEG). Creati i generatori HTML condivisi in src/lib/gestionale/email/ e test statici in email-html.test.ts. Restano da implementare persistenza, gestione invii per partner/dettagli e interfaccia completa; non considerare ancora completata la FASE 7.
