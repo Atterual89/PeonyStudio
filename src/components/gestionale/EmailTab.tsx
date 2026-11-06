@@ -39,6 +39,11 @@ const FIELDS: { key: keyof WorkshopEmailData; label: string; multiline?: boolean
   {key:"ropes",label:"Corde da portare",multiline:true},
   {key:"clothing",label:"Abbigliamento",multiline:true},
   {key:"extraNotes",label:"Note extra",multiline:true},
+  {key:"accessInfo",label:"Come arrivare (una riga per voce)",list:true},
+  {key:"lunchInfo",label:"Pranzo e servizi (una riga per voce)",list:true},
+  {key:"venueRules",label:"Regole dello studio (una riga per voce)",list:true},
+  {key:"photoPolicy",label:"Foto e video (una riga per voce)",list:true},
+  {key:"emergencyContact",label:"Contatto emergenze",multiline:true},
   {key:"signature",label:"Firma",reusable:true},
 ];
 const SECTIONS = [
@@ -46,6 +51,7 @@ const SECTIONS = [
   {label:"Programma e prerequisiti",keys:["program","prerequisitesRiggers","prerequisitesModels"]},
   {label:"Cosa portare",keys:["ropes","clothing"]},
   {label:"Associazione e contatti",keys:["membershipFeeEuro","membershipDeadline","membershipFormUrl","location","intercom","mapsUrl","signature"]},
+  {label:"Logistica e regole",keys:["accessInfo","lunchInfo","venueRules","photoPolicy","emergencyContact"]},
   {label:"Note extra",keys:["extraNotes"]},
 ] as const;
 
