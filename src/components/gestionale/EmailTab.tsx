@@ -44,11 +44,16 @@ export function EmailTab({ rows }: { rows: EmailRow[] }) {
 
   return (
     <div className="max-w-2xl">
-      <p className="text-sm text-[#5f524c]">
-        Già selezionati i confermati (acconto pagato o saldato). Lista d&apos;attesa e cancellati non ci sono.
+      <h2 className="text-base font-semibold">1. Destinatari</h2>
+      <p className="mt-1 text-sm text-[#5f524c]">
+        Proposti automaticamente i partecipanti con acconto pagato o saldato. Puoi includere altre persone prima di copiare gli indirizzi.
       </p>
 
-      <ul className={`${cardClass} mt-3 divide-y divide-[#211815]/5`}>
+      <details className={`${cardClass} mt-3`}>
+        <summary className="min-h-12 cursor-pointer p-3 text-sm font-semibold">
+          Cambia destinatari · {count} selezionati
+        </summary>
+      <ul className="divide-y divide-[#211815]/5 border-t border-[#211815]/10">
         {rows.map((row) => (
           <li key={row.personId} className={row.confirmed ? "" : "text-[#5f524c]"}>
             <label className={`flex min-h-10 items-start gap-3 px-3 py-2 ${row.email ? "cursor-pointer" : ""}`}>
@@ -76,6 +81,7 @@ export function EmailTab({ rows }: { rows: EmailRow[] }) {
           </li>
         ))}
       </ul>
+      </details>
 
       {/* In basso, vicino al pollice. */}
       <div className="sticky bottom-20 z-10 mt-3 space-y-2 rounded-xl bg-[#f2ede3]/95 py-2 backdrop-blur">
@@ -87,13 +93,15 @@ export function EmailTab({ rows }: { rows: EmailRow[] }) {
             </div>
           ) : (
             <Notice tone="success">
-              {copied.count === 1 ? "Copiata 1 email" : `Copiate ${copied.count} email`}: incolla nel nel campo Ccn di Gmail.
+              {copied.count === 1 ? "Copiata 1 email" : `Copiate ${copied.count} email`}: incolla nel campo Ccn di Gmail.
             </Notice>
           )
         ) : null}
+        <h2 className="text-base font-semibold">2. Copia indirizzi per Gmail</h2>
         <button type="button" className={`${buttonClass.primary} w-full sm:w-auto`} disabled={count === 0} onClick={copy}>
-          Copia email ({count})
+          Copia {count} indirizzi → campo Ccn
         </button>
+        <p className="text-xs text-[#5f524c]">Questo pulsante copia soltanto gli indirizzi. Oggetto, corpo HTML e registrazione degli invii saranno gestiti dalla nuova FASE 7.</p>
         {withoutEmail.length > 0 ? (
           <p className="text-sm text-[#9b2c2c]">
             {withoutEmail.length === 1 ? "1 persona senza email" : `${withoutEmail.length} persone senza email`}
