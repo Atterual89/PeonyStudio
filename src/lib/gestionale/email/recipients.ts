@@ -9,6 +9,7 @@ export type EmailRecipient = {
   type: "membership_request" | "membership_reminder" | "partner" | "partner_reminder" | "workshop_details";
   partnerStatus?: "unknown" | "registered" | "not_registered";
   coupleBooking?: boolean;
+  partnerName?: string;
   previousSends: EmailSendRow[];
 };
 
@@ -30,7 +31,7 @@ export function emailRecipients(bookings: readonly BookingView[], sends: readonl
       const partner = b.people.find((entry) => entry.person.id !== key);
       const partnerStatus: "unknown" | "registered" | "not_registered" =
         !partner ? "unknown" : partner.membership.kind === "in_regola" ? "registered" : "not_registered";
-      const base = { personId: key, name: personName(p), email: p.person.email, partnerStatus, coupleBooking: Boolean(partner), previousSends: relevant };
+      const base = { personId: key, name: personName(p), email: p.person.email, partnerStatus, coupleBooking: Boolean(partner), partnerName: partner ? personName(partner) : undefined, previousSends: relevant };
       const group = contactGroupOf(p);
       if (group === "da_contattare") out.push({ ...base, type: "membership_request" });
       if (group === "richiesta_inviata") out.push({ ...base, type: "membership_reminder" });
