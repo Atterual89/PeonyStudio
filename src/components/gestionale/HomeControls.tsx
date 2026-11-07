@@ -13,7 +13,11 @@ import type { DashboardEntry } from "@/lib/gestionale/workshops";
 
 import { EconomicBadge, RecheckBadge } from "./Recap";
 
-export function YearSelect({ value, years }: { value: YearFilter; years: readonly number[] }) {
+export function YearSelect({ value, years, vista }: {
+  value: YearFilter;
+  years: readonly number[];
+  vista?: "peony" | "luxuria";
+}) {
   const router = useRouter();
   return (
     <label className="inline-flex items-center gap-2 text-sm text-[#5f524c]">
@@ -21,7 +25,7 @@ export function YearSelect({ value, years }: { value: YearFilter; years: readonl
       <select
         className="min-h-10 rounded-xl border border-[#211815]/15 bg-white px-2 text-sm text-[#211815]"
         value={String(value)}
-        onChange={(e) => router.push(`/gestione?anno=${e.target.value}`)}
+        onChange={(e) => router.push(`/gestione?anno=${e.target.value}${vista ? `&vista=${vista}` : ""}`)}
       >
         {years.map((year) => (
           <option key={year} value={year}>

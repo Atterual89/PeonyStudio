@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { WorkshopTable, YearSelect } from "@/components/gestionale/HomeControls";
 import { EconomicBadge, RecapTiles, RecheckBadge } from "@/components/gestionale/Recap";
 import { Notice, Section, cardClass } from "@/components/gestionale/ui";
@@ -63,11 +65,44 @@ function WorkshopList({ entries, highlighted, viewer }: { entries: DashboardEntr
   );
 }
 
+function AdminEventTabs({ active, year }: {
+  active: "peony" | "luxuria";
+  year: number | "tutti";
+}) {
+  const tabs = [
+    { key: "peony", label: "Eventi Peony" },
+    { key: "luxuria", label: "Kinbaku LuXuria" },
+  ] as const;
+  return (
+    <nav aria-label="Tipo di eventi" className="mb-5 grid grid-cols-2 gap-1 rounded-2xl border border-[#211815]/10 bg-white/55 p-1">
+      {tabs.map((tab) => (
+        <Link
+          key={tab.key}
+          href={`/gestione?vista=${tab.key}&anno=${year}`}
+          prefetch={false}
+          aria-current={active === tab.key ? "page" : undefined}
+          className={`flex min-h-10 items-center justify-center rounded-xl px-2 py-2 text-center text-sm font-semibold transition-colors ${
+            active === tab.key
+              ? "bg-[#a8583e] text-white"
+              : "text-[#5f524c] hover:bg-white/70"
+          }`}
+        >
+          {tab.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
 function PeonyEventList({ entries }: { entries: PeonyEventSummary[] }) {
   if (entries.length === 0) return <p className="text-sm text-[#5f524c]">Nessun evento.</p>;
-  return (
+  // Mostra subito i prossimi sei eventi; gli altri rimangono accessibili senza
+  // allungare inutilmente la home su telefono.
+  const first = entries.slice(0, 6);
+  const more = entries.slice(6);
+  const cards = (items: PeonyEventSummary[]) => (
     <ul className="grid gap-3 md:grid-cols-2">
-      {entries.map((event) => (
+      {items.map((event) => (
         <li key={event.id}>
           <a href={`/gestione/peony/${event.id}`} className={`${cardClass} block p-3 transition active:scale-[0.99]`}>
             <p className="text-base font-semibold">{event.title}</p>
@@ -80,6 +115,19 @@ function PeonyEventList({ entries }: { entries: PeonyEventSummary[] }) {
         </li>
       ))}
     </ul>
+  );
+  return (
+    <div className="space-y-3">
+      {cards(first)}
+      {more.length > 0 ? (
+        <details className="rounded-xl border border-[#211815]/10 bg-white/40 p-3">
+          <summary className="cursor-pointer text-sm font-semibold text-[#a8583e]">
+            Mostra altri {more.length} eventi
+          </summary>
+          <div className="mt-3">{cards(more)}</div>
+        </details>
+      ) : null}
+    </div>
   );
 }
 
@@ -94,7 +142,7 @@ function PeonyEventsSection({ entries, today, year }: {
     startsOn: entry.startsOn!,
   })), today);
   return (
-    <section className="mb-8">
+    <section className="mt-3">
       <h1 className="font-serif text-2xl font-semibold">Eventi Peony</h1>
       <p className="mt-1 text-sm text-[#5f524c]">Iscrizioni soltanto da Ticket Tailor. Nessun conto condiviso con Ale.</p>
       <div className="mt-4">
@@ -124,14 +172,21 @@ function PeonyEventsSection({ entries, today, year }: {
 export default async function WorkshopDashboard({
   searchParams,
 }: {
-  searchParams: Promise<{ errore?: string; anno?: string | string[] }>;
+  searchParams: Promise<{ errore?: string; anno?: string | string[]; vista?: string | string[] }>;
 }) {
   const operator = await requireOperator();
   const viewer = operator.role;
-  const [{ errore, anno }, entries, peonyEvents] = await Promise.all([
-    searchParams,
-    getDashboard(),
-    viewer === "admin" ? loadPeonyEventsSummary() : Promise.resolve([]),
+  const { errore, anno, vista } = await searchParams;
+  const activeTab = viewer === "admin" && vista === "luxuria" ? "luxuria" : "peony";
+  // Carichiamo solo il contenuto della scheda visibile: una lunga lista
+  // Peony non rallenta piu' la consultazione dei workshop di Ale.
+  const [entries, peonyEvents] = await Promise.all([
+    viewer === "organizzatrice" || activeTab === "luxuria"
+      ? getDashboard()
+      : Promise.resolve([]),
+    viewer === "admin" && activeTab === "peony"
+      ? loadPeonyEventsSummary()
+      : Promise.resolve([]),
   ]);
   const today = todayInRome();
   const year = parseYearFilter(anno, today);
@@ -198,13 +253,22 @@ export default async function WorkshopDashboard({
 
   return (
     <section>
-      <PeonyEventsSection entries={peonyEvents} today={today} year={year} />
+      <AdminEventTabs active={activeTab} year={year} />
+      {activeTab === "peony" ? (
+        <>
+          <div className="flex justify-end">
+            <YearSelect value={year} years={years} vista="peony" />
+          </div>
+          <PeonyEventsSection entries={peonyEvents} today={today} year={year} />
+        </>
+      ) : (
+        <>
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h2 className="font-serif text-xl font-medium">Workshop Kinbaku LuXuria</h2>
           <p className="mt-1 text-sm text-[#5f524c]">Iscrizioni manuali di Ale · Contabilità Peony/Ale</p>
         </div>
-        <YearSelect value={year} years={years} />
+        <YearSelect value={year} years={years} vista="luxuria" />
       </div>
 
       {error}
@@ -222,6 +286,8 @@ export default async function WorkshopDashboard({
 
       {/* Desktop: tabella ordinabile con riga Totale. */}
       {table}
+        </>
+      )}
     </section>
   );
 }
