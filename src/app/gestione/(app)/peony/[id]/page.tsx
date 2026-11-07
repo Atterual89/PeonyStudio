@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 
 import { PeonyEventOperations } from "@/components/gestionale/PeonyEventOperations";
 import { SyncTicketTailorButton } from "@/components/gestionale/SyncTicketTailorButton";
+import { SyncSociButton } from "@/components/gestionale/SyncSociButton";
 import { getPeonyEvent, loadPeonyAttendees } from "@/lib/gestionale/server/peony-events";
 import { loadPeonyEmailState } from "@/lib/gestionale/server/peony-email";
 
@@ -31,7 +32,10 @@ export default async function PeonyEventPage({ params }: {
             .format(new Date(`${event.startsOn}T12:00:00Z`)) : "Data da definire"}
         </p>
       </div>
-      <SyncTicketTailorButton />
+      <div className="grid gap-2 sm:flex sm:items-start">
+        <SyncTicketTailorButton />
+        <SyncSociButton />
+      </div>
       <PeonyEventOperations
         eventId={event.id}
         eventTitle={event.title}
