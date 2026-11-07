@@ -354,16 +354,22 @@ export async function loadUpcomingLuxuriaPeople(today: string): Promise<{
 }[]> {
   await requireAdmin();
   const db = getGestionaleDb();
-  const records: HistoryRecord[] = [];
+  type FutureHistoryRecord = HistoryRecord & {
+    gw_bookings: HistoryRecord["gw_bookings"] & {
+      deleted_at: string | null;
+      gw_workshops: HistoryRecord["gw_bookings"]["gw_workshops"] & { deleted_at: string | null };
+    };
+  };
+  const records: FutureHistoryRecord[] = [];
   for (let offset = 0; offset < 10000; offset += 500) {
     const result = await db.from("gw_booking_participants")
-      .select("id,person_id,removed_at,gw_bookings!inner(status,present,gw_workshops!inner(id,event_id,name,starts_on,ends_on))")
+      .select("id,person_id,removed_at,gw_bookings!inner(status,present,deleted_at,gw_workshops!inner(id,event_id,name,starts_on,ends_on,deleted_at))")
       .is("deleted_at", null)
       .is("removed_at", null)
       .order("id", { ascending: true })
       .range(offset, offset + 499);
     if (result.error) fail("persone prossimi workshop", result.error);
-    records.push(...((result.data ?? []) as unknown as HistoryRecord[]));
+    records.push(...((result.data ?? []) as unknown as FutureHistoryRecord[]));
     if ((result.data ?? []).length < 500) break;
   }
   const events = await loadLuxuriaEvents();
@@ -373,7 +379,8 @@ export async function loadUpcomingLuxuriaPeople(today: string): Promise<{
     people: { personId: string }[];
   }>();
   for (const row of records) {
-    if (row.removed_at || !["prenotato", "acconto", "saldato"].includes(row.gw_bookings.status)) continue;
+    if (row.removed_at || row.gw_bookings.deleted_at || row.gw_bookings.gw_workshops.deleted_at ||
+      !["prenotato", "acconto", "saldato"].includes(row.gw_bookings.status)) continue;
     const workshop = row.gw_bookings.gw_workshops;
     const event = workshop.event_id ? byEventId.get(workshop.event_id) : null;
     const startsOn = event?.startsOn ?? workshop.starts_on;
