@@ -635,10 +635,10 @@ export function RegistrationsTab({
         {!editingFee && feeMessage ? <Notice tone={feeMessage.tone}>{feeMessage.text}</Notice> : null}
       </div>
 
-      <TextImport workshopId={workshop.id} operatorId={operatorId} standardFeeCents={standardFee} registrations={registrations} today={today} />
-
-      {/* 4g (#7): "+ Aggiungi" in alto, accanto al box di testo. */}
+      {/* La funzione più frequente compare prima dell'importazione massiva. */}
       <AddRegistration workshopId={workshop.id} standardFeeCents={standardFee} today={today} lastMethod={lastMethod} />
+
+      <TextImport workshopId={workshop.id} operatorId={operatorId} standardFeeCents={standardFee} registrations={registrations} today={today} />
 
       {registrations.length > 0 ? (
         <div className="space-y-2">
