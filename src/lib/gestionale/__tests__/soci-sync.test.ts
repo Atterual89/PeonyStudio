@@ -15,16 +15,16 @@ describe("sync soci nel gestionale PIN", () => {
     expect(actions.match(/await requireAdmin\(\)/g)).toHaveLength(3);
   });
 
-  it("sincronizza modulo e libro ufficiale senza cancellazioni automatiche", () => {
+  it("aggiorna le domande separatamente dal libro ufficiale e senza cancellazioni", () => {
     expect(actions).toContain("buildAssociationMembersSyncPreview");
-    expect(actions).toContain("buildOfficialMembersBookSyncPreview");
+    expect(actions).not.toContain("buildOfficialMembersBookSyncPreview");
     expect(actions).toContain("applyAssociationMembersSync(db, { removeStaleRows: false })");
-    expect(actions).toContain("applyOfficialMembersBookSync(db, { removeStaleRows: false })");
-    expect(actions).toContain("fingerprint(forms, book) !== expectedToken");
+    expect(actions).toContain("fingerprint(forms) !== expectedToken");
     expect(actions).toContain("forms.validRows < previousForms * 0.75");
-    expect(actions).toContain("book.validRows < previousBook * 0.75");
     expect(actions).toContain("clearMembershipCache()");
     expect(actions).toContain("refreshGestione()");
+    expect(actions).toContain("applyOfficialMembersBookSync(createSupabaseAdminClient(), { removeStaleRows: false })");
+    expect(actions).not.toContain('  "GOOGLE_MEMBERS_BOOK_RANGE",');
   });
 
   it("non tratta TeamArtist come connesso automaticamente", () => {
@@ -32,6 +32,7 @@ describe("sync soci nel gestionale PIN", () => {
     expect(ui).toContain("Sincronizza soci");
     expect(ui).toContain("Conferma aggiornamento");
     expect(ui).toContain("TeamArtist non è interrogato direttamente");
+    expect(ui).not.toContain('stat("Libro soci"');
     const home = source("src/app/gestione/(app)/page.tsx");
     expect(home).toContain("<SyncTicketTailorButton />");
     expect(home).toContain("<SyncSociButton />");

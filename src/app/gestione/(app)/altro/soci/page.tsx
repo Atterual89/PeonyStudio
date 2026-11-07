@@ -39,7 +39,7 @@ export default async function SociPage() {
       </Link>
       <h1 className="mt-2 font-serif text-xl font-medium">Registrazioni associazione</h1>
       <p className="mt-1 text-sm text-[#5f524c]">
-        Le domande arrivano dal modulo Google. Segna la quota pagata quando ricevi il pagamento; l'export Team Artist può essere caricato qui sotto.
+        Sincronizza le domande Google, poi conferma le quote pagate con il flag. Il libro TeamArtist si aggiorna separatamente dall'Excel.
       </p>
       <div className="mt-3">
         <SyncSociButton />

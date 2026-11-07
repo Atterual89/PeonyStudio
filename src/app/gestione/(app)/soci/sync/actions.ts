@@ -2,21 +2,15 @@
 
 import { createHash } from "node:crypto";
 import { MAX_BOOK_FILE_SIZE, parseWorkbook, replaceMembersBook, validateMembersBook } from "@/lib/association/book-upload";
-
 import {
   applyAssociationMembersSync,
   buildAssociationMembersSyncPreview,
   type AssociationMembersSyncPreview,
 } from "@/lib/association/members-sync";
-import {
-  applyOfficialMembersBookSync,
-  buildOfficialMembersBookSyncPreview,
-  type OfficialMembersBookSyncPreview,
-} from "@/lib/association/members-book-sync";
+import { applyOfficialMembersBookSync } from "@/lib/association/members-book-sync";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { clearMembershipCache } from "@/lib/gestionale/server/membership";
 import { refreshGestione } from "@/lib/gestionale/server/refresh";
-import { todayInRome } from "@/lib/gestionale/workshops";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type SourceSummary = {
@@ -28,33 +22,36 @@ type SourceSummary = {
 };
 
 type SyncPreview =
-  | { ok: true; token: string; forms: SourceSummary; book: SourceSummary; warningCount: number }
+  | { ok: true; token: string; forms: SourceSummary; warningCount: number }
   | { ok: false; message: string };
 
 type SyncOutcome =
-  | { ok: true; forms: { created: number; updated: number }; book: { created: number; updated: number }; warnings: number }
+  | { ok: true; forms: { created: number; updated: number }; warnings: number }
   | { ok: false; message: string };
 
-const GOOGLE_ENV = [
+// Le risposte dei moduli Google non dipendono dal Libro Soci TeamArtist,
+// il quale viene importato separatamente dall'admin.
+const GOOGLE_FORM_ENV = [
   "GOOGLE_SERVICE_ACCOUNT_EMAIL",
   "GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY",
   "GOOGLE_SHEET_ID",
   "GOOGLE_SHEET_RANGE",
-  "GOOGLE_MEMBERS_BOOK_RANGE",
 ] as const;
 
+class SociSyncError extends Error {}
+
 function missingConfig(): boolean {
-  return GOOGLE_ENV.some((name) => !process.env[name]?.trim());
+  return GOOGLE_FORM_ENV.some((name) => !process.env[name]?.trim());
 }
 
 function configError(): { ok: false; message: string } {
   return {
     ok: false,
-    message: "Sincronizzazione soci non ancora configurata: sul progetto Vercel mancano le credenziali Google per il modulo e il libro soci. I dati già salvati rimangono disponibili; nessuna quota viene confermata automaticamente.",
+    message: "Moduli Google non collegati al gestionale: mancano le credenziali o l'intervallo del foglio sul server. Configura le variabili Google nell'hosting effettivo del sito. Nessun dato modificato.",
   };
 }
 
-function sourceSummary(preview: AssociationMembersSyncPreview | OfficialMembersBookSyncPreview): SourceSummary {
+function sourceSummary(preview: AssociationMembersSyncPreview): SourceSummary {
   return {
     rows: preview.totalRows,
     creates: preview.wouldCreate,
@@ -64,73 +61,54 @@ function sourceSummary(preview: AssociationMembersSyncPreview | OfficialMembersB
   };
 }
 
-/** Token basato sui dati delle due sorgenti: applica solo il set effettivamente esaminato. */
-function fingerprint(forms: AssociationMembersSyncPreview, book: OfficialMembersBookSyncPreview): string {
+function fingerprint(forms: AssociationMembersSyncPreview): string {
   const reduced = {
     forms: forms.validSourceRows.map((row) => [row.source_row_id, row.source_hash]),
-    book: book.validSourceRows.map((row) => [row.source_row_id, row.source_hash]),
-    formActions: forms.previewRows.map((row) => [row.source_row_id, row.action, row.existingMemberId]),
-    bookActions: book.previewRows.map((row) => [row.rowNumber, row.action, row.existingMemberId]),
+    actions: forms.previewRows.map((row) => [row.source_row_id, row.action, row.existingMemberId]),
   };
   return createHash("sha256").update(JSON.stringify(reduced)).digest("hex");
 }
 
 async function loadPreview() {
   const db = createSupabaseAdminClient();
-  const [forms, book] = await Promise.all([
-    buildAssociationMembersSyncPreview(db),
-    buildOfficialMembersBookSyncPreview(db),
-  ]);
-  // Un export parziale/malformato non deve mai alterare il registro dei soci.
-  if (forms.totalRows < 1 || book.totalRows < 1 ||
-      forms.validRows < Math.max(1, Math.floor(forms.totalRows * 0.7)) ||
-      book.validRows < Math.max(1, Math.floor(book.totalRows * 0.7)) ||
-      forms.errors.length > 0 || book.errors.length > 0) {
-    throw new Error("Uno dei fogli è vuoto o contiene troppe righe non valide. Controllare le intestazioni e le risposte prima di aggiornare.");
+  let forms: AssociationMembersSyncPreview;
+  try {
+    forms = await buildAssociationMembersSyncPreview(db);
+  } catch (error) {
+    console.error("[gestionale] Lettura risposte Google (IT/EN) non riuscita", error);
+    throw new SociSyncError("Impossibile leggere le domande di associazione dai moduli Google (italiano o inglese). Verifica condivisione e accesso del service account a entrambi i fogli.");
   }
-  const countFor = async (source: string) => {
-    const result = await db.from("association_members")
-      .select("id", { count: "exact", head: true })
-      .eq("source", source);
-    if (result.error) throw new Error("Non riesco a verificare la dimensione del registro già salvato.");
-    return result.count ?? 0;
-  };
-  const currentYear = Math.max(2026, Number(todayInRome().slice(0, 4)));
-  const countCurrentBook = async () => {
-    const query = db.from("association_members").select("id", { count: "exact", head: true })
-      .eq("source", "official_members_book");
-    const result = currentYear === 2026
-      ? await query.not("source_row_id", "like", "%:%")
-      : await query.like("source_row_id", `${currentYear}:%`);
-    if (result.error) throw new Error("Non riesco a verificare le righe del libro soci corrente.");
-    return result.count ?? 0;
-  };
-  const [previousForms, previousBook] = await Promise.all([
-    countFor("google_sheet"),
-    countCurrentBook(),
-  ]);
-  if ((previousForms >= 30 && forms.validRows < previousForms * 0.75) ||
-      (previousBook >= 30 && book.validRows < previousBook * 0.75)) {
-    throw new Error("Uno dei fogli contiene molte meno righe rispetto al registro già salvato. Sincronizzazione bloccata per evitare aggiornamenti parziali.");
+  if (forms.totalRows < 1 || forms.validRows < Math.max(1, Math.floor(forms.totalRows * 0.7)) || forms.errors.length > 0) {
+    throw new SociSyncError("Il foglio delle domande Google è vuoto o non ha intestazioni e righe compatibili. Nessuna registrazione modificata.");
   }
-  return { forms, book };
+  const result = await db.from("association_members")
+    .select("id", { count: "exact", head: true })
+    .eq("source", "google_sheet");
+  if (result.error) {
+    console.error("[gestionale] Conteggio domande salvate non riuscito", result.error.code);
+    throw new SociSyncError("Impossibile confrontare le domande Google con i dati già salvati nel database. Nessun dato modificato.");
+  }
+  const previousForms = result.count ?? 0;
+  if (previousForms >= 30 && forms.validRows < previousForms * 0.75) {
+    throw new SociSyncError("Il foglio Google contiene molte meno domande del registro salvato. Sincronizzazione bloccata per sicurezza, senza cancellazioni.");
+  }
+  return { forms };
 }
 
 export async function previewSociSyncAction(): Promise<SyncPreview> {
   await requireAdmin();
   if (missingConfig()) return configError();
   try {
-    const { forms, book } = await loadPreview();
+    const { forms } = await loadPreview();
     return {
       ok: true,
-      token: fingerprint(forms, book),
+      token: fingerprint(forms),
       forms: sourceSummary(forms),
-      book: sourceSummary(book),
-      warningCount: forms.invalidRows + book.invalidRows,
+      warningCount: forms.invalidRows,
     };
   } catch (error) {
-    console.error("[gestionale] Anteprima sincronizzazione soci non riuscita", error);
-    return { ok: false, message: "Impossibile leggere e confrontare le due fonti associative. Nessun dato modificato. Verifica le credenziali Google e la struttura dei fogli." };
+    console.error("[gestionale] Anteprima sincronizzazione domande Google non riuscita", error);
+    return { ok: false, message: error instanceof SociSyncError ? error.message : "Impossibile preparare la sincronizzazione delle domande Google. Nessun dato modificato." };
   }
 }
 
@@ -139,39 +117,30 @@ export async function applySociSyncAction(expectedToken: string): Promise<SyncOu
   if (missingConfig()) return configError();
   if (!/^[a-f0-9]{64}$/.test(expectedToken)) return { ok: false, message: "Anteprima scaduta. Ricarica prima i dati." };
   try {
-    const { forms, book } = await loadPreview();
-    if (fingerprint(forms, book) !== expectedToken) {
-      return { ok: false, message: "Le fonti sono cambiate dopo l'anteprima: ripeti il controllo prima di aggiornare." };
+    const { forms } = await loadPreview();
+    if (fingerprint(forms) !== expectedToken) {
+      return { ok: false, message: "Le domande Google sono cambiate dopo l'anteprima: ripeti il controllo prima di aggiornare." };
     }
-
     const db = createSupabaseAdminClient();
-    // Aggiorniamo prima il libro ufficiale. Nessuna cancellazione automatica.
-    const officialReport = await applyOfficialMembersBookSync(db, { removeStaleRows: false });
-    const formReport = await applyAssociationMembersSync(db, { removeStaleRows: false });
+    // Le domande non provano il pagamento; le validazioni manuali e il libro
+    // ufficiale restano invariati. Nessuna riga viene rimossa.
+    const report = await applyAssociationMembersSync(db, { removeStaleRows: false });
     await clearMembershipCache();
     refreshGestione();
-
-    if (officialReport.errors.length || formReport.errors.length) {
-      console.warn("[gestionale] Sincronizzazione soci con righe da controllare", {
-        official: officialReport.errors.length,
-        forms: formReport.errors.length,
-      });
-      return {
-        ok: false,
-        message: `Aggiornamento parziale: libro soci ${officialReport.created} nuovi, ${officialReport.updated} modificati; moduli ${formReport.created} nuovi, ${formReport.updated} modificati. Alcune righe richiedono controllo. Nessuna riga rimossa.`,
-      };
+    if (report.errors.length) {
+      console.warn("[gestionale] Domande Google con righe da controllare", report.errors.length);
+      return { ok: false, message: `Aggiornamento parziale: ${report.created} domande nuove, ${report.updated} modificate. Alcune righe richiedono verifica; nessuna cancellazione.` };
     }
     return {
       ok: true,
-      forms: { created: formReport.created, updated: formReport.updated },
-      book: { created: officialReport.created, updated: officialReport.updated },
-      warnings: forms.invalidRows + book.invalidRows,
+      forms: { created: report.created, updated: report.updated },
+      warnings: forms.invalidRows,
     };
   } catch (error) {
-    console.error("[gestionale] Errore sincronizzazione soci", error);
+    console.error("[gestionale] Sincronizzazione domande Google non riuscita", error);
     return {
       ok: false,
-      message: "La sincronizzazione non è stata completata. I dati precedenti restano consultabili. Controlla il log prima di ripetere: alcune righe potrebbero essere state aggiornate.",
+      message: "Sincronizzazione non completata. I dati precedenti sono consultabili; controlla le registrazioni prima di riprovare.",
     };
   }
 }
