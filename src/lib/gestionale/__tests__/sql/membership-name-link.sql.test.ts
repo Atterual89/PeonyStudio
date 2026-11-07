@@ -1,12 +1,14 @@
 import {beforeAll,describe,expect,it} from "vitest";
+import {readFileSync} from "node:fs";
+import {join} from "node:path";
 import {createTestDb,type TestDb} from "./pglite";
 
 const MIGRATIONS=[
   "010_gw_schema_v1","011_gw_functions_v2","012_gw_correzioni_v2b",
   "013_gw_ruoli_pagamenti_v3","014_gw_correzioni_admin_v3b",
   "015_gw_quota_workshop_v3c","016_gw_soci_fonti_admin",
-  "017_gw_riga_persona","033_gw_name_only_membership_link",
-];
+  "017_gw_riga_persona",
+] as const;
 let db:TestDb,operator:string;
 async function person(first:string,last:string){
   return db.value<string>(`select gw_create_person($1,$2::jsonb) v`,[operator,JSON.stringify({first_name:first,last_name:last})]);
@@ -29,6 +31,7 @@ async function state(id:string){
 }
 beforeAll(async()=>{
   db=await createTestDb(MIGRATIONS);
+  await db.db.exec(readFileSync(join(process.cwd(),"supabase/migrations/033_gw_name_only_membership_link.sql"),"utf8"));
   operator=await db.operator("Admin test");
 });
 describe("collegamento permanente libro soci senza email",()=>{
