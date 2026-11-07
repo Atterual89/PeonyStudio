@@ -52,7 +52,7 @@ export function FinanceDashboard({data}:{data:AccountsData}){
       <div className="space-y-3 rounded-xl border border-[#211815]/10 bg-white/65 p-3">
         <Progress label="Incassi ricevuti" pct={bars.collectedPct}
           caption={bars.hasExpected
-            ?"Incassato rispetto al totale previsto delle iscrizioni attive."
+            ?"Incassato rispetto al totale già incassato più le quote ancora da ricevere."
             :"Nessuna quota ancora prevista."}/>
         <Progress label="Spese rispetto all'incassato" pct={bars.spentPct}
           tone={bars.costsOverCollected?"warning":"accent"}

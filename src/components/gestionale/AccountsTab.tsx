@@ -28,7 +28,7 @@ import { secondPartyPct } from "@/lib/gestionale/workshops";
 import { DeletePaymentConfirm } from "./Deletion";
 import { AddExpense, ExpensesBlock } from "./ExpensesBlock";
 import { CurrentPaymentList } from "./PaymentBits";
-import { RecapTiles } from "./Recap";
+import { FinanceDashboard } from "./FinanceDashboard";
 import { CarryoversBlock, TransfersBlock } from "./TransfersBlock";
 import { Field, InlineConfirm, Notice, RowMenu, Section, buttonClass, cardClass, inputClass } from "./ui";
 
@@ -62,14 +62,9 @@ function useSave() {
 // ---------------------------------------------------------------------------
 
 function Summary({ data, changes }: { data: AccountsData; changes: readonly SnapshotChange[] }) {
-  const { senzaQuota } = data.outstanding;
   return (
     <div className="space-y-2">
-      <RecapTiles recap={data.recap} />
-      <p className="text-sm text-[#5f524c]">
-        Da incassare ancora: <strong className="text-[#a8583e]">{formatCents(data.recap.daIncassare)}</strong>
-        {senzaQuota > 0 ? ` · ${senzaQuota === 1 ? "1 iscrizione senza quota" : `${senzaQuota} iscrizioni senza quota`}` : null}
-      </p>
+      <FinanceDashboard data={data} />
       {changes.length > 0 ? (
         <div role="status" className="rounded-xl border border-[#b7791f]/30 bg-[#fdf3e1] px-3 py-2 text-sm text-[#7a5212]">
           <p className="font-semibold">Conti modificati dopo la verifica: da ricontrollare</p>
@@ -507,7 +502,7 @@ function DivisionContent({
   const executed = data.transfers.filter((t) => t.status === "eseguito").reduce((sum, t) => sum + t.amountCents, 0);
   return (
     <div className="space-y-3">
-      <ResultBlock data={data} viewer={viewer} withSettle={withSettle} />
+      {viewer === "admin" ? <ResultBlock data={data} viewer={viewer} withSettle={withSettle} /> : null}
       <div className="lg:grid lg:grid-cols-2 lg:gap-6">
         <div className="space-y-2">
           <p className="text-sm font-semibold text-[#5f524c]">Ripartizione</p>
@@ -565,8 +560,6 @@ function OrganizerAccounts({
   const changed =
     workshop.status !== "provvisorio" &&
     snapshotChanges(workshop.verifiedSnapshot, settlementSnapshot(settlement, workshop.lossPeonyCents)).length > 0;
-  const categories = expensesByCategory(data.expenses).length;
-
   return (
     <div className="space-y-3">
       <div className={`${cardClass} space-y-2 p-3`}>
@@ -578,41 +571,24 @@ function OrganizerAccounts({
         <SettleResidual data={data} viewer="organizzatrice" />
       </div>
 
-      <dl className="grid grid-cols-2 gap-2">
-        <div className="rounded-2xl border border-[#211815]/10 bg-white/70 p-3">
-          <dt className="text-xs font-medium uppercase tracking-wide text-[#5f524c]">Guadagno</dt>
-          <dd className={`mt-1 text-lg font-semibold ${settlement.utile < 0 ? "text-[#9b2c2c]" : ""}`}>{formatCents(settlement.utile)}</dd>
-        </div>
-        <div className="rounded-2xl border border-[#211815]/10 bg-white/70 p-3">
-          <dt className="text-xs font-medium uppercase tracking-wide text-[#5f524c]">Spese</dt>
-          <dd className="mt-1 text-lg font-semibold">{formatCents(settlement.spese)}</dd>
-        </div>
-      </dl>
+      <FinanceDashboard data={data} />
 
-      {/* 4g (#36): "+ Spesa" sempre visibile, "Pagata da" predefinito Ale. */}
+      {/* "+ Spesa" sempre accessibile senza aprire i dettagli. */}
       <AddExpense workshopId={workshop.id} today={today} defaultPaidBy="redsabbath" />
-
-      <p className="text-sm text-[#5f524c]">
-        Da incassare ancora <strong className="text-[#a8583e]">{formatCents(data.recap.daIncassare)}</strong>
-        {data.recap.daIncassare > 0 ? (
-          <>
-            {" · "}
-            <Link prefetch={false}
-              href={`/gestione/w/${workshop.id}?tab=iscrizioni&filtro=da-pagare`}
-              className="inline-flex min-h-10 items-center font-semibold text-[#a8583e] underline"
-            >
-              chi deve pagare
-            </Link>
-          </>
-        ) : null}
-      </p>
+      {data.recap.daIncassare > 0 ? (
+        <Link prefetch={false}
+          href={`/gestione/w/${workshop.id}?tab=iscrizioni&filtro=da-pagare`}
+          className="inline-flex min-h-10 items-center text-sm font-semibold text-[#a8583e] underline">
+          Vedi chi deve pagare
+        </Link>
+      ) : null}
 
       <Section title="Dettagli">
         <div className="space-y-4">
           <div className="space-y-1">
             <p className="text-sm font-semibold text-[#5f524c]">Entrate dai partecipanti</p>
             <p className="text-sm">
-              <strong>{formatCents(settlement.ricavi)}</strong> ·{" "}
+              
               <Link prefetch={false} href={`/gestione/w/${workshop.id}?tab=iscrizioni`} className="inline-flex min-h-10 items-center font-semibold text-[#a8583e] underline">
                 vedi in Iscrizioni
               </Link>
@@ -620,7 +596,7 @@ function OrganizerAccounts({
           </div>
           <div className="space-y-2">
             <p className="text-sm font-semibold text-[#5f524c]">
-              Spese · {categories} {categories === 1 ? "categoria" : "categorie"} · {formatCents(settlement.spese)}
+              Spese per categoria
             </p>
             <ExpensesBlock workshopId={workshop.id} expenses={data.expenses} today={today} showAdd={false} />
           </div>
@@ -669,24 +645,23 @@ export function AccountsTab({
     workshop.status !== "provvisorio"
       ? snapshotChanges(workshop.verifiedSnapshot, settlementSnapshot(settlement, workshop.lossPeonyCents))
       : [];
-  const categories = expensesByCategory(data.expenses).length;
 
   return (
     <div>
       <Summary data={data} changes={changes} />
 
       <Section
-        title={`Entrate dai partecipanti · ${data.income.length} ${data.income.length === 1 ? "iscrizione" : "iscrizioni"}`}
-        summary={formatCents(settlement.ricavi)}
+        title="Pagamenti ricevuti"
+        summary={`${data.income.length} ${data.income.length === 1 ? "iscrizione" : "iscrizioni"}`}
       >
         <IncomeBlock data={data} isAdmin />
       </Section>
 
-      <Section title={`Spese · ${categories} ${categories === 1 ? "categoria" : "categorie"}`} summary={formatCents(settlement.spese)}>
+      <Section title="Spese registrate" summary={`${data.expenses.length} movimenti`}>
         <ExpensesBlock workshopId={workshop.id} expenses={data.expenses} today={today} />
       </Section>
 
-      <Section title={`Divisione ${PARTY_LABELS.peony} / ${PARTY_LABELS.redsabbath}`} summary={residuoShort(settlement.residuo, "admin")}>
+      <Section title="Conguaglio e ripartizione" summary={residuoShort(settlement.residuo, "admin")}>
         <DivisionContent data={data} viewer="admin" withSettle changed={changes.length > 0} destinations={destinations} today={today} />
       </Section>
 
