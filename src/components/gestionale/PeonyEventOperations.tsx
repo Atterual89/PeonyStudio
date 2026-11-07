@@ -25,10 +25,10 @@ function formattedSync(value: string | null): string {
 }
 
 function MembershipBadge({ info, required }: { info: PeonyMembership | null; required: boolean }) {
-  if (!required) return <span className="text-xs text-[#5f524c]">Associazione non richiesta (observer)</span>;
-  if (!info) return <span className="text-xs font-semibold text-[#96641b]">Verifica non disponibile</span>;
-  const label = info.status === "valid" ? "Quota verificata" :
-    info.status === "payment_missing" ? "Quota da verificare" : "Modulo non trovato";
+  if (!required) return <span className="text-xs text-[#5f524c]">Non richiesta</span>;
+  if (!info) return <span className="text-xs font-semibold text-[#96641b]">Da verificare</span>;
+  const label = info.status === "valid" ? "Verificata" :
+    info.status === "payment_missing" ? "Quota da verificare" : "Modulo assente";
   return (
     <span className={`text-xs font-semibold ${info.status === "valid" ? "text-[#326941]" : "text-[#9b4b1e]"}`}>
       {label}
@@ -43,22 +43,24 @@ function formatMembershipDate(value: string): string {
 }
 
 /** I dati secondari restano consultabili senza ripetere il badge già mostrato. */
+/** Badge visibile nella riga; qui soltanto dati aggiuntivi, senza ripetere lo stato. */
 function MembershipFacts({ info }: { info: PeonyMembership | null }) {
-  if (!info) return <p className="text-xs text-[#96641b]">Verifica non disponibile nei dati sincronizzati.</p>;
+  if (!info) return null;
   const matchLabel = info.matchMethod === "email" ? "email" :
     info.matchMethod === "name" ? "nome e cognome" :
     info.matchMethod === "manual" ? "manuale" : "non disponibile";
   return (
     <div className="space-y-1 text-sm">
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[#5f524c]">
-        {info.status !== "missing_form" ? (
-          <span>Modulo: {info.formPresent ? "trovato" : "non trovato"}</span>
-        ) : null}
-        {info.expiresAt ? <span>Tessera fino al {formatMembershipDate(info.expiresAt)}</span> : null}
-      </div>
+      {info.expiresAt ? (
+        <p className="text-[#5f524c]">Tessera fino al {formatMembershipDate(info.expiresAt)}</p>
+      ) : null}
       <details className="text-xs text-[#5f524c]">
-        <summary className="w-fit cursor-pointer py-1 text-[#a8583e]">Dettagli verifica</summary>
-        <p>Quota: {info.feePaid ? "verificata" : "non verificata"} · Abbinamento: {matchLabel}</p>
+        <summary className="w-fit cursor-pointer py-1 text-[#a8583e]">Dettagli associazione</summary>
+        <div className="space-y-0.5 pt-1">
+          <p>Modulo: {info.formPresent ? "trovato" : "assente"}</p>
+          <p>Quota: {info.feePaid ? "verificata" : "non verificata"}</p>
+          <p>Abbinamento: {matchLabel}</p>
+        </div>
       </details>
     </div>
   );
@@ -100,9 +102,8 @@ function PersonRow({ person }: { person: PeonyAttendee }) {
           {person.associationRequired ? <MembershipFacts info={person.association} /> : null}
           {person.partnerRequired && person.partner ? (
             <div className="border-t border-[#211815]/10 pt-2">
-              <p className="mb-1 text-xs font-semibold">Verifica partner</p>
               {person.partner.email ? (
-                <p className="text-sm text-[#5f524c]">Email partner: {person.partner.email}</p>
+                <p className="text-sm text-[#5f524c]">Email: {person.partner.email}</p>
               ) : null}
               <MembershipFacts info={person.partner.membership} />
             </div>
@@ -254,18 +255,17 @@ export function PeonyEventOperations({
             <p>Le verifiche associative derivano dai dati salvati; controlla TeamArtist per le conferme recenti.</p>
           </details>
           <input type="search" value={search} onChange={(event) => setSearch(event.target.value)}
-            placeholder="Cerca partecipante o partner" aria-label="Cerca partecipanti e partner"
+            placeholder="Cerca nome o partner" aria-label="Cerca partecipanti e partner"
             className="h-10 w-full rounded-xl border border-[#211815]/15 bg-white px-3 text-sm" />
           {visible.length === 0 ? <p className={card}>Nessun partecipante nei dati sincronizzati.</p> : null}
           <ul className="space-y-1.5">{visible.map(person => <PersonRow key={person.ticketId} person={person} />)}</ul>
         </section>
       ) : (
         <section className="space-y-3">
-          <div className="flex items-center gap-3">
-            <label htmlFor="peony-kind" className="shrink-0 text-sm font-semibold">Comunicazione</label>
-            <select id="peony-kind" value={kind}
+          <div>
+            <select id="peony-kind" aria-label="Tipo di email" value={kind}
               onChange={(event) => switchKind(event.target.value as PeonyEmailKind)}
-              className="h-10 min-w-0 flex-1 rounded-xl border border-[#211815]/15 bg-white px-2 text-sm">
+              className="h-10 w-full rounded-xl border border-[#211815]/15 bg-white px-2 text-sm">
               {PEONY_EMAIL_KINDS.map(({ id, label }) => (
                 <option key={id} value={id}>{label}</option>
               ))}
@@ -282,27 +282,27 @@ export function PeonyEventOperations({
               className="mt-1 w-full rounded-lg border border-[#211815]/15 bg-white p-3 text-sm" />
             <div className="mt-3 flex flex-wrap gap-2">
               <button type="button" className={button} disabled={busy || !template.subject.trim()}
-                onClick={() => run(() => savePeonyEmailTemplate(eventId, kind, template.subject, template.body), "Testo salvato per questa comunicazione.")}>Salva modello</button>
+                onClick={() => run(() => savePeonyEmailTemplate(eventId, kind, template.subject, template.body), "Testo salvato per questa comunicazione.")}>Salva</button>
               <button type="button" className="h-10 rounded-xl border border-[#a8583e] px-3 text-sm font-semibold text-[#a8583e]"
                 onClick={async () => {
                   try { await copyRichHtml(html); setMessage("Email HTML copiata: puoi incollarla in Gmail."); setFailure(null); }
                   catch { setFailure("Impossibile copiare l'HTML formattato. Verifica gli appunti del browser."); }
-                }}>Copia email per Gmail</button>
+                }}>Copia per Gmail</button>
             </div>
             <details className="mt-3 border-t border-[#211815]/10 pt-2">
-              <summary className="w-fit cursor-pointer text-sm font-semibold text-[#a8583e]">Anteprima e codice HTML</summary>
+              <summary className="w-fit cursor-pointer text-sm font-semibold text-[#a8583e]">Anteprima HTML</summary>
               <div className="mt-2 space-y-2">
                 <iframe title="Anteprima email Peony Studio" sandbox="" srcDoc={html}
                   className="h-[360px] w-full rounded-xl border border-[#211815]/15 bg-white" />
                 <button type="button" onClick={() => copy(html, "Codice HTML copiato.")}
-                  className="h-9 rounded-xl border border-[#211815]/20 px-3 text-sm">Copia codice HTML</button>
+                  className="h-9 rounded-xl border border-[#211815]/20 px-3 text-sm">Copia codice</button>
               </div>
             </details>
           </div>
           <div className={card}>
-            <h3 className="text-sm font-semibold">Destinatari · {distinctEmails.length} email</h3>
+            <h3 className="text-sm font-semibold">Destinatari · {distinctEmails.length}</h3>
             <details className="mt-2">
-              <summary className="w-fit cursor-pointer py-1 text-sm text-[#a8583e]">Seleziona destinatari ({selected.length}/{eligible.length})</summary>
+              <summary className="w-fit cursor-pointer py-1 text-sm text-[#a8583e]">Modifica selezione ({selected.length}/{eligible.length})</summary>
               <label className="mt-2 flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={checked.length === eligible.length && eligible.length > 0}
                   onChange={e => setChecked(e.target.checked ? eligible.map(p => p.ticketId) : [])} />
@@ -331,14 +331,14 @@ export function PeonyEventOperations({
                 <button type="button" disabled={busy || !selected.length || !template.subject.trim()}
                   onClick={() => setConfirmingSend(true)}
                   className="h-10 rounded-xl border border-[#a8583e] px-3 text-sm font-semibold text-[#a8583e] disabled:opacity-50">
-                  Registra invio effettuato
+                  Registra invio
                 </button>
               ) : null}
             </div>
             {confirmingSend ? (
               <div className="mt-3 rounded-xl bg-[#f2ede3] p-3">
-                <p className="text-sm font-semibold">Hai già inviato questa email a {selected.length} biglietti selezionati?</p>
-                <p className="mt-1 text-xs">La registrazione non spedisce alcun messaggio.</p>
+                <p className="text-sm font-semibold">Email già inviata a {selected.length} iscritti?</p>
+                <p className="mt-1 text-xs">Registra nello storico, senza inviare.</p>
                 <div className="mt-2 flex gap-2">
                   <button className={button} disabled={busy} onClick={() => {
                     setConfirmingSend(false);
