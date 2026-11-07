@@ -117,8 +117,9 @@ export async function searchPeonyPartnerAction(eventId: string, query: string): 
     const name = safeName(row.first_name,row.last_name);
     const email = cleanPartnerEmail(row.email);
     if(!name && !email) continue;
-    const key = email ? `email:${normalizeMembershipEmail(email)}`
-      : `name:${normalizeMembershipNameKey(row.first_name,row.last_name)}`;
+    const nameKey=normalizeMembershipNameKey(row.first_name,row.last_name);
+    const key = email ? `email:${normalizeMembershipEmail(email)}:name:${nameKey}`
+      : `name:${nameKey}`;
     if(!key || key==="name:" || used.has(key))continue;
     if(!tokens.every(token=>normalizeText(`${name??""} ${email??""}`).includes(token)))continue;
     used.add(key);
@@ -131,7 +132,8 @@ export async function searchPeonyPartnerAction(eventId: string, query: string): 
     const name=safeName(row.first_name,row.last_name,row.nickname);
     const email=cleanPartnerEmail(row.email);
     if(!name && !email)continue;
-    const key=email?`email:${normalizeMembershipEmail(email)}`:`person:${row.id}`;
+    const key=email?`email:${normalizeMembershipEmail(email)}:name:${normalizeMembershipNameKey(row.first_name,row.last_name)}`
+      :`person:${row.id}`;
     if(used.has(key))continue;
     if(!tokens.every(token=>normalizeText(`${name??""} ${email??""}`).includes(token)))continue;
     used.add(key);

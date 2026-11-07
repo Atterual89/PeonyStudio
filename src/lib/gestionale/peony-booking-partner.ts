@@ -48,9 +48,13 @@ export function choosePartner(
 export function isSameParticipant(owner: { name: string; email: string | null }, partner: { name: string; email: string | null }) {
   const ownerEmail = normalizeMembershipEmail(owner.email);
   const partnerEmail = normalizeMembershipEmail(partner.email);
-  if (ownerEmail && partnerEmail) return ownerEmail === partnerEmail;
-  // Senza una coppia di email affidabili, fermare solo la corrispondenza
-  // esatta del nominativo, mai omonimi con email diverse.
-  const normalize = (name: string) => name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("it").trim().replace(/\s+/g," ");
-  return Boolean(normalize(owner.name)) && normalize(owner.name) === normalize(partner.name) && (!ownerEmail || !partnerEmail);
+  const normalize=(name:string)=>name.normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .toLocaleLowerCase("it").trim().replace(/\s+/g," ");
+  const ownerName=normalize(owner.name), partnerName=normalize(partner.name);
+  if(ownerEmail&&partnerEmail){
+    // Un indirizzo condiviso da due familiari non dimostra che siano la
+    // stessa persona: l'operatore sceglie il socio esplicitamente per nome.
+    return ownerEmail===partnerEmail && (!ownerName||!partnerName||ownerName===partnerName);
+  }
+  return Boolean(ownerName)&&ownerName===partnerName;
 }
