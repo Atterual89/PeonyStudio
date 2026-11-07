@@ -135,3 +135,15 @@ describe("4d — ricerca nel libro soci: stato che risulterebbe", () => {
     expect(memberOutcomeLabel({ kind: "modulo_mancante" }, true)).toBe("Modulo non trovato");
   });
 });
+
+describe("quote da modulo Google e omonimi", () => {
+  it("due domande con stesso nome ma email diverse non condividono la validazione manuale", () => {
+    const rows: MembershipEvidenceRow[] = [
+      evidence({ source: "google_sheet", email: "viola@example.test" }),
+      evidence({ source: "google_sheet", email: "altra@example.test" }),
+      evidence({ source: "manual_override", email: "viola@example.test", membership_starts_at: "2025-09-01" }),
+    ];
+    expect(deriveForWorkshop(rows, { email: "viola@example.test", firstName: "Viola", lastName: "Serra" }, "2026-11-07").status).toBe("valid");
+    expect(deriveForWorkshop(rows, { email: "altra@example.test", firstName: "Viola", lastName: "Serra" }, "2026-11-07").status).toBe("payment_missing");
+  });
+});

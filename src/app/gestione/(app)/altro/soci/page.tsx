@@ -38,8 +38,7 @@ export default async function SociPage() {
       </Link>
       <h1 className="mt-2 font-serif text-xl font-medium">Registrazioni associazione</h1>
       <p className="mt-1 text-sm text-[#5f524c]">
-        Confronta le domande ricevute e il libro soci. Le conferme di pagamento più recenti
-        vanno sempre verificate su TeamArtist, che non è collegato direttamente.
+        Le domande arrivano dal modulo Google. Segna la quota pagata quando ricevi il pagamento; l'export Team Artist può essere caricato qui sotto.
       </p>
       <div className="mt-3">
         <SyncSociButton />
@@ -52,8 +51,8 @@ export default async function SociPage() {
               <p className="text-xs text-[#5f524c]">Domande nel periodo</p>
             </div>
             <div className="rounded-xl bg-white/75 p-2">
-              <p className="font-semibold">{registrations.bookCount}</p>
-              <p className="text-xs text-[#5f524c]">Righe libro soci</p>
+              <p className="font-semibold">{registrations.paidCount}</p>
+              <p className="text-xs text-[#5f524c]">Quote pagate</p>
             </div>
             <div className="rounded-xl bg-white/75 p-2">
               <p className="font-semibold text-[#9b4b1e]">{registrations.pendingCount}</p>
@@ -64,12 +63,10 @@ export default async function SociPage() {
             <summary className="w-fit cursor-pointer py-1 text-[#a8583e]">Date dei dati</summary>
             <p>Domande: {shortDate(registrations.formUpdatedAt)} · Libro soci: {shortDate(registrations.bookUpdatedAt)}</p>
           </details>
-          <details className="mt-4 rounded-xl border border-[#211815]/10 bg-white/65 p-3">
-            <summary className="cursor-pointer text-sm font-semibold">
-              Domande da controllare ({registrations.pendingCount})
-            </summary>
-            <SociReviewList rows={registrations.pending} />
-          </details>
+          <div className="mt-4 rounded-xl border border-[#211815]/10 bg-white/65 p-3">
+            <h2 className="text-sm font-semibold">Domande e quote associative</h2>
+            <SociReviewList rows={registrations.rows} />
+          </div>
         </div>
       ) : (
         <div className="mt-3"><Notice tone="error">Impossibile caricare il riepilogo delle registrazioni.</Notice></div>

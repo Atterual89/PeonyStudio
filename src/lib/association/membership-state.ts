@@ -66,7 +66,9 @@ export function deriveMembershipState(
 
     const emailMatches =
       Boolean(targetEmail) && normalizeEmail(row.email) === targetEmail;
+    const rowEmail = normalizeEmail(row.email);
     const nameMatches =
+      (!targetEmail || !rowEmail) &&
       Boolean(explicitNameKey) &&
       normalizeNameKey(row.first_name, row.last_name) === explicitNameKey;
 

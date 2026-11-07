@@ -54,10 +54,10 @@ function readIdentity(identity: ManualIdentity) {
 }
 
 function sameIdentity(row: ManualRow, email: string, nameKey: string) {
-  return Boolean(
-    (email && normalizeMembershipEmail(row.email) === email) ||
-      (nameKey && normalizeMembershipNameKey(row.first_name, row.last_name) === nameKey),
-  );
+  const rowEmail = normalizeMembershipEmail(row.email);
+  // Non confondere omonimi con indirizzi email diversi.
+  if (email && rowEmail) return rowEmail === email;
+  return Boolean(nameKey && normalizeMembershipNameKey(row.first_name, row.last_name) === nameKey);
 }
 
 async function loadManualRows(supabase: ReturnType<typeof createSupabaseAdminClient>) {

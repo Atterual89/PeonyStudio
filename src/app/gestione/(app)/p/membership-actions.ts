@@ -1,6 +1,7 @@
 "use server";
 
 import { refreshGestione } from "@/lib/gestionale/server/refresh";
+import { getGestionaleDb } from "@/lib/gestionale/server/db";
 
 import { revokeManualValidation, saveManualValidation } from "@/lib/association/manual-validation";
 import { membershipPeriodFor } from "@/lib/association/membership-periods";
@@ -75,6 +76,33 @@ export async function revokeQuotaOkAction(input: Target): Promise<ActionResult> 
 /** "Aggiorna stato soci": svuota la cache delle fonti dei soci del gestionale. */
 export async function refreshMembershipAction(): Promise<ActionResult> {
   await requireAdmin();
+  await clearMembershipCache();
+  refreshGestione();
+  return { ok: true };
+}
+
+/** Registra la quota direttamente dalla domanda Google, anche senza gw_people. */
+export async function setFormQuotaPaidAction(formMemberId: string, paid: boolean): Promise<ActionResult> {
+  await requireAdmin();
+  if (!isUuidLike(formMemberId) || typeof paid !== "boolean") return INVALID;
+  const db = getGestionaleDb();
+  const { data: form, error } = await db.from("association_members")
+    .select("id,first_name,last_name,email")
+    .eq("id", formMemberId).eq("source", "google_sheet")
+    .maybeSingle();
+  if (error || !form) return { ok: false, error: "Domanda Google non trovata. Aggiorna le domande." };
+  const period = membershipPeriodFor(todayInRome());
+  if (!period) return { ok: false, error: "Periodo associativo non valido." };
+  if (!form.email && !(form.first_name && form.last_name)) return { ok: false, error: MISSING_IDENTITY };
+
+  const identity = { email: form.email, firstName: form.first_name, lastName: form.last_name };
+  const result = paid
+    ? await saveManualValidation(identity, { period })
+    : await revokeManualValidation(identity, { period });
+  if (!result.ok) return { ok: false, error: "Salvataggio quota non riuscito." };
+  if (!paid && "revoked" in result && result.revoked === 0)
+    return { ok: false, error: "Nessuna quota confermata manualmente da annullare." };
+
   await clearMembershipCache();
   refreshGestione();
   return { ok: true };
