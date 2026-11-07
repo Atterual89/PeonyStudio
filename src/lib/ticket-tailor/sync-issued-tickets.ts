@@ -52,8 +52,15 @@ type SupabaseIssuedTicketRow = {
 };
 
 
-/** Stesso algoritmo di importazione della vecchia Admin: upsert di ordini e biglietti, senza toccare la gestione associativa. */
-export async function syncTicketTailorIssuedTickets() {
+export type TicketTailorChunkOptions = {
+  ticketTailorEventId?: string;
+  startingAfter?: string | null;
+  maxPages?: number;
+};
+
+/** Importazione anche a blocchi, senza cancellazioni; usata dal gestionale
+ * per evitare richieste oltre il limite del server Netlify. */
+export async function syncTicketTailorIssuedTickets(options: TicketTailorChunkOptions = {}) {
   const apiKey = process.env.TICKET_TAILOR_API_KEY;
   if (!apiKey) throw new Error("Chiave Ticket Tailor non configurata.");
   const supabase = createSupabaseAdminClient();
@@ -62,7 +69,7 @@ export async function syncTicketTailorIssuedTickets() {
   try {
     const [targetEvents, orderResult] = await Promise.all([
       loadTargetEvents(),
-      fetchOrders(apiKey),
+      fetchOrders(apiKey, options),
     ]);
 
     const eventIdByTicketTailorId = new Map(
@@ -294,14 +301,18 @@ export async function syncTicketTailorIssuedTickets() {
       skipped: skippedTickets,
       ignoredOrders,
       errors,
+      nextCursor: orderResult.nextCursor,
     };
 
     async function loadTargetEvents() {
-      const { data, error } = await supabase
+      let query = supabase
         .from("events")
         .select("id,ticket_tailor_event_id")
-        .not("ticket_tailor_event_id", "is", null)
-        .range(0, 999);
+        .not("ticket_tailor_event_id", "is", null);
+      if (options.ticketTailorEventId) {
+        query = query.eq("ticket_tailor_event_id", options.ticketTailorEventId);
+      }
+      const { data, error } = await query.range(0, 999);
 
       if (error) {
         throw new Error(error.message);
@@ -367,55 +378,47 @@ export async function syncTicketTailorIssuedTickets() {
 }
 
 
-async function fetchOrders(apiKey: string) {
+async function fetchOrders(apiKey: string, options: TicketTailorChunkOptions) {
   const records: TicketTailorRecord[] = [];
   let pagesRead = 0;
-  let startingAfter: string | null = null;
+  let startingAfter = options.startingAfter ?? null;
+  let nextCursor: string | null = null;
+  const maxPages = options.maxPages === undefined ? MAX_PAGES :
+    Math.max(1, Math.min(MAX_PAGES, Math.floor(options.maxPages)));
+  if (startingAfter && (!/^[a-zA-Z0-9_-]{2,200}$/.test(startingAfter))) {
+    throw new Error("Cursore Ticket Tailor non valido.");
+  }
 
-  while (pagesRead < MAX_PAGES) {
+  while (pagesRead < maxPages) {
     const url = new URL(TICKET_TAILOR_ORDERS_ENDPOINT);
     url.searchParams.set("limit", String(PAGE_SIZE));
-    if (startingAfter) {
-      url.searchParams.set("starting_after", startingAfter);
-    }
+    if (startingAfter) url.searchParams.set("starting_after", startingAfter);
 
     const response = await fetch(url.toString(), {
       headers: getTicketTailorHeaders(apiKey),
       cache: "no-store",
+      signal: AbortSignal.timeout(20_000),
     });
-
     pagesRead += 1;
-
     if (!response.ok) {
-      const body = await response.text();
-      throw new Error(
-        `Ticket Tailor orders returned ${response.status}: ${body.slice(0, 240)}`,
-      );
+      // Non registrare mai la chiave nei log o nel messaggio di errore.
+      throw new Error(`Ticket Tailor orders HTTP ${response.status}`);
     }
-
     const payload = (await response.json()) as unknown;
     const page = extractRecords(payload);
     records.push(...page);
-
-    if (page.length < PAGE_SIZE) {
-      break;
-    }
+    if (page.length < PAGE_SIZE) { nextCursor = null; break; }
 
     const lastOrderId = findString(page[page.length - 1], [
-      "id",
-      "order_id",
-      "orderId",
-      "object_id",
+      "id", "order_id", "orderId", "object_id",
     ]);
-
     if (!lastOrderId || lastOrderId === startingAfter) {
-      break;
+      throw new Error("La paginazione Ticket Tailor non è avanzata.");
     }
-
     startingAfter = lastOrderId;
+    nextCursor = lastOrderId;
   }
-
-  return { records, pagesRead };
+  return { records, pagesRead, nextCursor };
 }
 
 function getIssuedTickets(order: TicketTailorRecord) {
