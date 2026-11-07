@@ -84,10 +84,10 @@ function PeonyEventList({ entries }: { entries: PeonyEventSummary[] }) {
 }
 
 function PeonyEventsSection({ entries, today, year }: {
-  entries: PeonyEventSummary[]; today: string; year: number;
+  entries: PeonyEventSummary[]; today: string; year: number | "tutti";
 }) {
   const displayable = entries.filter((event) => event.startsOn && (
-    event.startsOn >= today || event.startsOn.startsWith(String(year))
+    event.startsOn >= today || year === "tutti" || event.startsOn.startsWith(String(year))
   ));
   const groups = groupByTime(displayable.map((entry) => ({
     ...entry,
@@ -107,7 +107,7 @@ function PeonyEventsSection({ entries, today, year }: {
           <PeonyEventList entries={groups.prossimo} />
         </Section>
         {groups.passato.length > 0 ? (
-          <Section title={`Passati · ${year}`} count={groups.passato.length}>
+          <Section title={year === "tutti" ? "Passati" : `Passati · ${year}`} count={groups.passato.length}>
             <PeonyEventList entries={groups.passato} />
           </Section>
         ) : null}
@@ -141,7 +141,10 @@ export default async function WorkshopDashboard({
   // In evidenza: i workshop in corso, altrimenti il primo dei prossimi.
   const highlighted = (groups.in_corso.length > 0 ? groups.in_corso : groups.prossimo.slice(0, 1)).map((entry) => entry.key);
 
-  const years = availableYears(entries.map((entry) => entry.startsOn), today);
+  const years = availableYears([
+    ...entries.map((entry) => entry.startsOn),
+    ...peonyEvents.flatMap((event) => event.startsOn ? [event.startsOn] : []),
+  ], today);
   const error =
     errore === "evento" ? (
       <div className="mt-4">
