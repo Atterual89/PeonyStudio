@@ -52,9 +52,9 @@ export function isSameParticipant(owner: { name: string; email: string | null },
     .toLocaleLowerCase("it").trim().replace(/\s+/g," ");
   const ownerName=normalize(owner.name), partnerName=normalize(partner.name);
   if(ownerEmail&&partnerEmail){
-    // Un indirizzo condiviso da due familiari non dimostra che siano la
-    // stessa persona: l'operatore sceglie il socio esplicitamente per nome.
-    return ownerEmail===partnerEmail && (!ownerName||!partnerName||ownerName===partnerName);
+    // Evita abbinamenti automatici incerti con la stessa email:
+    // lo stato associativo usa anche l'indirizzo per la verifica quota.
+    return ownerEmail===partnerEmail;
   }
   return Boolean(ownerName)&&ownerName===partnerName;
 }

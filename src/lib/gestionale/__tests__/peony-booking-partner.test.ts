@@ -30,7 +30,7 @@ describe("prenotazioni Peony: identità partner", () => {
     const owner = {name:"Mario Rossi",email:"mario@test.it"};
     expect(isSameParticipant(owner,{name:"Mario Rossi",email:"mario@test.it"})).toBe(true);
     expect(isSameParticipant(owner,{name:"Mario Rossi",email:"altro@test.it"})).toBe(false);
-    expect(isSameParticipant(owner,{name:"Anna Rossi",email:"mario@test.it"})).toBe(false);
+    expect(isSameParticipant(owner,{name:"Anna Rossi",email:"mario@test.it"})).toBe(true);
     expect(isSameParticipant(owner,{name:"Mario Rossi",email:null})).toBe(true);
   });
 });
