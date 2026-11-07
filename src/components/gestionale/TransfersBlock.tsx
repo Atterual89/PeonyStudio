@@ -8,16 +8,17 @@ import {
   carryResidualAction,
   deleteCarryoverAction,
   deleteTransferAction,
-  markTransferExecutedAction,
 } from "@/app/gestione/(app)/w/accounts-actions";
 import type { Carryover, Transfer } from "@/lib/gestionale/accounts";
 import { DELETE_HINTS } from "@/lib/gestionale/deletions";
 import { centsToInput, formatCents, formatDate, formatDateRange } from "@/lib/gestionale/format";
 import { PARTY_LABELS, TRANSFER_STATUS_LABELS } from "@/lib/gestionale/labels";
 import type { ActionResult, Party, TransferStatus } from "@/lib/gestionale/types";
+import type { SettlementInput } from "@/lib/gestionale/settlement";
 
 import { DeleteConfirm } from "./Deletion";
 import { PARTY_OPTIONS } from "./ExpensesBlock";
+import { TransferEditForm } from "./TransferEditForm";
 import { ChoiceSelect, Field, Notice, RowMenu, buttonClass, inputClass } from "./ui";
 
 type Message = { tone: "success" | "error"; text: string } | null;
@@ -116,27 +117,30 @@ export function TransfersBlock({
   transfers,
   residuo,
   today,
+  input,
+  hasCarryovers = false,
+  showAdd = false,
 }: {
   workshopId: string;
   transfers: readonly Transfer[];
   /** Residuo attuale, per precompilare il modulo. */
   residuo: number | null;
   today: string;
+  input: SettlementInput;
+  hasCarryovers?: boolean;
+  showAdd?: boolean;
 }) {
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState<Transfer | null>(null);
-  const { message, setMessage, pending, run } = useRowAction();
+  const [editing, setEditing] = useState<Transfer | null>(null);
+  const { message, setMessage } = useRowAction();
   const suggestion = residuo ? { fromParty: (residuo > 0 ? "redsabbath" : "peony") as Party, amountCents: Math.abs(residuo) } : null;
 
-  const markExecuted = (transfer: Transfer) =>
-    run(() => markTransferExecutedAction({ id: transfer.id, version: transfer.version, executedOn: today }), "Trasferimento registrato come eseguito.");
   const actions = (transfer: Transfer) => (
     <span className="flex items-center gap-1">
-      {transfer.status === "da_eseguire" ? (
-        <button type="button" className={buttonClass.ghost} onClick={() => markExecuted(transfer)} disabled={pending}>
-          Registra come eseguito
-        </button>
-      ) : null}
+      <button type="button" className={buttonClass.ghost} onClick={() => setEditing(transfer)}>
+        Modifica
+      </button>
       <RowMenu
         label="Altre azioni sul trasferimento"
         items={[
@@ -215,7 +219,12 @@ export function TransfersBlock({
 
       {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
 
-      {adding ? (
+      {editing ? (
+        <TransferEditForm key={editing.id} transfer={editing} transfers={transfers}
+          input={input} today={today} hasCarryovers={hasCarryovers}
+          onDone={() => setEditing(null)} />
+      ) : null}
+      {showAdd ? (adding ? (
         <TransferForm
           workshopId={workshopId}
           suggestion={suggestion}
@@ -229,7 +238,7 @@ export function TransfersBlock({
         <button type="button" className={buttonClass.secondary} onClick={() => setAdding(true)}>
           <Plus className="h-5 w-5" aria-hidden="true" /> Trasferimento
         </button>
-      )}
+      )) : null}
     </div>
   );
 }

@@ -595,7 +595,9 @@ function DivisionContent({
         <p className="text-sm font-semibold text-[#5f524c]">
           Trasferimenti · {data.transfers.length} · eseguiti {formatCents(executed)}
         </p>
-        <TransfersBlock workshopId={workshop.id} transfers={data.transfers} residuo={settlement.residuo} today={today} />
+        <TransfersBlock workshopId={workshop.id} transfers={data.transfers}
+          residuo={settlement.residuo} today={today} input={data.input}
+          hasCarryovers={data.carryoversIn.length>0||data.carryoversOut.length>0} />
       </div>
       <div className="space-y-2">
         <p className="text-sm font-semibold text-[#5f524c]">Riporti · {data.carryoversIn.length + data.carryoversOut.length}</p>
