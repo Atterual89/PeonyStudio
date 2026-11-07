@@ -25,8 +25,7 @@ export default async function PeonyEventPage({ params }: {
         ← Tutti gli eventi
       </Link>
       <div>
-        <p className="text-xs font-bold uppercase tracking-wide text-[#a8583e]">Evento Peony · Ticket Tailor</p>
-        <h1 className="mt-1 font-serif text-2xl font-semibold">{event.title}</h1>
+        <h1 className="font-serif text-2xl font-semibold">{event.title}</h1>
         <p className="mt-1 text-sm text-[#5f524c]">
           {event.startsOn ? new Intl.DateTimeFormat("it-IT", { dateStyle: "long", timeZone: "UTC" })
             .format(new Date(`${event.startsOn}T12:00:00Z`)) : "Data da definire"}
