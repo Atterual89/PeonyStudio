@@ -6,7 +6,7 @@ import { getGestionaleDb } from "@/lib/gestionale/server/db";
 import { associationStatus, getPeonyEvent, isActivePeonyTicket, readAllMemberEvidence } from "@/lib/gestionale/server/peony-events";
 import { cleanPartnerEmail, cleanPartnerName, isSameParticipant } from "@/lib/gestionale/peony-booking-partner";
 import { normalizeText } from "@/lib/gestionale/format";
-import { normalizeMembershipEmail, normalizeMembershipNameKey } from "@/lib/association/membership-state";
+import { buildPeonyMemberDirectory, filterPeonyMemberDirectory } from "@/lib/gestionale/peony-member-candidates";
 import { isUuidLike } from "@/lib/gestionale/validation";
 import { todayInRome } from "@/lib/gestionale/workshops";
 import { PEONY_EMAIL_KINDS, type PeonyEmailKind } from "@/lib/gestionale/peony-email-html";
@@ -79,7 +79,7 @@ export type PeonyPartnerCandidate = {
   id: string;
   name: string;
   email: string | null;
-  origin: "Libro soci" | "Modulo Google" | "Conferma manuale" | "Anagrafica";
+  origin: "Libro soci" | "Modulo Google" | "Conferma manuale" | "Anagrafica" | "Libro soci + modulo";
   membership: "valid" | "payment_missing" | "missing_form" | null;
 };
 export type PartnerSearchResult =
@@ -89,59 +89,38 @@ export type PartnerSearchResult =
 const safeName = (first: string | null, last: string | null, nick?: string | null) =>
   cleanPartnerName([first,last].filter(Boolean).join(" ")) || cleanPartnerName(nick) || null;
 
-/** Ricerca nell'anagrafica e nel libro soci salvato, anche se il socio e'
- * già collegato ad un'altra scheda personale. Solo risultati di nome/email. */
+async function readCandidates(eventId: string) {
+  const event=await getPeonyEvent(eventId);
+  if(!event)return null;
+  const [evidence,peopleResponse]=await Promise.all([
+    readAllMemberEvidence(),
+    getGestionaleDb().from("gw_people").select("id,first_name,last_name,nickname,email")
+      .is("deleted_at",null).is("merged_into",null).range(0,9999),
+  ]);
+  if(peopleResponse.error)throw new Error("Anagrafica non disponibile.");
+  return {event,evidence,candidates:buildPeonyMemberDirectory(evidence,peopleResponse.data??[])};
+}
+
+/** Elenco soci, moduli e anagrafica con le fonti già deduplicate. */
 export async function searchPeonyPartnerAction(eventId: string, query: string): Promise<PartnerSearchResult> {
   await requireAdmin();
-  if (!(await getPeonyEvent(eventId))) return { ok:false, error:"Evento non disponibile." };
-  if (typeof query !== "string" || query.trim().length < 2 || query.length > 120)
-    return { ok:false, error:"Scrivi almeno due caratteri di nome, cognome o email." };
-  const tokens = normalizeText(query).split(" ").filter(Boolean);
-  const evidence = await readAllMemberEvidence();
-  const db = getGestionaleDb();
-  const { data: people, error } = await db.from("gw_people")
-    .select("id,first_name,last_name,nickname,email")
-    .is("deleted_at", null).is("merged_into",null).range(0,9999);
-  if(error) return { ok:false, error:"Anagrafica non disponibile." };
-
-  const used = new Set<string>();
-  const candidates: PeonyPartnerCandidate[] = [];
-  const event = await getPeonyEvent(eventId);
-  if(!event) return { ok:false, error:"Evento non disponibile." };
-  const memberRows = [...evidence].filter(row =>
-    ["google_sheet","official_members_book","manual_override"].includes(row.source ?? ""),
-  ).sort((a,b) =>
-    (a.source === "official_members_book" ? 0 : a.source === "google_sheet" ? 1 : 2) -
-    (b.source === "official_members_book" ? 0 : b.source === "google_sheet" ? 1 : 2));
-  for(const row of memberRows) {
-    const name = safeName(row.first_name,row.last_name);
-    const email = cleanPartnerEmail(row.email);
-    if(!name && !email) continue;
-    const nameKey=normalizeMembershipNameKey(row.first_name,row.last_name);
-    const key = email ? `email:${normalizeMembershipEmail(email)}:name:${nameKey}`
-      : `name:${nameKey}`;
-    if(!key || key==="name:" || used.has(key))continue;
-    if(!tokens.every(token=>normalizeText(`${name??""} ${email??""}`).includes(token)))continue;
-    used.add(key);
-    const state=associationStatus(evidence,event,{email,firstName:row.first_name,lastName:row.last_name});
-    candidates.push({kind:"member",id:row.id,name:name??email!,email,
-      origin:row.source==="official_members_book"?"Libro soci":row.source==="manual_override"?"Conferma manuale":"Modulo Google",
-      membership:state?.status??null});
+  if(typeof query!=="string"||query.trim().length<2||query.length>120)
+    return {ok:false,error:"Scrivi almeno due caratteri di nome, cognome o email."};
+  try {
+    const directory=await readCandidates(eventId);
+    if(!directory)return {ok:false,error:"Evento non disponibile."};
+    return {ok:true,candidates:filterPeonyMemberDirectory(directory.candidates,query).map(candidate=>({
+      ...candidate,
+      membership:associationStatus(directory.evidence,directory.event,{
+        email:candidate.email,
+        firstName:candidate.name,
+        lastName:null,
+      })?.status??null,
+    }))};
+  } catch(error) {
+    console.error("Gestionale: ricerca associativa non disponibile",error instanceof Error?error.message:"errore");
+    return {ok:false,error:"Impossibile cercare nell'anagrafica soci. Riprova."};
   }
-  for(const row of people??[]) {
-    const name=safeName(row.first_name,row.last_name,row.nickname);
-    const email=cleanPartnerEmail(row.email);
-    if(!name && !email)continue;
-    const key=email?`email:${normalizeMembershipEmail(email)}:name:${normalizeMembershipNameKey(row.first_name,row.last_name)}`
-      :`person:${row.id}`;
-    if(used.has(key))continue;
-    if(!tokens.every(token=>normalizeText(`${name??""} ${email??""}`).includes(token)))continue;
-    used.add(key);
-    const state=associationStatus(evidence,event,{email,firstName:row.first_name,lastName:row.last_name});
-    candidates.push({kind:"person",id:row.id,name:name??email!,email,
-      origin:"Anagrafica",membership:state?.status??null});
-  }
-  return {ok:true,candidates:candidates.slice(0,20)};
 }
 
 export async function savePeonyPartnerAction(
@@ -175,15 +154,12 @@ export async function savePeonyPartnerAction(
   let personId:string|null=null;
   let memberRowId:string|null=null;
   if(selected?.kind==="member"){
-    const {data:row,error}=await db.from("association_members")
-      .select("id,first_name,last_name,email,source")
-      .eq("id",selected.id)
-      .in("source",["google_sheet","official_members_book","manual_override"])
-      .maybeSingle();
-    if(error||!row)return {ok:false,error:"Socio non trovato. Ripeti la ricerca."};
-    partnerName=safeName(row.first_name,row.last_name);
-    partnerEmail=cleanPartnerEmail(row.email);
-    memberRowId=row.id;
+    const directory=await readCandidates(eventId);
+    const candidate=directory?.candidates.find(c=>c.kind==="member"&&c.id===selected.id);
+    if(!candidate)return {ok:false,error:"Socio non trovato. Ripeti la ricerca."};
+    partnerName=candidate.name;
+    partnerEmail=candidate.email;
+    memberRowId=candidate.id;
   }else if(selected?.kind==="person"){
     const {data:row,error}=await db.from("gw_people")
       .select("id,first_name,last_name,nickname,email")
@@ -202,6 +178,15 @@ export async function savePeonyPartnerAction(
   }
   if(selected && !partnerName && !partnerEmail)
     return {ok:false,error:"La persona selezionata non ha nome né email."};
+  if(selected && (memberRowId || personId)){
+    const {data:holder,error:holderError}=await db.from("gw_peony_booking_holders")
+      .select("person_id,member_row_id")
+      .eq("event_id",event.id).eq("ticket_id",ticketId).maybeSingle();
+    if(holderError)return {ok:false,error:"Impossibile verificare l'intestatario collegato."};
+    if((memberRowId&&holder?.member_row_id===memberRowId)||
+      (personId&&holder?.person_id===personId))
+      return {ok:false,error:"L'intestatario e il partner devono essere persone diverse."};
+  }
   const ownerName=[ticket.holder_first_name,ticket.holder_last_name].filter(Boolean).join(" ");
   if(selected && isSameParticipant({name:ownerName,email:ticket.holder_email},
       {name:partnerName??"",email:partnerEmail}))
@@ -216,6 +201,68 @@ export async function savePeonyPartnerAction(
   if(error){
     console.error("Gestionale: salvataggio partner non riuscito",error.code);
     return {ok:false,error:"Non riesco a salvare il partner. Riprova."};
+  }
+  refreshGestione();
+  return {ok:true};
+}
+
+
+/** Un collegamento dell'intestatario non cambia nome/email del biglietto TT.
+ * È separato dall'eventuale collegamento del partner. */
+export async function savePeonyHolderAction(
+  eventId:string, ticketId:string,
+  selected:{kind:"member"|"person";id:string}|null,
+):Promise<PeonyActionResult>{
+  const operator=await requireAdmin();
+  const event=await getPeonyEvent(eventId);
+  if(!event||typeof ticketId!=="string"||!ticketId||ticketId.length>200)
+    return {ok:false,error:"Iscrizione non disponibile."};
+  if(selected&&(!["member","person"].includes(selected.kind)||!isUuidLike(selected.id)))
+    return {ok:false,error:"Seleziona una persona dall'anagrafica."};
+  const db=getGestionaleDb();
+  const {data:ticket,error:ticketError}=await db.from("ticket_tailor_issued_tickets")
+    .select("ticket_tailor_issued_ticket_id,status,holder_first_name,holder_last_name,holder_email")
+    .eq("ticket_tailor_event_id",event.ticketTailorEventId)
+    .eq("ticket_tailor_issued_ticket_id",ticketId).maybeSingle();
+  if(ticketError||!ticket||!isActivePeonyTicket(ticket.status))
+    return {ok:false,error:"Biglietto assente o non attivo."};
+  if(!selected){
+    const {error}=await db.from("gw_peony_booking_holders")
+      .delete().eq("event_id",eventId).eq("ticket_id",ticketId);
+    if(error)return {ok:false,error:"Impossibile annullare l'abbinamento."};
+    refreshGestione();
+    return {ok:true};
+  }
+  let name:string|null=null,email:string|null=null;
+  let memberId:string|null=null,personId:string|null=null;
+  if(selected.kind==="member"){
+    const directory=await readCandidates(eventId);
+    const candidate=directory?.candidates.find(c=>c.kind==="member"&&c.id===selected.id);
+    if(!candidate)return {ok:false,error:"Socio non trovato. Ripeti la ricerca."};
+    memberId=candidate.id;name=candidate.name;email=candidate.email;
+  }else{
+    const {data:person,error}=await db.from("gw_people")
+      .select("id,first_name,last_name,nickname,email")
+      .eq("id",selected.id).is("deleted_at",null).is("merged_into",null).maybeSingle();
+    if(error||!person)return {ok:false,error:"Persona non trovata. Ripeti la ricerca."};
+    personId=person.id;name=safeName(person.first_name,person.last_name,person.nickname);
+    email=cleanPartnerEmail(person.email);
+  }
+  if(!name&&!email)return {ok:false,error:"La scheda selezionata non ha dati identificativi."};
+  const {data:linkedPartner,error:partnerError}=await db.from("gw_peony_booking_partners")
+    .select("person_id,member_row_id")
+    .eq("event_id",event.id).eq("ticket_id",ticketId).maybeSingle();
+  if(partnerError)return {ok:false,error:"Impossibile verificare il partner collegato."};
+  if((memberId&&linkedPartner?.member_row_id===memberId)||
+      (personId&&linkedPartner?.person_id===personId))
+    return {ok:false,error:"L'intestatario e il partner devono essere persone diverse."};
+  const {error}=await db.from("gw_peony_booking_holders").upsert({
+    event_id:eventId,ticket_id:ticketId,person_id:personId,member_row_id:memberId,
+    updated_by:operator.id,updated_at:new Date().toISOString(),
+  },{onConflict:"event_id,ticket_id"});
+  if(error){
+    console.error("Gestionale: errore abbinamento intestatario",error.code);
+    return {ok:false,error:"Non riesco a salvare l'abbinamento."};
   }
   refreshGestione();
   return {ok:true};
