@@ -178,6 +178,15 @@ export async function savePeonyPartnerAction(
   }
   if(selected && !partnerName && !partnerEmail)
     return {ok:false,error:"La persona selezionata non ha nome né email."};
+  if(selected && (memberRowId || personId)){
+    const {data:holder,error:holderError}=await db.from("gw_peony_booking_holders")
+      .select("person_id,member_row_id")
+      .eq("event_id",event.id).eq("ticket_id",ticketId).maybeSingle();
+    if(holderError)return {ok:false,error:"Impossibile verificare l'intestatario collegato."};
+    if((memberRowId&&holder?.member_row_id===memberRowId)||
+      (personId&&holder?.person_id===personId))
+      return {ok:false,error:"L'intestatario e il partner devono essere persone diverse."};
+  }
   const ownerName=[ticket.holder_first_name,ticket.holder_last_name].filter(Boolean).join(" ");
   if(selected && isSameParticipant({name:ownerName,email:ticket.holder_email},
       {name:partnerName??"",email:partnerEmail}))
@@ -240,6 +249,13 @@ export async function savePeonyHolderAction(
     email=cleanPartnerEmail(person.email);
   }
   if(!name&&!email)return {ok:false,error:"La scheda selezionata non ha dati identificativi."};
+  const {data:linkedPartner,error:partnerError}=await db.from("gw_peony_booking_partners")
+    .select("person_id,member_row_id")
+    .eq("event_id",event.id).eq("ticket_id",ticketId).maybeSingle();
+  if(partnerError)return {ok:false,error:"Impossibile verificare il partner collegato."};
+  if((memberId&&linkedPartner?.member_row_id===memberId)||
+      (personId&&linkedPartner?.person_id===personId))
+    return {ok:false,error:"L'intestatario e il partner devono essere persone diverse."};
   const {error}=await db.from("gw_peony_booking_holders").upsert({
     event_id:eventId,ticket_id:ticketId,person_id:personId,member_row_id:memberId,
     updated_by:operator.id,updated_at:new Date().toISOString(),
