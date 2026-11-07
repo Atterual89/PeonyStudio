@@ -36,74 +36,91 @@ function MembershipBadge({ info, required }: { info: PeonyMembership | null; req
   );
 }
 
-function MembershipDetails({ info, required }: { info: PeonyMembership | null; required: boolean }) {
-  if (!required) return <p className="text-sm">Observer: associazione non obbligatoria per questo biglietto.</p>;
-  if (!info) return <p className="text-sm">Nessuna verifica disponibile nei dati sincronizzati: consulta la pagina Admin.</p>;
+
+function formatMembershipDate(value: string): string {
+  const parts = value.slice(0, 10).split("-");
+  return parts.length === 3 ? parts[2] + "/" + parts[1] + "/" + parts[0] : value;
+}
+
+/** I dati secondari restano consultabili senza ripetere il badge già mostrato. */
+function MembershipFacts({ info }: { info: PeonyMembership | null }) {
+  if (!info) return <p className="text-xs text-[#96641b]">Verifica non disponibile nei dati sincronizzati.</p>;
+  const matchLabel = info.matchMethod === "email" ? "email" :
+    info.matchMethod === "name" ? "nome e cognome" :
+    info.matchMethod === "manual" ? "manuale" : "non disponibile";
   return (
-    <div className="grid gap-1 text-sm">
-      <p><strong>Modulo associativo:</strong> {info.formPresent ? "Trovato" : "Non trovato nei dati sincronizzati"}</p>
-      <p><strong>Quota associativa:</strong> {info.feePaid ? "Verificata per il periodo dell'evento" : "Non verificata"}</p>
-      <p><strong>Scadenza tessera:</strong> {info.expiresAt || "Da verificare"}</p>
-      <p><strong>Corrispondenza:</strong> {info.matchMethod === "email" ? "Email" :
-        info.matchMethod === "name" ? "Nome e cognome" :
-        info.matchMethod === "manual" ? "Validazione manuale" : "Nessuna conferma"}</p>
+    <div className="space-y-1 text-sm">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[#5f524c]">
+        {info.status !== "missing_form" ? (
+          <span>Modulo: {info.formPresent ? "trovato" : "non trovato"}</span>
+        ) : null}
+        {info.expiresAt ? <span>Tessera fino al {formatMembershipDate(info.expiresAt)}</span> : null}
+      </div>
+      <details className="text-xs text-[#5f524c]">
+        <summary className="w-fit cursor-pointer py-1 text-[#a8583e]">Dettagli verifica</summary>
+        <p>Quota: {info.feePaid ? "verificata" : "non verificata"} · Abbinamento: {matchLabel}</p>
+      </details>
     </div>
   );
 }
 
 function PersonRow({ person }: { person: PeonyAttendee }) {
   const [expanded, setExpanded] = useState(false);
+  const ticketType = person.ticketType?.trim();
+  const showTicketType = Boolean(ticketType && !/^biglietto ticket tailor$/i.test(ticketType));
+  const partnerName = person.partner?.name || person.partner?.email;
   return (
-    <li className={card}>
-      <button type="button" aria-expanded={expanded} onClick={() => setExpanded(v => !v)}
-        className="flex h-auto min-h-10 w-full items-center justify-between gap-3 text-left">
-        <span className="min-w-0">
-          <strong className="block break-words text-sm">{person.name}</strong>
-          <span className="block text-xs text-[#5f524c]">{person.ticketType || "Biglietto Ticket Tailor"}</span>
-          <MembershipBadge info={person.association} required={person.associationRequired} />
+    <li className="rounded-xl border border-[#211815]/10 bg-white/80 px-3 py-2.5">
+      <button type="button" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}
+        className="flex min-h-10 w-full items-center justify-between gap-2 text-left">
+        <span className="min-w-0 flex-1 space-y-0.5">
+          <span className="block break-words text-sm font-semibold">
+            {person.name}
+            {showTicketType ? <span className="ml-2 text-xs font-normal text-[#5f524c]">{ticketType}</span> : null}
+          </span>
+          <span className="block"><MembershipBadge info={person.association} required={person.associationRequired} /></span>
           {person.partnerRequired ? (
-            <span className="mt-1 block text-xs text-[#5f524c]">
-              Partner: {person.partner?.name || person.partner?.email || "da comunicare"}
+            <span className="block text-xs text-[#5f524c]">
+              Partner: {partnerName || "da indicare"}
+              {person.partner ? (
+                <span className="ml-1">
+                  · <MembershipBadge info={person.partner.membership} required />
+                </span>
+              ) : null}
             </span>
           ) : null}
         </span>
         <span aria-hidden="true" className="shrink-0 text-lg text-[#a8583e]">{expanded ? "−" : "+"}</span>
       </button>
       {expanded ? (
-        <div className="mt-3 space-y-3 border-t border-[#211815]/10 pt-3">
-          <div className="text-sm">
-            <p><strong>Email:</strong> {person.email || "Non indicata"}</p>
-            <p><strong>Ordine:</strong> {person.orderId || "Non disponibile"}</p>
-            {person.notes ? <p><strong>Nota interna:</strong> {person.notes}</p> : null}
-            {person.linkedPersonId ? (
-              <a href={`/gestione/p/${person.linkedPersonId}`} className="mt-1 inline-block text-sm font-semibold text-[#a8583e] underline">
-                Apri scheda anagrafica
-              </a>
-            ) : null}
-          </div>
-          <div className="rounded-xl bg-[#f2ede3] p-3">
-            <h3 className="mb-2 text-sm font-bold">Iscrizione all'associazione</h3>
-            <MembershipDetails info={person.association} required={person.associationRequired} />
-          </div>
-          {person.partnerRequired ? (
-            <div className="rounded-xl bg-[#f2ede3] p-3">
-              <h3 className="mb-2 text-sm font-bold">Partner</h3>
-              {person.partner ? (
-                <>
-                  <p className="text-sm"><strong>Nome:</strong> {person.partner.name || "Da completare"}</p>
-                  <p className="text-sm"><strong>Email:</strong> {person.partner.email || "Non indicata"}</p>
-                  <p className="mb-2 text-xs text-[#5f524c]">
-                    Origine: {person.partner.source === "ticket_tailor" ? "risposta all'ordine Ticket Tailor" :
-                      person.partner.source === "admin" ? "confermata nella pagina Admin" : "indicata dal partecipante"}
-                  </p>
-                  <MembershipBadge info={person.partner.membership} required />
-                  <div className="mt-2">
-                    <MembershipDetails info={person.partner.membership} required />
-                  </div>
-                </>
-              ) : <p className="text-sm font-semibold text-[#9b4b1e]">Dati partner mancanti: da richiedere o verificare nella Admin.</p>}
+        <div className="mt-2 space-y-2 border-t border-[#211815]/10 pt-2 text-sm">
+          {person.email ? (
+            <a href={"mailto:" + person.email} className="block break-all text-[#a8583e] underline">{person.email}</a>
+          ) : <span className="text-[#96641b]">Email mancante</span>}
+          {person.associationRequired ? <MembershipFacts info={person.association} /> : null}
+          {person.partnerRequired && person.partner ? (
+            <div className="border-t border-[#211815]/10 pt-2">
+              <p className="mb-1 text-xs font-semibold">Verifica partner</p>
+              {person.partner.email ? (
+                <p className="text-sm text-[#5f524c]">Email partner: {person.partner.email}</p>
+              ) : null}
+              <MembershipFacts info={person.partner.membership} />
             </div>
           ) : null}
+          {person.notes ? <p className="text-sm"><strong>Nota:</strong> {person.notes}</p> : null}
+          {person.linkedPersonId ? (
+            <a href={"/gestione/p/" + person.linkedPersonId}
+              className="inline-block text-sm font-semibold text-[#a8583e] underline">Apri anagrafica</a>
+          ) : null}
+          <details className="text-xs text-[#5f524c]">
+            <summary className="w-fit cursor-pointer py-1 text-[#a8583e]">Dati biglietto</summary>
+            <p>Ordine: {person.orderId || "non disponibile"}</p>
+            {person.ticketType ? <p>Tipo: {person.ticketType}</p> : null}
+            {person.partner ? (
+              <p>Partner indicato {person.partner.source === "ticket_tailor"
+                ? "in Ticket Tailor" : person.partner.source === "admin" ? "in Admin" : "dal partecipante"}</p>
+            ) : null}
+          </details>
         </div>
       ) : null}
     </li>
@@ -205,29 +222,13 @@ export function PeonyEventOperations({
   }
 
   return (
-    <div className="space-y-4">
-      <div className={card}>
-        <p className="font-semibold">{attendees.length} biglietti sincronizzati</p>
-        <p className="mt-1 text-sm text-[#5f524c]">Iscrizioni da verificare: {formToCheck} · Partner da verificare: {partnerToCheck}</p>
-        <p className="mt-2 text-xs text-[#5f524c]">Ultimo aggiornamento biglietti: {formattedSync(ticketsLastSyncedAt)}</p>
-        <p className="text-xs text-[#5f524c]">Ultimo aggiornamento associazione: {formattedSync(associationLastSyncedAt)}</p>
-        {stale ? (
-          <div className="mt-3 rounded-xl border border-[#b17c30]/40 bg-[#f3e8d4] p-3">
-            <p className="text-sm font-semibold">Attenzione: elenco Ticket Tailor potenzialmente non aggiornato</p>
-            <p className="mt-1 text-xs">Il numero qui non è una conferma dei biglietti attuali. Aggiorna la sincronizzazione nella vecchia Admin.</p>
-            <a href="https://peonystudio.net/admin/ticket-tailor" className="mt-2 inline-block text-sm font-semibold text-[#a8583e] underline">
-              Apri Admin per sincronizzare
-            </a>
-          </div>
-        ) : null}
-      </div>
-
+    <div className="space-y-3">
       <div className="grid grid-cols-2 gap-2" role="tablist" aria-label="Gestione evento">
         {(["partecipanti", "email"] as const).map((name) => (
           <button type="button" key={name} role="tab" aria-selected={tab === name}
             onClick={() => { setTab(name); setMessage(null); setFailure(null); }}
             className={`h-10 rounded-xl px-2 text-sm font-semibold ${tab === name ? "bg-[#a8583e] text-white" : "bg-white/75"}`}>
-            {name === "partecipanti" ? "Associazione e partner" : "Email HTML"}
+            {name === "partecipanti" ? "Partecipanti" : "Email"}
           </button>
         ))}
       </div>
@@ -236,30 +237,39 @@ export function PeonyEventOperations({
 
       {tab === "partecipanti" ? (
         <section className="space-y-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <span><strong>{attendees.length}</strong> iscritti</span>
+            {formToCheck > 0 ? <span className="font-semibold text-[#9b4b1e]">{formToCheck} associazioni da verificare</span> : null}
+            {partnerToCheck > 0 ? <span className="font-semibold text-[#9b4b1e]">{partnerToCheck} partner da verificare</span> : null}
+          </div>
+          {stale ? (
+            <p className="text-xs text-[#9b4b1e]">
+              Biglietti non aggiornati · usa «Sincronizza Ticket Tailor» qui sopra
+            </p>
+          ) : null}
+          <details className="text-xs text-[#5f524c]">
+            <summary className="w-fit cursor-pointer py-1 text-[#a8583e]">Ultimi aggiornamenti</summary>
+            <p>Biglietti: {formattedSync(ticketsLastSyncedAt)}</p>
+            <p>Associazione: {formattedSync(associationLastSyncedAt)}</p>
+            <p>Le verifiche associative derivano dai dati salvati; controlla TeamArtist per le conferme recenti.</p>
+          </details>
           <input type="search" value={search} onChange={(event) => setSearch(event.target.value)}
             placeholder="Cerca partecipante o partner" aria-label="Cerca partecipanti e partner"
             className="h-10 w-full rounded-xl border border-[#211815]/15 bg-white px-3 text-sm" />
-          <p className="text-xs text-[#5f524c]">Tocca il nome per visualizzare modulo, quota, scadenza e partner. Le presenze si gestiscono nell'app Ticket Tailor.</p>
           {visible.length === 0 ? <p className={card}>Nessun partecipante nei dati sincronizzati.</p> : null}
-          <ul className="space-y-2">{visible.map(person => <PersonRow key={person.ticketId} person={person} />)}</ul>
-          <p className="text-xs text-[#5f524c]">Le verifiche si basano sui dati associativi sincronizzati. Per correggere o confermare manualmente una registrazione usa la vecchia Admin.</p>
+          <ul className="space-y-1.5">{visible.map(person => <PersonRow key={person.ticketId} person={person} />)}</ul>
         </section>
       ) : (
-        <section className="space-y-4">
-          <div className={card}>
-            <p className="text-sm font-semibold">Tipo di comunicazione</p>
-            <div className="mt-2 grid gap-2">
-              {PEONY_EMAIL_KINDS.map(({id,label}) => (
-                <button key={id} type="button" onClick={() => switchKind(id)}
-                  aria-current={kind === id ? "true" : undefined}
-                  className={`h-10 rounded-xl border px-3 text-left text-sm font-semibold ${
-                    kind === id ? "border-[#a8583e] bg-[#a8583e] text-white" : "border-[#211815]/15 bg-white"
-                  }`}>{label}</button>
+        <section className="space-y-3">
+          <div className="flex items-center gap-3">
+            <label htmlFor="peony-kind" className="shrink-0 text-sm font-semibold">Comunicazione</label>
+            <select id="peony-kind" value={kind}
+              onChange={(event) => switchKind(event.target.value as PeonyEmailKind)}
+              className="h-10 min-w-0 flex-1 rounded-xl border border-[#211815]/15 bg-white px-2 text-sm">
+              {PEONY_EMAIL_KINDS.map(({ id, label }) => (
+                <option key={id} value={id}>{label}</option>
               ))}
-            </div>
-            <p className="mt-3 text-xs text-[#5f524c]">
-              I destinatari vengono proposti in base al tipo di comunicazione; puoi modificarli prima di copiare gli indirizzi.
-            </p>
+            </select>
           </div>
           <div className={card}>
             <label htmlFor="peony-subject" className="block text-sm font-semibold">Oggetto</label>
@@ -267,7 +277,7 @@ export function PeonyEventOperations({
               onChange={e => setTemplateField("subject",e.target.value)}
               className="mt-1 h-10 w-full rounded-lg border border-[#211815]/15 bg-white p-2 text-sm" />
             <label htmlFor="peony-body" className="mt-3 block text-sm font-semibold">Contenuto</label>
-            <textarea id="peony-body" rows={10} value={template.body} maxLength={30000}
+            <textarea id="peony-body" rows={7} value={template.body} maxLength={30000}
               onChange={e => setTemplateField("body",e.target.value)}
               className="mt-1 w-full rounded-lg border border-[#211815]/15 bg-white p-3 text-sm" />
             <div className="mt-3 flex flex-wrap gap-2">
@@ -278,35 +288,42 @@ export function PeonyEventOperations({
                   try { await copyRichHtml(html); setMessage("Email HTML copiata: puoi incollarla in Gmail."); setFailure(null); }
                   catch { setFailure("Impossibile copiare l'HTML formattato. Verifica gli appunti del browser."); }
                 }}>Copia email per Gmail</button>
-              <button type="button" onClick={() => copy(html, "Codice HTML copiato.")}
-                className="h-10 rounded-xl border border-[#211815]/20 px-3 text-sm">Copia codice HTML</button>
             </div>
-            <h3 className="mt-5 text-sm font-bold">Anteprima HTML</h3>
-            <iframe title="Anteprima email Peony Studio" sandbox="" srcDoc={html}
-              className="mt-2 h-[420px] w-full rounded-xl border border-[#211815]/15 bg-white" />
+            <details className="mt-3 border-t border-[#211815]/10 pt-2">
+              <summary className="w-fit cursor-pointer text-sm font-semibold text-[#a8583e]">Anteprima e codice HTML</summary>
+              <div className="mt-2 space-y-2">
+                <iframe title="Anteprima email Peony Studio" sandbox="" srcDoc={html}
+                  className="h-[360px] w-full rounded-xl border border-[#211815]/15 bg-white" />
+                <button type="button" onClick={() => copy(html, "Codice HTML copiato.")}
+                  className="h-9 rounded-xl border border-[#211815]/20 px-3 text-sm">Copia codice HTML</button>
+              </div>
+            </details>
           </div>
           <div className={card}>
-            <h3 className="font-semibold">Destinatari — {selected.length} biglietti / {distinctEmails.length} email uniche</h3>
-            <label className="mt-3 flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={checked.length === eligible.length && eligible.length > 0}
-                onChange={e => setChecked(e.target.checked ? eligible.map(p => p.ticketId) : [])} />
-              Seleziona tutti con email
-            </label>
-            <div className="mt-3 max-h-72 space-y-2 overflow-y-auto">
-              {attendees.map(person => (
-                <label key={person.ticketId} className="flex items-start gap-2 border-b border-[#211815]/10 pb-2 text-sm">
-                  <input type="checkbox" disabled={!person.email} checked={checked.includes(person.ticketId)}
-                    onChange={e => setChecked(prev => e.target.checked ? [...prev,person.ticketId] : prev.filter(id => id !== person.ticketId))}
-                    className="mt-1" />
-                  <span className="min-w-0 flex-1">
-                    {person.name}<span className="block break-words text-xs text-[#5f524c]">{person.email || "Senza email"}</span>
-                    {latestSend.has(person.ticketId) ? (
-                      <span className="block text-xs text-[#326941]">Ultimo invio registrato: {latestSend.get(person.ticketId)?.sentOn}</span>
-                    ) : null}
-                  </span>
-                </label>
-              ))}
-            </div>
+            <h3 className="text-sm font-semibold">Destinatari · {distinctEmails.length} email</h3>
+            <details className="mt-2">
+              <summary className="w-fit cursor-pointer py-1 text-sm text-[#a8583e]">Seleziona destinatari ({selected.length}/{eligible.length})</summary>
+              <label className="mt-2 flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={checked.length === eligible.length && eligible.length > 0}
+                  onChange={e => setChecked(e.target.checked ? eligible.map(p => p.ticketId) : [])} />
+                Tutti
+              </label>
+              <div className="mt-2 max-h-64 space-y-2 overflow-y-auto">
+                {attendees.map(person => (
+                  <label key={person.ticketId} className="flex items-start gap-2 border-b border-[#211815]/10 pb-2 text-sm">
+                    <input type="checkbox" disabled={!person.email} checked={checked.includes(person.ticketId)}
+                      onChange={e => setChecked(prev => e.target.checked ? [...prev,person.ticketId] : prev.filter(id => id !== person.ticketId))}
+                      className="mt-1" />
+                    <span className="min-w-0 flex-1">
+                      {person.name}<span className="block break-words text-xs text-[#5f524c]">{person.email || "Senza email"}</span>
+                      {latestSend.has(person.ticketId) ? (
+                        <span className="block text-xs text-[#326941]">Inviata: {latestSend.get(person.ticketId)?.sentOn}</span>
+                      ) : null}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </details>
             <div className="mt-3 flex flex-wrap gap-2">
               <button type="button" className={button} disabled={!distinctEmails.length}
                 onClick={() => copy(distinctEmails.join(", "), "Indirizzi copiati per il Ccn di Gmail.")}>Copia indirizzi Ccn</button>
@@ -331,7 +348,6 @@ export function PeonyEventOperations({
                 </div>
               </div>
             ) : null}
-            <p className="mt-3 text-xs text-[#5f524c]">L'invio avviene da Gmail, non da questa pagina. Segna come inviata soltanto dopo l'invio effettivo.</p>
           </div>
         </section>
       )}

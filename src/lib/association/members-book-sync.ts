@@ -85,7 +85,10 @@ export async function buildOfficialMembersBookSyncPreview(
   return buildPreview(sheetResult, existingMembers);
 }
 
-export async function applyOfficialMembersBookSync(supabase: SupabaseClient) {
+export async function applyOfficialMembersBookSync(
+  supabase: SupabaseClient,
+  options: { removeStaleRows?: boolean } = {},
+) {
   const preview = await buildOfficialMembersBookSyncPreview(supabase);
   const errors = [...preview.errors];
   let created = 0;
@@ -132,7 +135,9 @@ export async function applyOfficialMembersBookSync(supabase: SupabaseClient) {
     }
   }
 
-  const removed = await removeStaleSourceRows(
+  // Il gestionale PIN non cancella soci assenti dall'export corrente.
+  // Gli endpoint Admin legacy mantengono il comportamento precedente.
+  const removed = options.removeStaleRows === false ? 0 : await removeStaleSourceRows(
     supabase,
     "official_members_book",
     new Set(preview.validSourceRows.map((row) => row.source_row_id)),

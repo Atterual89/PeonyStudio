@@ -150,6 +150,20 @@ function partnerIdentity(name: string | null, email: string | null) {
   };
 }
 
+async function readAllMemberEvidence(): Promise<Array<MembershipEvidenceRow & { updated_at: string | null }>> {
+  const rows: Array<MembershipEvidenceRow & { updated_at: string | null }> = [];
+  const db = getGestionaleDb();
+  for (let offset = 0; offset < 10000; offset += 500) {
+    const { data, error } = await db.from("association_members")
+      .select("id,first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at,updated_at")
+      .order("id", { ascending: true }).range(offset, offset + 499);
+    if (error) throw new Error(`Associazione: ${error.message}`);
+    rows.push(...(data ?? []));
+    if ((data ?? []).length < 500) break;
+  }
+  return rows;
+}
+
 export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster> {
   await requireAdmin();
   const db = getGestionaleDb();
@@ -161,9 +175,7 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
       .select("ticket_tailor_issued_ticket_id,notes_admin")
       .eq("ticket_tailor_event_id", event.ticketTailorEventId)
       .not("ticket_tailor_issued_ticket_id", "is", null).range(0, 9999),
-    db.from("association_members")
-      .select("first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at,updated_at")
-      .range(0, 9999),
+    readAllMemberEvidence(),
     db.from("gw_people").select("id,email")
       .is("deleted_at", null).is("merged_into", null).range(0, 9999),
     db.from("user_event_enrollments")
@@ -175,7 +187,7 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
   ]);
   for (const [label, response] of [
     ["Biglietti", tickets], ["Partecipanti", participants],
-    ["Associazione", memberships], ["Anagrafica", people],
+    ["Anagrafica", people],
     ["Partner", enrollments], ["Ordini", orders],
   ] as const) {
     if (response.error) throw new Error(`${label}: ${response.error.message}`);
@@ -187,7 +199,7 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
   for (const order of orders.data ?? []) {
     checkoutByOrder.set(order.ticket_tailor_order_id, partnerFromCheckout(order.raw_payload));
   }
-  const evidence = (memberships.data ?? []) as MembershipEvidenceRow[];
+  const evidence = memberships as MembershipEvidenceRow[];
   const peopleByEmail = new Map<string, string | null>();
   for (const person of people.data ?? []) {
     const email = normalizeMembershipEmail(person.email);
@@ -237,7 +249,7 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
   return {
     attendees,
     ticketsLastSyncedAt: (tickets.data ?? []).map((t) => t.last_synced_at).filter((x): x is string => Boolean(x)).sort().at(-1) ?? null,
-    associationLastSyncedAt: (memberships.data ?? [])
+    associationLastSyncedAt: memberships
       .map((m) => m.updated_at).filter((x): x is string => Boolean(x)).sort().at(-1) ?? null,
   };
 }
