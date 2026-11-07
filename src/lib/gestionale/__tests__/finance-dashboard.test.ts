@@ -13,6 +13,10 @@ describe("barre dashboard conti",()=>{
     expect(cashFlowBars({collectedCents:10000,outstandingCents:0,expenseCents:20000}))
       .toMatchObject({collectedPct:100,spentPct:100,costsOverCollected:true});
   });
+  it("senza incassi ma con spese mostra il problema senza dividere per zero",()=>{
+    expect(cashFlowBars({collectedCents:0,outstandingCents:10000,expenseCents:5000}))
+      .toMatchObject({collectedPct:0,spentPct:100,costsOverCollected:true});
+  });
   it("i rimborsi netti negativi non producono barre negative",()=>{
     const bars=cashFlowBars({collectedCents:-3000,outstandingCents:7000,expenseCents:0});
     expect(bars.collectedPct).toBe(0);

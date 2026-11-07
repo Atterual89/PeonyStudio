@@ -23,7 +23,7 @@ export function cashFlowBars(values:{
     collected,
     expected,
     collectedPct:percent(collected,expected),
-    spentPct:percent(expenses,collected),
+    spentPct:collected===0&&expenses>0?100:percent(expenses,collected),
     hasExpected:expected>0,
     costsOverCollected:expenses>collected&&expenses>0,
   };

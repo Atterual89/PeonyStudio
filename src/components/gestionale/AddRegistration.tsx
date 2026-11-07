@@ -162,22 +162,22 @@ export function AddRegistration({
               placeholder="Nome o nickname"
             />
           </Field>
-          <Field label="Email intestatario" hint="Facoltativa">
+          <Field label="Email intestatario">
             <input className={inputClass} type="email" inputMode="email" autoComplete="off"
               value={personEmail} onChange={(e) => setPersonEmail(e.target.value)} placeholder="Email" />
           </Field>
         </div>
         <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-2">
-          <Field label="Partner" hint="Facoltativo">
+          <Field label="Partner">
             <input className={inputClass} value={partner} onChange={(e) => setPartner(e.target.value)}
               autoComplete="off" autoCapitalize="words" placeholder="Nome o nickname" />
           </Field>
-          <Field label="Email partner" hint="Facoltativa">
+          <Field label="Email partner">
             <input className={inputClass} type="email" inputMode="email" autoComplete="off"
               value={partnerEmail} onChange={(e) => setPartnerEmail(e.target.value)} placeholder="Email" />
           </Field>
         </div>
-        <Field label="Quota totale dell'iscrizione (€)" hint="Importo standard precompilato: puoi modificarlo per questa coppia.">
+        <Field label="Quota totale dell'iscrizione (€)">
           <div className="flex items-center gap-2">
             <input inputMode="decimal" className={`${inputClass} max-w-40`} value={feeText}
               onChange={(e) => setCustomFee(e.target.value)} aria-label="Quota totale iscrizione in euro" />
