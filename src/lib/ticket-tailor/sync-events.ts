@@ -36,10 +36,9 @@ export async function syncTicketTailorEvents() {
   const errors: SyncError[] = [];
   let upserted = 0;
   let skipped = 0;
-
+  const valid: SupabaseEventRow[] = [];
   for (const event of events) {
     const row = mapTicketTailorEventToSupabaseRow(event);
-
     if (!row) {
       skipped += 1;
       errors.push({
@@ -47,29 +46,31 @@ export async function syncTicketTailorEvents() {
         title: event.title,
         message: "Missing Ticket Tailor id or start date.",
       });
-      continue;
+    } else valid.push(row);
+  }
+
+  // Batch ridotti anziché un'operazione Supabase per ciascun evento.
+  // Se un batch fallisce, riprova la singola riga per isolare gli errori.
+  for (let index = 0; index < valid.length; index += 30) {
+    const batch = valid.slice(index, index + 30);
+    const bulk = await supabase.from("events")
+      .upsert(batch, { onConflict: "ticket_tailor_event_id" });
+    if (!bulk.error) { upserted += batch.length; continue; }
+    for (const row of batch) {
+      const single = await supabase.from("events")
+        .upsert(row, { onConflict: "ticket_tailor_event_id" });
+      if (single.error) {
+        console.error("[ticket-tailor sync] Event upsert failed", {
+          ticketTailorEventId: row.ticket_tailor_event_id,
+          message: single.error.message,
+        });
+        errors.push({
+          ticketTailorEventId: row.ticket_tailor_event_id,
+          title: row.title,
+          message: single.error.message,
+        });
+      } else upserted += 1;
     }
-
-    const { error } = await supabase
-      .from("events")
-      .upsert(row, { onConflict: "ticket_tailor_event_id" });
-
-    if (error) {
-      console.error("[ticket-tailor sync] Event upsert failed", {
-        ticketTailorEventId: row.ticket_tailor_event_id,
-        title: row.title,
-        message: error.message,
-      });
-
-      errors.push({
-        ticketTailorEventId: row.ticket_tailor_event_id,
-        title: row.title,
-        message: error.message,
-      });
-      continue;
-    }
-
-    upserted += 1;
   }
 
   return {

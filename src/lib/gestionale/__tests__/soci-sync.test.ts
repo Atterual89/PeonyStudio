@@ -59,7 +59,37 @@ describe("menu gestionale semplificato", () => {
     expect(nav).not.toContain('label: "Cerca"');
     expect(nav).not.toContain('label: "Altro"');
     const settings = source("src/app/gestione/(app)/altro/page.tsx");
-    expect(settings).toContain("Sincronizzazioni e libro soci");
+    expect(settings).toContain("Allineamento e libro soci");
     expect(settings).not.toContain("Registrazioni associazione");
+  });
+});
+
+describe("Ticket Tailor a blocchi e accesso rapido al libro soci", () => {
+  const actions = source("src/app/gestione/(app)/peony/sync/actions.ts");
+  const importer = source("src/lib/ticket-tailor/sync-issued-tickets.ts");
+  const button = source("src/components/gestionale/SyncTicketTailorButton.tsx");
+  const eventPage = source("src/app/gestione/(app)/peony/[id]/page.tsx");
+  const bookPage = source("src/app/gestione/(app)/altro/soci/page.tsx");
+  it("usa una pagina di ordini per richiesta e gestisce i cursori", () => {
+    expect(actions).toContain("syncTicketTailorPageFromGestionale");
+    expect(actions).toContain("await requireAdmin()");
+    expect(actions).toContain("maxPages:1");
+    expect(importer).toContain("starting_after");
+    expect(importer).toContain("AbortSignal.timeout(20_000)");
+    expect(importer).toContain("nextCursor");
+    expect(button).toContain("for(let page=1;page<=100;page++)");
+    expect(button).toContain("response.nextCursor");
+  });
+  it("sincronizza la vista Evento senza aggiornare la box office intera", () => {
+    expect(eventPage).toContain("<SyncTicketTailorButton eventId={event.id} />");
+    expect(actions).toContain("ticketTailorEventId=event.ticketTailorEventId");
+  });
+  it("offre accesso visibile all'allineamento senza confermare quote automaticamente", () => {
+    expect(eventPage).toContain("Allinea libro soci");
+    expect(eventPage).toContain("/gestione/altro/soci#allineamento-anagrafiche");
+    expect(bookPage).toContain('id="allineamento-anagrafiche" open');
+    expect(bookPage).toContain("MemberLinkReview");
+    expect(bookPage).toContain("SociBookUpload");
+    expect(bookPage).toContain("RefreshMembershipButton");
   });
 });

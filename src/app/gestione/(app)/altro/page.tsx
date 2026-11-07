@@ -21,7 +21,7 @@ export default async function AltroPage() {
           <li>
             <Link prefetch={false} href="/gestione/altro/soci" className="flex min-h-12 items-center gap-3 px-3">
               <Database className="h-5 w-5 text-[#a8583e]" aria-hidden="true" />
-              <span className="flex-1 font-semibold">Sincronizzazioni e libro soci</span>
+              <span className="flex-1 font-semibold">Allineamento e libro soci</span>
               <ChevronRight className="h-5 w-5 text-[#5f524c]" aria-hidden="true" />
             </Link>
           </li>

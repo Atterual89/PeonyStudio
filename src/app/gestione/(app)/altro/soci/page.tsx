@@ -42,10 +42,10 @@ export default async function SociPage() {
         <SyncSociButton />
       </div>
       <SociBookUpload />
-      <details className="mt-4 rounded-xl border border-[#211815]/10 bg-white/65 p-3">
-        <summary className="cursor-pointer text-sm font-semibold">Collegamenti anagrafici</summary>
+      <details id="allineamento-anagrafiche" open className="mt-4 rounded-xl border border-[#211815]/10 bg-white/65 p-3">
+        <summary className="cursor-pointer text-sm font-semibold">Allinea persone con il libro soci</summary>
         <p className="mt-2 text-xs text-[#5f524c]">
-          Collega le schede del gestionale alle corrispondenze nel libro soci. Non modifica il libro.
+          Aggiorna la verifica associativa e collega le persone alle corrispondenze del libro soci. Per caricare un nuovo export Team Artist usa il riquadro qui sopra; il libro ufficiale non viene modificato da questi collegamenti.
         </p>
         <div className="mt-2"><RefreshMembershipButton /></div>
         {completable && completable.length > 0 ? (
