@@ -6,6 +6,7 @@ import { parseEuroToCents } from "@/lib/gestionale/format";
 import { getAccounts } from "@/lib/gestionale/server/accounts";
 import { requireAdmin, requireOperator, requireOrganizer } from "@/lib/gestionale/server/auth";
 import { getWorkshopView } from "@/lib/gestionale/server/data";
+import { getGestionaleDb } from "@/lib/gestionale/server/db";
 import {
   createCarryover,
   createExpense,
@@ -20,6 +21,7 @@ import {
   setTransferExecuted,
   updateExpense,
   type ExpensePayload,
+  updateTransfer,
 } from "@/lib/gestionale/server/mutations";
 import { residualTransfer, settlementSnapshot, validateLossPeony } from "@/lib/gestionale/settlement";
 import type { ActionResult, Party } from "@/lib/gestionale/types";
@@ -140,6 +142,47 @@ export async function addTransferAction(input: {
   if (!result.ok) return result;
   refreshGestione();
   return { ok: true };
+}
+
+/** Conferma esplicita prima di correggere un movimento già registrato.
+ * Non aggiorna automaticamente i riporti: questi hanno una propria
+ * registrazione contabile e vanno controllati per evitare doppi conteggi.
+ */
+export async function updateTransferAction(input:{
+  id:string;version:number;confirmedImpact:boolean;
+  fields:{fromParty:string;amount:string;status:string;executedOn:string;notes:string};
+}):Promise<ActionResult>{
+  const operator=await requireOperator();
+  if(!isUuidLike(input?.id)||!isVersion(input.version)||input.confirmedImpact!==true)return INVALID;
+  const fields=input.fields;
+  if(!fields)return INVALID;
+  const amount=readAmount(fields.amount);
+  if(amount===null)return {ok:false,error:"Indica un importo maggiore di zero."};
+  const executedOn=readDate(fields.executedOn);
+  if(!isParty(fields.fromParty)||!isTransferStatus(fields.status)||executedOn===undefined)return INVALID;
+  if(fields.status==="eseguito"&&!executedOn){
+    return {ok:false,error:"Indica quando è stato effettuato il versamento."};
+  }
+  const db=getGestionaleDb();
+  const {data:current,error}=await db.from("gw_transfers")
+    .select("id,version,workshop_id,from_party,to_party,amount_cents,status,executed_on,notes")
+    .eq("id",input.id).maybeSingle();
+  if(error||!current)return {ok:false,error:"Trasferimento non trovato."};
+  if(Number(current.version)!==input.version)return {
+    ok:false,error:"Il movimento è stato modificato: ricarica i conti e riprova."
+  };
+  const toParty:Party=fields.fromParty==="peony"?"redsabbath":"peony";
+  const result=await updateTransfer(operator.id,input.id,input.version,{
+    from_party:fields.fromParty,
+    to_party:toParty,
+    amount_cents:amount,
+    status:fields.status,
+    executed_on:fields.status==="eseguito"?executedOn:null,
+    notes:asText(fields.notes,500).trim()||null,
+  });
+  if(!result.ok)return result;
+  refreshGestione();
+  return {ok:true};
 }
 
 export async function markTransferExecutedAction(input: { id: string; version: number; executedOn?: string }): Promise<ActionResult> {
