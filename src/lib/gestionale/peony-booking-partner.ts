@@ -31,12 +31,18 @@ export function choosePartner(
     const email = cleanPartnerEmail(override.partner_email);
     return name || email ? { name, email, personId: override.person_id, memberRowId: override.member_row_id, source: "gestionale" } : null;
   }
-  const name = cleanPartnerName(enrollment?.partner_name) || cleanPartnerName(checkout?.name);
-  const email = cleanPartnerEmail(enrollment?.partner_email) || cleanPartnerEmail(checkout?.email);
-  if (!name && !email) return null;
-  const source = enrollment?.partner_source === "admin" || enrollment?.partner_source === "user"
-    ? enrollment.partner_source : "ticket_tailor";
-  return { name, email, source };
+  const enrolledName = cleanPartnerName(enrollment?.partner_name);
+  const enrolledEmail = cleanPartnerEmail(enrollment?.partner_email);
+  // Una correzione admin/utente è atomica: non combinare il nome del vecchio
+  // checkout con l'email della persona corretta.
+  if (enrolledName || enrolledEmail) {
+    return { name: enrolledName, email: enrolledEmail,
+      source: enrollment?.partner_source === "admin" || enrollment?.partner_source === "user"
+        ? enrollment.partner_source : "ticket_tailor" };
+  }
+  const name = cleanPartnerName(checkout?.name);
+  const email = cleanPartnerEmail(checkout?.email);
+  return name || email ? {name,email,source:"ticket_tailor"} : null;
 }
 
 export function isSameParticipant(owner: { name: string; email: string | null }, partner: { name: string; email: string | null }) {

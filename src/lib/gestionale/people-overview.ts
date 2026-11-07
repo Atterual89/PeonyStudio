@@ -13,6 +13,7 @@ export type UpcomingContact = {
   paid: boolean | null;
   paidSource: "manual" | "book" | null;
   status: ContactStatus;
+  associationRequired?: boolean;
 };
 export type UpcomingBooking = {
   key: string;
@@ -110,8 +111,9 @@ export function buildPeopleOverview(input:{
     ...event,
     bookings:event.bookings.map(row=>{
       const primaryId=byId.has(row.linkedPersonId??"")?row.linkedPersonId:findPerson(row.email)?.id??null;
-      const primary=contact(row.name,row.email,primaryId,event.startsOn,
-        `ticket:${row.ticketId}:owner`,row.associationRequired?row.association?.status??null:null);
+      const primary={...contact(row.name,row.email,primaryId,event.startsOn,
+        `ticket:${row.ticketId}:owner`,row.associationRequired?row.association?.status??null:null),
+        associationRequired:row.associationRequired};
       let partner:UpcomingContact|null=null;
       if(row.partnerRequired && row.partner) {
         const p=row.partner;

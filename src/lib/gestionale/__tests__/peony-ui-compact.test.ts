@@ -32,7 +32,7 @@ describe("schede partecipanti ed email Peony senza informazioni ridondanti", () 
   it("specifica a quale persona si riferiscono i dettagli associativi", () => {
     expect(source).toContain("Dettagli associazione · {ownerLabel}");
     expect(source).toContain("ownerLabel={person.name}");
-    expect(source).toContain('Partner: ${partnerName || "nome non disponibile"}');
+    expect(source).toContain('Partner: ${partnerLabel}');
   });
 
   it("non mostra l'anteprima email finché non viene richiesta", () => {

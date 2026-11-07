@@ -16,6 +16,7 @@ import { loadSociReviewData } from "@/lib/gestionale/server/soci";
 import { todayInRome } from "@/lib/gestionale/workshops";
 
 function MembershipText({row}: {row:UpcomingContact}) {
+  if(row.associationRequired===false)return <span className="text-xs text-[#5f524c]">Non richiesta</span>;
   if(row.status==="valid")return <span className="text-xs font-semibold text-[#326941]">Verificata</span>;
   if(row.status==="payment_missing")return <span className="text-xs font-semibold text-[#9b4b1e]">Quota da verificare</span>;
   if(row.status==="missing_form")return <span className="text-xs text-[#9b4b1e]">Modulo assente</span>;

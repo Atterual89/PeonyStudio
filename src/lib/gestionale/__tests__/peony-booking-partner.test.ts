@@ -19,6 +19,10 @@ describe("prenotazioni Peony: identità partner", () => {
       enrollment,{ name:"Giada Verdi", email:null });
     expect(result).toBeNull();
   });
+  it("non mischia email corretta con un vecchio nome del checkout", () => {
+    expect(choosePartner(null,{partner_name:null,partner_email:"giada@test.it",partner_source:"admin"},
+      {name:"Persona Sbagliata",email:null})).toMatchObject({name:null,email:"giada@test.it",source:"admin"});
+  });
   it("accetta partner inserito soltanto con indirizzo email", () => {
     expect(choosePartner(null, null, {name:null,email:"AAA@example.it"})).toMatchObject({email:"aaa@example.it"});
   });
