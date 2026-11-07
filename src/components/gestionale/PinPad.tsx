@@ -1,7 +1,6 @@
 "use client";
 
 import { Delete } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, useTransition } from "react";
 
 import { loginAction } from "@/app/gestione/accesso/actions";
@@ -11,7 +10,6 @@ const PIN_LENGTH = 6;
 const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
 export function PinPad() {
-  const router = useRouter();
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [greeting, setGreeting] = useState<string | null>(null);
@@ -24,17 +22,16 @@ export function PinPad() {
         const result = await loginAction(value);
         if (result.ok) {
           setGreeting(`Ciao, ${result.name}`);
-          setTimeout(() => {
-            router.replace("/gestione");
-            router.refresh();
-          }, 900);
+          // Forza una nuova richiesta server con il cookie di sessione appena creato.
+          // Evita la race condition tra router.replace() e router.refresh().
+          window.location.replace("/gestione");
         } else {
           setPin("");
           setError(result.error);
         }
       });
     },
-    [router],
+    [],
   );
 
   const press = useCallback(
@@ -66,9 +63,13 @@ export function PinPad() {
 
   if (greeting) {
     return (
-      <p role="status" className="mt-10 text-center font-serif text-3xl font-medium text-[#a8583e]">
-        {greeting}
-      </p>
+      <div className="mt-10 text-center">
+        <p role="status" className="font-serif text-3xl font-medium text-[#a8583e]">{greeting}</p>
+        <p className="mt-3 text-sm text-[#5f524c]">Apertura dei workshop…</p>
+        <a href="/gestione" className="mt-4 inline-block text-sm font-semibold underline text-[#a8583e]">
+          Apri i workshop
+        </a>
+      </div>
     );
   }
 
