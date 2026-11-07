@@ -147,3 +147,15 @@ describe("quote da modulo Google e omonimi", () => {
     expect(deriveForWorkshop(rows, { email: "altra@example.test", firstName: "Viola", lastName: "Serra" }, "2026-11-07").status).toBe("payment_missing");
   });
 });
+
+
+describe("quote ufficiali conservate per più annualità", () => {
+  it("un socio senza email nel libro conserva la validità per il 2026 anche dopo l'import 2027", () => {
+    const rows: MembershipEvidenceRow[] = [
+      evidence({ email: null, membership_starts_at: "2025-09-01", membership_expires_at: "2026-12-31" }),
+      evidence({ email: null, membership_starts_at: "2027-01-01", membership_expires_at: "2027-12-31" }),
+    ];
+    expect(deriveForWorkshop(rows, { firstName: "Viola", lastName: "Serra" }, "2026-11-07").status).toBe("valid");
+    expect(deriveForWorkshop(rows, { firstName: "Viola", lastName: "Serra" }, "2027-03-07").status).toBe("valid");
+  });
+});

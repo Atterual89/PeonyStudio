@@ -52,6 +52,9 @@ export function deriveMembershipState(
     from: options.paymentsFrom ?? CURRENT_MEMBERSHIP_START,
     until: options.paymentsUntil ?? null,
   };
+  // La pagina Admin legacy usa il comportamento storico senza opzioni.
+  // Il gestionale imposta invece una finestra associativa esplicita.
+  const periodScoped = options.paymentsUntil != null;
   const isCurrentYearPayment = (row: MembershipEvidenceRow) => isPaymentInWindow(row, paymentWindow);
   const targetEmail = normalizeEmail(identity.email);
   const explicitNameKey = normalizeNameKey(
@@ -68,7 +71,7 @@ export function deriveMembershipState(
       Boolean(targetEmail) && normalizeEmail(row.email) === targetEmail;
     const rowEmail = normalizeEmail(row.email);
     const nameMatches =
-      (!targetEmail || !rowEmail) &&
+      (!periodScoped || !targetEmail || !rowEmail) &&
       Boolean(explicitNameKey) &&
       normalizeNameKey(row.first_name, row.last_name) === explicitNameKey;
 
@@ -134,7 +137,7 @@ export function deriveMembershipState(
       (row) =>
         row.source === "official_members_book" &&
         normalizeNameKey(row.first_name, row.last_name) === nameKey &&
-        isCurrentYearPayment(row),
+        (!periodScoped || isCurrentYearPayment(row)),
     );
 
     // Accept a name match only if it resolves to one unique official record.
