@@ -96,7 +96,7 @@ export function SyncSociButton() {
             </button>
             <button type="button" onClick={() => setPreview(null)} disabled={busy}
               className="h-10 rounded-xl border border-[#211815]/20 px-3 text-sm">
-              Annulla
+              Chiudi
             </button>
           </div>
         </div>
