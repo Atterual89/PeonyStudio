@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import type { PeonyAttendee, PeonyMembership } from "@/lib/gestionale/server/peony-events";
+import { PeonyPartnerFinder } from "@/components/gestionale/PeonyPartnerFinder";
 import type { PeonyEmailSend } from "@/lib/gestionale/server/peony-email";
 import {
   PEONY_EMAIL_KINDS, buildPeonyEmailHtml,
@@ -65,64 +66,64 @@ function MembershipFacts({ info, ownerLabel }: { info: PeonyMembership | null; o
   );
 }
 
-function PersonRow({ person }: { person: PeonyAttendee }) {
-  const [expanded, setExpanded] = useState(false);
-  const ticketType = person.ticketType?.trim();
-  const showTicketType = Boolean(ticketType && !/^biglietto ticket tailor$/i.test(ticketType));
-  const partnerName = person.partner?.name || person.partner?.email;
+function PersonRow({ person, eventId }: { person: PeonyAttendee; eventId: string }) {
+  const [expanded,setExpanded]=useState(false);
+  const ticketType=person.ticketType?.trim();
+  const showTicketType=Boolean(ticketType && !/^biglietto ticket tailor$/i.test(ticketType));
+  const partnerLabel=person.partner?.name||person.partner?.email||"Partner da indicare";
   return (
     <li className="rounded-xl border border-[#211815]/10 bg-white/80 px-3 py-2.5">
-      <button type="button" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}
-        className="flex min-h-10 w-full items-center justify-between gap-2 text-left">
-        <span className="min-w-0 flex-1 space-y-0.5">
+      <button type="button" aria-expanded={expanded} onClick={()=>setExpanded(v=>!v)}
+        className="flex min-h-10 w-full items-center justify-between gap-3 text-left">
+        <span className="min-w-0 flex-1 space-y-1">
           <span className="block break-words text-sm font-semibold">
             {person.name}
-            {showTicketType ? <span className="ml-2 text-xs font-normal text-[#5f524c]">{ticketType}</span> : null}
+            {person.partnerRequired ? <span className="font-normal"> + {partnerLabel}</span>:null}
+            {showTicketType?<span className="ml-2 text-xs font-normal text-[#5f524c]">{ticketType}</span>:null}
           </span>
-          <span className="block"><MembershipBadge info={person.association} required={person.associationRequired} /></span>
-          {person.partnerRequired ? (
+          <span className="block text-xs text-[#5f524c]">
+            <strong className="font-medium">Intestatario:</strong>{" "}
+            <MembershipBadge info={person.association} required={person.associationRequired}/>
+          </span>
+          {person.partnerRequired?(
             <span className="block text-xs text-[#5f524c]">
-              Partner: {partnerName || "da indicare"}
-              {person.partner ? (
-                <span className="ml-1">
-                  · <MembershipBadge info={person.partner.membership} required />
-                </span>
-              ) : null}
+              <strong className="font-medium">Partner:</strong>{" "}
+              {person.partner
+                ? <MembershipBadge info={person.partner.membership} required />
+                : <span className="font-semibold text-[#9b4b1e]">Da indicare</span>}
             </span>
-          ) : null}
+          ):null}
         </span>
-        <span aria-hidden="true" className="shrink-0 text-lg text-[#a8583e]">{expanded ? "−" : "+"}</span>
+        <span aria-hidden="true" className="shrink-0 text-lg text-[#a8583e]">{expanded?"−":"+"}</span>
       </button>
-      {expanded ? (
+      {expanded?(
         <div className="mt-2 space-y-2 border-t border-[#211815]/10 pt-2 text-sm">
-          {person.email ? (
-            <a href={"mailto:" + person.email} className="block break-all text-[#a8583e] underline">{person.email}</a>
-          ) : <span className="text-[#96641b]">Email mancante</span>}
-          {person.associationRequired ? <MembershipFacts info={person.association} ownerLabel={person.name} /> : null}
-          {person.partnerRequired && person.partner ? (
-            <div className="border-t border-[#211815]/10 pt-2">
-              {person.partner.email ? (
-                <p className="text-sm text-[#5f524c]">Email: {person.partner.email}</p>
-              ) : null}
-              <MembershipFacts info={person.partner.membership} ownerLabel={`Partner: ${partnerName || "nome non disponibile"}`} />
+          <div>
+            <p className="text-xs font-semibold text-[#5f524c]">Intestatario · {person.name}</p>
+            {person.email?<a href={"mailto:"+person.email} className="block break-all text-sm text-[#a8583e] underline">{person.email}</a>:null}
+            {person.associationRequired?<MembershipFacts info={person.association} ownerLabel={person.name}/>:null}
+          </div>
+          {person.partnerRequired?(
+            <div className="space-y-1 border-t border-[#211815]/10 pt-2">
+              <p className="text-xs font-semibold text-[#5f524c]">Partner: {partnerLabel}</p>
+              {person.partner?.email?<p className="break-all text-xs text-[#5f524c]">{person.partner.email}</p>:null}
+              {person.partner?<MembershipFacts info={person.partner.membership} ownerLabel={`Partner: ${partnerLabel}`}/>:null}
+              <PeonyPartnerFinder eventId={eventId} ticketId={person.ticketId} hasPartner={Boolean(person.partner)}/>
             </div>
-          ) : null}
-          {person.notes ? <p className="text-sm"><strong>Nota:</strong> {person.notes}</p> : null}
-          {person.linkedPersonId ? (
-            <a href={"/gestione/p/" + person.linkedPersonId}
+          ):null}
+          {person.notes?<p className="text-sm"><strong>Nota:</strong> {person.notes}</p>:null}
+          {person.linkedPersonId?(
+            <a href={"/gestione/p/"+person.linkedPersonId}
               className="inline-block text-sm font-semibold text-[#a8583e] underline">Apri anagrafica</a>
-          ) : null}
+          ):null}
           <details className="text-xs text-[#5f524c]">
             <summary className="w-fit cursor-pointer py-1 text-[#a8583e]">Dati biglietto</summary>
-            <p>Ordine: {person.orderId || "non disponibile"}</p>
-            {person.ticketType ? <p>Tipo: {person.ticketType}</p> : null}
-            {person.partner ? (
-              <p>Partner indicato {person.partner.source === "ticket_tailor"
-                ? "in Ticket Tailor" : person.partner.source === "admin" ? "in Admin" : "dal partecipante"}</p>
-            ) : null}
+            <p>Ordine: {person.orderId||"non disponibile"}</p>
+            {person.ticketType?<p>Tipo: {person.ticketType}</p>:null}
+            {person.partner?<p>Partner indicato {person.partner.source==="gestionale"?"nel gestionale":person.partner.source==="ticket_tailor"?"in Ticket Tailor":person.partner.source==="admin"?"in Admin":"dal partecipante"}</p>:null}
           </details>
         </div>
-      ) : null}
+      ):null}
     </li>
   );
 }
@@ -257,7 +258,7 @@ export function PeonyEventOperations({
             placeholder="Cerca nome o partner" aria-label="Cerca partecipanti e partner"
             className="h-10 w-full rounded-xl border border-[#211815]/15 bg-white px-3 text-sm" />
           {visible.length === 0 ? <p className={card}>Nessun partecipante nei dati sincronizzati.</p> : null}
-          <ul className="space-y-1.5">{visible.map(person => <PersonRow key={person.ticketId} person={person} />)}</ul>
+          <ul className="space-y-1.5">{visible.map(person => <PersonRow key={person.ticketId} person={person} eventId={eventId} />)}</ul>
         </section>
       ) : (
         <section className="space-y-3">

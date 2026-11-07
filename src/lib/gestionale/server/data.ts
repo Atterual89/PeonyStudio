@@ -30,7 +30,7 @@ import { buildDashboard, countBookings, toWorkshopView, type DashboardEntry } fr
 // gw_* in server/mutations.ts. Le righe eliminate (deleted_at, D22) non si
 // leggono mai.
 //
-// D18: i loader dell'anagrafica e delle prenotazioni con le persone sono
+// D18: i loader dell'anagrafica e delle iscrizioni con le persone sono
 // riservati agli admin e chiamano requireAdmin(). L'organizzatrice usa solo
 // server/registrations.ts (testo scritto da lei e dati economici).
 
@@ -240,7 +240,7 @@ const BOOKING_COLUMNS = [
   "gw_payments(id, kind, amount_cents, payment_type, paid_on, method, received_by, description, corrects_payment_id, created_at)",
 ].join(", ");
 
-/** Prenotazioni del workshop (D15), con il principale per primo e lo stato socio di ogni persona. */
+/** Iscrizioni del workshop (D15), con il principale per primo e lo stato socio di ogni persona. */
 export async function getWorkshopBookings(workshop: WorkshopView): Promise<BookingView[]> {
   await requireAdmin();
   const [bookingsResult, people] = await Promise.all([
@@ -346,54 +346,76 @@ export async function getEnrolledPersonIds(workshopId: string): Promise<Set<stri
 }
 
 
-/** Prenotazioni effettive nei workshop LuXuria non conclusi.
+/** Iscrizioni effettive nei workshop LuXuria non conclusi.
  * Non include interessati, cancellati o persone rimosse dalla coppia. */
 export async function loadUpcomingLuxuriaPeople(today: string): Promise<{
   key: string; title: string; startsOn: string; endsOn: string | null; href: string;
-  people: { personId: string }[];
+  bookings: { bookingId: string; personIds: string[]; statuses?:Record<string,"valid"|"payment_missing"|"missing_form"|null> }[];
 }[]> {
   await requireAdmin();
   const db = getGestionaleDb();
   type FutureHistoryRecord = HistoryRecord & {
+    booking_id: string; is_primary: boolean;
     gw_bookings: HistoryRecord["gw_bookings"] & {
       deleted_at: string | null;
       gw_workshops: HistoryRecord["gw_bookings"]["gw_workshops"] & { deleted_at: string | null };
     };
   };
   const records: FutureHistoryRecord[] = [];
-  for (let offset = 0; offset < 10000; offset += 500) {
-    const result = await db.from("gw_booking_participants")
-      .select("id,person_id,removed_at,gw_bookings!inner(status,present,deleted_at,gw_workshops!inner(id,event_id,name,starts_on,ends_on,deleted_at))")
-      .is("deleted_at", null)
-      .is("removed_at", null)
-      .order("id", { ascending: true })
-      .range(offset, offset + 499);
-    if (result.error) fail("persone prossimi workshop", result.error);
-    records.push(...((result.data ?? []) as unknown as FutureHistoryRecord[]));
-    if ((result.data ?? []).length < 500) break;
+  for(let offset=0;offset<10000;offset+=500){
+    const result=await db.from("gw_booking_participants")
+      .select("id,booking_id,is_primary,person_id,removed_at,gw_bookings!inner(status,present,deleted_at,gw_workshops!inner(id,event_id,name,starts_on,ends_on,deleted_at))")
+      .is("deleted_at",null).is("removed_at",null)
+      .order("id",{ascending:true}).range(offset,offset+499);
+    if(result.error)fail("iscrizioni prossimi workshop",result.error);
+    records.push(...((result.data??[]) as unknown as FutureHistoryRecord[]));
+    if((result.data??[]).length<500)break;
   }
-  const events = await loadLuxuriaEvents();
-  const byEventId = new Map(events.map((event) => [event.id, event]));
-  const groups = new Map<string, {
-    key: string; title: string; startsOn: string; endsOn: string | null; href: string;
-    people: { personId: string }[];
+  const events=await loadLuxuriaEvents();
+  const byEventId=new Map(events.map(event=>[event.id,event]));
+  const groups=new Map<string,{
+    key:string;title:string;startsOn:string;endsOn:string|null;href:string;
+    bookings:{bookingId:string;personIds:string[];statuses?:Record<string,"valid"|"payment_missing"|"missing_form"|null>}[];
   }>();
-  for (const row of records) {
-    if (row.removed_at || row.gw_bookings.deleted_at || row.gw_bookings.gw_workshops.deleted_at ||
-      !["prenotato", "acconto", "saldato"].includes(row.gw_bookings.status)) continue;
-    const workshop = row.gw_bookings.gw_workshops;
-    const event = workshop.event_id ? byEventId.get(workshop.event_id) : null;
-    const startsOn = event?.startsOn ?? workshop.starts_on;
-    const endsOn = event?.endsOn ?? workshop.ends_on;
-    if ((endsOn ?? startsOn) < today) continue;
-    const current = groups.get(workshop.id) ?? {
-      key: `luxuria:${workshop.id}`, title: event?.name ?? workshop.name,
-      startsOn, endsOn, href: `/gestione/w/${workshop.id}`, people: [],
+  for(const row of records){
+    if(row.removed_at||row.gw_bookings.deleted_at||row.gw_bookings.gw_workshops.deleted_at||
+      !["prenotato","acconto","saldato"].includes(row.gw_bookings.status))continue;
+    const ws=row.gw_bookings.gw_workshops;
+    const event=ws.event_id?byEventId.get(ws.event_id):null;
+    const startsOn=event?.startsOn??ws.starts_on;
+    const endsOn=event?.endsOn??ws.ends_on;
+    if((endsOn??startsOn)<today)continue;
+    const group=groups.get(ws.id)??{
+      key:`luxuria:${ws.id}`,title:event?.name??ws.name,startsOn,endsOn,
+      href:`/gestione/w/${ws.id}`,bookings:[],
     };
-    if (!current.people.some((person) => person.personId === row.person_id)) {
-      current.people.push({ personId: row.person_id });
+    let booking=group.bookings.find(b=>b.bookingId===row.booking_id);
+    if(!booking){booking={bookingId:row.booking_id,personIds:[]};group.bookings.push(booking);}
+    if(!booking.personIds.includes(row.person_id)){
+      if(row.is_primary)booking.personIds.unshift(row.person_id);
+      else booking.personIds.push(row.person_id);
     }
-    groups.set(workshop.id, current);
+    groups.set(ws.id,group);
   }
-  return [...groups.values()].sort((a, b) => a.startsOn.localeCompare(b.startsOn));
+  const personById=new Map((await loadPeople()).map(person=>[person.id,person]));
+  // Stessa funzione di verifica socio già usata negli eventi LuXuria.
+  for(const group of groups.values()){
+    const ids=[...new Set(group.bookings.flatMap(booking=>booking.personIds))];
+    const members=ids.map(id=>personById.get(id)).filter((p):p is Person=>Boolean(p));
+    try{
+      const badges=await getMembershipBadges(members,group.startsOn);
+      for(const booking of group.bookings){
+        booking.statuses=Object.fromEntries(booking.personIds.map(id=>{
+          const badge=badges.get(id);
+          const status=badge?.kind==="in_regola"?"valid":
+            badge?.kind==="quota_mancante"?"payment_missing":
+            badge?.kind==="modulo_mancante"?"missing_form":null;
+          return [id,status];
+        }));
+      }
+    }catch(error){
+      console.error("Gestionale (stati LuXuria):",error instanceof Error?error.message:"errore");
+    }
+  }
+  return [...groups.values()].sort((a,b)=>a.startsOn.localeCompare(b.startsOn));
 }
