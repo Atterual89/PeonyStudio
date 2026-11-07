@@ -67,7 +67,7 @@ export function PeonyPartnerFinder({
               <legend className="mb-1 text-xs text-[#5f524c]">Seleziona il risultato corretto (controlla l'email in caso di omonimia)</legend>
               {results.map((row)=>(
                 <label key={`${row.kind}:${row.id}`}
-                  className={`flex min-h-12 cursor-pointer items-center gap-2 rounded-lg border p-2 text-sm ${selected?.id===row.id&&selected.kind===row.kind?"border-[#a8583e] bg-white":"border-[#211815]/10 bg-white/60"}`}>
+                  className={`flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border p-2 text-sm ${selected?.id===row.id&&selected.kind===row.kind?"border-[#a8583e] bg-white":"border-[#211815]/10 bg-white/60"}`}>
                   <input type="radio" name={`partner-${ticketId}`} checked={selected?.id===row.id&&selected.kind===row.kind}
                     onChange={()=>setSelected(row)} className="accent-[#a8583e]"/>
                   <span className="min-w-0 flex-1">
@@ -97,7 +97,7 @@ export function PeonyPartnerFinder({
           </div>
           {confirmRemove ? (
             <div className="rounded-lg border border-[#9b2c2c]/20 bg-white p-2 text-xs">
-              <p>Rimuovere il partner da questa prenotazione? La persona resta nell'anagrafica.</p>
+              <p>Rimuovere il partner da questa iscrizione? La persona resta nell'anagrafica.</p>
               <div className="mt-2 flex gap-2">
                 <button type="button" disabled={busy} onClick={()=>save(null)}
                   className="min-h-10 rounded-lg bg-[#9b2c2c] px-3 font-semibold text-white">Conferma rimozione</button>

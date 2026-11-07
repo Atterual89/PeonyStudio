@@ -30,7 +30,7 @@ import { buildDashboard, countBookings, toWorkshopView, type DashboardEntry } fr
 // gw_* in server/mutations.ts. Le righe eliminate (deleted_at, D22) non si
 // leggono mai.
 //
-// D18: i loader dell'anagrafica e delle prenotazioni con le persone sono
+// D18: i loader dell'anagrafica e delle iscrizioni con le persone sono
 // riservati agli admin e chiamano requireAdmin(). L'organizzatrice usa solo
 // server/registrations.ts (testo scritto da lei e dati economici).
 
@@ -240,7 +240,7 @@ const BOOKING_COLUMNS = [
   "gw_payments(id, kind, amount_cents, payment_type, paid_on, method, received_by, description, corrects_payment_id, created_at)",
 ].join(", ");
 
-/** Prenotazioni del workshop (D15), con il principale per primo e lo stato socio di ogni persona. */
+/** Iscrizioni del workshop (D15), con il principale per primo e lo stato socio di ogni persona. */
 export async function getWorkshopBookings(workshop: WorkshopView): Promise<BookingView[]> {
   await requireAdmin();
   const [bookingsResult, people] = await Promise.all([
@@ -346,7 +346,7 @@ export async function getEnrolledPersonIds(workshopId: string): Promise<Set<stri
 }
 
 
-/** Prenotazioni effettive nei workshop LuXuria non conclusi.
+/** Iscrizioni effettive nei workshop LuXuria non conclusi.
  * Non include interessati, cancellati o persone rimosse dalla coppia. */
 export async function loadUpcomingLuxuriaPeople(today: string): Promise<{
   key: string; title: string; startsOn: string; endsOn: string | null; href: string;
@@ -367,7 +367,7 @@ export async function loadUpcomingLuxuriaPeople(today: string): Promise<{
       .select("id,booking_id,is_primary,person_id,removed_at,gw_bookings!inner(status,present,deleted_at,gw_workshops!inner(id,event_id,name,starts_on,ends_on,deleted_at))")
       .is("deleted_at",null).is("removed_at",null)
       .order("id",{ascending:true}).range(offset,offset+499);
-    if(result.error)fail("prenotazioni prossimi workshop",result.error);
+    if(result.error)fail("iscrizioni prossimi workshop",result.error);
     records.push(...((result.data??[]) as unknown as FutureHistoryRecord[]));
     if((result.data??[]).length<500)break;
   }

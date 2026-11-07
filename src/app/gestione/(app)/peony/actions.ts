@@ -148,7 +148,7 @@ export async function savePeonyPartnerAction(
   const operator=await requireAdmin();
   const event=await getPeonyEvent(eventId);
   if(!event || typeof ticketId!=="string" || ticketId.length<1 || ticketId.length>200)
-    return {ok:false,error:"Prenotazione non valida."};
+    return {ok:false,error:"Iscrizione non valida."};
   if(selected !== null && (!selected || !["person","member"].includes(selected.kind) || !isUuidLike(selected.id)))
     return {ok:false,error:"Seleziona una persona dalla ricerca."};
   const db=getGestionaleDb();

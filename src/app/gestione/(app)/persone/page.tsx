@@ -64,7 +64,7 @@ function BookingCard({booking,year}:{booking:UpcomingBooking;year:string}) {
 
 function PersonLine({row}:{row:OtherContact}) {
   return (
-    <li className="flex min-h-12 flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-2 text-sm">
+    <li className="flex min-h-10 flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-2 text-sm">
       <span className="min-w-0 flex-1">
         {row.personId?<Link prefetch={false} href={`/gestione/p/${row.personId}`} className="block font-semibold underline decoration-[#211815]/25">{row.name}</Link>
           :<span className="block font-semibold">{row.name}</span>}
@@ -91,11 +91,11 @@ function EventGroups({events,query}: {events:UpcomingPeopleGroup[];query:string}
       {events.map((event,index)=>(
         <details key={event.key} open={Boolean(query.trim())||index===0}
           className="rounded-xl border border-[#211815]/10 bg-white/45">
-          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 p-3 [&::-webkit-details-marker]:hidden">
+          <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 p-3 [&::-webkit-details-marker]:hidden">
             <span className="min-w-0">
               <span className="block break-words font-semibold">{event.title}</span>
               <span className="block text-xs text-[#5f524c]">
-                {formatDateRange(event.startsOn,event.endsOn)} · {event.bookings.length} prenotazioni
+                {formatDateRange(event.startsOn,event.endsOn)} · {event.bookings.length} iscrizioni
               </span>
             </span>
             <ChevronRight className="h-4 w-4 shrink-0 text-[#a8583e]" aria-hidden="true"/>
