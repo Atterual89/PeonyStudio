@@ -89,7 +89,8 @@ describe("D24 — Saldato automatico", () => {
     const tab = source("src/components/gestionale/AccountsTab.tsx");
     expect(tab).not.toMatch(/da_conguagliare|conguagliato|Conguaglio eseguito|Conguaglio da eseguire/);
     // 4g (#33): scritto come un fatto ("Ho dato X € a Peony").
-    expect(tab).toContain("settleLabels(data.settlement.residuo, viewer)");
+    expect(tab).toContain("settleLabels(current,viewer)");
+    expect(tab).toContain("Registra importo effettivo o in sospeso");
   });
 });
 
