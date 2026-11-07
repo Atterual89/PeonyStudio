@@ -80,6 +80,7 @@ export async function readOfficialMembersBookFromGoogleSheet() {
 
 export function normalizeOfficialMembersBookRows(
   values: unknown[][],
+  year: number = activeBookYear(),
 ): OfficialMembersBookReadResult {
   const [mainHeaders, subHeaders, ...dataRows] = values;
 
@@ -93,7 +94,7 @@ export function normalizeOfficialMembersBookRows(
   }
 
   const headers = combineHeaders(mainHeaders, subHeaders);
-  const detectedColumns = detectColumns(headers);
+  const detectedColumns = detectColumns(headers, year);
   const errors: string[] = [];
 
   if (detectedColumns.first_name.index === null) {
@@ -103,7 +104,7 @@ export function normalizeOfficialMembersBookRows(
     errors.push("Colonna Cognome non trovata.");
   }
   if (detectedColumns.current_year_quota.index === null) {
-    errors.push(`Colonna Anno Sociale ${activeBookYear()} / Quota soci non trovata.`);
+    errors.push(`Colonna Anno Sociale ${year} / Quota soci non trovata.`);
   }
 
   const rows = dataRows
@@ -135,10 +136,12 @@ export function normalizeOfficialMembersBookRows(
         acceptedAt,
         ceasedAt,
         quota,
+        year,
       });
       const baseRow = {
         rowNumber,
-        source_row_id: String(rowNumber),
+        // Le annualità sono righe distinte: il 2027 non modifica la prova quota 2025/26.
+        source_row_id: year === 2026 ? String(rowNumber) : `${year}:${rowNumber}`,
         first_name: firstName,
         last_name: lastName,
         email,
@@ -173,12 +176,13 @@ function getMembershipStatusAndDates({
   acceptedAt,
   ceasedAt,
   quota,
+  year,
 }: {
   acceptedAt: string | null;
   ceasedAt: string | null;
   quota: number;
+  year: number;
 }) {
-  const year = activeBookYear();
   const period = membershipPeriodFor(`${year}-01-01`)!;
   if (ceasedAt) {
     return {
@@ -206,8 +210,13 @@ function getMembershipStatusAndDates({
 function combineHeaders(mainHeaders: unknown[], subHeaders: unknown[]) {
   const maxLength = Math.max(mainHeaders.length, subHeaders.length);
 
+  let currentMain = "";
   return Array.from({ length: maxLength }, (_, index) => {
-    const main = normalizeText(String(mainHeaders[index] ?? ""));
+    const rawMain = normalizeText(String(mainHeaders[index] ?? ""));
+    // Le intestazioni Team Artist sono spesso celle unite: l'anno compare
+    // solo nella prima colonna del gruppo, non sulle altre sotto-colonne.
+    if (rawMain) currentMain = rawMain;
+    const main = currentMain;
     const sub = normalizeText(String(subHeaders[index] ?? ""));
     const header = main && sub ? `${main} / ${sub}` : main || sub;
 
@@ -220,8 +229,9 @@ function combineHeaders(mainHeaders: unknown[], subHeaders: unknown[]) {
 
 function detectColumns(
   headers: Array<{ header: string; normalizedHeader: string }>,
+  year: number,
 ): DetectedMembersBookColumns {
-  const currentAssociationYear = `anno sociale ${activeBookYear()}`;
+  const currentAssociationYear = `anno sociale ${year}`;
   return {
     first_name: findColumn(headers, ["nome"]),
     last_name: findColumn(headers, ["cognome"]),

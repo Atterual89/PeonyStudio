@@ -16,6 +16,7 @@ import {
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { clearMembershipCache } from "@/lib/gestionale/server/membership";
 import { refreshGestione } from "@/lib/gestionale/server/refresh";
+import { todayInRome } from "@/lib/gestionale/workshops";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type SourceSummary = {
@@ -94,9 +95,19 @@ async function loadPreview() {
     if (result.error) throw new Error("Non riesco a verificare la dimensione del registro già salvato.");
     return result.count ?? 0;
   };
+  const currentYear = Math.max(2026, Number(todayInRome().slice(0, 4)));
+  const countCurrentBook = async () => {
+    const query = db.from("association_members").select("id", { count: "exact", head: true })
+      .eq("source", "official_members_book");
+    const result = currentYear === 2026
+      ? await query.not("source_row_id", "like", "%:%")
+      : await query.like("source_row_id", `${currentYear}:%`);
+    if (result.error) throw new Error("Non riesco a verificare le righe del libro soci corrente.");
+    return result.count ?? 0;
+  };
   const [previousForms, previousBook] = await Promise.all([
     countFor("google_sheet"),
-    countFor("official_members_book"),
+    countCurrentBook(),
   ]);
   if ((previousForms >= 30 && forms.validRows < previousForms * 0.75) ||
       (previousBook >= 30 && book.validRows < previousBook * 0.75)) {

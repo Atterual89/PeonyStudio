@@ -133,7 +133,8 @@ export function deriveMembershipState(
     const officialMatches = rows.filter(
       (row) =>
         row.source === "official_members_book" &&
-        normalizeNameKey(row.first_name, row.last_name) === nameKey,
+        normalizeNameKey(row.first_name, row.last_name) === nameKey &&
+        isCurrentYearPayment(row),
     );
 
     // Accept a name match only if it resolves to one unique official record.

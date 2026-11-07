@@ -294,27 +294,32 @@ function parseDateStyles(xml: string) {
   return result;
 }
 
-export function validateMembersBook(values: CellValue[][]) {
+export function validateMembersBook(values: CellValue[][], year: number = activeBookYear()) {
   if (values.length < 3) {
     throw new Error("Il Libro Soci caricato non contiene righe dati.");
   }
-
-  const first = normalizeHeader(String(values[0]?.[0] ?? ""));
-  const name = normalizeHeader(String(values[0]?.[3] ?? ""));
-  const surname = normalizeHeader(String(values[0]?.[4] ?? ""));
-  const year = normalizeHeader(String(values[0]?.[10] ?? ""));
-  const quota = normalizeHeader(String(values[1]?.[10] ?? ""));
-
-  if (
-    !first.includes("data richiesta") ||
-    name !== "nome" ||
-    surname !== "cognome" ||
-    !year.includes(`anno sociale ${activeBookYear()}`) ||
-    !quota.includes("quota")
-  ) {
-    throw new Error(
-      "Struttura Libro Soci non riconosciuta. Carica l'export XLSX aggiornato con il tab Libro Soci.",
-    );
+  const headers = values[0]?.map((value) => normalizeHeader(String(value ?? ""))) ?? [];
+  const subheaders = values[1]?.map((value) => normalizeHeader(String(value ?? ""))) ?? [];
+  const hasFirst = headers.some((header) => header.includes("data richiesta"));
+  const hasName = headers.some((header) => header === "nome");
+  const hasSurname = headers.some((header) => header === "cognome");
+  let yearIndex = -1;
+  let foundQuota = false;
+  for (let col = 0; col < headers.length; col += 1) {
+    if (headers[col]?.includes(`anno sociale ${year}`)) {
+      yearIndex = col;
+      break;
+    }
+  }
+  if (yearIndex >= 0) {
+    // L'intestazione dell'annualità può coprire più colonne unite.
+    for (let col = yearIndex; col < Math.max(headers.length, subheaders.length); col += 1) {
+      if (col > yearIndex && headers[col]?.includes("anno sociale ")) break;
+      if (subheaders[col]?.includes("quota")) { foundQuota = true; break; }
+    }
+  }
+  if (!hasFirst || !hasName || !hasSurname || !foundQuota) {
+    throw new Error(`Struttura Libro Soci non riconosciuta o colonna Quota dell'Anno Sociale ${year} assente. Carica l'export Team Artist aggiornato.`);
   }
 }
 

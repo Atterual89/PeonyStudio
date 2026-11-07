@@ -50,7 +50,7 @@ export default async function SociPage() {
           <div className="grid grid-cols-3 gap-2 text-center">
             <div className="rounded-xl bg-white/75 p-2">
               <p className="font-semibold">{registrations.formCount}</p>
-              <p className="text-xs text-[#5f524c]">Domande nel periodo</p>
+              <p className="text-xs text-[#5f524c]">Domande registrate</p>
             </div>
             <div className="rounded-xl bg-white/75 p-2">
               <p className="font-semibold">{registrations.paidCount}</p>

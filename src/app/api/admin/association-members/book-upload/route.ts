@@ -46,10 +46,10 @@ export async function POST(request: NextRequest) {
 
     const supabase = createSupabaseAdminClient();
     const formReport = await withSupabaseClockSkewReportRetry(() =>
-      applyAssociationMembersSync(supabase),
+      applyAssociationMembersSync(supabase, { removeStaleRows: false }),
     );
     const bookReport = await withSupabaseClockSkewReportRetry(() =>
-      applyOfficialMembersBookSync(supabase),
+      applyOfficialMembersBookSync(supabase, { removeStaleRows: false }),
     );
 
     const errors = [...formReport.errors, ...bookReport.errors];
