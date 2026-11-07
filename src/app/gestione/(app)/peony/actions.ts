@@ -113,8 +113,8 @@ export async function searchPeonyPartnerAction(eventId: string, query: string): 
       ...candidate,
       membership:associationStatus(directory.evidence,directory.event,{
         email:candidate.email,
-        firstName:candidate.name.split(/\\s+/).slice(0,-1).join(" "),
-        lastName:candidate.name.split(/\\s+/).at(-1),
+        firstName:candidate.name,
+        lastName:null,
       })?.status??null,
     }))};
   } catch(error) {

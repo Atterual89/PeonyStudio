@@ -2,15 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { savePeonyPartnerAction, searchPeonyPartnerAction, type PeonyPartnerCandidate } from "@/app/gestione/(app)/peony/actions";
+import { savePeonyHolderAction, savePeonyPartnerAction, searchPeonyPartnerAction, type PeonyPartnerCandidate } from "@/app/gestione/(app)/peony/actions";
 
 const LABELS: Record<NonNullable<PeonyPartnerCandidate["membership"]>,string> = {
   valid:"Verificata", payment_missing:"Quota da verificare", missing_form:"Modulo assente",
 };
 
 export function PeonyPartnerFinder({
-  eventId,ticketId,hasPartner,
-}: {eventId:string;ticketId:string;hasPartner:boolean}) {
+  eventId,ticketId,hasPartner,role="partner",
+}: {eventId:string;ticketId:string;hasPartner:boolean;role?:"holder"|"partner"}) {
   const router=useRouter();
   const [open,setOpen]=useState(false);
   const [query,setQuery]=useState("");
@@ -38,7 +38,11 @@ export function PeonyPartnerFinder({
     setError(null);
     startTransition(async()=>{
       try{
-        const result=await savePeonyPartnerAction(eventId,ticketId,choice);
+        const result=role==="holder"
+          ? choice?.kind==="provisional"
+            ? {ok:false as const,error:"Per l'intestatario seleziona un socio o una persona esistente."}
+            : await savePeonyHolderAction(eventId,ticketId,choice)
+          : await savePeonyPartnerAction(eventId,ticketId,choice);
         if(!result.ok){setError(result.error);return;}
         setOpen(false);setConfirmRemove(false);setResults([]);setSelected(null);setQuery("");
         setManualName("");setManualEmail("");
@@ -50,12 +54,16 @@ export function PeonyPartnerFinder({
     <div className="border-t border-[#211815]/10 pt-2">
       {!open ? (
         <button type="button" className="min-h-10 text-sm font-semibold text-[#a8583e] underline"
-          onClick={()=>setOpen(true)}>{hasPartner?"Cambia partner":"Cerca e collega partner"}</button>
+          onClick={()=>setOpen(true)}>{role==="holder"
+            ? hasPartner?"Cambia abbinamento":"Cerca nell'anagrafica soci"
+            : hasPartner?"Cambia partner":"Cerca e collega partner"}</button>
       ) : (
         <div className="space-y-2 rounded-xl bg-[#f2ede3] p-3">
-          <p className="text-sm font-semibold">Cerca partner nell'anagrafica soci</p>
+          <p className="text-sm font-semibold">{role==="holder"
+            ?"Abbina intestatario all'anagrafica soci"
+            :"Cerca partner nell'anagrafica soci"}</p>
           <form className="flex flex-wrap gap-2" onSubmit={(event)=>{event.preventDefault();search();}}>
-            <input type="search" aria-label="Cerca partner per nome cognome o email"
+            <input type="search" aria-label={role==="holder"?"Cerca intestatario per nome cognome o email":"Cerca partner per nome cognome o email"}
               placeholder="Nome, cognome o email" value={query} autoComplete="off"
               onChange={(event)=>{setQuery(event.target.value);setResults([]);setSelected(null);setSearched(false);}}
               className="h-10 min-w-0 flex-1 rounded-lg border border-[#211815]/15 bg-white px-3 text-sm"/>
@@ -84,7 +92,7 @@ export function PeonyPartnerFinder({
               ))}
             </fieldset>
           ):null}
-          <details className="rounded-lg border border-[#211815]/10 bg-white/65 p-2">
+          {role==="partner"?<details className="rounded-lg border border-[#211815]/10 bg-white/65 p-2">
             <summary className="min-h-10 cursor-pointer py-2 text-xs font-semibold text-[#a8583e]">
               Non presente nell'anagrafica? Indica il partner provvisoriamente
             </summary>
@@ -106,24 +114,26 @@ export function PeonyPartnerFinder({
                 Salva partner provvisorio
               </button>
             </div>
-          </details>
+          </details>:null}
           {error?<p role="alert" className="text-xs font-semibold text-[#9b2c2c]">{error}</p>:null}
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" disabled={!selected||busy}
               onClick={()=>selected&&save({kind:selected.kind,id:selected.id})}
               className="min-h-10 rounded-lg bg-[#a8583e] px-3 text-sm font-semibold text-white disabled:opacity-50">
-              {busy?"Salvataggio…":"Conferma partner"}
+              {busy?"Salvataggio…":role==="holder"?"Collega intestatario":"Conferma partner"}
             </button>
             <button type="button" className="min-h-10 px-2 text-sm text-[#5f524c]" disabled={busy}
               onClick={()=>{setOpen(false);setConfirmRemove(false);setError(null);}}>Chiudi</button>
             {hasPartner && !confirmRemove ? (
               <button type="button" onClick={()=>setConfirmRemove(true)} disabled={busy}
-                className="min-h-10 px-2 text-xs text-[#9b2c2c] underline">Rimuovi partner</button>
+                className="min-h-10 px-2 text-xs text-[#9b2c2c] underline">{role==="holder"?"Rimuovi abbinamento":"Rimuovi partner"}</button>
             ) : null}
           </div>
           {confirmRemove ? (
             <div className="rounded-lg border border-[#9b2c2c]/20 bg-white p-2 text-xs">
-              <p>Rimuovere il partner da questa iscrizione? La persona resta nell'anagrafica.</p>
+              <p>{role==="holder"
+                ?"Rimuovere l'abbinamento dell'intestatario? Il biglietto e la persona restano invariati."
+                :"Rimuovere il partner da questa iscrizione? La persona resta nell'anagrafica."}</p>
               <div className="mt-2 flex gap-2">
                 <button type="button" disabled={busy} onClick={()=>save(null)}
                   className="min-h-10 rounded-lg bg-[#9b2c2c] px-3 font-semibold text-white">Conferma rimozione</button>

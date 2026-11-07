@@ -102,6 +102,14 @@ function PersonRow({ person, eventId }: { person: PeonyAttendee; eventId: string
             <p className="text-xs font-semibold text-[#5f524c]">Intestatario · {person.name}</p>
             {person.email?<a href={"mailto:"+person.email} className="block break-all text-sm text-[#a8583e] underline">{person.email}</a>:null}
             {person.associationRequired?<MembershipFacts info={person.association} ownerLabel={person.name}/>:null}
+            {person.holderMatch ? (
+              <p className="mt-1 break-words text-xs text-[#5f524c]">
+                Associato a: {person.holderMatch.name}
+                {person.holderMatch.email ? ` · ${person.holderMatch.email}` : ""}
+              </p>
+            ):null}
+            <PeonyPartnerFinder role="holder" eventId={eventId}
+              ticketId={person.ticketId} hasPartner={Boolean(person.holderMatch)} />
           </div>
           {person.partnerRequired?(
             <div className="space-y-1 border-t border-[#211815]/10 pt-2">
