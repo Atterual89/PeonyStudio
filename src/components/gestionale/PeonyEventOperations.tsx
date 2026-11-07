@@ -259,21 +259,16 @@ export function PeonyEventOperations({
           <ul className="space-y-1.5">{visible.map(person => <PersonRow key={person.ticketId} person={person} />)}</ul>
         </section>
       ) : (
-        <section className="space-y-4">
-          <div className={card}>
-            <p className="text-sm font-semibold">Tipo di comunicazione</p>
-            <div className="mt-2 grid gap-2">
-              {PEONY_EMAIL_KINDS.map(({id,label}) => (
-                <button key={id} type="button" onClick={() => switchKind(id)}
-                  aria-current={kind === id ? "true" : undefined}
-                  className={`h-10 rounded-xl border px-3 text-left text-sm font-semibold ${
-                    kind === id ? "border-[#a8583e] bg-[#a8583e] text-white" : "border-[#211815]/15 bg-white"
-                  }`}>{label}</button>
+        <section className="space-y-3">
+          <div className="flex items-center gap-3">
+            <label htmlFor="peony-kind" className="shrink-0 text-sm font-semibold">Comunicazione</label>
+            <select id="peony-kind" value={kind}
+              onChange={(event) => switchKind(event.target.value as PeonyEmailKind)}
+              className="h-10 min-w-0 flex-1 rounded-xl border border-[#211815]/15 bg-white px-2 text-sm">
+              {PEONY_EMAIL_KINDS.map(({ id, label }) => (
+                <option key={id} value={id}>{label}</option>
               ))}
-            </div>
-            <p className="mt-3 text-xs text-[#5f524c]">
-              I destinatari vengono proposti in base al tipo di comunicazione; puoi modificarli prima di copiare gli indirizzi.
-            </p>
+            </select>
           </div>
           <div className={card}>
             <label htmlFor="peony-subject" className="block text-sm font-semibold">Oggetto</label>
@@ -281,7 +276,7 @@ export function PeonyEventOperations({
               onChange={e => setTemplateField("subject",e.target.value)}
               className="mt-1 h-10 w-full rounded-lg border border-[#211815]/15 bg-white p-2 text-sm" />
             <label htmlFor="peony-body" className="mt-3 block text-sm font-semibold">Contenuto</label>
-            <textarea id="peony-body" rows={10} value={template.body} maxLength={30000}
+            <textarea id="peony-body" rows={7} value={template.body} maxLength={30000}
               onChange={e => setTemplateField("body",e.target.value)}
               className="mt-1 w-full rounded-lg border border-[#211815]/15 bg-white p-3 text-sm" />
             <div className="mt-3 flex flex-wrap gap-2">
@@ -292,35 +287,42 @@ export function PeonyEventOperations({
                   try { await copyRichHtml(html); setMessage("Email HTML copiata: puoi incollarla in Gmail."); setFailure(null); }
                   catch { setFailure("Impossibile copiare l'HTML formattato. Verifica gli appunti del browser."); }
                 }}>Copia email per Gmail</button>
-              <button type="button" onClick={() => copy(html, "Codice HTML copiato.")}
-                className="h-10 rounded-xl border border-[#211815]/20 px-3 text-sm">Copia codice HTML</button>
             </div>
-            <h3 className="mt-5 text-sm font-bold">Anteprima HTML</h3>
-            <iframe title="Anteprima email Peony Studio" sandbox="" srcDoc={html}
-              className="mt-2 h-[420px] w-full rounded-xl border border-[#211815]/15 bg-white" />
+            <details className="mt-3 border-t border-[#211815]/10 pt-2">
+              <summary className="w-fit cursor-pointer text-sm font-semibold text-[#a8583e]">Anteprima e codice HTML</summary>
+              <div className="mt-2 space-y-2">
+                <iframe title="Anteprima email Peony Studio" sandbox="" srcDoc={html}
+                  className="h-[360px] w-full rounded-xl border border-[#211815]/15 bg-white" />
+                <button type="button" onClick={() => copy(html, "Codice HTML copiato.")}
+                  className="h-9 rounded-xl border border-[#211815]/20 px-3 text-sm">Copia codice HTML</button>
+              </div>
+            </details>
           </div>
           <div className={card}>
-            <h3 className="font-semibold">Destinatari — {selected.length} biglietti / {distinctEmails.length} email uniche</h3>
-            <label className="mt-3 flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={checked.length === eligible.length && eligible.length > 0}
-                onChange={e => setChecked(e.target.checked ? eligible.map(p => p.ticketId) : [])} />
-              Seleziona tutti con email
-            </label>
-            <div className="mt-3 max-h-72 space-y-2 overflow-y-auto">
-              {attendees.map(person => (
-                <label key={person.ticketId} className="flex items-start gap-2 border-b border-[#211815]/10 pb-2 text-sm">
-                  <input type="checkbox" disabled={!person.email} checked={checked.includes(person.ticketId)}
-                    onChange={e => setChecked(prev => e.target.checked ? [...prev,person.ticketId] : prev.filter(id => id !== person.ticketId))}
-                    className="mt-1" />
-                  <span className="min-w-0 flex-1">
-                    {person.name}<span className="block break-words text-xs text-[#5f524c]">{person.email || "Senza email"}</span>
-                    {latestSend.has(person.ticketId) ? (
-                      <span className="block text-xs text-[#326941]">Ultimo invio registrato: {latestSend.get(person.ticketId)?.sentOn}</span>
-                    ) : null}
-                  </span>
-                </label>
-              ))}
-            </div>
+            <h3 className="text-sm font-semibold">Destinatari · {distinctEmails.length} email</h3>
+            <details className="mt-2">
+              <summary className="w-fit cursor-pointer py-1 text-sm text-[#a8583e]">Seleziona destinatari ({selected.length}/{eligible.length})</summary>
+              <label className="mt-2 flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={checked.length === eligible.length && eligible.length > 0}
+                  onChange={e => setChecked(e.target.checked ? eligible.map(p => p.ticketId) : [])} />
+                Tutti
+              </label>
+              <div className="mt-2 max-h-64 space-y-2 overflow-y-auto">
+                {attendees.map(person => (
+                  <label key={person.ticketId} className="flex items-start gap-2 border-b border-[#211815]/10 pb-2 text-sm">
+                    <input type="checkbox" disabled={!person.email} checked={checked.includes(person.ticketId)}
+                      onChange={e => setChecked(prev => e.target.checked ? [...prev,person.ticketId] : prev.filter(id => id !== person.ticketId))}
+                      className="mt-1" />
+                    <span className="min-w-0 flex-1">
+                      {person.name}<span className="block break-words text-xs text-[#5f524c]">{person.email || "Senza email"}</span>
+                      {latestSend.has(person.ticketId) ? (
+                        <span className="block text-xs text-[#326941]">Inviata: {latestSend.get(person.ticketId)?.sentOn}</span>
+                      ) : null}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </details>
             <div className="mt-3 flex flex-wrap gap-2">
               <button type="button" className={button} disabled={!distinctEmails.length}
                 onClick={() => copy(distinctEmails.join(", "), "Indirizzi copiati per il Ccn di Gmail.")}>Copia indirizzi Ccn</button>
@@ -345,7 +347,6 @@ export function PeonyEventOperations({
                 </div>
               </div>
             ) : null}
-            <p className="mt-3 text-xs text-[#5f524c]">L'invio avviene da Gmail, non da questa pagina. Segna come inviata soltanto dopo l'invio effettivo.</p>
           </div>
         </section>
       )}
