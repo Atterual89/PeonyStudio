@@ -194,9 +194,10 @@ function parseLine(line: string) {
   while (i < tokens.length) {
     const token = tokens[i];
     const current = people[people.length - 1];
+    const nextName = tokens[i + 1];
     if (
       token.t === "word" && token.norm === "e" && people.length < 2 && current.length > 0 &&
-      tokens[i + 1]?.t === "word" && !isKeyword(tokens[i + 1].norm)
+      nextName?.t === "word" && !isKeyword(nextName.norm)
     ) {
       // "Aizen e Franco" significa due partecipanti della stessa iscrizione,
       // come "Aizen + Franco", non un unico nome.
