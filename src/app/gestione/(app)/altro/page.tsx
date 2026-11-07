@@ -40,7 +40,7 @@ export default async function AltroPage() {
           <li>
             <Link prefetch={false} href="https://peonystudio.net/admin/ticket-tailor" className="flex min-h-12 items-center gap-3 px-3">
               <RefreshCw className="h-5 w-5 text-[#a8583e]" aria-hidden="true" />
-              <span className="flex-1 font-semibold">Sincronizza Ticket Tailor (pannello attuale)</span>
+              <span className="flex-1 font-semibold">Verifiche associative avanzate (Admin)</span>
               <ChevronRight className="h-5 w-5 text-[#5f524c]" aria-hidden="true" />
             </Link>
           </li>
