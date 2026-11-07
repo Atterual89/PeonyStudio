@@ -53,10 +53,19 @@ describe("D14 — events e ticket_tailor_* in sola lettura", () => {
     expect(offenders.map((f) => f.path)).toEqual([]);
   });
 
-  it("la tabella events si legge solo in server/events.ts, con il client admin", () => {
-    const readers = SOURCES.filter(({ code }) => /\.from\(\s*["']events["']\s*\)/.test(code)).map((f) => f.path);
-    expect(readers).toEqual(["src/lib/gestionale/server/events.ts"]);
-    expect(SOURCES.some(({ code }) => /\.from\(\s*["']ticket_tailor_/.test(code))).toBe(false);
+  it("events e biglietti TT sono letti solo dai loader e dalle validazioni Peony protette", () => {
+    const eventReaders = SOURCES.filter(({ code }) => /\.from\(\s*["']events["']\s*\)/.test(code))
+      .map((f) => f.path).sort();
+    expect(eventReaders).toEqual([
+      "src/lib/gestionale/server/events.ts",
+      "src/lib/gestionale/server/peony-events.ts",
+    ]);
+    const ticketReaders = SOURCES.filter(({ code }) => /\.from\(\s*["']ticket_tailor_/.test(code))
+      .map((f) => f.path).sort();
+    expect(ticketReaders).toEqual([
+      "src/app/gestione/(app)/peony/actions.ts",
+      "src/lib/gestionale/server/peony-events.ts",
+    ]);
   });
 
   it("le migrazioni del gestionale non toccano events né ticket_tailor_*", () => {
