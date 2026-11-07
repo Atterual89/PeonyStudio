@@ -42,8 +42,7 @@ function formatMembershipDate(value: string): string {
   return parts.length === 3 ? parts[2] + "/" + parts[1] + "/" + parts[0] : value;
 }
 
-/** I dati secondari restano consultabili senza ripetere il badge già mostrato. */
-/** Badge visibile nella riga; qui soltanto dati aggiuntivi, senza ripetere lo stato. */
+/** I dati tecnici restano disponibili a richiesta, senza ripetere il badge. */
 function MembershipFacts({ info }: { info: PeonyMembership | null }) {
   if (!info) return null;
   const matchLabel = info.matchMethod === "email" ? "email" :
