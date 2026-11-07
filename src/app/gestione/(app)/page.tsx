@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { WorkshopTable, YearSelect } from "@/components/gestionale/HomeControls";
 import { SyncTicketTailorButton } from "@/components/gestionale/SyncTicketTailorButton";
+import { SyncSociButton } from "@/components/gestionale/SyncSociButton";
 import { EconomicBadge, RecapTiles, RecheckBadge } from "@/components/gestionale/Recap";
 import { Notice, Section, cardClass } from "@/components/gestionale/ui";
 import { formatCents, formatDateRange } from "@/lib/gestionale/format";
@@ -279,7 +280,10 @@ export default async function WorkshopDashboard({
       <AdminEventTabs active={activeTab} year={year} />
       {activeTab === "peony" ? (
         <>
-          <div className="mb-4"><SyncTicketTailorButton /></div>
+          <div className="mb-4 grid gap-2 sm:flex sm:items-start">
+            <SyncTicketTailorButton />
+            <SyncSociButton />
+          </div>
           <div className="flex justify-end">
             <YearSelect value={year} years={years} vista="peony" />
           </div>
