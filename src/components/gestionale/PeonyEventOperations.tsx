@@ -36,74 +36,90 @@ function MembershipBadge({ info, required }: { info: PeonyMembership | null; req
   );
 }
 
-function MembershipDetails({ info, required }: { info: PeonyMembership | null; required: boolean }) {
-  if (!required) return <p className="text-sm">Observer: associazione non obbligatoria per questo biglietto.</p>;
-  if (!info) return <p className="text-sm">Nessuna verifica disponibile nei dati sincronizzati: consulta la pagina Admin.</p>;
+
+function formatMembershipDate(value: string): string {
+  const parts = value.slice(0, 10).split("-");
+  return parts.length === 3 ? parts[2] + "/" + parts[1] + "/" + parts[0] : value;
+}
+
+/** I dati secondari restano consultabili senza ripetere il badge già mostrato. */
+function MembershipFacts({ info }: { info: PeonyMembership | null }) {
+  if (!info) return <p className="text-xs text-[#96641b]">Verifica non disponibile nei dati sincronizzati.</p>;
+  const matchLabel = info.matchMethod === "email" ? "email" :
+    info.matchMethod === "name" ? "nome e cognome" :
+    info.matchMethod === "manual" ? "manuale" : "non disponibile";
   return (
-    <div className="grid gap-1 text-sm">
-      <p><strong>Modulo associativo:</strong> {info.formPresent ? "Trovato" : "Non trovato nei dati sincronizzati"}</p>
-      <p><strong>Quota associativa:</strong> {info.feePaid ? "Verificata per il periodo dell'evento" : "Non verificata"}</p>
-      <p><strong>Scadenza tessera:</strong> {info.expiresAt || "Da verificare"}</p>
-      <p><strong>Corrispondenza:</strong> {info.matchMethod === "email" ? "Email" :
-        info.matchMethod === "name" ? "Nome e cognome" :
-        info.matchMethod === "manual" ? "Validazione manuale" : "Nessuna conferma"}</p>
+    <div className="space-y-1 text-sm">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[#5f524c]">
+        {info.status !== "missing_form" ? (
+          <span>Modulo: {info.formPresent ? "trovato" : "non trovato"}</span>
+        ) : null}
+        {info.expiresAt ? <span>Tessera fino al {formatMembershipDate(info.expiresAt)}</span> : null}
+      </div>
+      <details className="text-xs text-[#5f524c]">
+        <summary className="w-fit cursor-pointer py-1 text-[#a8583e]">Dettagli verifica</summary>
+        <p>Quota: {info.feePaid ? "verificata" : "non verificata"} · Abbinamento: {matchLabel}</p>
+      </details>
     </div>
   );
 }
 
 function PersonRow({ person }: { person: PeonyAttendee }) {
   const [expanded, setExpanded] = useState(false);
+  const ticketType = person.ticketType?.trim();
+  const showTicketType = Boolean(ticketType && !/^biglietto ticket tailor$/i.test(ticketType));
+  const partnerName = person.partner?.name || person.partner?.email;
   return (
-    <li className={card}>
-      <button type="button" aria-expanded={expanded} onClick={() => setExpanded(v => !v)}
-        className="flex h-auto min-h-10 w-full items-center justify-between gap-3 text-left">
-        <span className="min-w-0">
-          <strong className="block break-words text-sm">{person.name}</strong>
-          <span className="block text-xs text-[#5f524c]">{person.ticketType || "Biglietto Ticket Tailor"}</span>
-          <MembershipBadge info={person.association} required={person.associationRequired} />
+    <li className="rounded-xl border border-[#211815]/10 bg-white/80 px-3 py-2.5">
+      <button type="button" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}
+        className="flex min-h-10 w-full items-center justify-between gap-2 text-left">
+        <span className="min-w-0 flex-1 space-y-0.5">
+          <span className="block break-words text-sm font-semibold">
+            {person.name}
+            {showTicketType ? <span className="ml-2 text-xs font-normal text-[#5f524c]">{ticketType}</span> : null}
+          </span>
+          <span className="block"><MembershipBadge info={person.association} required={person.associationRequired} /></span>
           {person.partnerRequired ? (
-            <span className="mt-1 block text-xs text-[#5f524c]">
-              Partner: {person.partner?.name || person.partner?.email || "da comunicare"}
+            <span className="block text-xs text-[#5f524c]">
+              Partner: {partnerName || "da indicare"}
+              {person.partner ? (
+                <span className="ml-1">
+                  · <MembershipBadge info={person.partner.membership} required />
+                </span>
+              ) : null}
             </span>
           ) : null}
         </span>
         <span aria-hidden="true" className="shrink-0 text-lg text-[#a8583e]">{expanded ? "−" : "+"}</span>
       </button>
       {expanded ? (
-        <div className="mt-3 space-y-3 border-t border-[#211815]/10 pt-3">
-          <div className="text-sm">
-            <p><strong>Email:</strong> {person.email || "Non indicata"}</p>
-            <p><strong>Ordine:</strong> {person.orderId || "Non disponibile"}</p>
-            {person.notes ? <p><strong>Nota interna:</strong> {person.notes}</p> : null}
-            {person.linkedPersonId ? (
-              <a href={`/gestione/p/${person.linkedPersonId}`} className="mt-1 inline-block text-sm font-semibold text-[#a8583e] underline">
-                Apri scheda anagrafica
-              </a>
-            ) : null}
-          </div>
-          <div className="rounded-xl bg-[#f2ede3] p-3">
-            <h3 className="mb-2 text-sm font-bold">Iscrizione all'associazione</h3>
-            <MembershipDetails info={person.association} required={person.associationRequired} />
-          </div>
-          {person.partnerRequired ? (
-            <div className="rounded-xl bg-[#f2ede3] p-3">
-              <h3 className="mb-2 text-sm font-bold">Partner</h3>
-              {person.partner ? (
-                <>
-                  <p className="text-sm"><strong>Nome:</strong> {person.partner.name || "Da completare"}</p>
-                  <p className="text-sm"><strong>Email:</strong> {person.partner.email || "Non indicata"}</p>
-                  <p className="mb-2 text-xs text-[#5f524c]">
-                    Origine: {person.partner.source === "ticket_tailor" ? "risposta all'ordine Ticket Tailor" :
-                      person.partner.source === "admin" ? "confermata nella pagina Admin" : "indicata dal partecipante"}
-                  </p>
-                  <MembershipBadge info={person.partner.membership} required />
-                  <div className="mt-2">
-                    <MembershipDetails info={person.partner.membership} required />
-                  </div>
-                </>
-              ) : <p className="text-sm font-semibold text-[#9b4b1e]">Dati partner mancanti: da richiedere o verificare nella Admin.</p>}
+        <div className="mt-2 space-y-2 border-t border-[#211815]/10 pt-2 text-sm">
+          {person.email ? (
+            <a href={"mailto:" + person.email} className="block break-all text-[#a8583e] underline">{person.email}</a>
+          ) : <span className="text-[#96641b]">Email mancante</span>}
+          {person.associationRequired ? <MembershipFacts info={person.association} /> : null}
+          {person.partnerRequired && person.partner ? (
+            <div className="border-t border-[#211815]/10 pt-2">
+              {person.partner.email ? (
+                <p className="text-sm text-[#5f524c]">Email partner: {person.partner.email}</p>
+              ) : null}
+              <MembershipFacts info={person.partner.membership} />
             </div>
           ) : null}
+          {person.notes ? <p className="text-sm"><strong>Nota:</strong> {person.notes}</p> : null}
+          {person.linkedPersonId ? (
+            <a href={"/gestione/p/" + person.linkedPersonId}
+              className="inline-block text-sm font-semibold text-[#a8583e] underline">Apri anagrafica</a>
+          ) : null}
+          <details className="text-xs text-[#5f524c]">
+            <summary className="w-fit cursor-pointer py-1 text-[#a8583e]">Dati biglietto</summary>
+            <p>Ordine: {person.orderId || "non disponibile"}</p>
+            {person.ticketType ? <p>Tipo: {person.ticketType}</p> : null}
+            {person.partner ? (
+              <p>Partner indicato {person.partner.source === "ticket_tailor"
+                ? "in Ticket Tailor" : person.partner.source === "admin" ? "in Admin" : "dal partecipante"}</p>
+            ) : null}
+          </details>
         </div>
       ) : null}
     </li>
