@@ -3,7 +3,7 @@
 // con una cache di 5 minuti, e non fa uscire dati sensibili. Fonti simulate,
 // dati inventati.
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const MANUAL_ID = "00000000-0000-4000-8000-00000000a0a1";
 
@@ -70,7 +70,17 @@ function person(fields: Partial<{ first_name: string; last_name: string; email: 
 
 beforeEach(() => {
   tableQueries.length = 0;
+  // Le fonti Google sono simulate: configura i nomi delle env richieste
+  // per verificare il ramo live senza credenziali autentiche.
+  for (const key of [
+    "GOOGLE_SERVICE_ACCOUNT_EMAIL",
+    "GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY",
+    "GOOGLE_SHEET_ID",
+    "GOOGLE_SHEET_RANGE",
+    "GOOGLE_MEMBERS_BOOK_RANGE",
+  ]) vi.stubEnv(key, "test");
 });
+afterEach(() => vi.unstubAllEnvs());
 
 describe("stato socio dalle fonti admin", () => {
   it("caso di verifica: solo una riga google_sheet → come nella pagina admin, quota non registrata", async () => {
