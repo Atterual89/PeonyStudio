@@ -22,7 +22,7 @@ export function SociReviewList({ rows }: { rows: SociReviewRow[] }) {
         className="h-10 w-full rounded-xl border border-[#211815]/15 bg-white px-3 text-sm"
       />
       <p className="text-xs text-[#5f524c]">
-        Domande prive di conferma nel libro soci salvato. Verifica sempre in TeamArtist prima di sollecitare il pagamento.
+        Domande senza conferma nei dati associativi salvati. Verifica in TeamArtist prima di sollecitare il pagamento.
       </p>
       <ul className="divide-y divide-[#211815]/10 rounded-xl border border-[#211815]/10 bg-white/80">
         {visible.map((row) => (
