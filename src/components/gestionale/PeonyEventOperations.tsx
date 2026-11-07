@@ -100,6 +100,7 @@ function PersonRow({ person }: { person: PeonyAttendee }) {
           {person.associationRequired ? <MembershipFacts info={person.association} /> : null}
           {person.partnerRequired && person.partner ? (
             <div className="border-t border-[#211815]/10 pt-2">
+              <p className="mb-1 text-xs font-semibold">Verifica partner</p>
               {person.partner.email ? (
                 <p className="text-sm text-[#5f524c]">Email partner: {person.partner.email}</p>
               ) : null}
