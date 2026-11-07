@@ -35,15 +35,31 @@ describe("sync soci nel gestionale PIN", () => {
     expect(ui).not.toContain('stat("Libro soci"');
     const home = source("src/app/gestione/(app)/page.tsx");
     expect(home).toContain("<SyncTicketTailorButton />");
-    expect(home).toContain("<SyncSociButton />");
+    expect(home).not.toContain("<SyncSociButton />");
+    const settings = source("src/app/gestione/(app)/altro/soci/page.tsx");
+    expect(settings).toContain("<SyncSociButton />");
   });
 
   it("la pagina di revisione soci è protetta e legge tutte le righe", () => {
-    const page = source("src/app/gestione/(app)/altro/soci/page.tsx");
+    const page = source("src/app/gestione/(app)/persone/page.tsx");
     expect(page).toContain("await requireAdmin()");
     expect(page).toContain("loadSociReviewData()");
     const loader = source("src/lib/gestionale/server/soci.ts");
     expect(loader).toContain("offset += 500");
     expect(loader).toContain("deriveMembershipState");
+  });
+});
+
+describe("menu gestionale semplificato", () => {
+  const nav = source("src/components/gestionale/GestioneNav.tsx");
+  it("usa Eventi, Persone e Impostazioni senza Cerca e registrazioni come schede autonome", () => {
+    expect(nav).toContain('label: "Eventi"');
+    expect(nav).toContain('label: "Persone"');
+    expect(nav).toContain('label: "Impostazioni"');
+    expect(nav).not.toContain('label: "Cerca"');
+    expect(nav).not.toContain('label: "Altro"');
+    const settings = source("src/app/gestione/(app)/altro/page.tsx");
+    expect(settings).toContain("Sincronizzazioni e libro soci");
+    expect(settings).not.toContain("Registrazioni associazione");
   });
 });
