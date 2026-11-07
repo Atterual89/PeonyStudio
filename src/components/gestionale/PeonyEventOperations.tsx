@@ -13,7 +13,7 @@ import {
 
 type Tab = "partecipanti" | "email";
 const card = "rounded-2xl border border-[#211815]/10 bg-white/75 p-4";
-const button = "min-h-11 rounded-xl bg-[#a8583e] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50";
+const button = "h-10 rounded-xl bg-[#a8583e] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50";
 
 function htmlEscape(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;")
@@ -60,6 +60,7 @@ export function PeonyEventOperations({
   const [message, setMessage] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [confirmingSend, setConfirmingSend] = useState(false);
   const eligible = useMemo(() => attendees.filter((a) => Boolean(a.email)), [attendees]);
   const selected = eligible.filter((a) => checked.includes(a.ticketId));
   const distinctEmails = [...new Set(selected.map((a) => a.email!.trim().toLowerCase()))];
@@ -117,7 +118,7 @@ export function PeonyEventOperations({
       <div className="flex gap-2" role="tablist" aria-label="Gestione evento">
         {(["partecipanti", "email"] as const).map((name) => (
           <button key={name} role="tab" aria-selected={tab === name} onClick={() => { setTab(name); setMessage(null); setFailure(null); }}
-            className={`min-h-11 flex-1 rounded-xl px-3 text-sm font-semibold ${tab === name ? "bg-[#a8583e] text-white" : "bg-white/75 text-[#211815]"}`}>
+            className={`h-10 flex-1 rounded-xl px-3 text-sm font-semibold ${tab === name ? "bg-[#a8583e] text-white" : "bg-white/75 text-[#211815]"}`}>
             {name === "partecipanti" ? "Partecipanti e presenze" : "Email"}
           </button>
         ))}
@@ -130,7 +131,7 @@ export function PeonyEventOperations({
         <section className="space-y-3">
           <input type="search" value={search} onChange={(event) => setSearch(event.target.value)}
             placeholder="Cerca nome, email, biglietto" aria-label="Cerca tra i partecipanti"
-            className="min-h-12 w-full rounded-xl border border-[#211815]/15 bg-white px-3 text-sm" />
+            className="h-10 w-full rounded-xl border border-[#211815]/15 bg-white px-3 text-sm" />
           <p className="text-xs text-[#5f524c]">La presenza impostata da Peony resta salvata anche dopo la sincronizzazione Ticket Tailor.</p>
           {visible.length === 0 ? <p className={card}>Nessun partecipante trovato. Se mancano iscritti, verifica la sincronizzazione Ticket Tailor nella vecchia pagina Admin.</p> : null}
           <ul className="space-y-2">
@@ -174,7 +175,7 @@ export function PeonyEventOperations({
             <p className="mt-1 text-xs text-[#5f524c]">Modello modificabile e salvato per questo evento. Non invia automaticamente alcuna email.</p>
             <label htmlFor="peony-subject" className="mt-4 block text-sm font-semibold">Oggetto</label>
             <input id="peony-subject" value={subject} onChange={(e) => setSubject(e.target.value)}
-              maxLength={300} className="mt-1 min-h-11 w-full rounded-lg border border-[#211815]/15 bg-white p-2 text-sm" />
+              maxLength={300} className="mt-1 h-10 w-full rounded-lg border border-[#211815]/15 bg-white p-2 text-sm" />
             <label htmlFor="peony-body" className="mt-3 block text-sm font-semibold">Messaggio</label>
             <textarea id="peony-body" value={body} onChange={(e) => setBody(e.target.value)}
               rows={9} maxLength={30000} className="mt-1 w-full rounded-lg border border-[#211815]/15 bg-white p-3 text-sm" />
@@ -193,7 +194,7 @@ export function PeonyEventOperations({
                     setFailure("Non riesco a copiare la versione HTML. Verifica i permessi degli appunti.");
                   }
                 }}
-                className="min-h-11 rounded-xl border border-[#a8583e] px-4 text-sm font-semibold text-[#a8583e] disabled:opacity-50">
+                className="h-10 rounded-xl border border-[#a8583e] px-4 text-sm font-semibold text-[#a8583e] disabled:opacity-50">
                 Copia email per Gmail
               </button>
             </div>
@@ -231,16 +232,27 @@ export function PeonyEventOperations({
                 onClick={() => copy(distinctEmails.join(", "), "Indirizzi copiati per il campo Ccn di Gmail.")}>
                 Copia indirizzi Ccn
               </button>
-              <button type="button" disabled={busy || selected.length === 0 || !subject.trim()}
-                onClick={() => {
-                  if (window.confirm(`Confermi di aver già inviato questa email ai ${selected.length} biglietti selezionati? Questa azione registra l'invio, non spedisce messaggi.`)) {
-                    run(() => markPeonyEmailSent(eventId, selected.map((a) => a.ticketId), subject), "Invii registrati nello storico.");
-                  }
-                }}
-                className="min-h-11 rounded-xl border border-[#a8583e] px-4 text-sm font-semibold text-[#a8583e] disabled:opacity-50">
-                Registra come inviata
-              </button>
+              {!confirmingSend ? (
+                <button type="button" disabled={busy || selected.length === 0 || !subject.trim()}
+                  onClick={() => setConfirmingSend(true)}
+                  className="h-10 rounded-xl border border-[#a8583e] px-4 text-sm font-semibold text-[#a8583e] disabled:opacity-50">
+                  Registra come inviata
+                </button>
+              ) : null}
             </div>
+            {confirmingSend ? (
+              <div className="mt-3 rounded-xl border border-[#a8583e]/40 bg-[#f2ede3] p-3">
+                <p className="text-sm font-semibold">Hai già inviato l'email ai {selected.length} biglietti selezionati?</p>
+                <p className="mt-1 text-xs text-[#5f524c]">Questa azione registra un invio, non spedisce alcun messaggio.</p>
+                <div className="mt-3 flex gap-2">
+                  <button disabled={busy} className={button} onClick={() => {
+                    setConfirmingSend(false);
+                    run(() => markPeonyEmailSent(eventId, selected.map((a) => a.ticketId), subject), "Invii registrati nello storico.");
+                  }}>Sì, registra</button>
+                  <button disabled={busy} className="h-10 rounded-xl border border-[#211815]/20 px-4 text-sm" onClick={() => setConfirmingSend(false)}>Annulla</button>
+                </div>
+              </div>
+            ) : null}
             <p className="mt-3 text-xs text-[#5f524c]">Il sistema non invia email: copia gli indirizzi in Ccn e il testo formattato in Gmail. Registra l'invio solo dopo averlo realmente effettuato.</p>
           </div>
         </section>
