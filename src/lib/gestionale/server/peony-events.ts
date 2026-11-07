@@ -38,6 +38,8 @@ export type PeonyPartner = {
   email: string | null;
   source: "ticket_tailor" | "user" | "admin" | "gestionale";
   membership: PeonyMembership | null;
+  linkedPersonId: string | null;
+  memberRowId: string | null;
 };
 
 export type PeonyAttendee = {
@@ -223,6 +225,8 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
       const required = peonyPartnerRequired(event.title, ticket.ticket_type_name);
       const partner: PeonyPartner | null = required && chosen ? {
         name: chosen.name, email: chosen.email, source: chosen.source,
+        linkedPersonId: chosen.personId ?? null,
+        memberRowId: chosen.memberRowId ?? null,
         membership: associationStatus(evidence, event, partnerIdentity(chosen.name, chosen.email)),
       } : null;
       const identity = {

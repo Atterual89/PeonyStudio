@@ -350,50 +350,52 @@ export async function getEnrolledPersonIds(workshopId: string): Promise<Set<stri
  * Non include interessati, cancellati o persone rimosse dalla coppia. */
 export async function loadUpcomingLuxuriaPeople(today: string): Promise<{
   key: string; title: string; startsOn: string; endsOn: string | null; href: string;
-  people: { personId: string }[];
+  bookings: { bookingId: string; personIds: string[] }[];
 }[]> {
   await requireAdmin();
   const db = getGestionaleDb();
   type FutureHistoryRecord = HistoryRecord & {
+    booking_id: string; is_primary: boolean;
     gw_bookings: HistoryRecord["gw_bookings"] & {
       deleted_at: string | null;
       gw_workshops: HistoryRecord["gw_bookings"]["gw_workshops"] & { deleted_at: string | null };
     };
   };
   const records: FutureHistoryRecord[] = [];
-  for (let offset = 0; offset < 10000; offset += 500) {
-    const result = await db.from("gw_booking_participants")
-      .select("id,person_id,removed_at,gw_bookings!inner(status,present,deleted_at,gw_workshops!inner(id,event_id,name,starts_on,ends_on,deleted_at))")
-      .is("deleted_at", null)
-      .is("removed_at", null)
-      .order("id", { ascending: true })
-      .range(offset, offset + 499);
-    if (result.error) fail("persone prossimi workshop", result.error);
-    records.push(...((result.data ?? []) as unknown as FutureHistoryRecord[]));
-    if ((result.data ?? []).length < 500) break;
+  for(let offset=0;offset<10000;offset+=500){
+    const result=await db.from("gw_booking_participants")
+      .select("id,booking_id,is_primary,person_id,removed_at,gw_bookings!inner(status,present,deleted_at,gw_workshops!inner(id,event_id,name,starts_on,ends_on,deleted_at))")
+      .is("deleted_at",null).is("removed_at",null)
+      .order("id",{ascending:true}).range(offset,offset+499);
+    if(result.error)fail("prenotazioni prossimi workshop",result.error);
+    records.push(...((result.data??[]) as unknown as FutureHistoryRecord[]));
+    if((result.data??[]).length<500)break;
   }
-  const events = await loadLuxuriaEvents();
-  const byEventId = new Map(events.map((event) => [event.id, event]));
-  const groups = new Map<string, {
-    key: string; title: string; startsOn: string; endsOn: string | null; href: string;
-    people: { personId: string }[];
+  const events=await loadLuxuriaEvents();
+  const byEventId=new Map(events.map(event=>[event.id,event]));
+  const groups=new Map<string,{
+    key:string;title:string;startsOn:string;endsOn:string|null;href:string;
+    bookings:{bookingId:string;personIds:string[]}[];
   }>();
-  for (const row of records) {
-    if (row.removed_at || row.gw_bookings.deleted_at || row.gw_bookings.gw_workshops.deleted_at ||
-      !["prenotato", "acconto", "saldato"].includes(row.gw_bookings.status)) continue;
-    const workshop = row.gw_bookings.gw_workshops;
-    const event = workshop.event_id ? byEventId.get(workshop.event_id) : null;
-    const startsOn = event?.startsOn ?? workshop.starts_on;
-    const endsOn = event?.endsOn ?? workshop.ends_on;
-    if ((endsOn ?? startsOn) < today) continue;
-    const current = groups.get(workshop.id) ?? {
-      key: `luxuria:${workshop.id}`, title: event?.name ?? workshop.name,
-      startsOn, endsOn, href: `/gestione/w/${workshop.id}`, people: [],
+  for(const row of records){
+    if(row.removed_at||row.gw_bookings.deleted_at||row.gw_bookings.gw_workshops.deleted_at||
+      !["prenotato","acconto","saldato"].includes(row.gw_bookings.status))continue;
+    const ws=row.gw_bookings.gw_workshops;
+    const event=ws.event_id?byEventId.get(ws.event_id):null;
+    const startsOn=event?.startsOn??ws.starts_on;
+    const endsOn=event?.endsOn??ws.ends_on;
+    if((endsOn??startsOn)<today)continue;
+    const group=groups.get(ws.id)??{
+      key:`luxuria:${ws.id}`,title:event?.name??ws.name,startsOn,endsOn,
+      href:`/gestione/w/${ws.id}`,bookings:[],
     };
-    if (!current.people.some((person) => person.personId === row.person_id)) {
-      current.people.push({ personId: row.person_id });
+    let booking=group.bookings.find(b=>b.bookingId===row.booking_id);
+    if(!booking){booking={bookingId:row.booking_id,personIds:[]};group.bookings.push(booking);}
+    if(!booking.personIds.includes(row.person_id)){
+      if(row.is_primary)booking.personIds.unshift(row.person_id);
+      else booking.personIds.push(row.person_id);
     }
-    groups.set(workshop.id, current);
+    groups.set(ws.id,group);
   }
-  return [...groups.values()].sort((a, b) => a.startsOn.localeCompare(b.startsOn));
+  return [...groups.values()].sort((a,b)=>a.startsOn.localeCompare(b.startsOn));
 }
