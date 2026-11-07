@@ -309,9 +309,20 @@ describe("libro soci a codice", () => {
     for (const { path, code } of gestionale) {
       for (const chain of queries(code)) expect(chain, path).not.toMatch(/\.(insert|update|upsert|delete)\s*\(/);
     }
-    // Del codice del sito che scrive sul libro soci, il gestionale importa solo manual-validation.
+    // Le nuove importazioni sono procedure di sincronizzazione, richiamate
+    // esclusivamente dall'azione admin e senza pulizia automatica dei record.
     const imported = new Set(gestionale.flatMap(({ code }) => code.match(/@\/lib\/association\/[a-z-]+/g) ?? []));
-    expect([...imported].sort()).toEqual(["@/lib/association/manual-validation", "@/lib/association/membership-periods", "@/lib/association/membership-state"]);
+    expect([...imported].sort()).toEqual([
+      "@/lib/association/manual-validation",
+      "@/lib/association/members-book-sync",
+      "@/lib/association/members-sync",
+      "@/lib/association/membership-periods",
+      "@/lib/association/membership-state",
+    ]);
+    const action = readFileSync(join(ROOT, "src/app/gestione/(app)/soci/sync/actions.ts"), "utf8");
+    expect(action).toContain("await requireAdmin()");
+    expect(action).toContain("applyAssociationMembersSync(db, { removeStaleRows: false })");
+    expect(action).toContain("applyOfficialMembersBookSync(db, { removeStaleRows: false })");
   });
 
   it("il gestionale non scrive mai su association_members con le funzioni Postgres della Fase 5", () => {
