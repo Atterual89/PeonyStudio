@@ -60,13 +60,29 @@ function pick(row: MembershipEvidenceRow, tableId: string | null): EvidenceRow {
  * semplice modulo Google non equivale a quota verificata.
  */
 async function fetchSavedEvidence(): Promise<Evidence> {
-  const { data, error } = await getGestionaleDb()
-    .from("association_members")
-    .select("id,first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at,updated_at")
-    .in("source", ["google_sheet", "official_members_book", "manual_override"])
-    .range(0, 9999);
-  if (error) throw new Error(`Gestionale (copia libro soci): ${error.message}`);
-  const rows = data ?? [];
+  const rows: Array<{
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+    email: string | null;
+    source: string | null;
+    membership_status: string | null;
+    membership_starts_at: string | null;
+    membership_expires_at: string | null;
+    updated_at: string | null;
+  }> = [];
+  // Un singolo SELECT può fermarsi al limite PostgREST di 1000 righe.
+  for (let offset = 0; offset < 10000; offset += 500) {
+    const { data, error } = await getGestionaleDb()
+      .from("association_members")
+      .select("id,first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at,updated_at")
+      .in("source", ["google_sheet", "official_members_book", "manual_override"])
+      .order("id", { ascending: true })
+      .range(offset, offset + 499);
+    if (error) throw new Error(`Gestionale (copia libro soci): ${error.message}`);
+    rows.push(...(data ?? []));
+    if ((data ?? []).length < 500) break;
+  }
   const timestamp = rows
     .filter((row) => row.source === "google_sheet" || row.source === "official_members_book")
     .map((row) => row.updated_at)
