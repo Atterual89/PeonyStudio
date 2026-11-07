@@ -79,7 +79,7 @@ export type PeonyPartnerCandidate = {
   id: string;
   name: string;
   email: string | null;
-  origin: "Libro soci" | "Modulo Google" | "Anagrafica";
+  origin: "Libro soci" | "Modulo Google" | "Conferma manuale" | "Anagrafica";
   membership: "valid" | "payment_missing" | "missing_form" | null;
 };
 export type PartnerSearchResult =
@@ -124,7 +124,7 @@ export async function searchPeonyPartnerAction(eventId: string, query: string): 
     used.add(key);
     const state=associationStatus(evidence,event,{email,firstName:row.first_name,lastName:row.last_name});
     candidates.push({kind:"member",id:row.id,name:name??email!,email,
-      origin:row.source==="official_members_book"?"Libro soci":"Modulo Google",
+      origin:row.source==="official_members_book"?"Libro soci":row.source==="manual_override"?"Conferma manuale":"Modulo Google",
       membership:state?.status??null});
   }
   for(const row of people??[]) {
@@ -143,14 +143,20 @@ export async function searchPeonyPartnerAction(eventId: string, query: string): 
 }
 
 export async function savePeonyPartnerAction(
-  eventId: string, ticketId: string, selected: { kind:"member"|"person"; id:string } | null,
+  eventId: string, ticketId: string,
+  selected: { kind:"member"|"person"; id:string } | { kind:"provisional"; name:string; email:string } | null,
 ): Promise<PeonyActionResult> {
   const operator=await requireAdmin();
   const event=await getPeonyEvent(eventId);
   if(!event || typeof ticketId!=="string" || ticketId.length<1 || ticketId.length>200)
     return {ok:false,error:"Iscrizione non valida."};
-  if(selected !== null && (!selected || !["person","member"].includes(selected.kind) || !isUuidLike(selected.id)))
-    return {ok:false,error:"Seleziona una persona dalla ricerca."};
+  if(selected !== null && (
+    !selected || !["person","member","provisional"].includes(selected.kind) ||
+    (selected.kind!=="provisional" && !isUuidLike(selected.id)) ||
+    (selected.kind==="provisional" &&
+      (typeof selected.name!=="string" || typeof selected.email!=="string" ||
+        selected.name.length>220 || selected.email.length>320))
+  )) return {ok:false,error:"Dati del partner non validi."};
   const db=getGestionaleDb();
   const {data:ticket,error:ticketError}=await db.from("ticket_tailor_issued_tickets")
     .select("ticket_tailor_issued_ticket_id,holder_first_name,holder_last_name,holder_email,ticket_type_name,status")
@@ -184,6 +190,13 @@ export async function savePeonyPartnerAction(
     partnerName=safeName(row.first_name,row.last_name,row.nickname);
     partnerEmail=cleanPartnerEmail(row.email);
     personId=row.id;
+  }else if(selected?.kind==="provisional"){
+    partnerName=cleanPartnerName(selected.name);
+    partnerEmail=cleanPartnerEmail(selected.email);
+    if(!partnerEmail && (!partnerName || partnerName.split(/\s+/).length<2))
+      return {ok:false,error:"Indica nome e cognome oppure un'email valida."};
+    if(selected.email.trim() && !partnerEmail)
+      return {ok:false,error:"L'indirizzo email non è valido."};
   }
   if(selected && !partnerName && !partnerEmail)
     return {ok:false,error:"La persona selezionata non ha nome né email."};
