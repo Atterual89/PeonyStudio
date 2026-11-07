@@ -45,7 +45,7 @@ function missingConfig(): boolean {
   return GOOGLE_ENV.some((name) => !process.env[name]?.trim());
 }
 
-function configError(): SyncPreview {
+function configError(): { ok: false; message: string } {
   return {
     ok: false,
     message: "Sincronizzazione soci non ancora configurata: sul progetto Vercel mancano le credenziali Google per il modulo e il libro soci. I dati già salvati rimangono disponibili; nessuna quota viene confermata automaticamente.",
