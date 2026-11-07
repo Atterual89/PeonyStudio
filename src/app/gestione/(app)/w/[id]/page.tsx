@@ -15,6 +15,7 @@ import { getAccounts, getTaxNotes, listCarryoverDestinations } from "@/lib/gesti
 import { requireOperator } from "@/lib/gestionale/server/auth";
 import { getWorkshopBookings, getWorkshopView, listWorkshopsForCopy } from "@/lib/gestionale/server/data";
 import { getFeeRows, getLastPaymentMethod, getRegistrations } from "@/lib/gestionale/server/registrations";
+import { getMembershipEvidenceStatus } from "@/lib/gestionale/server/membership";
 import { WORKSHOP_TABS, resolveWorkshopTab, workshopTabRedirect } from "@/lib/gestionale/tabs";
 import type { WorkshopView } from "@/lib/gestionale/types";
 import { countBookings, todayInRome } from "@/lib/gestionale/workshops";
@@ -43,6 +44,11 @@ export default async function WorkshopDetailPage({
   const [bookings, registrations] = isAdmin
     ? [await getWorkshopBookings(workshop), null]
     : [null, await getRegistrations(workshop.id)];
+  // Le credenziali Google non devono impedire di consultare iscrizioni o conti.
+  // Se stiamo usando il libro soci salvato, il suo aggiornamento va dichiarato.
+  const membershipEvidence = isAdmin && bookings && bookings.some((booking) => booking.people.length > 0)
+    ? await getMembershipEvidenceStatus()
+    : null;
   // 4g (#10): metodo proposto nel modulo del pagamento.
   const lastMethod = !isAdmin && active === "iscrizioni" ? await getLastPaymentMethod(operator.id) : null;
   const statuses = (bookings ?? registrations ?? []).map((booking) => booking.status);
@@ -81,6 +87,19 @@ export default async function WorkshopDetailPage({
           </>
         ) : null}
       </p>
+      {isAdmin && membershipEvidence?.source === "snapshot" ? (
+        <div className="mt-3">
+          <Notice tone="warning">
+            Associazione: stai consultando i dati salvati
+            {membershipEvidence.snapshotUpdatedAt
+              ? ` (ultimo aggiornamento ${new Intl.DateTimeFormat("it-IT", {
+                  dateStyle: "medium", timeZone: "Europe/Rome",
+                }).format(new Date(membershipEvidence.snapshotUpdatedAt))})`
+              : ""}.
+            Verifiche non aggiornate in tempo reale: controllare la registrazione e la quota su TeamArtist.
+          </Notice>
+        </div>
+      ) : null}
       {workshop.eventNotice ? (
         <div className="mt-3">
           <Notice tone="warning">{workshop.eventNotice}: nome e date sono l&apos;ultima copia salvata.</Notice>
