@@ -27,7 +27,8 @@ import {
   updateWorkshopSettings,
   type BookingPersonInput,
   type ResolveAction,
- , setMembershipNameLink } } from "@/lib/gestionale/server/mutations";
+  setMembershipNameLink,
+} from "@/lib/gestionale/server/mutations";
 import type { ActionResult, BookingStatus, MemberSummary, MembershipBadge, Person, PersonFields } from "@/lib/gestionale/types";
 import { asText, isIsoDate, isUuidLike, isVersion } from "@/lib/gestionale/validation";
 import { todayInRome, validateWorkshopSettings, type WorkshopSettingsValues } from "@/lib/gestionale/workshops";
