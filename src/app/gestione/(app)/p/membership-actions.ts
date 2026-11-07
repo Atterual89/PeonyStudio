@@ -82,7 +82,7 @@ export async function refreshMembershipAction(): Promise<ActionResult> {
 }
 
 /** Registra la quota direttamente dalla domanda Google, anche senza gw_people. */
-export async function setFormQuotaPaidAction(formMemberId: string, paid: boolean): Promise<ActionResult> {
+export async function setFormQuotaPaidAction(formMemberId: string, paid: boolean, periodDate?: string): Promise<ActionResult> {
   await requireAdmin();
   if (!isUuidLike(formMemberId) || typeof paid !== "boolean") return INVALID;
   const db = getGestionaleDb();
@@ -91,8 +91,15 @@ export async function setFormQuotaPaidAction(formMemberId: string, paid: boolean
     .eq("id", formMemberId).eq("source", "google_sheet")
     .maybeSingle();
   if (error || !form) return { ok: false, error: "Domanda Google non trovata. Aggiorna le domande." };
-  const period = membershipPeriodFor(todayInRome());
-  if (!period) return { ok: false, error: "Periodo associativo non valido." };
+  const today = todayInRome();
+  const period = membershipPeriodFor(periodDate ?? today);
+  const currentPeriod = membershipPeriodFor(today);
+  if (!period || !currentPeriod) return { ok: false, error: "Periodo associativo non valido." };
+  // Pagamenti del periodo attuale e rinnovi dell'anno successivo soltanto.
+  if (period.paymentsFrom < currentPeriod.paymentsFrom ||
+    Number(period.validUntil.slice(0, 4)) > Number(today.slice(0, 4)) + 1) {
+    return { ok: false, error: "Puoi confermare la quota del periodo attuale o dell'anno successivo." };
+  }
   if (!form.email && !(form.first_name && form.last_name)) return { ok: false, error: MISSING_IDENTITY };
 
   const identity = { email: form.email, firstName: form.first_name, lastName: form.last_name };
