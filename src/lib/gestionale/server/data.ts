@@ -344,3 +344,49 @@ export async function getEnrolledPersonIds(workshopId: string): Promise<Set<stri
   if (error) fail("partecipanti", error);
   return new Set((data ?? []).map((row) => row.person_id as string));
 }
+
+
+/** Prenotazioni effettive nei workshop LuXuria non conclusi.
+ * Non include interessati, cancellati o persone rimosse dalla coppia. */
+export async function loadUpcomingLuxuriaPeople(today: string): Promise<{
+  key: string; title: string; startsOn: string; endsOn: string | null; href: string;
+  people: { personId: string }[];
+}[]> {
+  await requireAdmin();
+  const db = getGestionaleDb();
+  const records: HistoryRecord[] = [];
+  for (let offset = 0; offset < 10000; offset += 500) {
+    const result = await db.from("gw_booking_participants")
+      .select("id,person_id,removed_at,gw_bookings!inner(status,present,gw_workshops!inner(id,event_id,name,starts_on,ends_on))")
+      .is("deleted_at", null)
+      .is("removed_at", null)
+      .order("id", { ascending: true })
+      .range(offset, offset + 499);
+    if (result.error) fail("persone prossimi workshop", result.error);
+    records.push(...((result.data ?? []) as unknown as HistoryRecord[]));
+    if ((result.data ?? []).length < 500) break;
+  }
+  const events = await loadLuxuriaEvents();
+  const byEventId = new Map(events.map((event) => [event.id, event]));
+  const groups = new Map<string, {
+    key: string; title: string; startsOn: string; endsOn: string | null; href: string;
+    people: { personId: string }[];
+  }>();
+  for (const row of records) {
+    if (row.removed_at || !["prenotato", "acconto", "saldato"].includes(row.gw_bookings.status)) continue;
+    const workshop = row.gw_bookings.gw_workshops;
+    const event = workshop.event_id ? byEventId.get(workshop.event_id) : null;
+    const startsOn = event?.startsOn ?? workshop.starts_on;
+    const endsOn = event?.endsOn ?? workshop.ends_on;
+    if ((endsOn ?? startsOn) < today) continue;
+    const current = groups.get(workshop.id) ?? {
+      key: `luxuria:${workshop.id}`, title: event?.name ?? workshop.name,
+      startsOn, endsOn, href: `/gestione/w/${workshop.id}`, people: [],
+    };
+    if (!current.people.some((person) => person.personId === row.person_id)) {
+      current.people.push({ personId: row.person_id });
+    }
+    groups.set(workshop.id, current);
+  }
+  return [...groups.values()].sort((a, b) => a.startsOn.localeCompare(b.startsOn));
+}

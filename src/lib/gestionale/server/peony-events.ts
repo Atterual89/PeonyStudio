@@ -253,3 +253,87 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
       .map((m) => m.updated_at).filter((x): x is string => Boolean(x)).sort().at(-1) ?? null,
   };
 }
+
+
+/** Solo intestatari e partner dei prossimi eventi. Evita di rileggere
+ * l'intero libro soci una volta per ogni workshop. */
+export type UpcomingPeonyGroup = {
+  key: string;
+  title: string;
+  startsOn: string;
+  endsOn: string | null;
+  href: string;
+  people: { key: string; name: string; email: string | null; observer: boolean }[];
+};
+
+export async function loadUpcomingPeonyPeople(today: string): Promise<UpcomingPeonyGroup[]> {
+  await requireAdmin();
+  const upcoming = (await loadEvents())
+    .filter((event) => event.startsOn && (event.endsOn ?? event.startsOn) >= today)
+    .sort((a, b) => (a.startsOn ?? "").localeCompare(b.startsOn ?? ""));
+  if (!upcoming.length) return [];
+  const db = getGestionaleDb();
+  const readBatched = async (table: "ticket_tailor_issued_tickets" | "ticket_tailor_orders" | "user_event_enrollments",
+    columns: string, field: string, values: string[]) => {
+    const rows: Record<string, unknown>[] = [];
+    for (let i = 0; i < values.length; i += 80) {
+      const batch = values.slice(i, i + 80);
+      for (let offset = 0; offset < 10000; offset += 500) {
+        const result = await db.from(table).select(columns).in(field, batch).range(offset, offset + 499);
+        if (result.error) throw new Error(`Prossimi workshop: lettura ${table} non riuscita.`);
+        rows.push(...(result.data ?? []));
+        if ((result.data ?? []).length < 500) break;
+      }
+    }
+    return rows;
+  };
+  const ids = upcoming.map((event) => event.ticketTailorEventId);
+  const ticketRows = await readBatched(
+    "ticket_tailor_issued_tickets",
+    "ticket_tailor_event_id,ticket_tailor_issued_ticket_id,ticket_tailor_order_id,holder_first_name,holder_last_name,holder_email,ticket_type_name,status",
+    "ticket_tailor_event_id", ids,
+  );
+  const active = ticketRows.filter((row) => isActivePeonyTicket(typeof row.status === "string" ? row.status : null));
+  const orderIds = [...new Set(active.map((row) => row.ticket_tailor_order_id).filter((id): id is string => typeof id === "string" && Boolean(id)))];
+  const [enrollments, orders] = orderIds.length ? await Promise.all([
+    readBatched("user_event_enrollments","ticket_tailor_order_id,partner_source,partner_email,partner_name","ticket_tailor_order_id",orderIds),
+    readBatched("ticket_tailor_orders","ticket_tailor_order_id,raw_payload","ticket_tailor_order_id",orderIds),
+  ]) : [[], []];
+  const byOrder = new Map(enrollments.map((row) => [String(row.ticket_tailor_order_id), row]));
+  const checkoutByOrder = new Map(orders.map((row) => [String(row.ticket_tailor_order_id), partnerFromCheckout(row.raw_payload)]));
+  return upcoming.map((event) => {
+    const people = new Map<string, UpcomingPeonyGroup["people"][number]>();
+    function add(name: string, email: string | null, observer: boolean) {
+      const safeName = name.trim() || email || "Nome da completare";
+      const normalizedEmail = normalizeMembershipEmail(email);
+      const key = normalizedEmail ? `e:${normalizedEmail}` : `n:${safeName.toLocaleLowerCase("it")}`;
+      if (!people.has(key)) people.set(key, { key, name: safeName, email, observer });
+      else if (!observer) people.get(key)!.observer = false;
+    }
+    for (const row of active) {
+      if (row.ticket_tailor_event_id !== event.ticketTailorEventId) continue;
+      const ticketName = [row.holder_first_name, row.holder_last_name].filter(Boolean).join(" ").trim();
+      const email = typeof row.holder_email === "string" ? row.holder_email.trim() || null : null;
+      const ticketType = typeof row.ticket_type_name === "string" ? row.ticket_type_name : null;
+      const observer = /(observer|osservator)/i.test(ticketType ?? "");
+      add(ticketName, email, observer);
+      if (!peonyPartnerRequired(event.title, ticketType)) continue;
+      const orderId = typeof row.ticket_tailor_order_id === "string" ? row.ticket_tailor_order_id : "";
+      const fromAdmin = byOrder.get(orderId);
+      const fromCheckout = checkoutByOrder.get(orderId);
+      const partnerName = typeof fromAdmin?.partner_name === "string" && fromAdmin.partner_name.trim()
+        ? fromAdmin.partner_name.trim() : fromCheckout?.name ?? null;
+      const partnerEmail = typeof fromAdmin?.partner_email === "string" && fromAdmin.partner_email.trim()
+        ? fromAdmin.partner_email.trim() : fromCheckout?.email ?? null;
+      if (partnerName || partnerEmail) add(partnerName ?? "", partnerEmail, false);
+    }
+    return {
+      key: `peony:${event.id}`,
+      title: event.title,
+      startsOn: event.startsOn!,
+      endsOn: event.endsOn,
+      href: `/gestione/peony/${event.id}`,
+      people: [...people.values()].sort((a, b) => a.name.localeCompare(b.name, "it")),
+    };
+  }).filter((event) => event.people.length > 0);
+}

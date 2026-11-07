@@ -28,7 +28,7 @@ export type SociReviewData = {
   formUpdatedAt: string | null;
 };
 
-export async function loadSociReviewData(): Promise<SociReviewData> {
+export async function loadSociReviewData(referenceDate: string = todayInRome()): Promise<SociReviewData> {
   await requireAdmin();
   const db = getGestionaleDb();
   async function readAllMemberships() {
@@ -67,7 +67,7 @@ export async function loadSociReviewData(): Promise<SociReviewData> {
   const forms = rows.filter((row) => row.source === "google_sheet");
   const book = rows.filter((row) => row.source === "official_members_book");
   const evidence = rows as MembershipEvidenceRow[];
-  const period = membershipPeriodFor(todayInRome());
+  const period = membershipPeriodFor(referenceDate);
 
   const idsByEmail = new Map<string, string | null>();
   for (const person of people.data ?? []) {
