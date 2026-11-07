@@ -5,9 +5,11 @@ import Link from "next/link";
 import { MemberLinkReview } from "@/components/gestionale/MemberLinkReview";
 import { RefreshMembershipButton } from "@/components/gestionale/QuotaOk";
 import { SyncSociButton } from "@/components/gestionale/SyncSociButton";
+import { SociReviewList } from "@/components/gestionale/SociReviewList";
 import { Notice, Section, cardClass } from "@/components/gestionale/ui";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { findMemberLinkProposals } from "@/lib/gestionale/server/member-links";
+import { loadSociReviewData } from "@/lib/gestionale/server/soci";
 
 // Fase 5: collegamento in blocco al libro soci. Solo admin (D18). Le persone
 // senza collegamento al libro soci con il socio proposto: per email
@@ -19,6 +21,15 @@ export default async function SociPage() {
     console.error("Gestionale (proposte libro soci):", error instanceof Error ? error.message : error);
     return null;
   });
+
+  const registrations = await loadSociReviewData().catch((error: unknown) => {
+    console.error("Gestionale (domande soci):", error instanceof Error ? error.message : error);
+    return null;
+  });
+
+  const shortDate = (value: string | null) => value
+    ? new Intl.DateTimeFormat("it-IT", { dateStyle: "short", timeZone: "Europe/Rome" }).format(new Date(value))
+    : "non disponibile";
 
   return (
     <section className="max-w-3xl">
@@ -33,6 +44,36 @@ export default async function SociPage() {
       <div className="mt-3">
         <SyncSociButton />
       </div>
+      {registrations ? (
+        <div className="mt-4">
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="rounded-xl bg-white/75 p-2">
+              <p className="font-semibold">{registrations.formCount}</p>
+              <p className="text-xs text-[#5f524c]">Domande nel periodo</p>
+            </div>
+            <div className="rounded-xl bg-white/75 p-2">
+              <p className="font-semibold">{registrations.bookCount}</p>
+              <p className="text-xs text-[#5f524c]">Righe libro soci</p>
+            </div>
+            <div className="rounded-xl bg-white/75 p-2">
+              <p className="font-semibold text-[#9b4b1e]">{registrations.pendingCount}</p>
+              <p className="text-xs text-[#5f524c]">Da verificare</p>
+            </div>
+          </div>
+          <details className="mt-2 text-xs text-[#5f524c]">
+            <summary className="w-fit cursor-pointer py-1 text-[#a8583e]">Date dei dati</summary>
+            <p>Domande: {shortDate(registrations.formUpdatedAt)} · Libro soci: {shortDate(registrations.bookUpdatedAt)}</p>
+          </details>
+          <details className="mt-4 rounded-xl border border-[#211815]/10 bg-white/65 p-3">
+            <summary className="cursor-pointer text-sm font-semibold">
+              Domande da controllare ({registrations.pendingCount})
+            </summary>
+            <SociReviewList rows={registrations.pending} />
+          </details>
+        </div>
+      ) : (
+        <div className="mt-3"><Notice tone="error">Impossibile caricare il riepilogo delle registrazioni.</Notice></div>
+      )}
       <details className="mt-4 rounded-xl border border-[#211815]/10 bg-white/65 p-3">
         <summary className="cursor-pointer text-sm font-semibold">Collegamenti anagrafici</summary>
         <p className="mt-2 text-xs text-[#5f524c]">
