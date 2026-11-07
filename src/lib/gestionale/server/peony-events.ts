@@ -5,7 +5,9 @@ import { cache } from "react";
 import { deriveMembershipState, normalizeMembershipEmail, type MembershipEvidenceRow } from "@/lib/association/membership-state";
 import { membershipPeriodFor } from "@/lib/association/membership-periods";
 
-import { isLuxuriaTitle, timestampToRomeDate } from "@/lib/gestionale/workshops";
+import { timestampToRomeDate } from "@/lib/gestionale/workshops";
+import { isActivePeonyTicket, isPeonyTicketEvent } from "@/lib/gestionale/peony-ticket-rules";
+export { isActivePeonyTicket } from "@/lib/gestionale/peony-ticket-rules";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
 import { isUuidLike } from "@/lib/gestionale/validation";
@@ -35,14 +37,6 @@ export type PeonyAttendee = {
 
 export type PeonyEventSummary = PeonyEvent & { ticketCount: number };
 
-export function isActivePeonyTicket(status: string | null): boolean {
-  if (!status) return true;
-  const normalized = status.toLowerCase();
-  return !["void", "cancelled", "canceled", "refunded", "deleted", "inactive"].some((blocked) =>
-    normalized.includes(blocked),
-  );
-}
-
 type EventRow = {
   id: string;
   title: string;
@@ -54,7 +48,7 @@ type EventRow = {
 };
 
 function toPeonyEvent(row: EventRow): PeonyEvent | null {
-  if (!row.ticket_tailor_event_id || row.source !== "ticket_tailor" || isLuxuriaTitle(row.title)) return null;
+  if (!isPeonyTicketEvent(row) || !row.ticket_tailor_event_id) return null;
   return {
     id: row.id,
     title: row.title,
