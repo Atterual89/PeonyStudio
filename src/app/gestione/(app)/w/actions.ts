@@ -27,7 +27,7 @@ import {
   updateWorkshopSettings,
   type BookingPersonInput,
   type ResolveAction,
-} from "@/lib/gestionale/server/mutations";
+ , setMembershipNameLink } } from "@/lib/gestionale/server/mutations";
 import type { ActionResult, BookingStatus, MemberSummary, MembershipBadge, Person, PersonFields } from "@/lib/gestionale/types";
 import { asText, isIsoDate, isUuidLike, isVersion } from "@/lib/gestionale/validation";
 import { todayInRome, validateWorkshopSettings, type WorkshopSettingsValues } from "@/lib/gestionale/workshops";
@@ -310,16 +310,19 @@ async function linkPersonToMember(operatorId: string, personId: string, version:
   if (memberId && !link) return { ok: false, error: "Socio non trovato nel libro soci." };
 
   if (link && !link.memberId && !link.email) {
-    // 4d: socio senza email (libro soci): come nella pagina admin, il
-    // collegamento vale per nome e cognome, quindi la persona prende quelli
-    // del socio (azione esplicita dell'admin, con storico).
-    const person = await getPerson(personId);
-    if (!person || person.merged_into || !link.firstName || !link.lastName) return INVALID;
-    return updatePerson(operatorId, person.id, version, {
-      ...personFieldsOf(person),
-      first_name: link.firstName,
-      last_name: link.lastName,
-    });
+    const person=await getPerson(personId);
+    if(!person||person.merged_into||!link.firstName||!link.lastName)return INVALID;
+    const key=parseMemberKey(memberId);
+    if(!key||key.kind!=="name")return INVALID;
+    // Nome senza email: non limitarsi a riscrivere il nominativo.
+    // Salva un vero riferimento nominale, univoco e con audit.
+    return setMembershipNameLink(operatorId,personId,version,key.nameKey);
+  }
+  if (!link) {
+    const person=await getPerson(personId);
+    if(person?.membership_name_key){
+      return setMembershipNameLink(operatorId,personId,version,null);
+    }
   }
   return setMembershipLink(operatorId, personId, version, link);
 }

@@ -207,13 +207,15 @@ function identityOfRow(row: EvidenceRow): Identity {
  * se c'è un'unica riga nel libro ufficiale).
  */
 function identityOfPerson(
-  person: Pick<Person, "first_name" | "last_name" | "email" | "association_member_id" | "membership_email">,
+  person: Pick<Person, "first_name" | "last_name" | "email" | "association_member_id" | "membership_email"> & {membership_name_key?:string|null},
   rows: readonly EvidenceRow[],
 ): Identity {
   if (person.association_member_id) {
     const manual = rows.find((row) => row.tableId === person.association_member_id);
     if (manual) return identityOfRow(manual);
   }
+  const selected=person.membership_name_key ? rowsOfKey({kind:"name",nameKey:person.membership_name_key},rows) : [];
+  if(selected.length===1) return identityOfRow(selected[0]);
   return { email: person.membership_email ?? person.email, firstName: person.first_name, lastName: person.last_name };
 }
 
@@ -222,7 +224,7 @@ function identityOfPerson(
  * cui si calcola il suo badge, così la validazione la ritrova.
  */
 export async function membershipIdentityOf(
-  person: Pick<Person, "first_name" | "last_name" | "email" | "association_member_id" | "membership_email">,
+  person: Pick<Person, "first_name" | "last_name" | "email" | "association_member_id" | "membership_email"> & {membership_name_key?:string|null},
 ): Promise<Identity> {
   await requireAdmin();
   return identityOfPerson(person, await loadEvidence());
@@ -261,7 +263,7 @@ function toSummary(
 
 /** Badge stato socio per ogni persona, per l'anno associativo che contiene l'inizio del workshop. */
 export async function getMembershipBadges(
-  people: readonly Pick<Person, "id" | "first_name" | "last_name" | "email" | "association_member_id" | "membership_email">[],
+  people: readonly (Pick<Person, "id" | "first_name" | "last_name" | "email" | "association_member_id" | "membership_email"> & {membership_name_key?:string|null})[],
   workshopStartsOn: string,
 ): Promise<Map<string, MembershipBadge>> {
   await requireAdmin();
@@ -293,7 +295,7 @@ export async function getMemberSummary(memberKey: string): Promise<MemberSummary
 
 /** Socio collegato esplicitamente alla persona, se c'è. */
 export async function getLinkedMemberSummary(
-  person: Pick<Person, "association_member_id" | "membership_email">,
+  person: Pick<Person, "association_member_id" | "membership_email"> & {membership_name_key?:string|null},
 ): Promise<MemberSummary | null> {
   const key = memberKeyOfPerson(person);
   return key ? getMemberSummary(key) : null;
@@ -386,13 +388,13 @@ function groupIdentity(group: readonly EvidenceRow[]): Identity {
 async function loadLinkedMemberKeys(): Promise<Set<string>> {
   const { data, error } = await getGestionaleDb()
     .from("gw_people")
-    .select("association_member_id, membership_email")
+    .select("association_member_id, membership_email, membership_name_key")
     .is("merged_into", null)
     .is("deleted_at", null)
-    .or("association_member_id.not.is.null,membership_email.not.is.null");
+    .or("association_member_id.not.is.null,membership_email.not.is.null,membership_name_key.not.is.null");
   if (error) throw new Error(`Gestionale (collegamenti soci): ${error.message}`);
   return new Set(
-    ((data ?? []) as Pick<Person, "association_member_id" | "membership_email">[])
+    ((data ?? []) as (Pick<Person, "association_member_id" | "membership_email"> & {membership_name_key?:string|null})[])
       .map(memberKeyOfPerson)
       .filter((key): key is string => Boolean(key)),
   );

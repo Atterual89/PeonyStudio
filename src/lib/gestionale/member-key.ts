@@ -43,8 +43,10 @@ export function memberKeyOfRow(row: {
 }
 
 /** Socio collegato esplicitamente alla persona ("Cerca nel libro soci"), se c'è. */
-export function memberKeyOfPerson(person: Pick<Person, "association_member_id" | "membership_email">): string | null {
+export function memberKeyOfPerson(person: Pick<Person, "association_member_id" | "membership_email"> & {membership_name_key?:string|null}): string | null {
   if (person.association_member_id) return `m:${person.association_member_id}`;
   const email = normalizeMembershipEmail(person.membership_email);
-  return email.includes("@") ? `e:${email}` : null;
+  if (email.includes("@")) return `e:${email}`;
+  const nameKey=normalizeMembershipNameKey(person.membership_name_key,null);
+  return nameKey ? `n:${nameKey}` : null;
 }
