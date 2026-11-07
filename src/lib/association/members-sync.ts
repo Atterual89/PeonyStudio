@@ -83,7 +83,10 @@ export async function buildAssociationMembersSyncPreview(
   return buildPreview(sheetResult, existingMembers);
 }
 
-export async function applyAssociationMembersSync(supabase: SupabaseClient) {
+export async function applyAssociationMembersSync(
+  supabase: SupabaseClient,
+  options: { removeStaleRows?: boolean } = {},
+) {
   const preview = await buildAssociationMembersSyncPreview(supabase);
   const created: string[] = [];
   const updated: string[] = [];
@@ -142,7 +145,9 @@ export async function applyAssociationMembersSync(supabase: SupabaseClient) {
     }
   }
 
-  const removed = await removeStaleSourceRows(
+  // Il gestionale PIN non cancella soci assenti dall'export corrente.
+  // Gli endpoint Admin legacy mantengono il comportamento precedente.
+  const removed = options.removeStaleRows === false ? 0 : await removeStaleSourceRows(
     supabase,
     "google_sheet",
     new Set(preview.validSourceRows.map((row) => row.source_row_id)),
