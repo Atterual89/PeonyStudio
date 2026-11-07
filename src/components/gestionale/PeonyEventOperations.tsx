@@ -221,29 +221,13 @@ export function PeonyEventOperations({
   }
 
   return (
-    <div className="space-y-4">
-      <div className={card}>
-        <p className="font-semibold">{attendees.length} biglietti sincronizzati</p>
-        <p className="mt-1 text-sm text-[#5f524c]">Iscrizioni da verificare: {formToCheck} · Partner da verificare: {partnerToCheck}</p>
-        <p className="mt-2 text-xs text-[#5f524c]">Ultimo aggiornamento biglietti: {formattedSync(ticketsLastSyncedAt)}</p>
-        <p className="text-xs text-[#5f524c]">Ultimo aggiornamento associazione: {formattedSync(associationLastSyncedAt)}</p>
-        {stale ? (
-          <div className="mt-3 rounded-xl border border-[#b17c30]/40 bg-[#f3e8d4] p-3">
-            <p className="text-sm font-semibold">Attenzione: elenco Ticket Tailor potenzialmente non aggiornato</p>
-            <p className="mt-1 text-xs">Il numero qui non è una conferma dei biglietti attuali. Aggiorna la sincronizzazione nella vecchia Admin.</p>
-            <a href="https://peonystudio.net/admin/ticket-tailor" className="mt-2 inline-block text-sm font-semibold text-[#a8583e] underline">
-              Apri Admin per sincronizzare
-            </a>
-          </div>
-        ) : null}
-      </div>
-
+    <div className="space-y-3">
       <div className="grid grid-cols-2 gap-2" role="tablist" aria-label="Gestione evento">
         {(["partecipanti", "email"] as const).map((name) => (
           <button type="button" key={name} role="tab" aria-selected={tab === name}
             onClick={() => { setTab(name); setMessage(null); setFailure(null); }}
             className={`h-10 rounded-xl px-2 text-sm font-semibold ${tab === name ? "bg-[#a8583e] text-white" : "bg-white/75"}`}>
-            {name === "partecipanti" ? "Associazione e partner" : "Email HTML"}
+            {name === "partecipanti" ? "Partecipanti" : "Email"}
           </button>
         ))}
       </div>
@@ -252,13 +236,27 @@ export function PeonyEventOperations({
 
       {tab === "partecipanti" ? (
         <section className="space-y-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <span><strong>{attendees.length}</strong> iscritti</span>
+            {formToCheck > 0 ? <span className="font-semibold text-[#9b4b1e]">{formToCheck} associazioni da verificare</span> : null}
+            {partnerToCheck > 0 ? <span className="font-semibold text-[#9b4b1e]">{partnerToCheck} partner da verificare</span> : null}
+          </div>
+          {stale ? (
+            <p className="text-xs text-[#9b4b1e]">
+              Biglietti non aggiornati · usa «Sincronizza Ticket Tailor» qui sopra
+            </p>
+          ) : null}
+          <details className="text-xs text-[#5f524c]">
+            <summary className="w-fit cursor-pointer py-1 text-[#a8583e]">Ultimi aggiornamenti</summary>
+            <p>Biglietti: {formattedSync(ticketsLastSyncedAt)}</p>
+            <p>Associazione: {formattedSync(associationLastSyncedAt)}</p>
+            <p>Le verifiche associative derivano dai dati salvati; controlla TeamArtist per le conferme recenti.</p>
+          </details>
           <input type="search" value={search} onChange={(event) => setSearch(event.target.value)}
             placeholder="Cerca partecipante o partner" aria-label="Cerca partecipanti e partner"
             className="h-10 w-full rounded-xl border border-[#211815]/15 bg-white px-3 text-sm" />
-          <p className="text-xs text-[#5f524c]">Tocca il nome per visualizzare modulo, quota, scadenza e partner. Le presenze si gestiscono nell'app Ticket Tailor.</p>
           {visible.length === 0 ? <p className={card}>Nessun partecipante nei dati sincronizzati.</p> : null}
-          <ul className="space-y-2">{visible.map(person => <PersonRow key={person.ticketId} person={person} />)}</ul>
-          <p className="text-xs text-[#5f524c]">Le verifiche si basano sui dati associativi sincronizzati. Per correggere o confermare manualmente una registrazione usa la vecchia Admin.</p>
+          <ul className="space-y-1.5">{visible.map(person => <PersonRow key={person.ticketId} person={person} />)}</ul>
         </section>
       ) : (
         <section className="space-y-4">
