@@ -4,13 +4,14 @@ import { cache } from "react";
 
 import { deriveMembershipState, normalizeMembershipEmail, type MembershipEvidenceRow } from "@/lib/association/membership-state";
 import { membershipPeriodFor } from "@/lib/association/membership-periods";
-
+import { partnerFromCheckout, peonyPartnerRequired, type CheckoutPartner } from "@/lib/gestionale/peony-partner";
 import { timestampToRomeDate } from "@/lib/gestionale/workshops";
 import { isActivePeonyTicket, isPeonyTicketEvent } from "@/lib/gestionale/peony-ticket-rules";
-export { isActivePeonyTicket } from "@/lib/gestionale/peony-ticket-rules";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
 import { isUuidLike } from "@/lib/gestionale/validation";
+
+export { isActivePeonyTicket } from "@/lib/gestionale/peony-ticket-rules";
 
 export type PeonyEvent = {
   id: string;
@@ -20,6 +21,23 @@ export type PeonyEvent = {
   ticketTailorEventId: string;
   category: string | null;
 };
+export type PeonyEventSummary = PeonyEvent & { ticketCount: number; ticketsLastSyncedAt: string | null };
+
+export type PeonyMembership = {
+  status: "valid" | "payment_missing" | "missing_form";
+  formPresent: boolean;
+  feePaid: boolean;
+  expiresAt: string | null;
+  matchMethod: "email" | "name" | "manual" | null;
+  /** Le verifiche riflettono i dati gia' sincronizzati; non sono interrogazioni Google live. */
+};
+
+export type PeonyPartner = {
+  name: string | null;
+  email: string | null;
+  source: "ticket_tailor" | "user" | "admin";
+  membership: PeonyMembership | null;
+};
 
 export type PeonyAttendee = {
   id: string;
@@ -28,30 +46,28 @@ export type PeonyAttendee = {
   name: string;
   email: string | null;
   ticketType: string | null;
-  present: boolean;
-  checkedInVia: "peony" | "ticket_tailor" | "none";
   notes: string | null;
-  associationStatus: "valid" | "payment_missing" | "missing_form" | null;
+  association: PeonyMembership | null;
+  associationRequired: boolean;
+  partnerRequired: boolean;
+  partner: PeonyPartner | null;
   linkedPersonId: string | null;
 };
-
-export type PeonyEventSummary = PeonyEvent & { ticketCount: number };
+export type PeonyRoster = {
+  attendees: PeonyAttendee[];
+  ticketsLastSyncedAt: string | null;
+  associationLastSyncedAt: string | null;
+};
 
 type EventRow = {
-  id: string;
-  title: string;
-  starts_at: string | null;
-  ends_at: string | null;
-  ticket_tailor_event_id: string | null;
-  category: string | null;
-  source: string | null;
+  id: string; title: string; starts_at: string | null; ends_at: string | null;
+  ticket_tailor_event_id: string | null; category: string | null; source: string | null;
 };
 
 function toPeonyEvent(row: EventRow): PeonyEvent | null {
   if (!isPeonyTicketEvent(row) || !row.ticket_tailor_event_id) return null;
   return {
-    id: row.id,
-    title: row.title,
+    id: row.id, title: row.title,
     startsOn: timestampToRomeDate(row.starts_at),
     endsOn: timestampToRomeDate(row.ends_at),
     ticketTailorEventId: row.ticket_tailor_event_id,
@@ -59,19 +75,16 @@ function toPeonyEvent(row: EventRow): PeonyEvent | null {
   };
 }
 
-/** I biglietti Peony sono solo Ticket Tailor. I workshop LuXuria non entrano mai in questo flusso. */
+/** Workshop LuXuria non si importano mai come biglietti Ticket Tailor. */
 const loadEvents = cache(async (): Promise<PeonyEvent[]> => {
-  const { data, error } = await getGestionaleDb()
-    .from("events")
+  const { data, error } = await getGestionaleDb().from("events")
     .select("id,title,starts_at,ends_at,ticket_tailor_event_id,category,source")
     .eq("source", "ticket_tailor")
     .not("ticket_tailor_event_id", "is", null)
     .order("starts_at", { ascending: false, nullsFirst: false })
     .range(0, 9999);
   if (error) throw new Error(`Eventi Peony: ${error.message}`);
-  return ((data ?? []) as EventRow[])
-    .map(toPeonyEvent)
-    .filter((row): row is PeonyEvent => row !== null);
+  return ((data ?? []) as EventRow[]).map(toPeonyEvent).filter((row): row is PeonyEvent => row !== null);
 });
 
 export async function loadPeonyEventsSummary(): Promise<PeonyEventSummary[]> {
@@ -80,23 +93,25 @@ export async function loadPeonyEventsSummary(): Promise<PeonyEventSummary[]> {
   if (events.length === 0) return [];
   const ids = events.map((event) => event.ticketTailorEventId);
   const counts = new Map<string, number>();
-  // Fetch in blocchi: PostgREST limita la dimensione della query IN.
+  const freshness = new Map<string, string>();
   for (let i = 0; i < ids.length; i += 100) {
-    const { data, error } = await getGestionaleDb()
-      .from("ticket_tailor_issued_tickets")
-      .select("ticket_tailor_event_id,status")
+    const { data, error } = await getGestionaleDb().from("ticket_tailor_issued_tickets")
+      .select("ticket_tailor_event_id,status,last_synced_at")
       .in("ticket_tailor_event_id", ids.slice(i, i + 100))
       .range(0, 9999);
     if (error) throw new Error(`Biglietti Ticket Tailor: ${error.message}`);
     for (const ticket of data ?? []) {
-      if (ticket.ticket_tailor_event_id && isActivePeonyTicket(ticket.status)) {
-        counts.set(ticket.ticket_tailor_event_id, (counts.get(ticket.ticket_tailor_event_id) ?? 0) + 1);
+      const key = ticket.ticket_tailor_event_id;
+      if (!key) continue;
+      if (isActivePeonyTicket(ticket.status)) counts.set(key, (counts.get(key) ?? 0) + 1);
+      if (ticket.last_synced_at && (!freshness.get(key) || freshness.get(key)! < ticket.last_synced_at)) {
+        freshness.set(key, ticket.last_synced_at);
       }
     }
   }
   return events.map((event) => ({
-    ...event,
-    ticketCount: counts.get(event.ticketTailorEventId) ?? 0,
+    ...event, ticketCount: counts.get(event.ticketTailorEventId) ?? 0,
+    ticketsLastSyncedAt: freshness.get(event.ticketTailorEventId) ?? null,
   }));
 }
 
@@ -106,76 +121,123 @@ export async function getPeonyEvent(id: string): Promise<PeonyEvent | null> {
   return (await loadEvents()).find((event) => event.id === id) ?? null;
 }
 
-export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyAttendee[]> {
+function associationStatus(
+  evidence: MembershipEvidenceRow[],
+  event: PeonyEvent,
+  identity: { email?: string | null; firstName?: string | null; lastName?: string | null },
+): PeonyMembership | null {
+  const period = membershipPeriodFor(event.startsOn ?? "");
+  if (!period || evidence.length === 0) return null;
+  const state = deriveMembershipState(evidence, identity, {
+    paymentsFrom: period.paymentsFrom,
+    paymentsUntil: period.validUntil,
+  });
+  return {
+    status: state.status,
+    formPresent: state.formPresent,
+    feePaid: state.currentYearPaid,
+    expiresAt: state.membershipExpiresAt,
+    matchMethod: state.paymentMatchMethod,
+  };
+}
+
+function partnerIdentity(name: string | null, email: string | null) {
+  const words = (name ?? "").trim().split(/\s+/).filter(Boolean);
+  return {
+    email,
+    firstName: words.length >= 2 ? words.slice(0, -1).join(" ") : null,
+    lastName: words.length >= 2 ? words[words.length - 1] : null,
+  };
+}
+
+export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster> {
   await requireAdmin();
   const db = getGestionaleDb();
-  const [tickets, participants, checkins, membership, people] = await Promise.all([
+  const [tickets, participants, memberships, people, enrollments, orders] = await Promise.all([
     db.from("ticket_tailor_issued_tickets")
-      .select("ticket_tailor_issued_ticket_id,ticket_tailor_order_id,holder_first_name,holder_last_name,holder_email,ticket_type_name,status,checked_in")
-      .eq("ticket_tailor_event_id", event.ticketTailorEventId)
-      .range(0, 9999),
+      .select("ticket_tailor_issued_ticket_id,ticket_tailor_order_id,holder_first_name,holder_last_name,holder_email,ticket_type_name,status,last_synced_at")
+      .eq("ticket_tailor_event_id", event.ticketTailorEventId).range(0, 9999),
     db.from("event_participants")
-      .select("ticket_tailor_issued_ticket_id,notes_admin,association_status,checked_in")
+      .select("ticket_tailor_issued_ticket_id,notes_admin")
       .eq("ticket_tailor_event_id", event.ticketTailorEventId)
-      .not("ticket_tailor_issued_ticket_id", "is", null)
-      .range(0, 9999),
-    db.from("gw_peony_checkins")
-      .select("ticket_id,present")
-      .eq("event_id", event.id)
-      .range(0, 9999),
+      .not("ticket_tailor_issued_ticket_id", "is", null).range(0, 9999),
     db.from("association_members")
-      .select("first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at")
+      .select("first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at,updated_at")
       .range(0, 9999),
-    db.from("gw_people")
-      .select("id,email")
-      .is("deleted_at", null)
-      .is("merged_into", null)
-      .range(0, 9999),
+    db.from("gw_people").select("id,email")
+      .is("deleted_at", null).is("merged_into", null).range(0, 9999),
+    db.from("user_event_enrollments")
+      .select("ticket_tailor_order_id,partner_source,partner_email,partner_name")
+      .eq("ticket_tailor_event_id", event.ticketTailorEventId).range(0, 9999),
+    db.from("ticket_tailor_orders")
+      .select("ticket_tailor_order_id,raw_payload")
+      .eq("ticket_tailor_event_id", event.ticketTailorEventId).range(0, 9999),
   ]);
-  if (tickets.error) throw new Error(`Biglietti: ${tickets.error.message}`);
-  if (participants.error) throw new Error(`Partecipanti: ${participants.error.message}`);
-  if (checkins.error) throw new Error(`Presenze: ${checkins.error.message}`);
-  if (membership.error) throw new Error(`Libro soci sincronizzato: ${membership.error.message}`);
-  if (people.error) throw new Error(`Anagrafica: ${people.error.message}`);
-
-  const participantByTicket = new Map((participants.data ?? []).map((item) => [item.ticket_tailor_issued_ticket_id, item]));
-  const overrides = new Map((checkins.data ?? []).map((item) => [item.ticket_id, item.present]));
-  const evidence = (membership.data ?? []) as MembershipEvidenceRow[];
-  const period = membershipPeriodFor(event.startsOn ?? "");
+  for (const [label, response] of [
+    ["Biglietti", tickets], ["Partecipanti", participants],
+    ["Associazione", memberships], ["Anagrafica", people],
+    ["Partner", enrollments], ["Ordini", orders],
+  ] as const) {
+    if (response.error) throw new Error(`${label}: ${response.error.message}`);
+  }
+  const participantByTicket = new Map((participants.data ?? []).map((row) => [row.ticket_tailor_issued_ticket_id, row]));
+  const enrollmentByOrder = new Map((enrollments.data ?? []).filter((r) => r.ticket_tailor_order_id)
+    .map((row) => [row.ticket_tailor_order_id, row]));
+  const checkoutByOrder = new Map<string, CheckoutPartner | null>();
+  for (const order of orders.data ?? []) {
+    checkoutByOrder.set(order.ticket_tailor_order_id, partnerFromCheckout(order.raw_payload));
+  }
+  const evidence = (memberships.data ?? []) as MembershipEvidenceRow[];
   const peopleByEmail = new Map<string, string | null>();
   for (const person of people.data ?? []) {
     const email = normalizeMembershipEmail(person.email);
     if (!email || !email.includes("@")) continue;
-    // I duplicati non sono collegati automaticamente: richiedono verifica.
     peopleByEmail.set(email, peopleByEmail.has(email) ? null : person.id);
   }
-
-  return (tickets.data ?? [])
+  const attendees = (tickets.data ?? [])
     .filter((ticket) => isActivePeonyTicket(ticket.status))
     .map((ticket): PeonyAttendee => {
-      const participant = participantByTicket.get(ticket.ticket_tailor_issued_ticket_id);
-      const override = overrides.get(ticket.ticket_tailor_issued_ticket_id);
-      const checkedIn = ticket.checked_in === true || participant?.checked_in === true;
-      const name = [ticket.holder_first_name, ticket.holder_last_name].filter(Boolean).join(" ").trim();
+      const orderId = ticket.ticket_tailor_order_id;
+      const saved = orderId ? enrollmentByOrder.get(orderId) : undefined;
+      const fromCheckout = orderId ? checkoutByOrder.get(orderId) : null;
+      // Le correzioni effettuate nella vecchia Admin hanno precedenza;
+      // se la Admin non ne conosce uno, usare il dato del checkout TT.
+      const name = saved?.partner_name?.trim() || fromCheckout?.name || null;
+      const email = saved?.partner_email?.trim() || fromCheckout?.email || null;
+      const required = peonyPartnerRequired(event.title, ticket.ticket_type_name);
+      const partner: PeonyPartner | null = required && (name || email)
+        ? {
+            name, email,
+            source: saved?.partner_source === "admin" || saved?.partner_source === "user"
+              ? saved.partner_source : "ticket_tailor",
+            membership: associationStatus(evidence, event, partnerIdentity(name, email)),
+          }
+        : null;
+      const identity = {
+        email: ticket.holder_email,
+        firstName: ticket.holder_first_name,
+        lastName: ticket.holder_last_name,
+      };
       return {
         id: ticket.ticket_tailor_issued_ticket_id,
         ticketId: ticket.ticket_tailor_issued_ticket_id,
-        orderId: ticket.ticket_tailor_order_id,
-        name: name || "Intestatario non indicato",
+        orderId,
+        name: [ticket.holder_first_name, ticket.holder_last_name].filter(Boolean).join(" ").trim() || "Intestatario non indicato",
         email: ticket.holder_email?.trim() || null,
         ticketType: ticket.ticket_type_name || null,
-        present: override ?? checkedIn,
-        checkedInVia: override !== undefined ? "peony" : checkedIn ? "ticket_tailor" : "none",
-        notes: participant?.notes_admin ?? null,
-        associationStatus: evidence.length > 0 && period
-          ? deriveMembershipState(evidence, {
-            email: ticket.holder_email,
-            firstName: ticket.holder_first_name,
-            lastName: ticket.holder_last_name,
-          }, { paymentsFrom: period.paymentsFrom, paymentsUntil: period.validUntil }).status
-          : null,
+        notes: participantByTicket.get(ticket.ticket_tailor_issued_ticket_id)?.notes_admin ?? null,
+        association: /(observer|osservator)/i.test(ticket.ticket_type_name ?? "")
+          ? null : associationStatus(evidence, event, identity),
+        associationRequired: !/(observer|osservator)/i.test(ticket.ticket_type_name ?? ""),
+        partnerRequired: required,
+        partner,
         linkedPersonId: peopleByEmail.get(normalizeMembershipEmail(ticket.holder_email)) ?? null,
       };
-    })
-    .sort((a, b) => a.name.localeCompare(b.name, "it", { sensitivity: "base" }));
+    }).sort((a, b) => a.name.localeCompare(b.name, "it", { sensitivity: "base" }));
+  return {
+    attendees,
+    ticketsLastSyncedAt: (tickets.data ?? []).map((t) => t.last_synced_at).filter((x): x is string => Boolean(x)).sort().at(-1) ?? null,
+    associationLastSyncedAt: (memberships.data ?? [])
+      .map((m) => m.updated_at).filter((x): x is string => Boolean(x)).sort().at(-1) ?? null,
+  };
 }
