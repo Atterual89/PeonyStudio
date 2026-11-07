@@ -23,4 +23,11 @@ alter table public.gw_peony_email_sends
   add column if not exists kind text not null default 'details'
   check (kind in ('membership','partner','details'));
 
+-- Ogni tipo email ha uno storico distinto anche se l'oggetto e' uguale.
+alter table public.gw_peony_email_sends
+  drop constraint if exists gw_peony_email_sends_event_id_ticket_id_subject_sent_on_key;
+alter table public.gw_peony_email_sends
+  add constraint gw_peony_email_sends_kind_unique
+  unique (event_id, ticket_id, kind, subject, sent_on);
+
 notify pgrst, 'reload schema';
