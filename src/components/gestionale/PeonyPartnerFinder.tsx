@@ -14,6 +14,8 @@ export function PeonyPartnerFinder({
   const router=useRouter();
   const [open,setOpen]=useState(false);
   const [query,setQuery]=useState("");
+  const [manualName,setManualName]=useState("");
+  const [manualEmail,setManualEmail]=useState("");
   const [results,setResults]=useState<PeonyPartnerCandidate[]>([]);
   const [selected,setSelected]=useState<PeonyPartnerCandidate|null>(null);
   const [error,setError]=useState<string|null>(null);
@@ -32,13 +34,14 @@ export function PeonyPartnerFinder({
       }catch{setError("Ricerca non riuscita. Riprova.");}
     });
   }
-  function save(choice:{kind:"member"|"person";id:string}|null){
+  function save(choice:{kind:"member"|"person";id:string}|{kind:"provisional";name:string;email:string}|null){
     setError(null);
     startTransition(async()=>{
       try{
         const result=await savePeonyPartnerAction(eventId,ticketId,choice);
         if(!result.ok){setError(result.error);return;}
         setOpen(false);setConfirmRemove(false);setResults([]);setSelected(null);setQuery("");
+        setManualName("");setManualEmail("");
         router.refresh();
       }catch{setError("Non riesco a salvare il partner.");}
     });
@@ -81,6 +84,29 @@ export function PeonyPartnerFinder({
               ))}
             </fieldset>
           ):null}
+          <details className="rounded-lg border border-[#211815]/10 bg-white/65 p-2">
+            <summary className="min-h-10 cursor-pointer py-2 text-xs font-semibold text-[#a8583e]">
+              Non presente nell'anagrafica? Indica il partner provvisoriamente
+            </summary>
+            <div className="mt-2 space-y-2">
+              <input type="text" aria-label="Nome e cognome del partner provvisorio"
+                placeholder="Nome e cognome" value={manualName}
+                onChange={e=>setManualName(e.target.value)} maxLength={220}
+                className="h-10 w-full rounded-lg border border-[#211815]/15 bg-white px-3 text-sm" />
+              <input type="email" aria-label="Email del partner provvisorio"
+                placeholder="Email (facoltativa con nome e cognome)" value={manualEmail}
+                onChange={e=>setManualEmail(e.target.value)} maxLength={320}
+                className="h-10 w-full rounded-lg border border-[#211815]/15 bg-white px-3 text-sm" />
+              <p className="text-xs text-[#5f524c]">
+                Collega il nominativo soltanto a questa iscrizione. Non crea automaticamente un socio.
+              </p>
+              <button type="button" disabled={busy||(!manualName.trim()&&!manualEmail.trim())}
+                onClick={()=>save({kind:"provisional",name:manualName,email:manualEmail})}
+                className="min-h-10 rounded-lg border border-[#a8583e] bg-white px-3 text-sm font-semibold text-[#a8583e] disabled:opacity-50">
+                Salva partner provvisorio
+              </button>
+            </div>
+          </details>
           {error?<p role="alert" className="text-xs font-semibold text-[#9b2c2c]">{error}</p>:null}
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" disabled={!selected||busy}
