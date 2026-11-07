@@ -137,7 +137,9 @@ export function deriveMembershipState(
       (row) =>
         row.source === "official_members_book" &&
         normalizeNameKey(row.first_name, row.last_name) === nameKey &&
-        (!periodScoped || isCurrentYearPayment(row)),
+        (!periodScoped || isCurrentYearPayment(row)) &&
+        // Con due email diverse non basta la corrispondenza del nome.
+        (!periodScoped || !targetEmail || !normalizeEmail(row.email) || normalizeEmail(row.email) === targetEmail),
     );
 
     // Accept a name match only if it resolves to one unique official record.

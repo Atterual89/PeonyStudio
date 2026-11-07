@@ -159,3 +159,14 @@ describe("quote ufficiali conservate per più annualità", () => {
     expect(deriveForWorkshop(rows, { firstName: "Viola", lastName: "Serra" }, "2027-03-07").status).toBe("valid");
   });
 });
+
+describe("omonimi: non confermare quote ufficiali con email diverse", () => {
+  it("il pagamento sul libro con indirizzo diverso non valida l'omonimo del modulo", () => {
+    const rows: MembershipEvidenceRow[] = [
+      evidence({ source: "google_sheet", email: "altra@example.test" }),
+      evidence({ source: "official_members_book", email: "viola@example.test" }),
+    ];
+    expect(deriveForWorkshop(rows, { email: "altra@example.test", firstName: "Viola", lastName: "Serra" }, "2026-11-07").status).toBe("payment_missing");
+    expect(deriveForWorkshop(rows, { email: "viola@example.test", firstName: "Viola", lastName: "Serra" }, "2026-11-07").status).toBe("valid");
+  });
+});
