@@ -194,7 +194,15 @@ function parseLine(line: string) {
   while (i < tokens.length) {
     const token = tokens[i];
     const current = people[people.length - 1];
-    if (token.t === "word" && (current.length === 0 || !isKeyword(token.norm))) {
+    if (
+      token.t === "word" && token.norm === "e" && people.length < 2 && current.length > 0 &&
+      tokens[i + 1]?.t === "word" && !isKeyword(tokens[i + 1].norm)
+    ) {
+      // "Aizen e Franco" significa due partecipanti della stessa iscrizione,
+      // come "Aizen + Franco", non un unico nome.
+      people.push([]);
+      i += 1;
+    } else if (token.t === "word" && (current.length === 0 || !isKeyword(token.norm))) {
       current.push(token.raw);
       i += 1;
     } else if (token.t === "join" && people.length < 2 && current.length > 0 && tokens[i + 1]?.t === "word") {
@@ -373,8 +381,10 @@ export function parseRoster(text: string, options: { standardFeeCents: number | 
     if (!line) return;
 
     const numbered = NUMBERING.test(line);
-    // Una prima riga senza numerazione né importi è il titolo.
-    if (!seenContent && !numbered && !AMOUNT_ANYWHERE.test(line)) {
+    // Una prima riga senza numerazione né importi di norma è un titolo.
+    // Eccezione: "Aizen e Franco" è un'iscrizione di coppia autonoma.
+    const simplePair = /^[\p{L}][\p{L}'’.-]*\s+e\s+[\p{L}][\p{L}'’.-]*$/iu.test(line);
+    if (!seenContent && !numbered && !AMOUNT_ANYWHERE.test(line) && !simplePair) {
       seenContent = true;
       return;
     }

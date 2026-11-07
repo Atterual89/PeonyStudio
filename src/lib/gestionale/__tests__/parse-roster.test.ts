@@ -133,6 +133,19 @@ describe("regole aggiuntive della Fase 3", () => {
     expect(amp.people).toEqual(["Ombra", "Nube"]);
   });
 
+  it("coppia con 'e', anche in una nota breve senza importi: entrambi sono persone", () => {
+    const [first, second] = parse("1. aizen e Franco 200€ paypal\n2. Mario Rossi e Luca Verdi");
+    expect(first.people).toEqual(["aizen", "Franco"]);
+    expect(first.emails).toEqual([null, null]);
+    expect(first.payments[0].amountCents).toBe(20000);
+    expect(second.people).toEqual(["Mario Rossi", "Luca Verdi"]);
+    expect(second.feeCents).toBe(STANDARD);
+    expect(second.notes).toBeNull();
+    expect(parse("aizen e Franco")[0].people).toEqual(["aizen", "Franco"]);
+    // Stato e metodo di pagamento continuano ad essere riconosciuti.
+    expect(parse("1. Aizen e Franco cancellata")[0].baseStatus).toBe("cancellato");
+  });
+
   it("+200€ non è un partner", () => {
     const [row] = parse("1. Lino +200€ cash");
     expect(row.people).toEqual(["Lino"]);
