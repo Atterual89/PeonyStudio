@@ -1,6 +1,9 @@
+export const maxDuration = 120;
+
 import Link from "next/link";
 
 import { WorkshopTable, YearSelect } from "@/components/gestionale/HomeControls";
+import { SyncTicketTailorButton } from "@/components/gestionale/SyncTicketTailorButton";
 import { EconomicBadge, RecapTiles, RecheckBadge } from "@/components/gestionale/Recap";
 import { Notice, Section, cardClass } from "@/components/gestionale/ui";
 import { formatDateRange } from "@/lib/gestionale/format";
@@ -261,6 +264,7 @@ export default async function WorkshopDashboard({
       <AdminEventTabs active={activeTab} year={year} />
       {activeTab === "peony" ? (
         <>
+          <div className="mb-4"><SyncTicketTailorButton /></div>
           <div className="flex justify-end">
             <YearSelect value={year} years={years} vista="peony" />
           </div>
