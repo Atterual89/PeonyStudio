@@ -34,6 +34,7 @@ let link: Link | null = null;
 let badges = new Map<string, { kind: string }>();
 const updatePerson = vi.fn<(...args: unknown[]) => Promise<{ ok: true; data: number }>>(async () => ({ ok: true, data: 5 }));
 const setMembershipLink = vi.fn<(...args: unknown[]) => Promise<{ ok: true; data: number }>>(async () => ({ ok: true, data: 5 }));
+const setMembershipNameLink = vi.fn<(...args: unknown[]) => Promise<{ ok: true; data: number }>>(async () => ({ ok: true, data: 5 }));
 
 vi.mock("@/lib/gestionale/server/data", () => ({
   getPerson: async (id: string) => (id === P ? person : null),
@@ -51,13 +52,14 @@ vi.mock("@/lib/gestionale/server/membership", () => ({
 vi.mock("@/lib/gestionale/server/mutations", () => ({
   updatePerson: (...args: unknown[]) => updatePerson(...args),
   setMembershipLink: (...args: unknown[]) => setMembershipLink(...args),
+  setMembershipNameLink: (...args: unknown[]) => setMembershipNameLink(...args),
 }));
 
 const { linkMemberAction } = await import("@/app/gestione/(app)/w/actions");
 
 beforeEach(() => {
   badges = new Map();
-  for (const mock of [refresh, revalidatePath, updatePerson, setMembershipLink]) mock.mockClear();
+  for (const mock of [refresh, revalidatePath, updatePerson, setMembershipLink, setMembershipNameLink]) mock.mockClear();
 });
 
 describe("collegare al libro soci", () => {
@@ -69,20 +71,12 @@ describe("collegare al libro soci", () => {
     expect(refresh).toHaveBeenCalled();
   });
 
-  it("socio del libro senza email: prima non si salvava niente; ora la persona prende nome e cognome del socio", async () => {
+  it("socio del libro senza email: salva una chiave nominale reale, invece di riscrivere il nome", async () => {
     link = { memberId: null, email: null, firstName: "Claudia", lastName: "Acutis" };
     expect(await linkMemberAction({ personId: P, version: 4, memberId: "n:acutis claudia" })).toEqual({ ok: true, data: { warning: null } });
     expect(setMembershipLink).not.toHaveBeenCalled();
-    expect(updatePerson).toHaveBeenCalledWith("op-admin", P, 4, {
-      first_name: "Claudia",
-      last_name: "Acutis",
-      nickname: null,
-      email: null,
-      instagram: "@cla",
-      phone: null,
-      teamartist_id: null,
-      notes: "nota",
-    });
+    expect(updatePerson).not.toHaveBeenCalled();
+    expect(setMembershipNameLink).toHaveBeenCalledWith("op-admin",P,4,"acutis claudia");
     expect(refresh).toHaveBeenCalled();
   });
 

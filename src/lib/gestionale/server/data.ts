@@ -41,7 +41,7 @@ function fail(context: string, error: { message: string }): never {
 const WORKSHOP_COLUMNS =
   "id, event_id, name, starts_on, ends_on, description, capacity, default_fee_cents, peony_pct, version";
 const PERSON_COLUMNS =
-  "id, first_name, last_name, nickname, email, instagram, phone, teamartist_id, notes, association_member_id, membership_email, merged_into, version, created_at, updated_at";
+  "id, first_name, last_name, nickname, email, instagram, phone, teamartist_id, notes, association_member_id, membership_email, membership_name_key, merged_into, version, created_at, updated_at";
 
 /** "Nome Cognome" dalla scheda, altrimenti dal socio collegato (entrambi presenti), altrimenti null. */
 function fullNameOf(person: Person, member: MemberSummary | null): string | null {

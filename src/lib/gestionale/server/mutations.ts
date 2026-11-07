@@ -647,3 +647,11 @@ export function setPresent(operatorId: string, bookingId: string, version: numbe
     p_present: present,
   });
 }
+
+/** Collegamento nominale, esclusivamente per una corrispondenza unica
+ * nel libro soci ufficiale senza indirizzo email. */
+export function setMembershipNameLink(operatorId:string,personId:string,version:number,nameKey:string|null){
+  return callRpc<number>("gw_set_member_name_link",{
+    p_operator_id:operatorId,p_person_id:personId,p_version:version,p_name_key:nameKey,
+  });
+}

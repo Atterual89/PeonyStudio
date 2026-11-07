@@ -99,6 +99,8 @@ export type Person = {
   association_member_id: string | null;
   /** Chiave del socio come la usa la pagina admin (email) per libro soci e modulo (016). */
   membership_email: string | null;
+  /** Collegamento esplicito a un socio senza email, nel libro ufficiale. */
+  membership_name_key?: string | null;
   merged_into: string | null;
   version: number;
   created_at: string;
