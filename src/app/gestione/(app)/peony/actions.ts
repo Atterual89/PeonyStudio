@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { refreshGestione } from "@/lib/gestionale/server/refresh";
 
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
@@ -41,7 +41,7 @@ export async function setPeonyPresence(
       updated_by: operator.id,
     }, { onConflict: "event_id,ticket_id" });
   if (error) return { ok: false, error: "Impossibile aggiornare la presenza." };
-  revalidatePath(`/gestione/peony/${eventId}`);
+  refreshGestione();
   return { ok: true };
 }
 
@@ -66,7 +66,7 @@ export async function savePeonyEmailTemplate(
       updated_at: new Date().toISOString(),
     }, { onConflict: "event_id" });
   if (error) return { ok: false, error: "Impossibile salvare il modello email." };
-  revalidatePath(`/gestione/peony/${eventId}`);
+  refreshGestione();
   return { ok: true };
 }
 
@@ -102,6 +102,6 @@ export async function markPeonyEmailSent(
       created_by: operator.id,
     })), { onConflict: "event_id,ticket_id,subject,sent_on", ignoreDuplicates: true });
   if (error) return { ok: false, error: "Impossibile registrare le email inviate." };
-  revalidatePath(`/gestione/peony/${eventId}`);
+  refreshGestione();
   return { ok: true };
 }
