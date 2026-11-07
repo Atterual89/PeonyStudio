@@ -46,7 +46,7 @@ function WorkshopCard({ entry, highlighted, viewer }: { entry: DashboardEntry; h
               <EconomicBadge
                 state={entry.economic}
                 residuo={entry.recap?.residuo ?? null}
-                recheck={entry.recap?.daRicontrollare}
+                recheck={isAdmin && entry.recap?.daRicontrollare}
                 viewer={viewer}
               />
             ) : entry.recap?.daRicontrollare ? (
