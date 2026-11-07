@@ -1,7 +1,10 @@
+export const maxDuration = 120;
+
 import Link from "next/link";
 
 import { MemberLinkReview } from "@/components/gestionale/MemberLinkReview";
 import { RefreshMembershipButton } from "@/components/gestionale/QuotaOk";
+import { SyncSociButton } from "@/components/gestionale/SyncSociButton";
 import { Notice, Section, cardClass } from "@/components/gestionale/ui";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { findMemberLinkProposals } from "@/lib/gestionale/server/member-links";
@@ -22,28 +25,29 @@ export default async function SociPage() {
       <Link prefetch={false} href="/gestione/altro" className="text-sm text-[#5f524c] underline">
         ← Altro
       </Link>
-      <h1 className="mt-2 font-serif text-xl font-medium">Collega al libro soci</h1>
+      <h1 className="mt-2 font-serif text-xl font-medium">Registrazioni associazione</h1>
       <p className="mt-1 text-sm text-[#5f524c]">
-        Persone del gestionale non ancora collegate a un socio. Collegare scrive solo il collegamento della persona (con storico) e completa i suoi campi
-        vuoti; il libro soci non cambia.
+        Confronta le domande ricevute e il libro soci. Le conferme di pagamento più recenti
+        vanno sempre verificate su TeamArtist, che non è collegato direttamente.
       </p>
-      <div className="mt-2">
-        <RefreshMembershipButton />
+      <div className="mt-3">
+        <SyncSociButton />
       </div>
-
-      {!result ? (
-        <div className="mt-4">
-          <Notice tone="error">Lettura del libro soci non riuscita. Riprova tra poco.</Notice>
-        </div>
-      ) : (
-        <>
-          <MemberLinkReview proposals={result.proposals} />
-          <Section title="Nessuna corrispondenza" count={result.none.length}>
-            {result.none.length === 0 ? (
-              <p className="text-sm text-[#5f524c]">Nessuna.</p>
-            ) : (
-              <>
-                <p className="mb-2 text-sm text-[#5f524c]">Nessun socio con la stessa email, o più soci con lo stesso nome: apri la scheda e cerca nel libro soci.</p>
+      <details className="mt-4 rounded-xl border border-[#211815]/10 bg-white/65 p-3">
+        <summary className="cursor-pointer text-sm font-semibold">Collegamenti anagrafici</summary>
+        <p className="mt-2 text-xs text-[#5f524c]">
+          Collega le schede del gestionale alle corrispondenze nel libro soci. Non modifica il libro.
+        </p>
+        <div className="mt-2"><RefreshMembershipButton /></div>
+        {!result ? (
+          <div className="mt-3">
+            <Notice tone="error">Lettura del libro soci non riuscita.</Notice>
+          </div>
+        ) : (
+          <>
+            <MemberLinkReview proposals={result.proposals} />
+            <Section title="Nessuna corrispondenza" count={result.none.length}>
+              {result.none.length === 0 ? <p className="text-sm text-[#5f524c]">Nessuna.</p> : (
                 <ul className={`${cardClass} divide-y divide-[#211815]/5 text-sm`}>
                   {result.none.map((person) => (
                     <li key={person.id}>
@@ -54,11 +58,13 @@ export default async function SociPage() {
                     </li>
                   ))}
                 </ul>
-              </>
-            )}
-          </Section>
-        </>
-      )}
+              )}
+            </Section>
+          </>
+        )}
+      </details>
+
+
     </section>
   );
 }
