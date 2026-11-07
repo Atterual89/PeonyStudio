@@ -8,6 +8,9 @@ const MIGRATIONS=[
   "013_gw_ruoli_pagamenti_v3","014_gw_correzioni_admin_v3b",
   "015_gw_quota_workshop_v3c","016_gw_soci_fonti_admin",
   "017_gw_riga_persona",
+  "018_gw_consuntivo_v4",
+  "019_gw_pagamenti_stato",
+  "020_gw_eliminazioni",
 ] as const;
 let db:TestDb,operator:string;
 async function person(first:string,last:string){
