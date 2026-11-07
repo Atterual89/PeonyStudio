@@ -3,12 +3,14 @@ export const maxDuration = 120;
 import Link from "next/link";
 
 import { MemberLinkReview } from "@/components/gestionale/MemberLinkReview";
+import { CompleteAllFromMembers } from "@/components/gestionale/CompleteAllFromMembers";
 import { RefreshMembershipButton } from "@/components/gestionale/QuotaOk";
 import { SyncSociButton } from "@/components/gestionale/SyncSociButton";
 import { SociBookUpload } from "@/components/gestionale/SociBookUpload";
 import { Notice, Section, cardClass } from "@/components/gestionale/ui";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { findMemberLinkProposals } from "@/lib/gestionale/server/member-links";
+import { listCompletablePeople } from "@/lib/gestionale/server/member-fill";
 
 // Fase 5: collegamento in blocco al libro soci. Solo admin (D18). Le persone
 // senza collegamento al libro soci con il socio proposto: per email
@@ -16,10 +18,16 @@ import { findMemberLinkProposals } from "@/lib/gestionale/server/member-links";
 
 export default async function SociPage() {
   await requireAdmin();
-  const result = await findMemberLinkProposals().catch((error: unknown) => {
-    console.error("Gestionale (proposte libro soci):", error instanceof Error ? error.message : error);
-    return null;
-  });
+  const [result, completable] = await Promise.all([
+    findMemberLinkProposals().catch((error: unknown) => {
+      console.error("Gestionale (proposte libro soci):", error instanceof Error ? error.message : error);
+      return null;
+    }),
+    listCompletablePeople().catch((error: unknown) => {
+      console.error("Gestionale (completamento dati):", error instanceof Error ? error.message : error);
+      return null;
+    }),
+  ]);
 
   return (
     <section className="max-w-3xl">
@@ -40,6 +48,9 @@ export default async function SociPage() {
           Collega le schede del gestionale alle corrispondenze nel libro soci. Non modifica il libro.
         </p>
         <div className="mt-2"><RefreshMembershipButton /></div>
+        {completable && completable.length > 0 ? (
+          <div className="mt-2"><CompleteAllFromMembers count={completable.length} /></div>
+        ) : null}
         {!result ? (
           <div className="mt-3">
             <Notice tone="error">Lettura del libro soci non riuscita.</Notice>
