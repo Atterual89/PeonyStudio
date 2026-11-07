@@ -109,7 +109,12 @@ function PeonyEventList({ entries }: { entries: PeonyEventSummary[] }) {
             <p className="mt-1 text-sm text-[#5f524c]">
               {event.startsOn ? formatDateRange(event.startsOn, event.endsOn) : "Data da definire"}
             </p>
-            <p className="mt-2 text-sm"><strong>{event.ticketCount}</strong> biglietti Ticket Tailor</p>
+            <p className="mt-2 text-sm"><strong>{event.ticketCount}</strong> biglietti sincronizzati</p>
+            <p className="mt-1 text-xs text-[#5f524c]">
+              {event.ticketsLastSyncedAt ? `Dati al ${new Intl.DateTimeFormat("it-IT", {
+                dateStyle: "short", timeStyle: "short", timeZone: "Europe/Rome",
+              }).format(new Date(event.ticketsLastSyncedAt))}` : "Sincronizzazione non disponibile"}
+            </p>
             <p className="mt-1 text-xs text-[#a8583e]">Partecipanti · Presenze · Email</p>
           </a>
         </li>

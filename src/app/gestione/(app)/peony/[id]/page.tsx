@@ -11,7 +11,7 @@ export default async function PeonyEventPage({ params }: {
   const { id } = await params;
   const event = await getPeonyEvent(id); // 404 per Ale, e per eventi LuXuria
   if (!event) notFound();
-  const [attendees, email] = await Promise.all([
+  const [roster, email] = await Promise.all([
     loadPeonyAttendees(event),
     loadPeonyEmailState(event),
   ]);
@@ -31,8 +31,12 @@ export default async function PeonyEventPage({ params }: {
       </div>
       <PeonyEventOperations
         eventId={event.id}
-        attendees={attendees}
-        initialTemplate={email.template}
+        eventTitle={event.title}
+        dateLabel={event.startsOn ? new Intl.DateTimeFormat("it-IT", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(`${event.startsOn}T12:00:00Z`)) : "Data da definire"}
+        attendees={roster.attendees}
+        ticketsLastSyncedAt={roster.ticketsLastSyncedAt}
+        associationLastSyncedAt={roster.associationLastSyncedAt}
+        templates={email.templates}
         sends={email.sends}
       />
     </section>
