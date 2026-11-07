@@ -12,7 +12,7 @@ describe("sync soci nel gestionale PIN", () => {
   it("autorizza solo gli admin in entrambe le azioni", () => {
     expect(actions).toContain("export async function previewSociSyncAction()");
     expect(actions).toContain("export async function applySociSyncAction(");
-    expect(actions.match(/await requireAdmin\(\)/g)).toHaveLength(2);
+    expect(actions.match(/await requireAdmin\(\)/g)).toHaveLength(3);
   });
 
   it("sincronizza modulo e libro ufficiale senza cancellazioni automatiche", () => {

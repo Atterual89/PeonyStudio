@@ -1,11 +1,9 @@
-export function getDefaultMembershipExpiryDate(referenceDate: string | Date) {
-  const date =
-    typeof referenceDate === "string"
-      ? new Date(`${referenceDate}T00:00:00.000Z`)
-      : referenceDate;
-  const year = date.getUTCFullYear();
-  const month = date.getUTCMonth();
-  const expiryYear = month >= 9 ? year + 1 : year;
+import { membershipPeriodFor } from "./membership-periods";
 
-  return `${expiryYear}-12-31`;
+/** Scadenza associativa per la data di riferimento: 2025/26 unico periodo, poi anno solare. */
+export function getDefaultMembershipExpiryDate(referenceDate: string | Date) {
+  const iso = typeof referenceDate === "string"
+    ? referenceDate.slice(0, 10)
+    : referenceDate.toISOString().slice(0, 10);
+  return membershipPeriodFor(iso)?.validUntil ?? "2025-08-31";
 }

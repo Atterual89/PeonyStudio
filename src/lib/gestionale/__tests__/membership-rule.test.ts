@@ -135,3 +135,38 @@ describe("4d — ricerca nel libro soci: stato che risulterebbe", () => {
     expect(memberOutcomeLabel({ kind: "modulo_mancante" }, true)).toBe("Modulo non trovato");
   });
 });
+
+describe("quote da modulo Google e omonimi", () => {
+  it("due domande con stesso nome ma email diverse non condividono la validazione manuale", () => {
+    const rows: MembershipEvidenceRow[] = [
+      evidence({ source: "google_sheet", email: "viola@example.test" }),
+      evidence({ source: "google_sheet", email: "altra@example.test" }),
+      evidence({ source: "manual_override", email: "viola@example.test", membership_starts_at: "2025-09-01" }),
+    ];
+    expect(deriveForWorkshop(rows, { email: "viola@example.test", firstName: "Viola", lastName: "Serra" }, "2026-11-07").status).toBe("valid");
+    expect(deriveForWorkshop(rows, { email: "altra@example.test", firstName: "Viola", lastName: "Serra" }, "2026-11-07").status).toBe("payment_missing");
+  });
+});
+
+
+describe("quote ufficiali conservate per più annualità", () => {
+  it("un socio senza email nel libro conserva la validità per il 2026 anche dopo l'import 2027", () => {
+    const rows: MembershipEvidenceRow[] = [
+      evidence({ email: null, membership_starts_at: "2025-09-01", membership_expires_at: "2026-12-31" }),
+      evidence({ email: null, membership_starts_at: "2027-01-01", membership_expires_at: "2027-12-31" }),
+    ];
+    expect(deriveForWorkshop(rows, { firstName: "Viola", lastName: "Serra" }, "2026-11-07").status).toBe("valid");
+    expect(deriveForWorkshop(rows, { firstName: "Viola", lastName: "Serra" }, "2027-03-07").status).toBe("valid");
+  });
+});
+
+describe("omonimi: non confermare quote ufficiali con email diverse", () => {
+  it("il pagamento sul libro con indirizzo diverso non valida l'omonimo del modulo", () => {
+    const rows: MembershipEvidenceRow[] = [
+      evidence({ source: "google_sheet", email: "altra@example.test" }),
+      evidence({ source: "official_members_book", email: "viola@example.test" }),
+    ];
+    expect(deriveForWorkshop(rows, { email: "altra@example.test", firstName: "Viola", lastName: "Serra" }, "2026-11-07").status).toBe("payment_missing");
+    expect(deriveForWorkshop(rows, { email: "viola@example.test", firstName: "Viola", lastName: "Serra" }, "2026-11-07").status).toBe("valid");
+  });
+});

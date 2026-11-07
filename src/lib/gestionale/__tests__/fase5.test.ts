@@ -313,6 +313,7 @@ describe("libro soci a codice", () => {
     // esclusivamente dall'azione admin e senza pulizia automatica dei record.
     const imported = new Set(gestionale.flatMap(({ code }) => code.match(/@\/lib\/association\/[a-z-]+/g) ?? []));
     expect([...imported].sort()).toEqual([
+      "@/lib/association/book-upload",
       "@/lib/association/manual-validation",
       "@/lib/association/members-book-sync",
       "@/lib/association/members-sync",

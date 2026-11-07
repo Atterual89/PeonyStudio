@@ -309,17 +309,23 @@ function buildPreview(
 }
 
 function createExistingIndexes(existingMembers: OfficialMemberRecord[]) {
-  const byFiscalCode = new Map<string, OfficialMemberRecord>();
-  const byEmail = new Map<string, OfficialMemberRecord>();
+  const byFiscalCode = new Map<string, OfficialMemberRecord[]>();
+  const byEmail = new Map<string, OfficialMemberRecord[]>();
+  const bySourceRowId = new Map<string, OfficialMemberRecord[]>();
   const byNameBirth = new Map<string, OfficialMemberRecord[]>();
   const byName = new Map<string, OfficialMemberRecord[]>();
 
   for (const member of existingMembers) {
+    if (member.source_row_id) {
+      bySourceRowId.set(member.source_row_id, [...(bySourceRowId.get(member.source_row_id) ?? []), member]);
+    }
     if (member.fiscal_code) {
-      byFiscalCode.set(member.fiscal_code.trim().toUpperCase(), member);
+      const key = member.fiscal_code.trim().toUpperCase();
+      byFiscalCode.set(key, [...(byFiscalCode.get(key) ?? []), member]);
     }
     if (member.email) {
-      byEmail.set(member.email.trim().toLowerCase(), member);
+      const key = member.email.trim().toLowerCase();
+      byEmail.set(key, [...(byEmail.get(key) ?? []), member]);
     }
 
     const nameBirthKey = createNameBirthKey(
@@ -337,33 +343,41 @@ function createExistingIndexes(existingMembers: OfficialMemberRecord[]) {
     }
   }
 
-  return { byFiscalCode, byEmail, byNameBirth, byName };
+  return { bySourceRowId, byFiscalCode, byEmail, byNameBirth, byName };
 }
 
 function findExistingMember(
   row: OfficialMembersBookRow,
   indexes: ReturnType<typeof createExistingIndexes>,
 ) {
+  const year = row.source_row_id.includes(":") ? row.source_row_id.split(":")[0] : "2026";
+  const sameYear = (member: OfficialMemberRecord) =>
+    (member.source_row_id?.includes(":") ? member.source_row_id.split(":")[0] : "2026") === year;
+  const single = (items: OfficialMemberRecord[] | undefined) => {
+    const matches = (items ?? []).filter(sameYear);
+    return matches.length === 1 ? matches[0] : null;
+  };
   if (row.fiscal_code) {
-    const match = indexes.byFiscalCode.get(row.fiscal_code);
-    if (match) return { member: match, method: "fiscal_code" as const };
+    const member = single(indexes.byFiscalCode.get(row.fiscal_code));
+    if (member) return { member, method: "fiscal_code" as const };
   }
   if (row.email) {
-    const match = indexes.byEmail.get(row.email);
-    if (match) return { member: match, method: "email" as const };
+    const member = single(indexes.byEmail.get(row.email));
+    if (member) return { member, method: "email" as const };
   }
   if (row.match_key_name_birth) {
-    const matches = indexes.byNameBirth.get(row.match_key_name_birth);
-    if (matches?.length === 1) {
-      return { member: matches[0], method: "name_birth" as const };
-    }
+    const member = single(indexes.byNameBirth.get(row.match_key_name_birth));
+    if (member) return { member, method: "name_birth" as const };
   }
+  const memberByName = single(indexes.byName.get(row.match_key_name));
+  if (memberByName) return { member: memberByName, method: "name" as const };
 
-  const nameMatches = indexes.byName.get(row.match_key_name);
-  if (nameMatches?.length === 1) {
-    return { member: nameMatches[0], method: "name" as const };
+  // Una riga può cambiare posizione nell'export. Non abbinare per numero
+  // se nome e cognome non coincidono: evitiamo sovrascritture fra persone.
+  const memberByRow = single(indexes.bySourceRowId.get(row.source_row_id));
+  if (memberByRow && createNameKey(memberByRow.first_name, memberByRow.last_name) === row.match_key_name) {
+    return { member: memberByRow, method: "name" as const };
   }
-
   return { member: null, method: "none" as const };
 }
 

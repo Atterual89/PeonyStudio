@@ -8,16 +8,21 @@ import { todayInRome } from "@/lib/gestionale/workshops";
 
 export type SociReviewRow = {
   key: string;
+  formMemberId: string;
   name: string;
   email: string | null;
   submittedAt: string | null;
   personId: string | null;
+  paid: boolean;
+  paidSource: "manual" | "book" | null;
 };
 
 export type SociReviewData = {
   formCount: number;
   bookCount: number;
+  paidCount: number;
   pendingCount: number;
+  rows: SociReviewRow[];
   pending: SociReviewRow[];
   bookUpdatedAt: string | null;
   formUpdatedAt: string | null;
@@ -28,6 +33,7 @@ export async function loadSociReviewData(): Promise<SociReviewData> {
   const db = getGestionaleDb();
   async function readAllMemberships() {
     const output: Array<{
+      id: string;
       first_name: string | null;
       last_name: string | null;
       email: string | null;
@@ -70,15 +76,11 @@ export async function loadSociReviewData(): Promise<SociReviewData> {
     idsByEmail.set(email, idsByEmail.has(email) ? null : person.id);
   }
 
-  const currentForms = period ? forms.filter((row) =>
-    row.membership_starts_at &&
-    row.membership_starts_at >= period.paymentsFrom &&
-    row.membership_starts_at <= period.validUntil
-  ) : forms;
-
-  // Più domande della stessa persona valgono un solo caso da controllare.
+  // Il modulo viene compilato una volta. Dal 2027 anche le vecchie domande
+  // devono restare disponibili per registrare il rinnovo annuale.
+  const eligibleForms = forms; // Anche chi ha compilato il modulo prima del primo periodo può rinnovare la quota.
   const seen = new Set<string>();
-  const distinct = [...currentForms].sort((a, b) =>
+  const distinct = [...eligibleForms].sort((a, b) =>
     (b.membership_starts_at ?? "").localeCompare(a.membership_starts_at ?? "")
   ).filter((row) => {
     const email = normalizeMembershipEmail(row.email);
@@ -89,31 +91,33 @@ export async function loadSociReviewData(): Promise<SociReviewData> {
     return true;
   });
 
-  const pending: SociReviewRow[] = distinct.filter((row) => {
+  const reviewRows: SociReviewRow[] = distinct.map((row) => {
     const state = deriveMembershipState(evidence, {
-      email: row.email,
-      firstName: row.first_name,
-      lastName: row.last_name,
+      email: row.email, firstName: row.first_name, lastName: row.last_name,
     }, {
-      paymentsFrom: period?.paymentsFrom,
-      paymentsUntil: period?.validUntil,
+      paymentsFrom: period?.paymentsFrom, paymentsUntil: period?.validUntil,
     });
-    return state.status !== "valid";
-  }).map((row, index) => ({
-    key: normalizeMembershipEmail(row.email) || normalizeMembershipNameKey(row.first_name, row.last_name) || String(index),
-    name: [row.first_name, row.last_name].filter(Boolean).join(" ").trim() || "Nome non disponibile",
-    email: row.email,
-    submittedAt: row.membership_starts_at,
-    personId: idsByEmail.get(normalizeMembershipEmail(row.email)) ?? null,
-  }));
-
+    return {
+      key: row.id,
+      formMemberId: row.id,
+      name: [row.first_name, row.last_name].filter(Boolean).join(" ").trim() || "Nome non disponibile",
+      email: row.email,
+      submittedAt: row.membership_starts_at,
+      personId: idsByEmail.get(normalizeMembershipEmail(row.email)) ?? null,
+      paid: state.status === "valid",
+      paidSource: state.status !== "valid" ? null : state.paymentMatchMethod === "manual" ? "manual" : "book",
+    };
+  });
+  const pending = reviewRows.filter((row) => !row.paid);
   const latest = (items: typeof rows) =>
     items.map((row) => row.updated_at).filter((value): value is string => typeof value === "string").sort().at(-1) ?? null;
 
   return {
-    formCount: currentForms.length,
+    formCount: reviewRows.length,
     bookCount: book.length,
+    paidCount: reviewRows.length - pending.length,
     pendingCount: pending.length,
+    rows: reviewRows,
     pending,
     bookUpdatedAt: latest(book),
     formUpdatedAt: latest(forms),

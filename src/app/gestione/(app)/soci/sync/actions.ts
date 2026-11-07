@@ -1,6 +1,7 @@
 "use server";
 
 import { createHash } from "node:crypto";
+import { MAX_BOOK_FILE_SIZE, parseWorkbook, replaceMembersBook, validateMembersBook } from "@/lib/association/book-upload";
 
 import {
   applyAssociationMembersSync,
@@ -15,6 +16,7 @@ import {
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { clearMembershipCache } from "@/lib/gestionale/server/membership";
 import { refreshGestione } from "@/lib/gestionale/server/refresh";
+import { todayInRome } from "@/lib/gestionale/workshops";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type SourceSummary = {
@@ -93,9 +95,19 @@ async function loadPreview() {
     if (result.error) throw new Error("Non riesco a verificare la dimensione del registro già salvato.");
     return result.count ?? 0;
   };
+  const currentYear = Math.max(2026, Number(todayInRome().slice(0, 4)));
+  const countCurrentBook = async () => {
+    const query = db.from("association_members").select("id", { count: "exact", head: true })
+      .eq("source", "official_members_book");
+    const result = currentYear === 2026
+      ? await query.not("source_row_id", "like", "%:%")
+      : await query.like("source_row_id", `${currentYear}:%`);
+    if (result.error) throw new Error("Non riesco a verificare le righe del libro soci corrente.");
+    return result.count ?? 0;
+  };
   const [previousForms, previousBook] = await Promise.all([
     countFor("google_sheet"),
-    countFor("official_members_book"),
+    countCurrentBook(),
   ]);
   if ((previousForms >= 30 && forms.validRows < previousForms * 0.75) ||
       (previousBook >= 30 && book.validRows < previousBook * 0.75)) {
@@ -161,5 +173,38 @@ export async function applySociSyncAction(expectedToken: string): Promise<SyncOu
       ok: false,
       message: "La sincronizzazione non è stata completata. I dati precedenti restano consultabili. Controlla il log prima di ripetere: alcune righe potrebbero essere state aggiornate.",
     };
+  }
+}
+
+/** Carica l'export XLSX Team Artist da Gestione: backup del foglio Google e sync non distruttiva. */
+export async function uploadSociBookAction(formData: FormData):
+  Promise<{ ok: true; rows: number; created: number; updated: number; backup: string } | { ok: false; message: string }> {
+  await requireAdmin();
+  const file = formData.get("file");
+  if (!(file instanceof File) || !file.name.toLowerCase().endsWith(".xlsx"))
+    return { ok: false, message: "Seleziona l'export .xlsx del Libro Soci di Team Artist." };
+  if (file.size <= 0 || file.size > MAX_BOOK_FILE_SIZE)
+    return { ok: false, message: "File vuoto o superiore a 12 MB." };
+  if (["GOOGLE_SERVICE_ACCOUNT_EMAIL", "GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY", "GOOGLE_SHEET_ID"].some((name) => !process.env[name]?.trim()))
+    return { ok: false, message: "Collegamento al Google Sheet non configurato in produzione." };
+
+  let uploaded = false;
+  try {
+    const values = parseWorkbook(Buffer.from(await file.arrayBuffer()));
+    validateMembersBook(values);
+    const upload = await replaceMembersBook(values); // Salva una copia del tab prima di modificarlo.
+    uploaded = true;
+    const report = await applyOfficialMembersBookSync(createSupabaseAdminClient(), { removeStaleRows: false });
+    await clearMembershipCache();
+    refreshGestione();
+    if (report.errors.length) {
+      return { ok: false, message: `Libro Google aggiornato (backup "${upload.backupTitle}"), ma ${report.errors.length} righe richiedono un controllo. Le righe esistenti non sono state rimosse.` };
+    }
+    return { ok: true, rows: upload.importedRows, created: report.created, updated: report.updated, backup: upload.backupTitle };
+  } catch (error) {
+    console.error("[gestionale] Caricamento libro soci Team Artist non riuscito", error);
+    return { ok: false, message: uploaded
+      ? "Libro Google sostituito e backup creato, ma non è stato possibile completare la sincronizzazione nel database. Non ricaricare il file prima di verificare."
+      : error instanceof Error ? error.message : "Caricamento non riuscito. Nessun dato modificato." };
   }
 }

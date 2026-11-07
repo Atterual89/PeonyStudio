@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
+import { membershipPeriodFor } from "@/lib/association/membership-periods";
 
 import { google } from "googleapis";
 
@@ -49,10 +50,11 @@ type DetectedBookColumn = {
   normalizedHeader: string | null;
 };
 
-const CURRENT_ASSOCIATION_YEAR = "anno sociale 2026";
-const CURRENT_YEAR_START = "2025-09-01";
-const CURRENT_YEAR_EXPIRY = "2026-12-31";
-const PREVIOUS_YEAR_EXPIRY = "2025-12-31";
+// Fino al 2026 il foglio si chiama "Anno Sociale 2026"; dal 2027
+// le quote del libro soci sono annuali e si cerca la colonna dell'anno corrente.
+function activeBookYear(): number {
+  return Math.max(2026, Number(new Intl.DateTimeFormat("en", { year: "numeric", timeZone: "Europe/Rome" }).format(new Date())));
+}
 
 export async function readOfficialMembersBookFromGoogleSheet() {
   const clientEmail = getRequiredEnv("GOOGLE_SERVICE_ACCOUNT_EMAIL");
@@ -78,6 +80,7 @@ export async function readOfficialMembersBookFromGoogleSheet() {
 
 export function normalizeOfficialMembersBookRows(
   values: unknown[][],
+  year: number = activeBookYear(),
 ): OfficialMembersBookReadResult {
   const [mainHeaders, subHeaders, ...dataRows] = values;
 
@@ -91,7 +94,7 @@ export function normalizeOfficialMembersBookRows(
   }
 
   const headers = combineHeaders(mainHeaders, subHeaders);
-  const detectedColumns = detectColumns(headers);
+  const detectedColumns = detectColumns(headers, year);
   const errors: string[] = [];
 
   if (detectedColumns.first_name.index === null) {
@@ -101,7 +104,7 @@ export function normalizeOfficialMembersBookRows(
     errors.push("Colonna Cognome non trovata.");
   }
   if (detectedColumns.current_year_quota.index === null) {
-    errors.push("Colonna Anno Sociale 2026 / Quota soci non trovata.");
+    errors.push(`Colonna Anno Sociale ${year} / Quota soci non trovata.`);
   }
 
   const rows = dataRows
@@ -133,10 +136,12 @@ export function normalizeOfficialMembersBookRows(
         acceptedAt,
         ceasedAt,
         quota,
+        year,
       });
       const baseRow = {
         rowNumber,
-        source_row_id: String(rowNumber),
+        // Le annualità sono righe distinte: il 2027 non modifica la prova quota 2025/26.
+        source_row_id: year === 2026 ? String(rowNumber) : `${year}:${rowNumber}`,
         first_name: firstName,
         last_name: lastName,
         email,
@@ -171,11 +176,14 @@ function getMembershipStatusAndDates({
   acceptedAt,
   ceasedAt,
   quota,
+  year,
 }: {
   acceptedAt: string | null;
   ceasedAt: string | null;
   quota: number;
+  year: number;
 }) {
+  const period = membershipPeriodFor(`${year}-01-01`)!;
   if (ceasedAt) {
     return {
       membership_status: "expired" as const,
@@ -187,23 +195,28 @@ function getMembershipStatusAndDates({
   if (quota > 0) {
     return {
       membership_status: "verified" as const,
-      membership_starts_at: CURRENT_YEAR_START,
-      membership_expires_at: CURRENT_YEAR_EXPIRY,
+      membership_starts_at: period.paymentsFrom,
+      membership_expires_at: period.validUntil,
     };
   }
 
   return {
     membership_status: "expired" as const,
     membership_starts_at: acceptedAt,
-    membership_expires_at: PREVIOUS_YEAR_EXPIRY,
+    membership_expires_at: `${year - 1}-12-31`,
   };
 }
 
 function combineHeaders(mainHeaders: unknown[], subHeaders: unknown[]) {
   const maxLength = Math.max(mainHeaders.length, subHeaders.length);
 
+  let currentMain = "";
   return Array.from({ length: maxLength }, (_, index) => {
-    const main = normalizeText(String(mainHeaders[index] ?? ""));
+    const rawMain = normalizeText(String(mainHeaders[index] ?? ""));
+    // Le intestazioni Team Artist sono spesso celle unite: l'anno compare
+    // solo nella prima colonna del gruppo, non sulle altre sotto-colonne.
+    if (rawMain) currentMain = rawMain;
+    const main = currentMain;
     const sub = normalizeText(String(subHeaders[index] ?? ""));
     const header = main && sub ? `${main} / ${sub}` : main || sub;
 
@@ -216,7 +229,9 @@ function combineHeaders(mainHeaders: unknown[], subHeaders: unknown[]) {
 
 function detectColumns(
   headers: Array<{ header: string; normalizedHeader: string }>,
+  year: number,
 ): DetectedMembersBookColumns {
+  const currentAssociationYear = `anno sociale ${year}`;
   return {
     first_name: findColumn(headers, ["nome"]),
     last_name: findColumn(headers, ["cognome"]),
@@ -226,13 +241,13 @@ function detectColumns(
     accepted_at: findColumn(headers, ["data accettazione"]),
     ceased_at: findColumn(headers, ["data cessazione"]),
     current_year_quota: findColumn(headers, [
-      `${CURRENT_ASSOCIATION_YEAR} quota soci`,
-      `${CURRENT_ASSOCIATION_YEAR} quota`,
+      `${currentAssociationYear} quota soci`,
+      `${currentAssociationYear} quota`,
     ]),
     current_year_card_number: findColumn(headers, [
-      `${CURRENT_ASSOCIATION_YEAR} n tessera`,
-      `${CURRENT_ASSOCIATION_YEAR} numero tessera`,
-      `${CURRENT_ASSOCIATION_YEAR} tessera`,
+      `${currentAssociationYear} n tessera`,
+      `${currentAssociationYear} numero tessera`,
+      `${currentAssociationYear} tessera`,
     ]),
     availableHeaders: headers.map((header) => header.normalizedHeader).filter(Boolean),
   };
