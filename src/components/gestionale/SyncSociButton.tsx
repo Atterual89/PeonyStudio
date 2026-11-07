@@ -27,10 +27,9 @@ export function SyncSociButton() {
           setResult({ ok: false, message: response.message });
           return;
         }
-        const totalChanges = response.forms.creates + response.forms.updates +
-          response.book.creates + response.book.updates;
+        const totalChanges = response.forms.creates + response.forms.updates;
         if (totalChanges === 0) {
-          setResult({ ok: true, message: "Soci già aggiornati rispetto ai due fogli disponibili. TeamArtist non è interrogato direttamente." });
+          setResult({ ok: true, message: "Domande Google già aggiornate. TeamArtist non è interrogato direttamente." });
           return;
         }
         setPreview(response);
@@ -51,7 +50,7 @@ export function SyncSociButton() {
         if (response.ok) {
           setResult({
             ok: true,
-            message: `Soci aggiornati: ${response.forms.created} domande nuove, ${response.forms.updated} modificate; ${response.book.created} soci nuovi, ${response.book.updated} modificati.${response.warnings ? ` ${response.warnings} righe da controllare.` : ""}`,
+            message: `Domande Google aggiornate: ${response.forms.created} nuove, ${response.forms.updated} modificate.${response.warnings ? ` ${response.warnings} righe da controllare.` : ""}`,
           });
           router.refresh();
         } else {
@@ -84,10 +83,9 @@ export function SyncSociButton() {
           <p className="font-semibold">Modifiche da confermare</p>
           <div className="mt-1 space-y-1">
             {stat("Domande Google", preview.forms)}
-            {stat("Libro soci", preview.book)}
           </div>
           <p className="mt-2 text-xs text-[#5f524c]">
-            Nessuna riga sarà eliminata. Il modulo non prova il pagamento: contano il libro soci o le validazioni manuali. TeamArtist non è interrogato direttamente.
+            Sincronizza soltanto i moduli Google (italiano e inglese). Non conferma pagamenti e non modifica il libro TeamArtist, caricabile a parte.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button type="button" onClick={apply} disabled={busy}

@@ -323,7 +323,7 @@ describe("libro soci a codice", () => {
     const action = readFileSync(join(ROOT, "src/app/gestione/(app)/soci/sync/actions.ts"), "utf8");
     expect(action).toContain("await requireAdmin()");
     expect(action).toContain("applyAssociationMembersSync(db, { removeStaleRows: false })");
-    expect(action).toContain("applyOfficialMembersBookSync(db, { removeStaleRows: false })");
+    expect(action).toContain("applyOfficialMembersBookSync(createSupabaseAdminClient(), { removeStaleRows: false })");
   });
 
   it("il gestionale non scrive mai su association_members con le funzioni Postgres della Fase 5", () => {

@@ -43,7 +43,7 @@ function formatMembershipDate(value: string): string {
 }
 
 /** I dati tecnici restano disponibili a richiesta, senza ripetere il badge. */
-function MembershipFacts({ info }: { info: PeonyMembership | null }) {
+function MembershipFacts({ info, ownerLabel }: { info: PeonyMembership | null; ownerLabel: string }) {
   if (!info) return null;
   const matchLabel = info.matchMethod === "email" ? "email" :
     info.matchMethod === "name" ? "nome e cognome" :
@@ -54,7 +54,7 @@ function MembershipFacts({ info }: { info: PeonyMembership | null }) {
         <p className="text-[#5f524c]">Tessera fino al {formatMembershipDate(info.expiresAt)}</p>
       ) : null}
       <details className="text-xs text-[#5f524c]">
-        <summary className="w-fit cursor-pointer py-1 text-[#a8583e]">Dettagli associazione</summary>
+        <summary className="w-fit cursor-pointer break-words py-1 text-[#a8583e]">Dettagli associazione · {ownerLabel}</summary>
         <div className="space-y-0.5 pt-1">
           <p>Modulo: {info.formPresent ? "trovato" : "assente"}</p>
           <p>Quota: {info.feePaid ? "verificata" : "non verificata"}</p>
@@ -98,13 +98,13 @@ function PersonRow({ person }: { person: PeonyAttendee }) {
           {person.email ? (
             <a href={"mailto:" + person.email} className="block break-all text-[#a8583e] underline">{person.email}</a>
           ) : <span className="text-[#96641b]">Email mancante</span>}
-          {person.associationRequired ? <MembershipFacts info={person.association} /> : null}
+          {person.associationRequired ? <MembershipFacts info={person.association} ownerLabel={person.name} /> : null}
           {person.partnerRequired && person.partner ? (
             <div className="border-t border-[#211815]/10 pt-2">
               {person.partner.email ? (
                 <p className="text-sm text-[#5f524c]">Email: {person.partner.email}</p>
               ) : null}
-              <MembershipFacts info={person.partner.membership} />
+              <MembershipFacts info={person.partner.membership} ownerLabel={`Partner: ${partnerName || "nome non disponibile"}`} />
             </div>
           ) : null}
           {person.notes ? <p className="text-sm"><strong>Nota:</strong> {person.notes}</p> : null}
