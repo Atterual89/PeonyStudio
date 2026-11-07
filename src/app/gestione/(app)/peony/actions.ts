@@ -63,7 +63,7 @@ export async function markPeonyEmailSent(
     .upsert(ids.map((id) => ({
       event_id: eventId, ticket_id: id,
       kind, subject: subject.trim(), sent_on: todayInRome(), created_by: operator.id,
-    })), { onConflict: "event_id,ticket_id,subject,sent_on", ignoreDuplicates: true });
+    })), { onConflict: "event_id,ticket_id,kind,subject,sent_on", ignoreDuplicates: true });
   if (error) return { ok: false, error: "Impossibile registrare le email inviate." };
   refreshGestione();
   return { ok: true };
