@@ -136,7 +136,7 @@ export function AddRegistration({
           className={`${buttonClass.primary} w-full sm:w-auto`}
         >
           <Plus className="h-5 w-5" aria-hidden="true" />
-          Aggiungi
+          Nuova iscrizione
         </button>
       </div>
     );

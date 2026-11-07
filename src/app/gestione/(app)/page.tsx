@@ -6,7 +6,7 @@ import { WorkshopTable, YearSelect } from "@/components/gestionale/HomeControls"
 import { SyncTicketTailorButton } from "@/components/gestionale/SyncTicketTailorButton";
 import { EconomicBadge, RecapTiles, RecheckBadge } from "@/components/gestionale/Recap";
 import { Notice, Section, cardClass } from "@/components/gestionale/ui";
-import { formatDateRange } from "@/lib/gestionale/format";
+import { formatCents, formatDateRange } from "@/lib/gestionale/format";
 import { availableYears, conguagliText, homeView, parseYearFilter, recapLine } from "@/lib/gestionale/recap";
 import { requireOperator } from "@/lib/gestionale/server/auth";
 import { loadPeonyEventsSummary, type PeonyEventSummary } from "@/lib/gestionale/server/peony-events";
@@ -39,19 +39,35 @@ function WorkshopCard({ entry, highlighted, viewer }: { entry: DashboardEntry; h
           {counts.interessati > 0 ? <span className="text-[#5f524c]">{counts.interessati} interessati</span> : null}
           {counts.cancellati > 0 ? <span className="text-[#5f524c]">{counts.cancellati} cancellati</span> : null}
         </p>
-        <p className="mt-2 flex flex-wrap items-center justify-between gap-2 text-sm">
-          <span className={entry.recap?.movimenti ? "" : "text-[#5f524c]"}>{recapLine(entry.recap)}</span>
-          {entry.economic ? (
-            <EconomicBadge
-              state={entry.economic}
-              residuo={entry.recap?.residuo ?? null}
-              recheck={isAdmin && entry.recap?.daRicontrollare}
-              viewer={viewer}
-            />
-          ) : isAdmin && entry.recap?.daRicontrollare ? (
-            <RecheckBadge />
-          ) : null}
-        </p>
+        {isAdmin ? (
+          <p className="mt-2 flex flex-wrap items-center justify-between gap-2 text-sm">
+            <span className={entry.recap?.movimenti ? "" : "text-[#5f524c]"}>{recapLine(entry.recap)}</span>
+            {entry.economic ? (
+              <EconomicBadge
+                state={entry.economic}
+                residuo={entry.recap?.residuo ?? null}
+                recheck={isAdmin && entry.recap?.daRicontrollare}
+                viewer={viewer}
+              />
+            ) : entry.recap?.daRicontrollare ? (
+              <RecheckBadge />
+            ) : null}
+          </p>
+        ) : (
+          (entry.recap?.daIncassare ?? 0) > 0 ||
+          (entry.economic === "aperto" && (entry.recap?.residuo ?? 0) !== 0)
+        ) ? (
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+            {(entry.recap?.daIncassare ?? 0) > 0 ? (
+              <span className="font-semibold text-[#a8583e]">
+                Da incassare {formatCents(entry.recap!.daIncassare)}
+              </span>
+            ) : null}
+            {entry.economic === "aperto" && (entry.recap?.residuo ?? 0) !== 0 ? (
+              <EconomicBadge state={entry.economic} residuo={entry.recap!.residuo} viewer={viewer} />
+            ) : null}
+          </div>
+        ) : null}
       </a>
     </li>
   );
@@ -112,13 +128,7 @@ function PeonyEventList({ entries }: { entries: PeonyEventSummary[] }) {
             <p className="mt-1 text-sm text-[#5f524c]">
               {event.startsOn ? formatDateRange(event.startsOn, event.endsOn) : "Data da definire"}
             </p>
-            <p className="mt-2 text-sm"><strong>{event.ticketCount}</strong> biglietti sincronizzati</p>
-            <p className="mt-1 text-xs text-[#5f524c]">
-              {event.ticketsLastSyncedAt ? `Dati al ${new Intl.DateTimeFormat("it-IT", {
-                dateStyle: "short", timeStyle: "short", timeZone: "Europe/Rome",
-              }).format(new Date(event.ticketsLastSyncedAt))}` : "Sincronizzazione non disponibile"}
-            </p>
-            <p className="mt-1 text-xs text-[#a8583e]">Partecipanti · Presenze · Email</p>
+            <p className="mt-2 text-sm"><strong>{event.ticketCount}</strong> biglietti</p>
           </a>
         </li>
       ))}
@@ -151,9 +161,7 @@ function PeonyEventsSection({ entries, today, year }: {
   })), today);
   return (
     <section className="mt-3">
-      <h1 className="font-serif text-2xl font-semibold">Eventi Peony</h1>
-      <p className="mt-1 text-sm text-[#5f524c]">Iscrizioni soltanto da Ticket Tailor. Nessun conto condiviso con Ale.</p>
-      <div className="mt-4">
+      <div className="mt-2">
         {groups.in_corso.length > 0 ? (
           <Section title="In corso" count={groups.in_corso.length} defaultOpen>
             <PeonyEventList entries={groups.in_corso} />
@@ -244,15 +252,22 @@ export default async function WorkshopDashboard({
       <section>
         <h1 className="font-serif text-xl font-medium">Workshop</h1>
         {error}
-        {conguagli ? <p className="mt-3 font-serif text-2xl font-medium leading-tight text-[#a8583e]">{conguagli}</p> : null}
+        {totals.conguagli.alePeony > 0 || totals.conguagli.peonyAle > 0 ? (
+          <p className="mt-3 font-serif text-xl font-medium leading-tight text-[#a8583e]">{conguagli}</p>
+        ) : null}
         <div className="lg:hidden">{current}</div>
-        <div className="mt-5 flex flex-wrap items-end justify-between gap-2">
-          <h2 className="text-base font-semibold">Totali dell&apos;anno</h2>
-          <YearSelect value={year} years={years} />
-        </div>
-        <div className="mt-2">
-          <RecapTiles recap={totals} withOutstanding />
-        </div>
+        <details className="group mt-5 rounded-xl border border-[#211815]/10 bg-white/50">
+          <summary className="flex min-h-10 cursor-pointer items-center justify-between gap-2 px-3 py-2 text-sm font-semibold">
+            <span>Riepilogo economico {year === "tutti" ? "· Tutti gli anni" : year}</span>
+            <span aria-hidden="true" className="text-[#5f524c] transition-transform group-open:rotate-180">⌄</span>
+          </summary>
+          <div className="space-y-3 border-t border-[#211815]/10 p-3">
+            <div className="flex justify-end">
+              <YearSelect value={year} years={years} />
+            </div>
+            <RecapTiles recap={totals} withOutstanding />
+          </div>
+        </details>
         <div className="lg:hidden">{past}</div>
         {table}
       </section>
