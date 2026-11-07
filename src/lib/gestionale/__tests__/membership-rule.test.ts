@@ -124,6 +124,7 @@ describe("chiavi del socio", () => {
     expect(memberKeyOfPerson({ association_member_id: id, membership_email: null })).toBe(`m:${id}`);
     expect(memberKeyOfPerson({ association_member_id: null, membership_email: "viola.serra@gmail.com" })).toBe("e:violaserra@gmail.com");
     expect(memberKeyOfPerson({ association_member_id: null, membership_email: null })).toBeNull();
+    expect(memberKeyOfPerson({ association_member_id: null, membership_email: null, membership_name_key: "serra viola" })).toBe("n:serra viola");
   });
 });
 

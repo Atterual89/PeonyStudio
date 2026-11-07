@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 import { completeAllFromMemberAction } from "@/app/gestione/(app)/p/actions";
 
@@ -8,6 +9,7 @@ import { InlineConfirm, Notice, buttonClass } from "./ui";
 
 /** Pagina Persone: "Completa i dati dal libro soci (N persone)", con conferma. Solo campi vuoti, con storico. */
 export function CompleteAllFromMembers({ count }: { count: number }) {
+  const router=useRouter();
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [asking, setAsking] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -23,6 +25,7 @@ export function CompleteAllFromMembers({ count }: { count: number }) {
         return;
       }
       const { updated, failed } = result.data;
+      router.refresh();
       setMessage({
         tone: failed > 0 ? "error" : "success",
         text: `${updated === 1 ? "1 scheda completata" : `${updated} schede completate`}${failed > 0 ? `, ${failed} non riuscite: riprova` : ""}.`,

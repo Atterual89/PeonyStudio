@@ -7,6 +7,7 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 import { linkMemberProposalsAction } from "@/app/gestione/(app)/w/actions";
 import type { LinkProposal } from "@/lib/gestionale/exact-matches";
@@ -14,6 +15,7 @@ import type { LinkProposal } from "@/lib/gestionale/exact-matches";
 import { Notice, Section, buttonClass, cardClass } from "./ui";
 
 export function MemberLinkReview({ proposals }: { proposals: LinkProposal[] }) {
+  const router=useRouter();
   // Per email preselezionate, per nome no.
   const [checked, setChecked] = useState<Set<string>>(() => new Set(proposals.filter((p) => p.by === "email").map((p) => p.personId)));
   const [message, setMessage] = useState<{ tone: "success" | "warning" | "error"; text: string } | null>(null);
@@ -42,6 +44,7 @@ export function MemberLinkReview({ proposals }: { proposals: LinkProposal[] }) {
       }
       const { linked, failed } = result.data;
       setChecked(new Set());
+      router.refresh();
       setMessage({
         tone: failed ? "warning" : "success",
         text: `${linked === 1 ? "1 persona collegata" : `${linked} persone collegate`}.${failed ? ` ${failed} non riuscite: ricarica e riprova.` : ""}`,
