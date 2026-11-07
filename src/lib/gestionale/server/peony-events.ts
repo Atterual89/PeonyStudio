@@ -2,6 +2,9 @@ import "server-only";
 
 import { cache } from "react";
 
+import { deriveMembershipState, normalizeMembershipEmail, type MembershipEvidenceRow } from "@/lib/association/membership-state";
+import { membershipPeriodFor } from "@/lib/association/membership-periods";
+
 import { isLuxuriaTitle, timestampToRomeDate } from "@/lib/gestionale/workshops";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
@@ -26,7 +29,8 @@ export type PeonyAttendee = {
   present: boolean;
   checkedInVia: "peony" | "ticket_tailor" | "none";
   notes: string | null;
-  associationStatus: string | null;
+  associationStatus: "valid" | "payment_missing" | "missing_form" | null;
+  linkedPersonId: string | null;
 };
 
 export type PeonyEventSummary = PeonyEvent & { ticketCount: number };
@@ -111,7 +115,7 @@ export async function getPeonyEvent(id: string): Promise<PeonyEvent | null> {
 export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyAttendee[]> {
   await requireAdmin();
   const db = getGestionaleDb();
-  const [tickets, participants, checkins] = await Promise.all([
+  const [tickets, participants, checkins, membership, people] = await Promise.all([
     db.from("ticket_tailor_issued_tickets")
       .select("ticket_tailor_issued_ticket_id,ticket_tailor_order_id,holder_first_name,holder_last_name,holder_email,ticket_type_name,status,checked_in")
       .eq("ticket_tailor_event_id", event.ticketTailorEventId)
@@ -125,13 +129,32 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyAttend
       .select("ticket_id,present")
       .eq("event_id", event.id)
       .range(0, 9999),
+    db.from("association_members")
+      .select("first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at")
+      .range(0, 9999),
+    db.from("gw_people")
+      .select("id,email")
+      .is("deleted_at", null)
+      .is("merged_into", null)
+      .range(0, 9999),
   ]);
   if (tickets.error) throw new Error(`Biglietti: ${tickets.error.message}`);
   if (participants.error) throw new Error(`Partecipanti: ${participants.error.message}`);
   if (checkins.error) throw new Error(`Presenze: ${checkins.error.message}`);
+  if (membership.error) throw new Error(`Libro soci sincronizzato: ${membership.error.message}`);
+  if (people.error) throw new Error(`Anagrafica: ${people.error.message}`);
 
   const participantByTicket = new Map((participants.data ?? []).map((item) => [item.ticket_tailor_issued_ticket_id, item]));
   const overrides = new Map((checkins.data ?? []).map((item) => [item.ticket_id, item.present]));
+  const evidence = (membership.data ?? []) as MembershipEvidenceRow[];
+  const period = membershipPeriodFor(event.startsOn ?? "");
+  const peopleByEmail = new Map<string, string | null>();
+  for (const person of people.data ?? []) {
+    const email = normalizeMembershipEmail(person.email);
+    if (!email || !email.includes("@")) continue;
+    // I duplicati non sono collegati automaticamente: richiedono verifica.
+    peopleByEmail.set(email, peopleByEmail.has(email) ? null : person.id);
+  }
 
   return (tickets.data ?? [])
     .filter((ticket) => isActivePeonyTicket(ticket.status))
@@ -150,7 +173,14 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyAttend
         present: override ?? checkedIn,
         checkedInVia: override !== undefined ? "peony" : checkedIn ? "ticket_tailor" : "none",
         notes: participant?.notes_admin ?? null,
-        associationStatus: participant?.association_status ?? null,
+        associationStatus: evidence.length > 0 && period
+          ? deriveMembershipState(evidence, {
+            email: ticket.holder_email,
+            firstName: ticket.holder_first_name,
+            lastName: ticket.holder_last_name,
+          }, { paymentsFrom: period.paymentsFrom, paymentsUntil: period.validUntil }).status
+          : null,
+        linkedPersonId: peopleByEmail.get(normalizeMembershipEmail(ticket.holder_email)) ?? null,
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name, "it", { sensitivity: "base" }));
