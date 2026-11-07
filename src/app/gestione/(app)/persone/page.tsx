@@ -8,46 +8,111 @@ import { QuotaCheckbox } from "@/components/gestionale/QuotaCheckbox";
 import { UrlSearchBox } from "@/components/gestionale/UrlSearchBox";
 import { Notice, Section, cardClass } from "@/components/gestionale/ui";
 import { formatDateRange } from "@/lib/gestionale/format";
-import { buildPeopleOverview, type OtherContact, type UpcomingContact } from "@/lib/gestionale/people-overview";
+import { buildPeopleOverview, type OtherContact, type UpcomingContact, type UpcomingBooking, type UpcomingPeopleGroup } from "@/lib/gestionale/people-overview";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { loadPeople, loadUpcomingLuxuriaPeople } from "@/lib/gestionale/server/data";
 import { loadUpcomingPeonyPeople } from "@/lib/gestionale/server/peony-events";
 import { loadSociReviewData } from "@/lib/gestionale/server/soci";
 import { todayInRome } from "@/lib/gestionale/workshops";
 
-function PersonLine({ row, year }: { row: OtherContact | UpcomingContact; year?: string }) {
-  const observer = "observer" in row && row.observer;
+function MembershipText({row}: {row:UpcomingContact}) {
+  if(row.status==="valid")return <span className="text-xs font-semibold text-[#326941]">Verificata</span>;
+  if(row.status==="payment_missing")return <span className="text-xs font-semibold text-[#9b4b1e]">Quota da verificare</span>;
+  if(row.status==="missing_form")return <span className="text-xs text-[#9b4b1e]">Modulo assente</span>;
+  return <span className="text-xs text-[#9b4b1e]">Da verificare</span>;
+}
+
+function MembershipLine({row,role,year}: {row:UpcomingContact;role:string;year:string}) {
   return (
-    <li className="flex min-h-12 flex-wrap items-center justify-between gap-x-4 gap-y-1 px-3 py-2 text-sm">
-      <span className="min-w-0 flex-1">
-        {row.personId ? (
-          <Link prefetch={false} href={`/gestione/p/${row.personId}`}
-            className="inline-flex items-center gap-1 font-semibold text-[#211815] underline decoration-[#211815]/25 underline-offset-2">
-            <span className="break-words">{row.name}</span>
-            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[#5f524c]" aria-hidden="true" />
-          </Link>
-        ) : <span className="block break-words font-semibold">{row.name}</span>}
-        {row.email ? <span className="block break-all text-xs text-[#5f524c]">{row.email}</span> : null}
-      </span>
-      {observer ? (
-        <span className="text-xs text-[#5f524c]">Osservatore</span>
-      ) : row.formMemberId ? (
-        <QuotaCheckbox formMemberId={row.formMemberId} name={row.name}
-          paid={Boolean(row.paid)} paidSource={row.paidSource}
-          periodDate={year ? `${year}-01-01` : undefined} />
-      ) : row.personId ? (
-        <Link prefetch={false} href={`/gestione/p/${row.personId}`}
-          className="text-xs font-semibold text-[#a8583e] underline">Verifica quota</Link>
-      ) : <span className="text-xs text-[#9b4b1e]">Modulo da verificare</span>}
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2 text-sm">
+      <div className="min-w-0 flex-1">
+        <span className="mr-1 text-xs text-[#5f524c]">{role}:</span>{" "}
+        {row.personId?
+          <Link prefetch={false} href={`/gestione/p/${row.personId}`} className="font-semibold underline decoration-[#211815]/25 underline-offset-2">{row.name}</Link>
+          :<span className="font-semibold">{row.name}</span>}
+        {row.email?<span className="block break-all text-xs text-[#5f524c]">{row.email}</span>:null}
+      </div>
+      <div className="flex flex-col items-end">
+        <MembershipText row={row}/>
+        {row.status==="payment_missing"&&row.formMemberId?
+          <QuotaCheckbox formMemberId={row.formMemberId} name={row.name} paid={false}
+            paidSource={row.paidSource} periodDate={`${year}-01-01`}/>:null}
+      </div>
+    </div>
+  );
+}
+
+function BookingCard({booking,year}:{booking:UpcomingBooking;year:string}) {
+  return (
+    <li className="rounded-xl border border-[#211815]/10 bg-white/85 px-3 py-2">
+      <p className="break-words text-sm font-semibold">
+        {booking.primary.name}
+        {booking.partnerRequired?<span className="font-normal"> + {booking.partner?.name??"Partner da indicare"}</span>:null}
+      </p>
+      <div className="divide-y divide-[#211815]/10">
+        <MembershipLine row={booking.primary} role="Intestatario" year={year}/>
+        {booking.partner?
+          <MembershipLine row={booking.partner} role="Partner" year={year}/>
+          :booking.partnerRequired?
+            <p className="py-2 text-xs text-[#9b4b1e]">Partner non identificato · usa «Apri evento» per cercarlo e collegarlo.</p>
+            :null}
+      </div>
     </li>
   );
 }
 
-function PersonList({ people, year }: { people: readonly (OtherContact | UpcomingContact)[]; year?: string }) {
+function PersonLine({row}:{row:OtherContact}) {
   return (
-    <ul className={`${cardClass} divide-y divide-[#211815]/5`}>
-      {people.map((person) => <PersonLine key={person.key} row={person} year={year} />)}
-    </ul>
+    <li className="flex min-h-12 flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-2 text-sm">
+      <span className="min-w-0 flex-1">
+        {row.personId?<Link prefetch={false} href={`/gestione/p/${row.personId}`} className="block font-semibold underline decoration-[#211815]/25">{row.name}</Link>
+          :<span className="block font-semibold">{row.name}</span>}
+        {row.email?<span className="block break-all text-xs text-[#5f524c]">{row.email}</span>:null}
+      </span>
+      <span className="flex flex-col items-end gap-1">
+        <MembershipText row={row}/>
+        {row.status==="payment_missing"&&row.formMemberId?
+          <QuotaCheckbox formMemberId={row.formMemberId} name={row.name} paid={false} paidSource={row.paidSource}/>:null}
+      </span>
+    </li>
+  );
+}
+
+function PersonList({people}:{people:readonly OtherContact[]}) {
+  return <ul className={`${cardClass} divide-y divide-[#211815]/5`}>
+    {people.map(person=><PersonLine key={person.key} row={person}/>)}
+  </ul>;
+}
+
+function EventGroups({events,query}: {events:UpcomingPeopleGroup[];query:string}) {
+  return (
+    <div className="space-y-2">
+      {events.map((event,index)=>(
+        <details key={event.key} open={Boolean(query.trim())||index===0}
+          className="rounded-xl border border-[#211815]/10 bg-white/45">
+          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 p-3 [&::-webkit-details-marker]:hidden">
+            <span className="min-w-0">
+              <span className="block break-words font-semibold">{event.title}</span>
+              <span className="block text-xs text-[#5f524c]">
+                {formatDateRange(event.startsOn,event.endsOn)} · {event.bookings.length} prenotazioni
+              </span>
+            </span>
+            <ChevronRight className="h-4 w-4 shrink-0 text-[#a8583e]" aria-hidden="true"/>
+          </summary>
+          <div className="border-t border-[#211815]/10 px-2 pb-2 pt-2">
+            <ul className="space-y-2">
+              {event.bookings.map(booking=>(
+                <BookingCard key={booking.key} booking={booking} year={event.startsOn.slice(0,4)}/>
+              ))}
+            </ul>
+            <Link prefetch={false} href={event.href}
+              className="mt-2 inline-flex min-h-10 items-center px-2 text-xs font-semibold text-[#a8583e] underline">
+              Apri evento
+            </Link>
+          </div>
+        </details>
+      ))}
+    </div>
   );
 }
 
@@ -93,6 +158,8 @@ export default async function PersonePage({
   const others = overview.otherPeople.slice(0, limit);
   const onlyForms = overview.formOnly.slice(0, limit);
   const hasResults = overview.upcoming.length || overview.totalOthers;
+  const ongoing=overview.upcoming.filter(event=>event.startsOn<=today);
+  const future=overview.upcoming.filter(event=>event.startsOn>today);
   const extraLink = (total: number) => total > limit ? (
     <Link href="/gestione/persone?tutte=1" prefetch={false}
       className="mt-2 inline-flex min-h-10 items-center text-sm font-semibold text-[#a8583e] underline">
@@ -121,32 +188,14 @@ export default async function PersonePage({
       ) : null}
       {!hasResults ? <p className="mt-4 text-sm text-[#5f524c]">Nessuna persona trovata.</p> : null}
 
-      <Section title="Prossimi eventi" count={overview.upcoming.length} defaultOpen>
-        {overview.upcoming.length ? (
-          <div className="space-y-2">
-            {overview.upcoming.map((event, index) => (
-              <details key={event.key} open={Boolean(query.trim()) || index === 0}
-                className="rounded-xl border border-[#211815]/10 bg-white/45">
-                <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 p-3 [&::-webkit-details-marker]:hidden">
-                  <span className="min-w-0">
-                    <span className="block break-words font-semibold">{event.title}</span>
-                    <span className="block text-xs text-[#5f524c]">
-                      {formatDateRange(event.startsOn, event.endsOn)} · {event.people.length} persone
-                    </span>
-                  </span>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-[#a8583e]" aria-hidden="true" />
-                </summary>
-                <div className="border-t border-[#211815]/10 px-2 pb-2 pt-2">
-                  <PersonList people={event.people} year={event.startsOn.slice(0, 4)} />
-                  <Link prefetch={false} href={event.href}
-                    className="mt-2 inline-flex min-h-10 items-center px-2 text-xs font-semibold text-[#a8583e] underline">
-                    Apri evento
-                  </Link>
-                </div>
-              </details>
-            ))}
-          </div>
-        ) : <p className="text-sm text-[#5f524c]">Nessun iscritto nei prossimi eventi.</p>}
+      {ongoing.length>0?(
+        <Section title="In corso" count={ongoing.length} defaultOpen>
+          <EventGroups events={ongoing} query={query}/>
+        </Section>
+      ):null}
+      <Section title="Prossimi eventi" count={future.length} defaultOpen>
+        {future.length?<EventGroups events={future} query={query}/>
+          :<p className="text-sm text-[#5f524c]">Nessun evento futuro con iscrizioni.</p>}
       </Section>
 
       <Section title="Altre persone" count={overview.totalOthers} defaultOpen={Boolean(query.trim())}>
