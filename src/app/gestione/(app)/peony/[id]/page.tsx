@@ -1,7 +1,10 @@
+export const maxDuration = 120;
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PeonyEventOperations } from "@/components/gestionale/PeonyEventOperations";
+import { SyncTicketTailorButton } from "@/components/gestionale/SyncTicketTailorButton";
 import { getPeonyEvent, loadPeonyAttendees } from "@/lib/gestionale/server/peony-events";
 import { loadPeonyEmailState } from "@/lib/gestionale/server/peony-email";
 
@@ -29,6 +32,7 @@ export default async function PeonyEventPage({ params }: {
             .format(new Date(`${event.startsOn}T12:00:00Z`)) : "Data da definire"}
         </p>
       </div>
+      <SyncTicketTailorButton />
       <PeonyEventOperations
         eventId={event.id}
         eventTitle={event.title}
