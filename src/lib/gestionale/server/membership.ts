@@ -30,7 +30,12 @@ import { withSupabaseClockSkewRetry } from "@/lib/supabase/retry";
 /** Riga delle fonti admin; `tableId` solo per le righe manual_override della tabella. */
 type EvidenceRow = MembershipEvidenceRow & { tableId: string | null };
 
-type Evidence = { rows: EvidenceRow[]; formNameOrder: SingleNameOrder };
+type Evidence = {
+  rows: EvidenceRow[];
+  formNameOrder: SingleNameOrder;
+  source: "live" | "snapshot";
+  snapshotUpdatedAt: string | null;
+};
 
 const EVIDENCE_TTL_MS = 5 * 60_000;
 let evidenceCache: { loadedAt: number; evidence: Promise<Evidence> } | null = null;
@@ -48,38 +53,93 @@ function pick(row: MembershipEvidenceRow, tableId: string | null): EvidenceRow {
   };
 }
 
-async function fetchEvidence(): Promise<Evidence> {
-  const [formSource, bookSource, manualResult] = await Promise.all([
-    readAssociationMembersFromGoogleSheet(),
-    readOfficialMembersBookFromGoogleSheet(),
-    withSupabaseClockSkewRetry(
-      async () =>
-        await createSupabaseAdminClient()
-          .from("association_members")
-          .select("id,first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at")
-          .eq("source", "manual_override")
-          .range(0, 9999),
-      (result) => result.error,
-    ),
-  ]);
-  if (manualResult.error) throw new Error(`Gestionale (validazioni manuali): ${manualResult.error.message}`);
-
-  // Modulo con nome e cognome in un'unica colonna: l'ordine lo dice l'intestazione.
-  const formFirst = formSource.detectedColumns?.first_name;
-  const formLast = formSource.detectedColumns?.last_name;
-  const formNameOrder =
-    formFirst && formLast && formFirst.index !== null && formFirst.index === formLast.index
-      ? singleNameOrder(formFirst.normalizedHeader)
-      : null;
-
+/**
+ * Copia salvata delle fonti: utile anche quando Vercel non puo' accedere
+ * all'account di servizio Google. Non si dichiara mai che sia in tempo reale.
+ * TeamArtist/registro ufficiale e' la prova di pagamento e iscrizione, il
+ * semplice modulo Google non equivale a quota verificata.
+ */
+async function fetchSavedEvidence(): Promise<Evidence> {
+  const { data, error } = await getGestionaleDb()
+    .from("association_members")
+    .select("id,first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at,updated_at")
+    .in("source", ["google_sheet", "official_members_book", "manual_override"])
+    .range(0, 9999);
+  if (error) throw new Error(`Gestionale (copia libro soci): ${error.message}`);
+  const rows = data ?? [];
+  const timestamp = rows
+    .filter((row) => row.source === "google_sheet" || row.source === "official_members_book")
+    .map((row) => row.updated_at)
+    .filter((value): value is string => typeof value === "string")
+    .sort().at(-1) ?? null;
   return {
-    rows: [
-      ...formSource.rows.map((row) => pick(row, null)),
-      ...bookSource.rows.map((row) => pick(row, null)),
-      ...((manualResult.data ?? []) as (MembershipEvidenceRow & { id: string })[]).map((row) => pick(row, row.id)),
-    ],
-    formNameOrder,
+    rows: rows.map((row) => pick(row, row.source === "manual_override" ? row.id : null)),
+    formNameOrder: null,
+    source: "snapshot",
+    snapshotUpdatedAt: timestamp,
   };
+}
+
+async function fetchEvidence(): Promise<Evidence> {
+  // Evita che l'assenza di credenziali Google blocchi tutta la pagina workshop.
+  // Il gestionale preferisce sempre le fonti live quando sono configurate.
+  const canReadGoogle = [
+    "GOOGLE_SERVICE_ACCOUNT_EMAIL",
+    "GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY",
+    "GOOGLE_SHEET_ID",
+    "GOOGLE_SHEET_RANGE",
+    "GOOGLE_MEMBERS_BOOK_RANGE",
+  ].every((name) => Boolean(process.env[name]?.trim()));
+  if (!canReadGoogle) {
+    return fetchSavedEvidence();
+  }
+  try {
+    const [formSource, bookSource, manualResult] = await Promise.all([
+      readAssociationMembersFromGoogleSheet(),
+      readOfficialMembersBookFromGoogleSheet(),
+      withSupabaseClockSkewRetry(
+        async () =>
+          await createSupabaseAdminClient()
+            .from("association_members")
+            .select("id,first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at")
+            .eq("source", "manual_override")
+            .range(0, 9999),
+        (result) => result.error,
+      ),
+    ]);
+    if (manualResult.error) throw new Error(`Gestionale (validazioni manuali): ${manualResult.error.message}`);
+
+    // Modulo con nome e cognome in un'unica colonna: l'ordine lo dice l'intestazione.
+    const formFirst = formSource.detectedColumns?.first_name;
+    const formLast = formSource.detectedColumns?.last_name;
+    const formNameOrder =
+      formFirst && formLast && formFirst.index !== null && formFirst.index === formLast.index
+        ? singleNameOrder(formFirst.normalizedHeader)
+        : null;
+
+    return {
+      rows: [
+        ...formSource.rows.map((row) => pick(row, null)),
+        ...bookSource.rows.map((row) => pick(row, null)),
+        ...((manualResult.data ?? []) as (MembershipEvidenceRow & { id: string })[]).map((row) => pick(row, row.id)),
+      ],
+      formNameOrder,
+      source: "live",
+      snapshotUpdatedAt: null,
+    };
+  } catch (error) {
+    console.warn("[gestionale] Fonti associative live non disponibili: uso la copia salvata.", error);
+    return fetchSavedEvidence();
+  }
+}
+
+/** Per segnalare all'admin se le verifiche derivano da fonti live o da copia. */
+export async function getMembershipEvidenceStatus(): Promise<{
+  source: "live" | "snapshot";
+  snapshotUpdatedAt: string | null;
+}> {
+  const evidence = await loadEvidenceWithOrder();
+  return { source: evidence.source, snapshotUpdatedAt: evidence.snapshotUpdatedAt };
 }
 
 /** Fonti della pagina admin, con una cache lato server di 5 minuti (le letture dai Google Sheet sono lente). */
