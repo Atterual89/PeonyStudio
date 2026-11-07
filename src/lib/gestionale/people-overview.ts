@@ -68,7 +68,7 @@ export function buildPeopleOverview(input:{
   }[];
   luxuria: readonly {
     key:string;title:string;startsOn:string;endsOn:string|null;href:string;
-    bookings:readonly {bookingId:string;personIds:readonly string[]}[];
+    bookings:readonly {bookingId:string;personIds:readonly string[];statuses?:Record<string,ContactStatus>}[];
   }[];
   today:string;
   query?:string;
@@ -131,9 +131,11 @@ export function buildPeopleOverview(input:{
       const persons=b.personIds.map(id=>byId.get(id)).filter((row):row is Person=>Boolean(row));
       if(!persons.length)return [];
       const [first,...rest]=persons;
-      const primary=contact(displayName(first),first.email,first.id,event.startsOn,`p:${first.id}`);
+      const primary=contact(displayName(first),first.email,first.id,event.startsOn,`p:${first.id}`,
+        b.statuses?.[first.id]);
       const second=rest[0];
-      const partner=second?contact(displayName(second),second.email,second.id,event.startsOn,`p:${second.id}`):null;
+      const partner=second?contact(displayName(second),second.email,second.id,event.startsOn,`p:${second.id}`,
+        b.statuses?.[second.id]):null;
       return [{key:`booking:${b.bookingId}`,primary,partner,partnerRequired:Boolean(second)}];
     }),
   }));

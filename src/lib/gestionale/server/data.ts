@@ -350,7 +350,7 @@ export async function getEnrolledPersonIds(workshopId: string): Promise<Set<stri
  * Non include interessati, cancellati o persone rimosse dalla coppia. */
 export async function loadUpcomingLuxuriaPeople(today: string): Promise<{
   key: string; title: string; startsOn: string; endsOn: string | null; href: string;
-  bookings: { bookingId: string; personIds: string[] }[];
+  bookings: { bookingId: string; personIds: string[]; statuses?:Record<string,"valid"|"payment_missing"|"missing_form"|null> }[];
 }[]> {
   await requireAdmin();
   const db = getGestionaleDb();
@@ -375,7 +375,7 @@ export async function loadUpcomingLuxuriaPeople(today: string): Promise<{
   const byEventId=new Map(events.map(event=>[event.id,event]));
   const groups=new Map<string,{
     key:string;title:string;startsOn:string;endsOn:string|null;href:string;
-    bookings:{bookingId:string;personIds:string[]}[];
+    bookings:{bookingId:string;personIds:string[];statuses?:Record<string,"valid"|"payment_missing"|"missing_form"|null>}[];
   }>();
   for(const row of records){
     if(row.removed_at||row.gw_bookings.deleted_at||row.gw_bookings.gw_workshops.deleted_at||
@@ -396,6 +396,26 @@ export async function loadUpcomingLuxuriaPeople(today: string): Promise<{
       else booking.personIds.push(row.person_id);
     }
     groups.set(ws.id,group);
+  }
+  const personById=new Map((await loadPeople()).map(person=>[person.id,person]));
+  // Stessa funzione di verifica socio già usata negli eventi LuXuria.
+  for(const group of groups.values()){
+    const ids=[...new Set(group.bookings.flatMap(booking=>booking.personIds))];
+    const members=ids.map(id=>personById.get(id)).filter((p):p is Person=>Boolean(p));
+    try{
+      const badges=await getMembershipBadges(members,group.startsOn);
+      for(const booking of group.bookings){
+        booking.statuses=Object.fromEntries(booking.personIds.map(id=>{
+          const badge=badges.get(id);
+          const status=badge?.kind==="in_regola"?"valid":
+            badge?.kind==="quota_mancante"?"payment_missing":
+            badge?.kind==="modulo_mancante"?"missing_form":null;
+          return [id,status];
+        }));
+      }
+    }catch(error){
+      console.error("Gestionale (stati LuXuria):",error instanceof Error?error.message:"errore");
+    }
   }
   return [...groups.values()].sort((a,b)=>a.startsOn.localeCompare(b.startsOn));
 }

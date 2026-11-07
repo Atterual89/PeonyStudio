@@ -59,6 +59,15 @@ describe("Persone: il gruppo è di prenotazioni, non di nomi appiattiti",()=>{
       formsByYear:new Map([["2026",forms],["2027",next]]),peony:[event],luxuria:[],today});
     expect(result.upcoming[0].bookings[0].primary).toMatchObject({formMemberId:"F1",paid:false,status:"payment_missing"});
   });
+  it("usa la validazione LuXuria anche senza domanda Google",()=>{
+    const result=buildPeopleOverview({people,currentForms:[],
+      formsByYear:new Map(),peony:[],
+      luxuria:[{key:"lx",title:"LuXuria",startsOn:"2026-12-01",endsOn:null,
+        href:"/gestione/w/lx",bookings:[{bookingId:"b1",personIds:["A","B"],
+          statuses:{"A":"valid" as const,"B":"missing_form" as const}}]}],today});
+    expect(result.upcoming[0].bookings[0].primary.status).toBe("valid");
+    expect(result.upcoming[0].bookings[0].partner?.status).toBe("missing_form");
+  });
   it("mantiene i partecipanti LuXuria collegati alla stessa prenotazione",()=>{
     const result=buildPeopleOverview({people,currentForms:forms,
       formsByYear:new Map([["2026",forms]]),peony:[],
