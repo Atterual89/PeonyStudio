@@ -87,8 +87,7 @@ export function SyncSociButton() {
             {stat("Libro soci", preview.book)}
           </div>
           <p className="mt-2 text-xs text-[#5f524c]">
-            Nessuna riga sarà eliminata. La quota risulta confermata solo nel libro soci;
-            il controllo diretto su TeamArtist non è attivo.
+            Nessuna riga sarà eliminata. Il modulo non prova il pagamento: contano il libro soci o le validazioni manuali. TeamArtist non è interrogato direttamente.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button type="button" onClick={apply} disabled={busy}
