@@ -251,7 +251,7 @@ export function PeonyEventOperations({
             <div className="mt-2 grid gap-2">
               {PEONY_EMAIL_KINDS.map(({id,label}) => (
                 <button key={id} type="button" onClick={() => switchKind(id)}
-                  aria-pressed={kind === id}
+                  aria-current={kind === id ? "true" : undefined}
                   className={`h-10 rounded-xl border px-3 text-left text-sm font-semibold ${
                     kind === id ? "border-[#a8583e] bg-[#a8583e] text-white" : "border-[#211815]/15 bg-white"
                   }`}>{label}</button>
