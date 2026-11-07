@@ -4,9 +4,10 @@ import { Notice, Section, cardClass } from "@/components/gestionale/ui";
 import { formatDateRange } from "@/lib/gestionale/format";
 import { availableYears, conguagliText, homeView, parseYearFilter, recapLine } from "@/lib/gestionale/recap";
 import { requireOperator } from "@/lib/gestionale/server/auth";
+import { loadPeonyEventsSummary, type PeonyEventSummary } from "@/lib/gestionale/server/peony-events";
 import { getDashboard } from "@/lib/gestionale/server/data";
 import type { OperatorRole } from "@/lib/gestionale/types";
-import { todayInRome, type DashboardEntry } from "@/lib/gestionale/workshops";
+import { groupByTime, todayInRome, type DashboardEntry } from "@/lib/gestionale/workshops";
 
 function WorkshopCard({ entry, highlighted, viewer }: { entry: DashboardEntry; highlighted: boolean; viewer: OperatorRole }) {
   const isAdmin = viewer === "admin";
@@ -62,6 +63,59 @@ function WorkshopList({ entries, highlighted, viewer }: { entries: DashboardEntr
   );
 }
 
+function PeonyEventList({ entries }: { entries: PeonyEventSummary[] }) {
+  if (entries.length === 0) return <p className="text-sm text-[#5f524c]">Nessun evento.</p>;
+  return (
+    <ul className="grid gap-3 md:grid-cols-2">
+      {entries.map((event) => (
+        <li key={event.id}>
+          <a href={`/gestione/peony/${event.id}`} className={`${cardClass} block p-3 transition active:scale-[0.99]`}>
+            <p className="text-base font-semibold">{event.title}</p>
+            <p className="mt-1 text-sm text-[#5f524c]">
+              {event.startsOn ? formatDateRange(event.startsOn, event.endsOn) : "Data da definire"}
+            </p>
+            <p className="mt-2 text-sm"><strong>{event.ticketCount}</strong> biglietti Ticket Tailor</p>
+            <p className="mt-1 text-xs text-[#a8583e]">Partecipanti · Presenze · Email</p>
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function PeonyEventsSection({ entries, today, year }: {
+  entries: PeonyEventSummary[]; today: string; year: number;
+}) {
+  const displayable = entries.filter((event) => event.startsOn && (
+    event.startsOn >= today || event.startsOn.startsWith(String(year))
+  ));
+  const groups = groupByTime(displayable.map((entry) => ({
+    ...entry,
+    startsOn: entry.startsOn!,
+  })), today);
+  return (
+    <section className="mb-8">
+      <h1 className="font-serif text-2xl font-semibold">Eventi Peony</h1>
+      <p className="mt-1 text-sm text-[#5f524c]">Iscrizioni soltanto da Ticket Tailor. Nessun conto condiviso con Ale.</p>
+      <div className="mt-4">
+        {groups.in_corso.length > 0 ? (
+          <Section title="In corso" count={groups.in_corso.length} defaultOpen>
+            <PeonyEventList entries={groups.in_corso} />
+          </Section>
+        ) : null}
+        <Section title="Prossimi" count={groups.prossimo.length} defaultOpen>
+          <PeonyEventList entries={groups.prossimo} />
+        </Section>
+        {groups.passato.length > 0 ? (
+          <Section title={`Passati · ${year}`} count={groups.passato.length}>
+            <PeonyEventList entries={groups.passato} />
+          </Section>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
 /**
  * Home (D23), uguale per tutti gli operatori: recap economico dell'anno e
  * workshop (In corso e Prossimi sempre tutti, Passati dell'anno). Nessun
@@ -74,7 +128,11 @@ export default async function WorkshopDashboard({
 }) {
   const operator = await requireOperator();
   const viewer = operator.role;
-  const [{ errore, anno }, entries] = await Promise.all([searchParams, getDashboard()]);
+  const [{ errore, anno }, entries, peonyEvents] = await Promise.all([
+    searchParams,
+    getDashboard(),
+    viewer === "admin" ? loadPeonyEventsSummary() : Promise.resolve([]),
+  ]);
   const today = todayInRome();
   const year = parseYearFilter(anno, today);
   // L'anno filtra solo i Passati e i riquadri: In corso e Prossimi sempre tutti.
@@ -137,10 +195,11 @@ export default async function WorkshopDashboard({
 
   return (
     <section>
+      <PeonyEventsSection entries={peonyEvents} today={today} year={year} />
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h1 className="font-serif text-xl font-medium">Workshop</h1>
-          <p className="mt-1 text-sm text-[#5f524c]">Eventi LuXuria da Ticket Tailor</p>
+          <h2 className="font-serif text-xl font-medium">Workshop Kinbaku LuXuria</h2>
+          <p className="mt-1 text-sm text-[#5f524c]">Iscrizioni manuali di Ale · Contabilità Peony/Ale</p>
         </div>
         <YearSelect value={year} years={years} />
       </div>

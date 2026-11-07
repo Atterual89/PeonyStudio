@@ -11,7 +11,7 @@ type Item = { href: string; label: string; icon: LucideIcon; adminOnly?: boolean
 // D18: l'organizzatrice vede solo Workshop · Altro. Le pagine nascoste
 // rispondono comunque 404 lato server.
 const items: Item[] = [
-  { href: "/gestione", label: "Workshop", icon: CalendarDays },
+  { href: "/gestione", label: "Eventi", icon: CalendarDays },
   { href: "/gestione/cerca", label: "Cerca", icon: Search, adminOnly: true },
   { href: "/gestione/persone", label: "Persone", icon: Users, adminOnly: true },
   { href: "/gestione/altro", label: "Altro", icon: Ellipsis },
@@ -19,7 +19,7 @@ const items: Item[] = [
 
 function isActive(href: string, pathname: string) {
   if (href === "/gestione") {
-    return pathname === "/gestione" || pathname.startsWith("/gestione/w/");
+    return pathname === "/gestione" || pathname.startsWith("/gestione/w/") || pathname.startsWith("/gestione/e/") || pathname.startsWith("/gestione/peony/");
   }
   if (href === "/gestione/persone") {
     return pathname.startsWith("/gestione/persone") || pathname.startsWith("/gestione/p/");
@@ -50,7 +50,7 @@ export function GestioneNav({ role }: { role: OperatorRole }) {
                 }`}
               >
                 <Icon className="h-6 w-6" aria-hidden="true" strokeWidth={1.8} />
-                {label}
+                {role === "organizzatrice" && href === "/gestione" ? "Workshop" : label}
               </Link>
             </li>
           );
