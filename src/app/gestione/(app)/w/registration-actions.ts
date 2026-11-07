@@ -158,7 +158,9 @@ export async function addRegistrationAction(input: {
 
   const result = await createRegistration(operator.id, {
     workshopId: input.workshopId,
-    entries: [entry(person, personEmail), ...(partner ? [entry(partner, partnerEmail)] : [])],
+    // Partner del tutto facoltativo: se c'è soltanto l'email, registralo con
+    // quell'indirizzo come identificativo provvisorio; non perderlo.
+    entries: [entry(person, personEmail), ...(partner || partnerEmail ? [entry(partner || partnerEmail!, partnerEmail)] : [])],
     status: input.status,
     feeCents: fee,
     notes: asText(input.notes).trim() || null,

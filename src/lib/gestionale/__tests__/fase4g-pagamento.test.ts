@@ -147,14 +147,19 @@ describe("#8, #11–#13, #16, #21 — riga, elenco e Aggiungi", () => {
     expect(tab).not.toContain("Registra rimborso");
   });
 
-  it("Aggiungi: Nome · Partner · Stato · + Pagamento; email, note e prezzo speciale in 'altro…'", () => {
+  it("Aggiungi: intestatario ed email, partner ed email, quota standard modificabile: tutto subito visibile", () => {
     const add = source("src/components/gestionale/AddRegistration.tsx");
     expect(add).toContain("Quanto ha già pagato?");
-    expect(add).toContain("altro… (email, note, prezzo speciale)");
-    const visible = add.slice(add.indexOf("<h3"), add.indexOf("{more ? ("));
-    expect(visible).not.toContain("<FeeEditor");
-    expect(visible).not.toContain('type="email"');
+    const visible = add.slice(add.indexOf("<h3"), add.indexOf('{more ? "Nascondi note"'));
+    expect(visible).toContain('label="Intestatario *"');
+    expect(visible).toContain('label="Email intestatario"');
+    expect(visible).toContain('label="Partner"');
+    expect(visible).toContain('label="Email partner"');
+    expect(visible).toContain('label="Quota totale dell\'iscrizione (€)"');
+    expect(visible).toContain('type="email"');
     expect(visible).toContain("<StatusPicker");
     expect(visible).toContain("dateInMore");
+    expect(visible).not.toContain("<FeeEditor");
+    expect(add).toContain("feeCents === standardFeeCents ? null : feeText");
   });
 });
