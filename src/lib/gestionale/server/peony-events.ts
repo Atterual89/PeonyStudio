@@ -6,6 +6,7 @@ import { deriveMembershipState, normalizeMembershipEmail, type MembershipEvidenc
 import { membershipPeriodFor } from "@/lib/association/membership-periods";
 import { partnerFromCheckout, peonyPartnerRequired, type CheckoutPartner } from "@/lib/gestionale/peony-partner";
 import { choosePartner } from "@/lib/gestionale/peony-booking-partner";
+import { buildPeonyMemberDirectory } from "@/lib/gestionale/peony-member-candidates";
 import { timestampToRomeDate } from "@/lib/gestionale/workshops";
 import { isActivePeonyTicket, isPeonyTicketEvent } from "@/lib/gestionale/peony-ticket-rules";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
@@ -55,6 +56,7 @@ export type PeonyAttendee = {
   partnerRequired: boolean;
   partner: PeonyPartner | null;
   linkedPersonId: string | null;
+  holderMatch: {name:string;email:string|null;origin:string}|null;
 };
 export type PeonyRoster = {
   attendees: PeonyAttendee[];
@@ -170,7 +172,7 @@ export const readAllMemberEvidence = cache(async (): Promise<Array<MembershipEvi
 export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster> {
   await requireAdmin();
   const db = getGestionaleDb();
-  const [tickets, participants, memberships, people, enrollments, orders, overrides] = await Promise.all([
+  const [tickets, participants, memberships, people, enrollments, orders, overrides, holderOverrides] = await Promise.all([
     db.from("ticket_tailor_issued_tickets")
       .select("ticket_tailor_issued_ticket_id,ticket_tailor_order_id,holder_first_name,holder_last_name,holder_email,ticket_type_name,status,last_synced_at")
       .eq("ticket_tailor_event_id", event.ticketTailorEventId).range(0, 9999),
@@ -179,7 +181,7 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
       .eq("ticket_tailor_event_id", event.ticketTailorEventId)
       .not("ticket_tailor_issued_ticket_id", "is", null).range(0, 9999),
     readAllMemberEvidence(),
-    db.from("gw_people").select("id,email")
+    db.from("gw_people").select("id,first_name,last_name,nickname,email")
       .is("deleted_at", null).is("merged_into", null).range(0, 9999),
     db.from("user_event_enrollments")
       .select("ticket_tailor_order_id,partner_source,partner_email,partner_name")
@@ -190,11 +192,15 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
     db.from("gw_peony_booking_partners")
       .select("ticket_id,partner_name,partner_email,person_id,member_row_id")
       .eq("event_id", event.id).range(0, 9999),
+    db.from("gw_peony_booking_holders")
+      .select("ticket_id,person_id,member_row_id")
+      .eq("event_id",event.id).range(0,9999),
   ]);
   for (const [label, response] of [
     ["Biglietti", tickets], ["Partecipanti", participants],
     ["Anagrafica", people],
     ["Partner", enrollments], ["Ordini", orders], ["Abbinamenti partner", overrides],
+    ["Abbinamenti intestatario",holderOverrides],
   ] as const) {
     if (response.error) throw new Error(`${label}: ${response.error.message}`);
   }
@@ -202,11 +208,15 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
   const enrollmentByOrder = new Map((enrollments.data ?? []).filter((r) => r.ticket_tailor_order_id)
     .map((row) => [row.ticket_tailor_order_id, row]));
   const overrideByTicket = new Map((overrides.data ?? []).map((row) => [row.ticket_id, row]));
+  const holderByTicket = new Map((holderOverrides.data??[]).map(row=>[row.ticket_id,row]));
   const checkoutByOrder = new Map<string, CheckoutPartner | null>();
   for (const order of orders.data ?? []) {
     checkoutByOrder.set(order.ticket_tailor_order_id, partnerFromCheckout(order.raw_payload));
   }
-  const evidence = memberships as MembershipEvidenceRow[];
+  const evidence = memberships;
+  const candidates=buildPeonyMemberDirectory(memberships,people.data??[]);
+  const memberById=new Map(candidates.filter(candidate=>candidate.kind==="member").map(row=>[row.id,row]));
+  const personById=new Map((people.data??[]).map(person=>[person.id,person]));
   const peopleByEmail = new Map<string, string | null>();
   for (const person of people.data ?? []) {
     const email = normalizeMembershipEmail(person.email);
@@ -229,7 +239,18 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
         memberRowId: chosen.memberRowId ?? null,
         membership: associationStatus(evidence, event, partnerIdentity(chosen.name, chosen.email)),
       } : null;
-      const identity = {
+      const savedHolder=holderByTicket.get(ticket.ticket_tailor_issued_ticket_id);
+      const member=savedHolder?.member_row_id?memberById.get(savedHolder.member_row_id):null;
+      const person=savedHolder?.person_id?personById.get(savedHolder.person_id):null;
+      const matchedHolder=member?{
+        name:member.name,email:member.email,origin:member.origin,
+      }:person?{
+        name:[person.first_name,person.last_name].filter(Boolean).join(" ").trim()||person.nickname||"Anagrafica",
+        email:person.email??null,origin:"Anagrafica",
+      }:null;
+      const identity = matchedHolder ? {
+        email:matchedHolder.email,firstName:matchedHolder.name,lastName:null,
+      }:{
         email: ticket.holder_email,
         firstName: ticket.holder_first_name,
         lastName: ticket.holder_last_name,
@@ -247,7 +268,11 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
         associationRequired: !/(observer|osservator)/i.test(ticket.ticket_type_name ?? ""),
         partnerRequired: required,
         partner,
-        linkedPersonId: peopleByEmail.get(normalizeMembershipEmail(ticket.holder_email)) ?? null,
+        holderMatch:matchedHolder,
+        linkedPersonId: savedHolder?.person_id??(
+          matchedHolder?.email?peopleByEmail.get(normalizeMembershipEmail(matchedHolder.email)):
+            peopleByEmail.get(normalizeMembershipEmail(ticket.holder_email))
+        )??null,
       };
     }).sort((a, b) => a.name.localeCompare(b.name, "it", { sensitivity: "base" }));
   return {
