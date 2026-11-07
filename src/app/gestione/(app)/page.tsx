@@ -281,6 +281,10 @@ export default async function WorkshopDashboard({
         <>
           <div className="mb-4 grid gap-2 sm:flex sm:items-start">
             <SyncTicketTailorButton />
+              <Link href="/gestione/altro/soci#allineamento-anagrafiche" prefetch={false}
+                className="inline-flex min-h-10 items-center justify-center rounded-xl border border-[#a8583e] bg-white/85 px-4 text-sm font-semibold text-[#a8583e]">
+                Allinea libro soci
+              </Link>
           </div>
           <div className="flex justify-end">
             <YearSelect value={year} years={years} vista="peony" />
