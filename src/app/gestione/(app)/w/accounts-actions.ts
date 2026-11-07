@@ -120,6 +120,8 @@ export async function deleteExpenseAction(input: { id: string; version: number }
 
 export async function addTransferAction(input: {
   workshopId: string;
+  /** When supplied the client must have seen this exact balance (including null). */
+  expectedResidual?: number | null;
   fields: { fromParty: string; amount: string; status: string; executedOn: string; notes: string };
 }): Promise<ActionResult> {
   const operator = await requireOperator();
@@ -129,6 +131,17 @@ export async function addTransferAction(input: {
   if (amount === null) return { ok: false, error: "Scrivi l'importo, ad esempio 950 o 950,50." };
   const executedOn = readDate(f.executedOn);
   if (!isParty(f.fromParty) || !isTransferStatus(f.status) || executedOn === undefined) return INVALID;
+  if (f.status === "eseguito" && !executedOn) {
+    return {ok:false,error:"Indica la data del versamento."};
+  }
+  if (Object.prototype.hasOwnProperty.call(input,"expectedResidual")) {
+    if (input.expectedResidual !== null && !Number.isInteger(input.expectedResidual)) return INVALID;
+    const accounts=await loadAccounts(input.workshopId);
+    if (!accounts) return INVALID;
+    if (accounts.settlement.residuo!==input.expectedResidual) {
+      return {ok:false,error:"Il saldo è cambiato: aggiorna la pagina prima di registrare il movimento."};
+    }
+  }
   const toParty: Party = f.fromParty === "peony" ? "redsabbath" : "peony";
 
   const result = await createTransfer(operator.id, input.workshopId, {
