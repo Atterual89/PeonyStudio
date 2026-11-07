@@ -17,6 +17,6 @@ describe("workshop admin con Google non configurato", () => {
   it("avvisa che TeamArtist va verificato e non rivela i dati ad Ale", () => {
     const source = readFileSync(join(process.cwd(), "src/app/gestione/(app)/w/[id]/page.tsx"), "utf8");
     expect(source).toContain('isAdmin && membershipEvidence?.source === "snapshot"');
-    expect(source).toContain("verificare la registrazione e la quota su TeamArtist");
+    expect(source).toContain("controllare la registrazione e la quota su TeamArtist");
   });
 });
