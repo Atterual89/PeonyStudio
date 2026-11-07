@@ -281,7 +281,7 @@ export async function loadUpcomingPeonyPeople(today: string): Promise<UpcomingPe
       for (let offset = 0; offset < 10000; offset += 500) {
         const result = await db.from(table).select(columns).in(field, batch).range(offset, offset + 499);
         if (result.error) throw new Error(`Prossimi workshop: lettura ${table} non riuscita.`);
-        rows.push(...(result.data ?? []));
+        rows.push(...((result.data ?? []) as Record<string, unknown>[]));
         if ((result.data ?? []).length < 500) break;
       }
     }
