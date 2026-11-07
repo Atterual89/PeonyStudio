@@ -80,10 +80,6 @@ export function AddRegistration({
       setMessage({ tone: "error", text: "Nome: scrivi il nome, il nickname o l'email." });
       return;
     }
-    if (!partner.trim() && partnerEmail.trim()) {
-      setMessage({ tone: "error", text: "Per usare l'email del partner, indica anche il suo nome o nickname." });
-      return;
-    }
     const badEmail = [personEmail, partnerEmail].some((email) => email.trim() && !EMAIL_PATTERN.test(email.trim()));
     if (badEmail) {
       setMessage({ tone: "error", text: "Email: controlla l'indirizzo (es. nome@esempio.it)." });
@@ -109,14 +105,14 @@ export function AddRegistration({
         person,
         partner,
         personEmail,
-        partnerEmail: partner.trim() ? partnerEmail : "",
+        partnerEmail,
         status,
         fee: customFee === null || feeCents === standardFeeCents ? null : feeText,
         notes,
         payment: withPayment ? payment : null,
       });
       if (result.ok) {
-        const names = [person.trim(), partner.trim()].filter(Boolean).join(" + ");
+        const names = [person.trim(), partner.trim() || partnerEmail.trim()].filter(Boolean).join(" + ");
         reset();
         setMessage({ tone: "success", text: `Fatto: ${names} iscritto/a.` });
       } else {
