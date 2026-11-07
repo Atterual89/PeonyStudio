@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
+import { membershipPeriodFor } from "@/lib/association/membership-periods";
 
 import { google } from "googleapis";
 
@@ -49,10 +50,11 @@ type DetectedBookColumn = {
   normalizedHeader: string | null;
 };
 
-const CURRENT_ASSOCIATION_YEAR = "anno sociale 2026";
-const CURRENT_YEAR_START = "2025-09-01";
-const CURRENT_YEAR_EXPIRY = "2026-12-31";
-const PREVIOUS_YEAR_EXPIRY = "2025-12-31";
+// Fino al 2026 il foglio si chiama "Anno Sociale 2026"; dal 2027
+// le quote del libro soci sono annuali e si cerca la colonna dell'anno corrente.
+function activeBookYear(): number {
+  return Math.max(2026, Number(new Intl.DateTimeFormat("en", { year: "numeric", timeZone: "Europe/Rome" }).format(new Date())));
+}
 
 export async function readOfficialMembersBookFromGoogleSheet() {
   const clientEmail = getRequiredEnv("GOOGLE_SERVICE_ACCOUNT_EMAIL");
@@ -101,7 +103,7 @@ export function normalizeOfficialMembersBookRows(
     errors.push("Colonna Cognome non trovata.");
   }
   if (detectedColumns.current_year_quota.index === null) {
-    errors.push("Colonna Anno Sociale 2026 / Quota soci non trovata.");
+    errors.push(`Colonna Anno Sociale ${activeBookYear()} / Quota soci non trovata.`);
   }
 
   const rows = dataRows
@@ -176,6 +178,8 @@ function getMembershipStatusAndDates({
   ceasedAt: string | null;
   quota: number;
 }) {
+  const year = activeBookYear();
+  const period = membershipPeriodFor(`${year}-01-01`)!;
   if (ceasedAt) {
     return {
       membership_status: "expired" as const,
@@ -187,15 +191,15 @@ function getMembershipStatusAndDates({
   if (quota > 0) {
     return {
       membership_status: "verified" as const,
-      membership_starts_at: CURRENT_YEAR_START,
-      membership_expires_at: CURRENT_YEAR_EXPIRY,
+      membership_starts_at: period.paymentsFrom,
+      membership_expires_at: period.validUntil,
     };
   }
 
   return {
     membership_status: "expired" as const,
     membership_starts_at: acceptedAt,
-    membership_expires_at: PREVIOUS_YEAR_EXPIRY,
+    membership_expires_at: `${year - 1}-12-31`,
   };
 }
 
@@ -217,6 +221,7 @@ function combineHeaders(mainHeaders: unknown[], subHeaders: unknown[]) {
 function detectColumns(
   headers: Array<{ header: string; normalizedHeader: string }>,
 ): DetectedMembersBookColumns {
+  const currentAssociationYear = `anno sociale ${activeBookYear()}`;
   return {
     first_name: findColumn(headers, ["nome"]),
     last_name: findColumn(headers, ["cognome"]),
@@ -226,13 +231,13 @@ function detectColumns(
     accepted_at: findColumn(headers, ["data accettazione"]),
     ceased_at: findColumn(headers, ["data cessazione"]),
     current_year_quota: findColumn(headers, [
-      `${CURRENT_ASSOCIATION_YEAR} quota soci`,
-      `${CURRENT_ASSOCIATION_YEAR} quota`,
+      `${currentAssociationYear} quota soci`,
+      `${currentAssociationYear} quota`,
     ]),
     current_year_card_number: findColumn(headers, [
-      `${CURRENT_ASSOCIATION_YEAR} n tessera`,
-      `${CURRENT_ASSOCIATION_YEAR} numero tessera`,
-      `${CURRENT_ASSOCIATION_YEAR} tessera`,
+      `${currentAssociationYear} n tessera`,
+      `${currentAssociationYear} numero tessera`,
+      `${currentAssociationYear} tessera`,
     ]),
     availableHeaders: headers.map((header) => header.normalizedHeader).filter(Boolean),
   };

@@ -78,7 +78,7 @@ export async function loadSociReviewData(): Promise<SociReviewData> {
 
   // Il modulo viene compilato una volta. Dal 2027 anche le vecchie domande
   // devono restare disponibili per registrare il rinnovo annuale.
-  const eligibleForms = forms.filter((row) => (row.membership_starts_at ?? "") >= "2025-09-01");
+  const eligibleForms = forms; // Anche chi ha compilato il modulo prima del primo periodo può rinnovare la quota.
   const seen = new Set<string>();
   const distinct = [...eligibleForms].sort((a, b) =>
     (b.membership_starts_at ?? "").localeCompare(a.membership_starts_at ?? "")

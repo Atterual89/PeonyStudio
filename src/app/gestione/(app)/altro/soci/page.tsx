@@ -5,6 +5,7 @@ import Link from "next/link";
 import { MemberLinkReview } from "@/components/gestionale/MemberLinkReview";
 import { RefreshMembershipButton } from "@/components/gestionale/QuotaOk";
 import { SyncSociButton } from "@/components/gestionale/SyncSociButton";
+import { SociBookUpload } from "@/components/gestionale/SociBookUpload";
 import { SociReviewList } from "@/components/gestionale/SociReviewList";
 import { Notice, Section, cardClass } from "@/components/gestionale/ui";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
@@ -43,6 +44,7 @@ export default async function SociPage() {
       <div className="mt-3">
         <SyncSociButton />
       </div>
+      <SociBookUpload />
       {registrations ? (
         <div className="mt-4">
           <div className="grid grid-cols-3 gap-2 text-center">
