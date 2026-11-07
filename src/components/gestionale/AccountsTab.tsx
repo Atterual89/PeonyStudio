@@ -9,7 +9,7 @@ import {
   setPeonyPctAction,
   setSettlementStatusAction,
   setTaxNotesAction,
-  settleResidualAction,
+  addTransferAction,
 } from "@/app/gestione/(app)/w/accounts-actions";
 import { expensesByCategory, type AccountsData, type IncomeRow } from "@/lib/gestionale/accounts";
 import { centsToInput, formatCents, formatDate, parseEuroToCents } from "@/lib/gestionale/format";
@@ -85,7 +85,7 @@ function Summary({ data, changes }: { data: AccountsData; changes: readonly Snap
 // Divisione: risultato del conguaglio
 // ---------------------------------------------------------------------------
 
-function ResultBlock({ data, viewer, withSettle = true }: { data: AccountsData; viewer: OperatorRole; withSettle?: boolean }) {
+function ResultBlock({ data, viewer, today, withSettle = true }: { data: AccountsData; viewer: OperatorRole; today: string; withSettle?: boolean }) {
   const { settlement, workshop } = data;
   const tone =
     settlement.residuo === null ? "text-[#7a5212]" : settlement.residuo === 0 ? "text-[#2f5d3b]" : "text-[#a8583e]";
@@ -112,7 +112,7 @@ function ResultBlock({ data, viewer, withSettle = true }: { data: AccountsData; 
           ) : null}
         </p>
       </div>
-      {withSettle ? <SettleResidual data={data} viewer={viewer} /> : null}
+      {withSettle ? <SettleResidual data={data} viewer={viewer} today={today} /> : null}
     </div>
   );
 }
@@ -123,34 +123,112 @@ function ResultBlock({ data, viewer, withSettle = true }: { data: AccountsData; 
  * "L'hai già dato? Lo segno come fatto oggi". Registra il trasferimento come
  * eseguito oggi e porta il residuo a 0.
  */
-function SettleResidual({ data, viewer }: { data: AccountsData; viewer: OperatorRole }) {
-  const [asking, setAsking] = useState(false);
-  const { message, pending, save } = useSave();
-  const labels = settleLabels(data.settlement.residuo, viewer);
-  if (!labels) return message ? <Notice tone={message.tone}>{message.text}</Notice> : null;
+/** Inserimento rapido: il saldo effettivo può essere maggiore, minore o
+ * precedente al conguaglio calcolato. Solo i movimenti eseguiti lo riducono.
+ */
+function SettleResidual({ data, viewer, today }: { data: AccountsData; viewer: OperatorRole; today: string }) {
+  const [open,setOpen]=useState(false);
+  const [fromParty,setFromParty]=useState<Party>(data.settlement.residuo!==null&&data.settlement.residuo<0?"peony":"redsabbath");
+  const [amount,setAmount]=useState(data.settlement.residuo ? centsToInput(Math.abs(data.settlement.residuo)) : "");
+  const [status,setStatus]=useState<"eseguito"|"da_eseguire">("eseguito");
+  const [date,setDate]=useState(today);
+  const [notes,setNotes]=useState("");
+  const [asking,setAsking]=useState(false);
+  const {message,pending,save}=useSave();
+  const current=data.settlement.residuo;
+  const typed=parseEuroToCents(amount);
+  const toParty=fromParty==="peony"?"redsabbath":"peony";
+  const preview=typed!==null&&typed>0
+    ?computeSettlement({...data.input,transfers:[...data.input.transfers,{
+      fromParty,toParty,amountCents:typed,status,
+    }]})
+    :null;
+  const labels=settleLabels(current,viewer);
+  const involvedCarryovers=data.carryoversOut.length>0||data.carryoversIn.length>0;
+
   return (
     <div className="space-y-2">
-      {asking ? (
-        <InlineConfirm
-          question={labels.question}
-          note="Poi risulta Pari. Se gli importi cambiano, si riapre da solo."
-          confirmLabel="Sì, segna come fatto"
-          pending={pending}
-          onConfirm={() =>
-            save(
-              () => settleResidualAction({ workshopId: data.workshop.id, expectedCents: data.settlement.residuo! }),
-              "Fatto: segnato come dato oggi.",
-              () => setAsking(false),
-            )
-          }
-          onCancel={() => setAsking(false)}
-        />
-      ) : (
-        <button type="button" className={buttonClass.primary} onClick={() => setAsking(true)}>
-          {labels.button}
+      {!open?(
+        <button type="button" className={buttonClass.secondary} onClick={()=>{
+          setOpen(true);
+          setFromParty(current!==null&&current<0?"peony":"redsabbath");
+          setAmount(current?centsToInput(Math.abs(current)):"");
+        }}>
+          Registra importo effettivo o in sospeso
         </button>
+      ):(
+        <div className="space-y-3 rounded-xl border border-[#211815]/10 bg-white/80 p-3">
+          <p className="font-semibold">Quanto è stato realmente trasferito?</p>
+          {labels?<p className="text-sm text-[#5f524c]">Situazione attuale: {debtPhrase(current,viewer)}.</p>
+            :<p className="text-sm text-[#7a5212]">Conguaglio non ancora calcolabile: puoi comunque registrare un importo.</p>}
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Da">
+              <select className={inputClass} value={fromParty}
+                onChange={e=>{setFromParty(e.target.value as Party);setAsking(false);}}>
+                <option value="redsabbath">{PARTY_LABELS.redsabbath}</option>
+                <option value="peony">{PARTY_LABELS.peony}</option>
+              </select>
+            </Field>
+            <Field label="A"><p className="flex h-10 items-center text-sm font-semibold">{PARTY_LABELS[toParty]}</p></Field>
+            <Field label="Importo (€)">
+              <input inputMode="decimal" className={inputClass} value={amount}
+                onChange={e=>{setAmount(e.target.value);setAsking(false);}}
+                placeholder="es. 350" aria-label="Importo realmente trasferito o previsto"/>
+            </Field>
+            <Field label="Stato">
+              <select className={inputClass} value={status}
+                onChange={e=>{setStatus(e.target.value as "eseguito"|"da_eseguire");setAsking(false);}}>
+                <option value="eseguito">Già versato</option>
+                <option value="da_eseguire">Da versare</option>
+              </select>
+            </Field>
+            {status==="eseguito"?(
+              <Field label="Data versamento">
+                <input type="date" className={inputClass} value={date}
+                  onChange={e=>{setDate(e.target.value);setAsking(false);}}/>
+              </Field>
+            ):null}
+          </div>
+          <Field label="Note (facoltative)">
+            <input className={inputClass} value={notes}
+              onChange={e=>setNotes(e.target.value)}
+              placeholder="es. saldo parziale, anticipo, accordo"/>
+          </Field>
+          {preview?(
+            <p className="text-sm">
+              {status==="eseguito"?"Dopo questo pagamento":"Il saldo non cambia finché non viene versato"}:
+              {" "}<strong>{debtPhrase(preview.residuo,viewer)??"Da ripartire"}</strong>
+            </p>
+          ):null}
+          {involvedCarryovers?<p className="text-xs text-[#7a5212]">
+            Ci sono riporti collegati a questo workshop: non verranno modificati automaticamente.
+            Controllali prima di registrare un ulteriore pagamento.
+          </p>:null}
+          {asking?(
+            <InlineConfirm
+              question={`Confermi ${formatCents(typed??0)} da ${PARTY_LABELS[fromParty]} a ${PARTY_LABELS[toParty]} (${status==="eseguito"?"già versati":"da versare"})?`}
+              note="Il consuntivo sarà ricalcolato in base ai versamenti eseguiti. Le somme non versate resteranno in sospeso; eventuali riporti già registrati non saranno modificati."
+              confirmLabel="Conferma importo"
+              pending={pending}
+              onConfirm={()=>save(
+                ()=>addTransferAction({workshopId:data.workshop.id,expectedResidual:current,
+                  fields:{fromParty,amount,status,executedOn:status==="eseguito"?date:"",notes}}),
+                "Movimento registrato.",
+                ()=>{setOpen(false);setAsking(false);setNotes("");}
+              )}
+              onCancel={()=>setAsking(false)}
+            />
+          ):(
+            <div className="flex gap-2">
+              <button type="button" className={buttonClass.primary}
+                disabled={pending||!typed||typed<=0||(status==="eseguito"&&!date)}
+                onClick={()=>setAsking(true)}>Continua</button>
+              <button type="button" className={buttonClass.ghost} onClick={()=>setOpen(false)}>Chiudi</button>
+            </div>
+          )}
+        </div>
       )}
-      {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
+      {message?<Notice tone={message.tone}>{message.text}</Notice>:null}
     </div>
   );
 }
@@ -502,7 +580,7 @@ function DivisionContent({
   const executed = data.transfers.filter((t) => t.status === "eseguito").reduce((sum, t) => sum + t.amountCents, 0);
   return (
     <div className="space-y-3">
-      {viewer === "admin" ? <ResultBlock data={data} viewer={viewer} withSettle={withSettle} /> : null}
+      {viewer === "admin" ? <ResultBlock data={data} viewer={viewer} today={today} withSettle={withSettle} /> : null}
       <div className="lg:grid lg:grid-cols-2 lg:gap-6">
         <div className="space-y-2">
           <p className="text-sm font-semibold text-[#5f524c]">Ripartizione</p>
@@ -568,7 +646,7 @@ function OrganizerAccounts({
         ) : (
           <p className="text-[15px] font-semibold text-[#7a5212]">{settlement.utile < 0 ? LOSS_FOR_ALE : settlement.frase}</p>
         )}
-        <SettleResidual data={data} viewer="organizzatrice" />
+        <SettleResidual data={data} viewer="organizzatrice" today={today} />
       </div>
 
       <FinanceDashboard data={data} />
