@@ -146,6 +146,17 @@ export function PeonyEventOperations({
                     <strong className="block break-words text-sm">{person.name}</strong>
                     <span className="block break-words text-xs text-[#5f524c]">{person.email || "Email non disponibile"}</span>
                     {person.ticketType ? <span className="mt-1 block text-xs text-[#5f524c]">Biglietto: {person.ticketType}</span> : null}
+                    {person.associationStatus ? (
+                      <span className="mt-1 block text-xs text-[#5f524c]">
+                        Libro soci sincronizzato: {person.associationStatus === "valid" ? "in regola" :
+                          person.associationStatus === "payment_missing" ? "quota da verificare" : "modulo non trovato"}
+                      </span>
+                    ) : null}
+                    {person.linkedPersonId ? (
+                      <a href={`/gestione/p/${person.linkedPersonId}`} className="mt-1 block text-xs font-semibold underline text-[#a8583e]">
+                        Apri scheda anagrafica
+                      </a>
+                    ) : null}
                     {person.present ? <span className="mt-1 block text-xs text-[#3c6b49]">
                       Presente {person.checkedInVia === "ticket_tailor" ? "(Ticket Tailor)" : "(Peony)"}
                     </span> : null}
