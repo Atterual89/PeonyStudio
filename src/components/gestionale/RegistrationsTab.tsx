@@ -814,7 +814,7 @@ export function RegistrationsTab({
                   />
                 ) : null}
                 {open ? (
-                  <div className="flex justify-end border-t border-[#a8583e]/20 bg-[#f7f3ec] px-3 pb-3 pt-1.5">
+                  <div className="flex justify-end rounded-b-[14px] border-t border-[#a8583e]/20 bg-[#f7f3ec] px-3 pb-3 pt-1.5">
                     <button type="button" className="inline-flex min-h-10 items-center gap-1.5 text-sm font-semibold text-[#a8583e] underline-offset-2 hover:underline"
                       onClick={() => { setOpenId(null); setPaymentStart(null); }}>
                       Chiudi scheda <ChevronDown className="h-4 w-4 rotate-180" aria-hidden="true" />
