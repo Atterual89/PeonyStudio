@@ -9,6 +9,7 @@ import { deriveMembershipState } from "@/lib/association/membership-state";
 import { readAllMemberEvidence } from "@/lib/gestionale/server/peony-events";
 import { membershipPeriodFor } from "@/lib/association/membership-periods";
 import { suggestedQuotaCount } from "@/lib/gestionale/payment-email-parser";
+import { combinePaymentPersonCandidates } from "@/lib/gestionale/payment-person-candidates";
 import { refreshGestione } from "@/lib/gestionale/server/refresh";
 import { todayInRome } from "@/lib/gestionale/workshops";
 import { isUuidLike } from "@/lib/gestionale/validation";
@@ -66,7 +67,7 @@ export async function findPaymentPeopleAction(query: string): Promise<PaymentPer
     name:[m.first_name,m.last_name].filter(Boolean).join(" ")||m.email||"Socio",
     email:m.email,source:`Libro soci / modulo${m.matchedAlias?` · ${m.matchedAlias}`:""}`
   }));
-  return [...local,...book];
+  return combinePaymentPersonCandidates([...local,...book]);
 }
 export async function ignoreAssociationPaymentAction(paymentId: string) {
   await requireAdmin();
