@@ -9,7 +9,7 @@ function safeEqual(a:string,b:string){
  return left.length===right.length&&timingSafeEqual(left,right);
 }
 function redirectWith(request:NextRequest,status:string){
- const response=NextResponse.redirect(new URL(`/gestione/quote-email?gmail=${status}`,request.url));
+ const response=NextResponse.redirect(new URL(`/gestione?gmail=${status}`,request.url));
  response.cookies.set(STATE_COOKIE,"",{httpOnly:true,sameSite:"lax",
   secure:request.nextUrl.protocol==="https:",path:"/api/gestione/gmail",maxAge:0});
  return response;
