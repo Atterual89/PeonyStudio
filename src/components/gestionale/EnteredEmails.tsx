@@ -92,7 +92,7 @@ function ParticipantLine({entry,suggestedEmail}:{
         </button>
         <button type="button" className={buttonClass.ghost} disabled={pending}
           onClick={()=>{setName(entry.enteredAs??"");setEmail(entry.enteredEmail??"");setEditing(false);setMessage(null);}}>
-          Annulla
+          Chiudi
         </button>
       </div>
     </div>}
