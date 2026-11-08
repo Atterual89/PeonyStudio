@@ -291,7 +291,7 @@ export default async function WorkshopDashboard({
       {activeTab === "peony" ? (
         <>
           {gmail&&<p role={gmail==="connected"?"status":"alert"} className={`mb-3 rounded-xl border p-2 text-sm ${gmail==="connected"?"text-[#326941]":"text-[#9b4b1e]"}`}>
-            {gmail==="connected"?"Gmail Peony Studio collegata. Puoi sincronizzare le email.":"Collegamento Gmail non completato. Riprova con l’account Peony Studio."}
+            {gmail==="connected"?"Gmail Peony Studio collegata. Ora puoi sincronizzare le email.":gmail==="config"?"Configurazione Gmail incompleta su Netlify. Verifica le quattro variabili OAuth e il loro ambiente Production.":gmail==="wrong-account"?"Hai autorizzato un account Google diverso da peony.studio.turin@gmail.com. Riprova selezionando quello corretto.":gmail==="denied"?"L’accesso Gmail non è stato autorizzato. Se Google blocca l’app in modalità Test, aggiungi l’account Peony agli utenti di test in Google Cloud.":gmail==="scope"?"Google non ha rilasciato il permesso Gmail richiesto. Riprova con la stessa casella e accetta il permesso di lettura.":gmail==="invalid"?"Sessione Google scaduta: torna al gestionale e premi nuovamente Collega Gmail.":"Collegamento Gmail non completato. Verifica indirizzo di reindirizzamento OAuth e configurazione Google Cloud."}
           </p>}
           <div className="mb-4 grid gap-2 sm:flex sm:items-start">
             <SyncTicketTailorButton />
