@@ -11,7 +11,7 @@ export type UpcomingContact = {
   personId: string | null;
   formMemberId: string | null;
   paid: boolean | null;
-  paidSource: "manual" | "book" | null;
+  paidSource: "manual" | "email" | "book" | null;
   status: ContactStatus;
   associationRequired?: boolean;
 };
