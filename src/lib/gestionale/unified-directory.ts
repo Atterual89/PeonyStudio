@@ -30,7 +30,8 @@ export type UnifiedContact = {
 };
 type PersonRef = Pick<Person,
   "id" | "first_name" | "last_name" | "nickname" | "email" |
-  "association_member_id" | "membership_email" | "membership_name_key" | "merged_into"> & { version?: number };
+  "association_member_id" | "membership_email" | "membership_name_key" | "merged_into"> &
+ { version?: number; instagram?: string|null; phone?: string|null; teamartist_id?: string|null };
 type Group = {
   id: string;
   nameKey: string;
@@ -103,6 +104,7 @@ export function buildUnifiedDirectory(input:{
   people:readonly PersonRef[];
   evidence:readonly RegistryEvidence[];
   today:string;
+  aliasesByPerson?:ReadonlyMap<string,readonly string[]>;
 }):UnifiedContact[]{
   const people=active(input.people);
   const groups=groupEvidence(input.evidence);
@@ -150,7 +152,8 @@ export function buildUnifiedDirectory(input:{
       key:`person:${person.id}`,name:fullName,nickname:person.nickname,email,
       personId:person.id,personVersion:person.version??null,possiblePersonId:null,possiblePersonVersion:null,kind:group?"unita":"anagrafica",
       association:association(group?.rows??[],input.today),source:group?sources(group.rows):"Anagrafica",
-      link,search:[fullName,person.nickname,email,group?.rows.map(nameOf).join(" ")].filter(Boolean).join(" "),
+      link,search:[fullName,person.nickname,email,person.instagram,person.phone,person.teamartist_id,
+        group?.rows.map(nameOf).join(" "),...(input.aliasesByPerson?.get(person.id)??[])].filter(Boolean).join(" "),
     });
   }
   for(const group of groups){
