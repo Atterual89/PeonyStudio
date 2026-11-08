@@ -50,7 +50,7 @@ export async function importPaymentNotifications(initialFrom?: string): Promise<
   const auth = oauthClient();
   const gmail = google.gmail({version:"v1", auth});
   const cutoff = new Date(Date.now() - 120_000);
-  const query = `after:${Math.floor(start.getTime() / 1000)} before:${Math.ceil(cutoff.getTime() / 1000)} {from:(paypal.com) from:(paypal.it) from:(qonto.com)}`;
+  const query = `after:${Math.floor(start.getTime() / 1000)} before:${Math.ceil(cutoff.getTime() / 1000)} {from:paypal.com from:paypal.it from:qonto.com} {subject:"Hai ricevuto denaro" subject:"Hai ricevuto un bonifico"}`;
   let pageToken: string | undefined;
   let scanned = 0, imported = 0, skipped = 0;
   let finished = false;
