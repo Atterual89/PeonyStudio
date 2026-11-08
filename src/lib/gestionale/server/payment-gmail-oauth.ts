@@ -36,6 +36,8 @@ function decrypt(encoded:string){
  return Buffer.concat([decipher.update(data),decipher.final()]).toString("utf8");
 }
 export function newGmailOAuthClient(){
+ // Validate token encryption before asking the admin for Google consent.
+ encryptionKey();
  const {clientId,clientSecret,redirectUri}=gmailOAuthConfig();
  return new google.auth.OAuth2(clientId,clientSecret,redirectUri);
 }
