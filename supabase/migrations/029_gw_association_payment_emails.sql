@@ -37,7 +37,7 @@ create table if not exists public.gw_association_payment_allocations (
  validated_at timestamptz not null default now(),
  unique (payment_id, slot),
  unique (payment_id, person_id, period_from),
- unique (person_id, period_from, payment_id)
+ unique (person_id, period_from)
 );
 create index if not exists gw_assoc_alloc_payment on public.gw_association_payment_allocations(payment_id);
 alter table public.gw_payment_sync_state enable row level security;
