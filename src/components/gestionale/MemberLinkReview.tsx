@@ -71,8 +71,8 @@ export function MemberLinkReview({ proposals }: { proposals: LinkProposal[] }) {
                 → {proposal.memberName}
               </span>
               <span className="block break-all text-[#5f524c]">
-                {proposal.personEmail ?? "senza email"}
-                {proposal.by === "nome" ? ` · nel libro soci: ${proposal.memberEmail ?? "senza email"}` : null}
+                {proposal.personEmail ?? "Email non disponibile nella scheda"}
+                {proposal.by === "nome" ? ` · libro soci: ${proposal.memberEmail ?? "email non presente"}` : null}
               </span>
               {proposal.differentEmail ? <span className="block text-xs font-semibold text-[#7a5212]">email diversa: controlla che sia la stessa persona</span> : null}
             </span>
@@ -84,27 +84,28 @@ export function MemberLinkReview({ proposals }: { proposals: LinkProposal[] }) {
 
   return (
     <div>
-      <Section title="Stessa email" count={byEmail.length} defaultOpen>
+      {byEmail.length>0 ? <Section title="Stessa email" count={byEmail.length} defaultOpen>
         {byEmail.length === 0 ? <p className="text-sm text-[#5f524c]">Nessuna.</p> : list(byEmail)}
-      </Section>
-      <Section title="Stesso nome e cognome · da confermare" count={byName.length} defaultOpen>
+      </Section> : null}
+      {byName.length>0 ? <Section title="Identità da controllare" count={byName.length} defaultOpen>
         {byName.length === 0 ? (
           <p className="text-sm text-[#5f524c]">Nessuna.</p>
         ) : (
           <>
-            <p className="mb-2 text-sm text-[#5f524c]">Spunta solo quelle in cui è certamente la stessa persona.</p>
+            <p className="mb-2 text-sm text-[#5f524c]">Queste sono verifiche di identità, non nuove quote. Conferma solo se è certamente la stessa persona.</p>
             {list(byName)}
           </>
         )}
-      </Section>
+      </Section> : null}
+      {proposals.length===0 ? <p className="mt-3 text-sm text-[#5f524c]">Nessun collegamento da confermare.</p> : null}
 
       {/* In basso, vicino al pollice. */}
-      <div className="sticky bottom-20 z-10 mt-3 space-y-2 rounded-xl bg-[#f2ede3]/95 py-2 backdrop-blur">
+      {proposals.length>0 ? <div className="sticky bottom-20 z-10 mt-3 space-y-2 rounded-xl bg-[#f2ede3]/95 py-2 backdrop-blur">
         {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
         <button type="button" className={`${buttonClass.primary} w-full sm:w-auto`} disabled={pending || picks.length === 0} onClick={confirm}>
           {pending ? "Collegamento…" : `Conferma selezionati (${picks.length})`}
         </button>
-      </div>
+      </div> : null}
     </div>
   );
 }

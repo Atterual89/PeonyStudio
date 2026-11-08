@@ -57,8 +57,18 @@ export default async function SociPage() {
           </div>
         ) : (
           <>
+            {result.alreadyVerified>0 ? (
+              <p className="mt-3 text-xs text-[#326941]">
+                {result.alreadyVerified} {result.alreadyVerified===1?"persona già verificata":"persone già verificate"} nel libro soci: nessuna nuova conferma necessaria.
+              </p>
+            ):null}
             <MemberLinkReview proposals={result.proposals} />
-            <Section title="Nessuna corrispondenza" count={result.none.length}>
+            <details className="mt-4 rounded-xl border border-[#211815]/10 bg-white/45 p-3">
+              <summary className="cursor-pointer text-sm font-semibold text-[#5f524c]">
+                Schede senza corrispondenza · {result.none.length}
+              </summary>
+              <p className="mt-2 text-xs text-[#5f524c]">Solo archivio: non indica quote da pagare o soci da verificare.</p>
+              <Section title="Elenco" count={result.none.length}>
               {result.none.length === 0 ? <p className="text-sm text-[#5f524c]">Nessuna.</p> : (
                 <ul className={`${cardClass} divide-y divide-[#211815]/5 text-sm`}>
                   {result.none.map((person) => (
@@ -71,7 +81,8 @@ export default async function SociPage() {
                   ))}
                 </ul>
               )}
-            </Section>
+              </Section>
+            </details>
           </>
         )}
       </details>
