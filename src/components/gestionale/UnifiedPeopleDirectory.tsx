@@ -8,7 +8,7 @@ import { MemberQuickLink } from "./MemberQuickLink";
 
 const stateLabel:Record<UnifiedContact["association"],string>={
  verificata:"Verificata",da_verificare:"Quota da verificare",
- solo_modulo:"Modulo presente",non_presente:"Non nel libro soci",non_disponibile:"Stato non disponibile",
+ solo_modulo:"Modulo presente",non_presente:"Non collegata",non_disponibile:"Stato non disponibile",
 };
 const linkLabel:Record<UnifiedContact["link"],string>={
  confermato:"Abbinamento confermato",email:"Stessa email",
@@ -20,15 +20,16 @@ export function UnifiedPeopleDirectory({contacts,initialQuery=""}:{contacts:Unif
  const [filter,setFilter]=useState<Filter>("all");
  const [expanded,setExpanded]=useState(false);
  const [savedMessage,setSavedMessage]=useState<string|null>(null);
+ const needsReview=(contact:UnifiedContact)=>contact.personId?contact.link!=="confermato":contact.link==="da_verificare";
  const matching=useMemo(()=>{
   const tokens=normalizeText(q).split(/\s+/).filter(Boolean);
-  return contacts.filter(contact=>(filter!=="to_review"||contact.link==="da_verificare"||(Boolean(contact.personId)&&contact.link==="nessuno"))&&
+  return contacts.filter(contact=>(filter!=="to_review"||needsReview(contact))&&
     (filter!=="book_only"||contact.kind==="registro")&&
     tokens.every(token=>normalizeText(contact.search).includes(token)));
  },[contacts,q,filter]);
  const shown=expanded?matching:matching.slice(0,60);
  const memberCount=contacts.filter(c=>c.kind==="registro").length;
- const reviewCount=contacts.filter(c=>c.link==="da_verificare"||(c.personId&&c.link==="nessuno")).length;
+ const reviewCount=contacts.filter(needsReview).length;
  return <div className="space-y-3">
   {savedMessage&&<div role="status" className="fixed inset-x-4 bottom-24 z-40 mx-auto flex max-w-xl items-center justify-between gap-3 rounded-xl border border-[#326941]/40 bg-[#eef6ee] p-3 text-sm text-[#326941] shadow-lg">
    <span>{savedMessage}</span>
