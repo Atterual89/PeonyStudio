@@ -244,7 +244,7 @@ describe("organizzatrice: pagine riservate → 404", () => {
 
   it("Fase 5: collegamento al libro soci", async () => {
     const soci = (await import("@/app/gestione/(app)/altro/soci/page")).default;
-    await rejectsNotFound(soci());
+    await rejectsNotFound(soci({ searchParams: Promise.resolve({}) }));
     expect(rpc).not.toHaveBeenCalled();
   });
 

@@ -11,23 +11,28 @@ export function SyncAssociationMailButton({configured,connected,lastSync,missing
  const router=useRouter();
  const [busy,start]=useTransition();
  const [result,setResult]=useState<{ok:boolean;message:string}|null>(null);
+ const [progress,setProgress]=useState<string|null>(null);
  function sync(){
   if(busy)return;
   setResult(null);
+  setProgress("Connessione a Gmail…");
   start(async()=>{
    try{
     let scanned=0,imported=0,hasMore=false;
     for(let page=0;page<30;page++){
      const response=await syncAssociationMailAction();
      if(!response.ok){
+      setProgress(null);
       setResult({ok:false,message:response.error});router.refresh();return;
      }
      scanned+=response.data.scanned;
      imported+=response.data.imported;
      hasMore=response.data.hasMore;
+     setProgress(`Email controllate: ${scanned} · Nuove da verificare: ${imported}${hasMore?" · Ricerca in corso…":""}`);
      if(!hasMore)break;
     }
-    setResult({ok:true,message:`Email controllate: ${scanned} · Pagamenti da verificare: ${imported}${hasMore?" · Altre email da controllare: premi di nuovo il pulsante.":""}`});
+    setProgress(null);
+    setResult({ok:true,message:`Email controllate: ${scanned} · Nuovi pagamenti da verificare: ${imported}${hasMore?" · Altre email da controllare: premi nuovamente il pulsante.":""}`});
     router.refresh();
    }catch{
     setResult({ok:false,message:"Controllo Gmail interrotto. Ripremi per riprendere dall'ultimo punto salvato."});
@@ -49,9 +54,12 @@ export function SyncAssociationMailButton({configured,connected,lastSync,missing
    :<span className="inline-flex min-h-10 items-center rounded-xl border border-[#9b4b1e]/30 px-3 text-xs text-[#9b4b1e]">
       Gmail non configurato nell'hosting{missing.length?`: ${missing.join(", ")}`:""}
     </span>}
+  {busy&&progress&&<p role="status" className="max-w-sm text-xs text-[#5f524c]">{progress}</p>}
   {result&&<p role={result.ok?"status":"alert"} className={`max-w-sm text-xs ${result.ok?"text-[#326941]":"text-[#9b4b1e]"}`}>
    {result.message}
-   {result.ok&&<a href="/gestione/altro/soci#quote-email" className="ml-1 underline">Controlla quote</a>}
+   {result.ok
+      ? <a href="/gestione/altro/soci?quote=1#quote-email" className="ml-1 underline">Controlla quote</a>
+      : <a href="/api/gestione/gmail/start" className="ml-1 underline">Ricollega Gmail</a>}
   </p>}
   {!result&&lastSync&&<p className="text-xs text-[#5f524c]">
    Ultimo controllo: {new Date(lastSync).toLocaleDateString("it-IT")}

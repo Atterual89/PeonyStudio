@@ -16,3 +16,9 @@ jobs:
       - run: npx tsc --noEmit
       - run: npm run test:gestionale
       - run: npm run test:gestionale:sql
+      - name: Next.js production build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-public-test-key
+          SUPABASE_SERVICE_ROLE_KEY: ci-service-test-key

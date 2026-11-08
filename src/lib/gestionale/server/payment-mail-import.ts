@@ -1,26 +1,11 @@
 import "server-only";
 import { google, gmail_v1 } from "googleapis";
+import { paymentMailBody } from "@/lib/gestionale/gmail-message-body";
 import { gmailAuthForPayments, PEONY_GMAIL_ADDRESS } from "@/lib/gestionale/server/payment-gmail-oauth";
 import { parsePaymentNotification, suggestedQuotaCount } from "@/lib/gestionale/payment-email-parser";
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
 
 const SOURCE = "gmail_payments";
-function decode(data?: string | null) {
-  if (!data) return "";
-  return Buffer.from(data.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
-}
-function bodyOf(payload: gmail_v1.Schema$MessagePart | undefined): string {
-  if (!payload) return "";
-  const parts = payload.parts ?? [];
-  if (parts.length) {
-    const texts = parts.flatMap((p) => {
-      if (p.mimeType === "text/plain") return [decode(p.body?.data)];
-      return p.parts ? [bodyOf(p)] : [];
-    }).filter(Boolean);
-    if (texts.length) return texts.join("\n");
-  }
-  return decode(payload.body?.data);
-}
 function header(payload: gmail_v1.Schema$MessagePart | undefined, name: string) {
   return payload?.headers?.find((item) => item.name?.toLowerCase() === name)?.value ?? "";
 }
@@ -76,7 +61,7 @@ export async function importPaymentNotifications(): Promise<PaymentImportResult>
     const message=await gmail.users.messages.get({userId:"me",id:item.id,format:"full"});
     const payload=message.data.payload;
     const candidate=parsePaymentNotification({
-      from:header(payload,"from"),subject:header(payload,"subject"),body:bodyOf(payload)
+      from:header(payload,"from"),subject:header(payload,"subject"),body:paymentMailBody(payload)
     });
     if(!candidate||!suggestedQuotaCount(candidate)){skipped++;continue;}
     const paidAt=new Date(Number(message.data.internalDate||0));

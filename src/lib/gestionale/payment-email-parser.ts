@@ -19,9 +19,15 @@ export function parsePaymentNotification(input: {
   from: string; subject: string; body: string;
 }): PaymentCandidate | null {
   const body = normalize(input.body);
-  const from = input.from.toLowerCase();
+  const parsedEmail = input.from.match(/<([^<>\s]+@[^<>\s]+)>/)?.[1]
+    ?? input.from.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i)?.[0]
+    ?? "";
+  const senderDomain = parsedEmail.toLowerCase().split("@").at(-1) ?? "";
+  const isPayPal = senderDomain === "paypal.com" || senderDomain === "paypal.it" ||
+    senderDomain.endsWith(".paypal.com") || senderDomain.endsWith(".paypal.it");
+  const isQonto = senderDomain === "qonto.com" || senderDomain.endsWith(".qonto.com");
   const subject = input.subject.toLowerCase();
-  if (subject.includes("hai ricevuto denaro") && from.includes("paypal.")) {
+  if (subject.includes("hai ricevuto denaro") && isPayPal) {
     const match = body.match(/([^\n]{2,120}?)\s+ti ha inviato\s+([\d.,]+)\s*€\s*EUR/i);
     const amount = match ? cents(match[2]) : null;
     if (!amount) return null;
@@ -33,9 +39,9 @@ export function parsePaymentNotification(input: {
       note: line(body, /Messaggio da [^\n]+\n([^\n]+)/i),
     };
   }
-  if (subject === "hai ricevuto un bonifico" && from.includes("qonto.")) {
-    const amount = cents(line(body, /Importo:\s*([\d.,]+)\s*EUR/i) || "");
-    const payer = line(body, /^Da:\s*([^\n]+)/im);
+  if (subject === "hai ricevuto un bonifico" && isQonto) {
+    const amount = cents(line(body, /Importo:?\s*([\d.,]+)\s*(?:EUR|€)/i) || "");
+    const payer = line(body, /^Da:?\s*([^\n]+)/im);
     // Stripe transfers are settlements, not individual membership payments.
     if (!amount || !payer || /^(stripe|paypal)\b/i.test(payer)) return null;
     return { provider: "qonto", payerName: payer, amountCents: amount,

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { AccountsTab } from "@/components/gestionale/AccountsTab";
+import { AssociationMailSyncControl } from "@/components/gestionale/AssociationMailSyncControl";
 import { DeleteWorkshopSection } from "@/components/gestionale/Deletion";
 import { EmailTab } from "@/components/gestionale/EmailTab";
 import { ParticipantsTab } from "@/components/gestionale/ParticipantsTab";
@@ -106,6 +107,15 @@ export default async function WorkshopDetailPage({
         </div>
       ) : null}
 
+      {isAdmin && active === "partecipanti" ? (
+        <div className="mt-3 flex flex-wrap items-start gap-2">
+          <Link href="/gestione/altro/soci#allineamento-anagrafiche" prefetch={false}
+            className="inline-flex min-h-10 items-center justify-center rounded-xl border border-[#a8583e] bg-white/85 px-4 text-sm font-semibold text-[#a8583e]">
+            Allinea libro soci
+          </Link>
+          <AssociationMailSyncControl />
+        </div>
+      ) : null}
       {isAdmin && bookings && active === "partecipanti" ? (
         <div className="mt-4 rounded-xl border border-[#211815]/10 bg-white/70 p-3">
           <h2 className="text-base font-semibold">Da verificare</h2>
