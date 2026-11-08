@@ -17,8 +17,9 @@ import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { findMemberLinkProposals } from "@/lib/gestionale/server/member-links";
 import { listCompletablePeople } from "@/lib/gestionale/server/member-fill";
 
-export default async function SociPage(){
+export default async function SociPage({searchParams}:{searchParams:Promise<{quote?:string}>}){
  await requireAdmin();
+ const openEmailReview=(await searchParams).quote==="1";
  const [proposals,completable,mail]=await Promise.all([
   findMemberLinkProposals().catch((error:unknown)=>{
    console.error("[soci] Proposte di collegamento",error instanceof Error?error.message:error);
@@ -52,7 +53,7 @@ export default async function SociPage(){
      <MemberLinkReview proposals={proposals.proposals}/>}
    </div>
   </details>
-  <details id="quote-email" className="rounded-xl border border-[#211815]/10 bg-white/70 p-3">
+  <details id="quote-email" open={openEmailReview} className="rounded-xl border border-[#211815]/10 bg-white/70 p-3">
    <summary className="cursor-pointer text-sm font-semibold">Pagamenti email da verificare{mail.ok?` · ${mail.payments.length}`:""}</summary>
    <div className="mt-3">
     {mail.ok?<PaymentEmailReview payments={mail.payments} periods={periods}
