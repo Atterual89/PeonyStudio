@@ -35,6 +35,7 @@ let badges = new Map<string, { kind: string }>();
 const updatePerson = vi.fn<(...args: unknown[]) => Promise<{ ok: true; data: number }>>(async () => ({ ok: true, data: 5 }));
 const setMembershipLink = vi.fn<(...args: unknown[]) => Promise<{ ok: true; data: number }>>(async () => ({ ok: true, data: 5 }));
 const setMembershipNameLink = vi.fn<(...args: unknown[]) => Promise<{ ok: true; data: number }>>(async () => ({ ok: true, data: 5 }));
+const setMembershipConfirmedBookLink = vi.fn<(...args: unknown[]) => Promise<{ ok: true; data: number }>>(async () => ({ ok: true, data: 5 }));
 
 vi.mock("@/lib/gestionale/server/data", () => ({
   getPerson: async (id: string) => (id === P ? person : null),
@@ -53,13 +54,14 @@ vi.mock("@/lib/gestionale/server/mutations", () => ({
   updatePerson: (...args: unknown[]) => updatePerson(...args),
   setMembershipLink: (...args: unknown[]) => setMembershipLink(...args),
   setMembershipNameLink: (...args: unknown[]) => setMembershipNameLink(...args),
+  setMembershipConfirmedBookLink: (...args: unknown[]) => setMembershipConfirmedBookLink(...args),
 }));
 
 const { linkMemberAction } = await import("@/app/gestione/(app)/w/actions");
 
 beforeEach(() => {
   badges = new Map();
-  for (const mock of [refresh, revalidatePath, updatePerson, setMembershipLink, setMembershipNameLink]) mock.mockClear();
+  for (const mock of [refresh, revalidatePath, updatePerson, setMembershipLink, setMembershipNameLink, setMembershipConfirmedBookLink]) mock.mockClear();
 });
 
 describe("collegare al libro soci", () => {
@@ -76,7 +78,7 @@ describe("collegare al libro soci", () => {
     expect(await linkMemberAction({ personId: P, version: 4, memberId: "n:acutis claudia" })).toEqual({ ok: true, data: { warning: null } });
     expect(setMembershipLink).not.toHaveBeenCalled();
     expect(updatePerson).not.toHaveBeenCalled();
-    expect(setMembershipNameLink).toHaveBeenCalledWith("op-admin",P,4,"acutis claudia");
+    expect(setMembershipConfirmedBookLink).toHaveBeenCalledWith("op-admin",P,4,"acutis claudia");
     expect(refresh).toHaveBeenCalled();
   });
 

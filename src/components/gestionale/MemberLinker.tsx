@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import {useRouter} from "next/navigation";
 import {useEffect,useState,useTransition} from "react";
 
 import {
@@ -27,6 +28,7 @@ export function MemberLinker({
   initialQuery:string;
   referenceDate:string;
 }) {
+  const router=useRouter();
   const [query,setQuery]=useState(initialQuery);
   const [members,setMembers]=useState<MemberSummary[]|null>(null);
   const [people,setPeople]=useState<RegistryPersonHit[]>([]);
@@ -49,7 +51,9 @@ export function MemberLinker({
     if(trimmed.length<2){setMembers(null);setPeople([]);setSearchError(null);return;}
     let cancelled=false;
     const timer=setTimeout(async()=>{
-      const result=await memberSearchAction(trimmed,referenceDate);
+      let result:Awaited<ReturnType<typeof memberSearchAction>>;
+      try{ result=await memberSearchAction(trimmed,referenceDate); }
+      catch { if(!cancelled)setSearchError("Ricerca temporaneamente non disponibile. Riprova.");return; }
       if(cancelled)return;
       setSearchError(result.ok?null:result.error);
       if(result.ok){
@@ -64,12 +68,13 @@ export function MemberLinker({
     if(!selected||blocked(selected))return;
     flash.clear();
     startTransition(async()=>{
+      try{
       if(canUseFormEmail(selected)){
         const result=await attachMemberFormEmailAction({
           personId:person.id,version:person.version,memberId:selected.id,
         });
         flash.result(result,"Email del modulo collegata. Il libro soci resta invariato; la quota 2027 va verificata separatamente.");
-        if(result.ok){setSelected(null);setMembers(null);}
+        if(result.ok){setSelected(null);setMembers(null);router.refresh();}
       }else{
         const result=await linkMemberAction({
           personId:person.id,version:person.version,memberId:selected.id,referenceDate,
@@ -77,8 +82,9 @@ export function MemberLinker({
         if(result.ok&&result.data.warning){
           flash.show("warning",`Collegamento salvato, ma lo stato va verificato: ${result.data.warning}`);
         }else flash.result(result,`Collegata a ${name(selected)}.`);
-        if(result.ok){setSelected(null);setMembers(null);}
+        if(result.ok){setSelected(null);setMembers(null);router.refresh();}
       }
+      }catch {flash.show("error","Collegamento non riuscito. Ricarica la scheda e riprova.");}
     });
   }
 

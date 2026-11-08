@@ -4,11 +4,14 @@ import Link from "next/link";
 
 import { WorkshopTable, YearSelect } from "@/components/gestionale/HomeControls";
 import { SyncTicketTailorButton } from "@/components/gestionale/SyncTicketTailorButton";
+import { SyncAssociationMailButton } from "@/components/gestionale/SyncAssociationMailButton";
 import { EconomicBadge, RecapTiles, RecheckBadge } from "@/components/gestionale/Recap";
 import { Notice, Section, cardClass } from "@/components/gestionale/ui";
 import { formatCents, formatDateRange } from "@/lib/gestionale/format";
 import { availableYears, conguagliText, homeView, parseYearFilter, recapLine } from "@/lib/gestionale/recap";
 import { requireOperator } from "@/lib/gestionale/server/auth";
+import { getGestionaleDb } from "@/lib/gestionale/server/db";
+import { gmailConnectionStatus } from "@/lib/gestionale/server/payment-gmail-oauth";
 import { loadPeonyEventsSummary, type PeonyEventSummary } from "@/lib/gestionale/server/peony-events";
 import { getDashboard } from "@/lib/gestionale/server/data";
 import type { OperatorRole } from "@/lib/gestionale/types";
@@ -188,21 +191,29 @@ function PeonyEventsSection({ entries, today, year }: {
 export default async function WorkshopDashboard({
   searchParams,
 }: {
-  searchParams: Promise<{ errore?: string; anno?: string | string[]; vista?: string | string[] }>;
+  searchParams: Promise<{ errore?: string; anno?: string | string[]; vista?: string | string[]; gmail?:string }>;
 }) {
   const operator = await requireOperator();
   const viewer = operator.role;
-  const { errore, anno, vista } = await searchParams;
+  const { errore, anno, vista, gmail } = await searchParams;
   const activeTab = viewer === "admin" && vista === "luxuria" ? "luxuria" : "peony";
   // Carichiamo solo il contenuto della scheda visibile: una lunga lista
   // Peony non rallenta piu' la consultazione dei workshop di Ale.
-  const [entries, peonyEvents] = await Promise.all([
+  const [entries, peonyEvents, gmailStatus, mailSync] = await Promise.all([
     viewer === "organizzatrice" || activeTab === "luxuria"
       ? getDashboard()
       : Promise.resolve([]),
     viewer === "admin" && activeTab === "peony"
       ? loadPeonyEventsSummary()
       : Promise.resolve([]),
+    viewer === "admin" && activeTab === "peony"
+      ? gmailConnectionStatus()
+      : Promise.resolve({configured:false,connected:false,updatedAt:null,missing:[] as string[]}),
+    viewer === "admin" && activeTab === "peony"
+      ? getGestionaleDb().from("gw_payment_sync_state").select("last_success_at")
+          .eq("source","gmail_payments").maybeSingle()
+      : Promise.resolve({data:null}),
+
   ]);
   const today = todayInRome();
   const year = parseYearFilter(anno, today);
@@ -279,16 +290,18 @@ export default async function WorkshopDashboard({
       <AdminEventTabs active={activeTab} year={year} />
       {activeTab === "peony" ? (
         <>
+          {gmail&&<p role={gmail==="connected"?"status":"alert"} className={`mb-3 rounded-xl border p-2 text-sm ${gmail==="connected"?"text-[#326941]":"text-[#9b4b1e]"}`}>
+            {gmail==="connected"?"Gmail Peony Studio collegata. Ora puoi sincronizzare le email.":gmail==="config"?"Configurazione Gmail incompleta su Netlify. Verifica le quattro variabili OAuth e il loro ambiente Production.":gmail==="wrong-account"?"Hai autorizzato un account Google diverso da peony.studio.turin@gmail.com. Riprova selezionando quello corretto.":gmail==="denied"?"L’accesso Gmail non è stato autorizzato. Se Google blocca l’app in modalità Test, aggiungi l’account Peony agli utenti di test in Google Cloud.":gmail==="scope"?"Google non ha rilasciato il permesso Gmail richiesto. Riprova con la stessa casella e accetta il permesso di lettura.":gmail==="invalid"?"Sessione Google scaduta: torna al gestionale e premi nuovamente Collega Gmail.":"Collegamento Gmail non completato. Verifica indirizzo di reindirizzamento OAuth e configurazione Google Cloud."}
+          </p>}
           <div className="mb-4 grid gap-2 sm:flex sm:items-start">
             <SyncTicketTailorButton />
-            <Link href="/gestione/quote-email" prefetch={false}
+            <Link href="/gestione/altro/soci#allineamento-anagrafiche" prefetch={false}
               className="inline-flex min-h-10 items-center justify-center rounded-xl border border-[#a8583e] bg-white/85 px-4 text-sm font-semibold text-[#a8583e]">
-              Verifica email quote
+              Allinea libro soci
             </Link>
-              <Link href="/gestione/altro/soci#allineamento-anagrafiche" prefetch={false}
-                className="inline-flex min-h-10 items-center justify-center rounded-xl border border-[#a8583e] bg-white/85 px-4 text-sm font-semibold text-[#a8583e]">
-                Allinea libro soci
-              </Link>
+            <SyncAssociationMailButton configured={gmailStatus.configured}
+              connected={gmailStatus.connected} lastSync={mailSync.data?.last_success_at??null}
+              missing={gmailStatus.missing}/>
           </div>
           <div className="flex justify-end">
             <YearSelect value={year} years={years} vista="peony" />

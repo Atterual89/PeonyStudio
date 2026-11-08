@@ -29,6 +29,7 @@ import {
   type BookingPersonInput,
   type ResolveAction,
   setMembershipNameLink,
+  setMembershipConfirmedBookLink,
 } from "@/lib/gestionale/server/mutations";
 import type { ActionResult, BookingStatus, MemberSummary, MembershipBadge, Person, PersonFields } from "@/lib/gestionale/types";
 import { asText, isIsoDate, isUuidLike, isVersion } from "@/lib/gestionale/validation";
@@ -199,9 +200,16 @@ export async function memberSearchAction(query:string,referenceDate?:string):Pro
       searchMembers(text,25,referenceDate,{includeLinked:true}),
       loadPeople(),
     ]);
+    // Se nickname e nome ufficiale sono diversi, mostra anche i risultati
+    // dell'ultima parola significativa, senza considerarli stessa persona.
+    // Esempio: "Gesù Christian" nell'anagrafica e "Christian Martelli" nel libro.
+    const lastToken=text.split(/\s+/).filter(token=>token.length>=3).at(-1)??"";
+    const bookResults=members.length===0&&lastToken&&lastToken.toLocaleLowerCase("it")!==text.toLocaleLowerCase("it")
+      ? await searchMembers(lastToken,25,referenceDate,{includeLinked:true})
+      : members;
     const found=searchPeople(people,text,12);
     return {ok:true,data:{
-      members,
+      members:bookResults,
       people:found.map(person=>({
         id:person.id,displayName:displayName(person),
         detail:[fullName(person),person.nickname? `nickname: ${person.nickname}`:null,person.email]
@@ -342,7 +350,7 @@ async function linkPersonToMember(operatorId: string, personId: string, version:
     if(!key||key.kind!=="name")return INVALID;
     // Nome senza email: non limitarsi a riscrivere il nominativo.
     // Salva un vero riferimento nominale, univoco e con audit.
-    return setMembershipNameLink(operatorId,personId,version,key.nameKey);
+    return setMembershipConfirmedBookLink(operatorId,personId,version,key.nameKey);
   }
   if (!link) {
     const person=await getPerson(personId);

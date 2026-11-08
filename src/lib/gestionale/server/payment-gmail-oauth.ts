@@ -36,6 +36,8 @@ function decrypt(encoded:string){
  return Buffer.concat([decipher.update(data),decipher.final()]).toString("utf8");
 }
 export function newGmailOAuthClient(){
+ // Validate token encryption before asking the admin for Google consent.
+ encryptionKey();
  const {clientId,clientSecret,redirectUri}=gmailOAuthConfig();
  return new google.auth.OAuth2(clientId,clientSecret,redirectUri);
 }
@@ -48,12 +50,22 @@ export async function saveGmailRefreshToken(token:string,updatedBy:string){
  if(error)throw new Error("Impossibile memorizzare il collegamento Gmail protetto.");
 }
 export async function gmailConnectionStatus(){
- const configured=Boolean(process.env.GMAIL_PAYMENTS_CLIENT_ID&&process.env.GMAIL_PAYMENTS_CLIENT_SECRET&&
-   process.env.GMAIL_PAYMENTS_REDIRECT_URI&&process.env.GMAIL_PAYMENTS_TOKEN_KEY);
+ const names=[
+  "GMAIL_PAYMENTS_CLIENT_ID","GMAIL_PAYMENTS_CLIENT_SECRET",
+  "GMAIL_PAYMENTS_REDIRECT_URI","GMAIL_PAYMENTS_TOKEN_KEY"
+ ] as const;
+ const missing=names.filter(name=>!process.env[name]?.trim());
+ const redirect=process.env.GMAIL_PAYMENTS_REDIRECT_URI?.trim()||"";
+ const key=process.env.GMAIL_PAYMENTS_TOKEN_KEY?.trim()||"";
+ if(redirect&&!redirect.startsWith("https://"))
+  missing.push("GMAIL_PAYMENTS_REDIRECT_URI");
+ if(key&&Buffer.from(key,"base64").length!==32)
+  missing.push("GMAIL_PAYMENTS_TOKEN_KEY");
+ const configured=missing.length===0;
  const {data,error}=await getGestionaleDb().from("gw_gmail_connections")
    .select("gmail_address,updated_at").eq("id",CONNECTION_ID).maybeSingle();
- if(error)return {configured,connected:Boolean(process.env.GMAIL_PAYMENTS_REFRESH_TOKEN),updatedAt:null};
- return {configured,connected:Boolean(data||process.env.GMAIL_PAYMENTS_REFRESH_TOKEN),updatedAt:data?.updated_at??null};
+ if(error)return {configured,connected:Boolean(process.env.GMAIL_PAYMENTS_REFRESH_TOKEN),updatedAt:null,missing};
+ return {configured,connected:Boolean(data||process.env.GMAIL_PAYMENTS_REFRESH_TOKEN),updatedAt:data?.updated_at??null,missing};
 }
 export async function gmailAuthForPayments(){
  const auth=newGmailOAuthClient();

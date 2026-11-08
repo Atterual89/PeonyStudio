@@ -37,7 +37,8 @@ describe("sync soci nel gestionale PIN", () => {
     expect(home).toContain("<SyncTicketTailorButton />");
     expect(home).not.toContain("<SyncSociButton />");
     const settings = source("src/app/gestione/(app)/altro/soci/page.tsx");
-    expect(settings).toContain("<SyncSociButton />");
+    expect(settings).toMatch(/<SyncSociButton\s*\/>/);
+    expect(settings).toContain("Aggiornamenti e strumenti avanzati");
   });
 
   it("la pagina di revisione soci è protetta e legge tutte le righe", () => {
@@ -87,7 +88,8 @@ describe("Ticket Tailor a blocchi e accesso rapido al libro soci", () => {
   it("offre accesso visibile all'allineamento senza confermare quote automaticamente", () => {
     expect(eventPage).toContain("Allinea libro soci");
     expect(eventPage).toContain("/gestione/altro/soci#allineamento-anagrafiche");
-    expect(bookPage).toContain('id="allineamento-anagrafiche" open');
+    expect(bookPage).toContain('id="allineamento-anagrafiche"');
+    expect(bookPage).not.toContain('id="allineamento-anagrafiche" open');
     expect(bookPage).toContain("MemberLinkReview");
     expect(bookPage).toContain("SociBookUpload");
     expect(bookPage).toContain("RefreshMembershipButton");

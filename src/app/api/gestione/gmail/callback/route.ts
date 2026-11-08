@@ -9,7 +9,7 @@ function safeEqual(a:string,b:string){
  return left.length===right.length&&timingSafeEqual(left,right);
 }
 function redirectWith(request:NextRequest,status:string){
- const response=NextResponse.redirect(new URL(`/gestione/quote-email?gmail=${status}`,request.url));
+ const response=NextResponse.redirect(new URL(`/gestione?gmail=${status}`,request.url));
  response.cookies.set(STATE_COOKIE,"",{httpOnly:true,sameSite:"lax",
   secure:request.nextUrl.protocol==="https:",path:"/api/gestione/gmail",maxAge:0});
  return response;
@@ -19,13 +19,18 @@ export async function GET(request:NextRequest){
  const expected=request.cookies.get(STATE_COOKIE)?.value??"";
  const received=request.nextUrl.searchParams.get("state")??"";
  const code=request.nextUrl.searchParams.get("code")??"";
+ const googleError=request.nextUrl.searchParams.get("error")??"";
+ if(googleError==="access_denied")return redirectWith(request,"denied");
+ if(googleError)return redirectWith(request,"google-error");
  if(!expected||!received||!safeEqual(expected,received)||!code)
   return redirectWith(request,"invalid");
  try{
   const client=newGmailOAuthClient();
   const {tokens}=await client.getToken(code);
   const scope=(tokens.scope||"").split(/\s+/);
-  if(!tokens.refresh_token||!scope.includes("https://www.googleapis.com/auth/gmail.readonly"))
+  if(!tokens.refresh_token)
+   return redirectWith(request,"scope");
+  if(tokens.scope && !scope.includes("https://www.googleapis.com/auth/gmail.readonly"))
    return redirectWith(request,"scope");
   client.setCredentials(tokens);
   const profile=await google.gmail({version:"v1",auth:client}).users.getProfile({userId:"me"});

@@ -20,6 +20,6 @@ export async function GET(request:NextRequest){
   });
   return response;
  }catch{
-  return NextResponse.redirect(new URL("/gestione/quote-email?gmail=config",request.url));
+  return NextResponse.redirect(new URL("/gestione?gmail=config",request.url));
  }
 }
