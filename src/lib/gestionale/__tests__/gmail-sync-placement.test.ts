@@ -10,6 +10,7 @@ describe("pulsante Gmail condiviso dove si controllano le quote",()=>{
       "src/app/gestione/(app)/peony/[id]/page.tsx",
       "src/app/gestione/(app)/w/[id]/page.tsx",
       "src/app/gestione/(app)/altro/soci/page.tsx",
+      "src/app/gestione/(app)/p/[id]/page.tsx",
     ]) expect(file(p),p).toContain("<AssociationMailSyncControl");
   });
   it("non sincronizza mai Gmail dal ruolo organizzatrice",()=>{
