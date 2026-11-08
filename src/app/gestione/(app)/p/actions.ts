@@ -159,7 +159,7 @@ export async function suggestPersonEmailsAction(personId: string): Promise<
   await requireAdmin();
   if (!isUuidLike(personId)) return { ok: false, error: "Persona non valida." };
   const person = await getPerson(personId);
-  if (!person || person.deleted_at || person.merged_into) return { ok: false, error: "Persona non trovata." };
+  if (!person || person.merged_into) return { ok: false, error: "Persona non trovata." };
   const { getGestionaleDb } = await import("@/lib/gestionale/server/db");
   const db = getGestionaleDb();
   const tokens = [person.last_name, person.first_name, person.nickname]
