@@ -4,6 +4,7 @@ import { refreshGestione } from "@/lib/gestionale/server/refresh";
 
 import { uniqueExactMatches, type ExactMatch } from "@/lib/gestionale/exact-matches";
 import { displayName, fullName, normalizeText } from "@/lib/gestionale/format";
+import { compatibleFormName } from "@/lib/gestionale/member-lookup";
 import { ADMIN_BOOKING_STATUSES, HOMONYMS_WARNING } from "@/lib/gestionale/labels";
 import { personFieldsFromFreeText, searchPeople } from "@/lib/gestionale/people";
 import { parsePersonChoice, type PersonChoice } from "@/lib/gestionale/person-choice";
@@ -177,16 +178,40 @@ export async function quickSearchAction(input: {
  * socio, con lo stato tessera che risulterebbe alla data indicata (inizio del
  * workshop, o oggi nella scheda persona).
  */
-export async function memberSearchAction(query: string, referenceDate?: string): Promise<ActionResult<MemberSummary[]>> {
+export type RegistryPersonHit={
+  id:string;
+  displayName:string;
+  detail:string;
+  linked:boolean;
+};
+export type RegistrySearchResult={
+  members:MemberSummary[];
+  people:RegistryPersonHit[];
+};
+
+export async function memberSearchAction(query:string,referenceDate?:string):Promise<ActionResult<RegistrySearchResult>>{
   await requireAdmin();
-  const text = asText(query, 100).trim();
-  if (referenceDate !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(asText(referenceDate, 10))) return INVALID;
-  if (text.length < 2) return { ok: true, data: [] };
-  try {
-    return { ok: true, data: await searchMembers(text, 8, referenceDate) };
-  } catch (error) {
-    console.error("Gestionale libro soci:", error instanceof Error ? error.message : error);
-    return { ok: false, error: "Ricerca nel libro soci non riuscita. Riprova." };
+  const text=asText(query,100).trim();
+  if(referenceDate!==undefined&&!/^\d{4}-\d{2}-\d{2}$/.test(asText(referenceDate,10)))return INVALID;
+  if(text.length<2)return {ok:true,data:{members:[],people:[]}};
+  try{
+    const [members,people]=await Promise.all([
+      searchMembers(text,25,referenceDate,{includeLinked:true}),
+      loadPeople(),
+    ]);
+    const found=searchPeople(people,text,12);
+    return {ok:true,data:{
+      members,
+      people:found.map(person=>({
+        id:person.id,displayName:displayName(person),
+        detail:[fullName(person),person.nickname? `nickname: ${person.nickname}`:null,person.email]
+          .filter(Boolean).join(" · "),
+        linked:Boolean(person.association_member_id||person.membership_email||person.membership_name_key),
+      })),
+    }};
+  }catch(error){
+    console.error("Gestionale ricerca registri soci:",error instanceof Error?error.message:error);
+    return {ok:false,error:"Ricerca nel libro soci e nell'anagrafica non riuscita. Riprova."};
   }
 }
 
@@ -333,6 +358,42 @@ async function linkPersonToMember(operatorId: string, personId: string, version:
  * scollega. `referenceDate` (inizio del workshop o oggi): se dopo il
  * collegamento lo stato resta "Non collegata", `warning` lo spiega (#11).
  */
+/** Unisci ESPLICITAMENTE l'email del modulo Google alla scheda già
+ * collegata al libro ufficiale senza email. Conserva il link Team Artist;
+ * non dichiara la quota 2027 pagata e non cambia il nome della scheda.
+ */
+export async function attachMemberFormEmailAction(input:{
+  personId:string;version:number;memberId:string;
+}):Promise<ActionResult>{
+  const operator=await requireAdmin();
+  if(!isUuidLike(input?.personId)||!isVersion(input?.version)||!parseMemberKey(input?.memberId))return INVALID;
+  const [person,member]=await Promise.all([
+    getPerson(input.personId),
+    getMemberSummary(input.memberId),
+  ]);
+  if(!person||person.merged_into||!person.membership_name_key)
+    return {ok:false,error:"Prima occorre collegare la persona al libro soci."};
+  if(person.version!==input.version)
+    return {ok:false,error:"La scheda è stata modificata. Ricarica e riprova."};
+  if(person.email)
+    return {ok:false,error:"La persona ha già un'email: verifica prima che sia corretta."};
+  if(!member||member.source!=="modulo"||!member.email)
+    return {ok:false,error:"Seleziona una registrazione del modulo Google con email."};
+  if(!compatibleFormName(fullName(person),[member.first_name,member.last_name].filter(Boolean).join(" ")))
+    return {ok:false,error:"Il nome e il cognome non sono sufficientemente compatibili. Verifica l'identità."};
+  const db=getGestionaleDb();
+  const existing=await db.from("gw_people").select("id")
+    .ilike("email",member.email).is("deleted_at",null).is("merged_into",null).neq("id",person.id).limit(1);
+  if(existing.error)return {ok:false,error:"Non riesco a controllare le email già presenti."};
+  if(existing.data?.length)return {ok:false,error:"Questa email è già usata da un'altra scheda: verifica il possibile duplicato."};
+  const updated=await updatePerson(operator.id,person.id,person.version,{
+    ...personFieldsOf(person),email:member.email,
+  });
+  if(!updated.ok)return updated;
+  refreshGestione();
+  return {ok:true};
+}
+
 export async function linkMemberAction(input: {
   personId: string;
   version: number;
