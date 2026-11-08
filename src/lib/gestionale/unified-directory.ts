@@ -30,7 +30,7 @@ export type UnifiedContact = {
 };
 type PersonRef = Pick<Person,
   "id" | "first_name" | "last_name" | "nickname" | "email" |
-  "association_member_id" | "membership_email" | "membership_name_key" | "merged_into" | "version">;
+  "association_member_id" | "membership_email" | "membership_name_key" | "merged_into"> & { version?: number };
 type Group = {
   id: string;
   nameKey: string;
@@ -148,7 +148,7 @@ export function buildUnifiedDirectory(input:{
     const email=person.email||best?.email||null;
     contacts.push({
       key:`person:${person.id}`,name:fullName,nickname:person.nickname,email,
-      personId:person.id,personVersion:person.version,possiblePersonId:null,possiblePersonVersion:null,kind:group?"unita":"anagrafica",
+      personId:person.id,personVersion:person.version??null,possiblePersonId:null,possiblePersonVersion:null,kind:group?"unita":"anagrafica",
       association:association(group?.rows??[],input.today),source:group?sources(group.rows):"Anagrafica",
       link,search:[fullName,person.nickname,email,group?.rows.map(nameOf).join(" ")].filter(Boolean).join(" "),
     });
@@ -163,7 +163,7 @@ export function buildUnifiedDirectory(input:{
     const possiblePersonId=group.nameKey&&matched.length===1?matched[0].id:null;
     contacts.push({
       key:`source:${group.id}`,name,email,nickname:null,personId:null,personVersion:null,possiblePersonId,
-      possiblePersonVersion:possiblePersonId?matched[0].version:null,
+      possiblePersonVersion:possiblePersonId?(matched[0].version??null):null,
       kind:"registro",association:association(group.rows,input.today),source:sources(group.rows),
       link:possiblePersonId?"da_verificare":"nessuno",
       search:[name,email,group.rows.map(nameOf).join(" ")].filter(Boolean).join(" "),
