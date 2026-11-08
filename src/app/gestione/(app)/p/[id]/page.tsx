@@ -134,7 +134,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
       </div>
 
       <Section title="Libro soci" defaultOpen>
-        <Link href="/gestione/quote-email" prefetch={false}
+        <Link href={`/gestione/quote-email?persona=${person.id}`} prefetch={false}
           className="mb-3 inline-flex min-h-10 items-center rounded-xl border border-[#a8583e] px-3 py-2 text-sm font-semibold text-[#a8583e]">
           Verifica pagamento tramite email
         </Link>
