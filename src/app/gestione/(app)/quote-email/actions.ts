@@ -121,7 +121,11 @@ export async function confirmAssociationPaymentAction(paymentId: string,target:P
   const state=deriveMembershipState(await readAllMemberEvidence(),identity,{
     paymentsFrom:period.paymentsFrom,paymentsUntil:period.validUntil
   });
-  if(state.currentYearPaid)return {ok:false as const,error:"Quota già verificata per questo periodo. Non assegnare un secondo pagamento: controlla il libro soci."};
+  if(state.currentYearPaid)return {ok:false as const,error:
+    period.paymentsFrom==="2025-09-01"
+      ?"Quota 2025/26 già verificata: non è stato salvato nulla. Se il pagamento riguarda il 2027, seleziona 2027 nella scheda e riprova."
+      :`Quota ${period.paymentsFrom.slice(0,4)} già verificata: non è stato salvato nulla. Controlla il libro soci.`
+  };
   const {error:rpcError}=await db.rpc("gw_confirm_association_payment",{
     p_payment_id:paymentId,p_person_id:personId,p_member_key:memberKey,
     p_period_from:period.paymentsFrom,p_period_until:period.validUntil,
@@ -131,7 +135,16 @@ export async function confirmAssociationPaymentAction(paymentId: string,target:P
     console.error("[quote-email] Conferma quota fallita",rpcError.code);
     return {ok:false as const,error:"Abbinamento non effettuato: quota già assegnata o dati cambiati. Ricarica e verifica."};
   }
+  // L'interfaccia conferma il risultato SOLO dopo aver riletto l'assegnazione
+  // realmente salvata (non basta che l'RPC non abbia restituito errori).
+  const {data:allocation,error:verifyError}=await db.from("gw_association_payment_allocations")
+    .select("id,slot,period_from")
+    .eq("payment_id",paymentId)
+    .eq("period_from",period.paymentsFrom)
+    .eq(target.kind==="person"?"person_id":"member_key",target.id)
+    .maybeSingle();
+  if(verifyError||!allocation)return {ok:false as const,error:"Salvataggio non confermato dal database. Ricarica e controlla la quota prima di riprovare."};
   await clearMembershipCache();
   refreshGestione();
-  return {ok:true as const};
+  return {ok:true as const,data:{slot:allocation.slot,periodFrom:allocation.period_from}};
 }
