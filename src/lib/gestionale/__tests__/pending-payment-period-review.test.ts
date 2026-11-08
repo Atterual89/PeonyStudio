@@ -1,0 +1,34 @@
+import {describe,expect,it} from "vitest";
+import {readFileSync} from "node:fs";
+import {membershipPeriodFor} from "@/lib/association/membership-periods";
+import {deriveMembershipState} from "@/lib/association/membership-state";
+
+const actions=readFileSync("src/app/gestione/(app)/quote-email/actions.ts","utf8");
+const review=readFileSync("src/components/gestionale/PaymentEmailReview.tsx","utf8");
+const memberSearch=readFileSync("src/lib/gestionale/server/membership.ts","utf8");
+
+describe("riconciliazione Qonto dopo una quota ufficiale già verificata",()=>{
+  it("la quota 2025/26 resta verificata e il 2027 non viene verificato per errore",()=>{
+    const evidence=[{
+      source:"official_members_book",first_name:"Maryna",last_name:"Zolotarenko",email:null,
+      membership_status:"verified",membership_starts_at:"2025-09-01",membership_expires_at:"2026-12-31",
+    }];
+    const identity={firstName:"Maryna",lastName:"Zolotarenko",email:"maru.zolotarenko@gmail.com"};
+    expect(deriveMembershipState(evidence,identity,{paymentsFrom:"2025-09-01",paymentsUntil:"2026-12-31"}).currentYearPaid).toBe(true);
+    expect(deriveMembershipState(evidence,identity,{paymentsFrom:"2027-01-01",paymentsUntil:"2027-12-31"}).currentYearPaid).toBe(false);
+    expect(membershipPeriodFor("2026-11-04")?.paymentsFrom).toBe("2025-09-01");
+  });
+  it("mostra il conflitto prima della conferma, con cambio esplicito di periodo",()=>{
+    expect(actions).toContain("const alreadyPaidPeriod=person&&period");
+    expect(actions).toContain("alreadyPaidPeriod,");
+    expect(review).toContain("periodAlreadyPaid");
+    expect(review).toContain("Seleziona {nextPeriod.label}");
+    expect(review).toContain("disabled={blocked||periodAlreadyPaid}");
+    expect(review).toContain("non è possibile assegnarlo due volte");
+  });
+  it("il collegamento alla persona resta distinto dalla quota e non cancella prove",()=>{
+    expect(memberSearch).toContain('const official = group.find(row => row.source === "official_members_book")');
+    expect(memberSearch).toContain("groupMemberEvidence(rows)");
+    expect(actions).toContain("gw_confirm_association_payment");
+  });
+});

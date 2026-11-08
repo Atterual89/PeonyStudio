@@ -11,6 +11,7 @@ import { readOfficialMembersBookFromGoogleSheet } from "@/lib/google/members-boo
 import { readAssociationMembersFromGoogleSheet } from "@/lib/google/sheets";
 import { normalizeText } from "@/lib/gestionale/format";
 import { memberLookupScore, previouslyVerifiedBookMember } from "@/lib/gestionale/member-lookup";
+import { groupMemberEvidence } from "@/lib/gestionale/member-evidence-groups";
 import { memberKeyOfPerson, memberKeyOfRow, parseMemberKey, type MemberKey } from "@/lib/gestionale/member-key";
 import { resolveMemberName, singleNameOrder, type SingleNameOrder } from "@/lib/gestionale/member-name";
 import { deriveForWorkshop, membershipBadge, paymentWindowFor } from "@/lib/gestionale/membership-rule";
@@ -358,36 +359,7 @@ const bySourceRank = (a: EvidenceRow, b: EvidenceRow) => (SOURCE_RANK[a.source ?
  * email diverse restano soci diversi.
  */
 function groupMemberRows(rows: readonly EvidenceRow[]): EvidenceRow[][] {
-  const byEmail = new Map<string, EvidenceRow[]>();
-  const withoutEmail: EvidenceRow[] = [];
-  for (const row of rows) {
-    const email = normalizeMembershipEmail(row.email);
-    if (email.includes("@")) byEmail.set(email, [...(byEmail.get(email) ?? []), row]);
-    else withoutEmail.push(row);
-  }
-  const emailGroupsByName = new Map<string, EvidenceRow[][]>();
-  for (const group of byEmail.values()) {
-    for (const nameKey of new Set(group.map((row) => normalizeMembershipNameKey(row.first_name, row.last_name)))) {
-      if (nameKey) emailGroupsByName.set(nameKey, [...(emailGroupsByName.get(nameKey) ?? []), group]);
-    }
-  }
-  const groups = [...byEmail.values()];
-  const byName = new Map<string, EvidenceRow[]>();
-  for (const row of withoutEmail) {
-    const nameKey = normalizeMembershipNameKey(row.first_name, row.last_name);
-    const sameName = nameKey ? (emailGroupsByName.get(nameKey) ?? []) : [];
-    if (sameName.length === 1) sameName[0].push(row);
-    else if (row.tableId) groups.push([row]);
-    else if (nameKey) {
-      const group = byName.get(nameKey) ?? [];
-      if (group.length === 0) {
-        byName.set(nameKey, group);
-        groups.push(group);
-      }
-      group.push(row);
-    }
-  }
-  return groups.map((group) => [...group].sort(bySourceRank));
+  return groupMemberEvidence(rows).map(group => [...group].sort(bySourceRank));
 }
 
 /**
@@ -397,6 +369,13 @@ function groupMemberRows(rows: readonly EvidenceRow[]): EvidenceRow[][] {
 function groupKey(group: readonly EvidenceRow[]): string | null {
   const withEmail = group.find((row) => !row.tableId && normalizeMembershipEmail(row.email).includes("@"));
   if (withEmail) return `e:${normalizeMembershipEmail(withEmail.email)}`;
+  const official = group.find(row => row.source === "official_members_book");
+  // Nelle annualità diverse la prova manuale cambia id; il socio resta uno.
+  // Se presente, il libro ufficiale senza email è il riferimento stabile.
+  if (official) {
+    const name = normalizeMembershipNameKey(official.first_name, official.last_name);
+    if (name) return `n:${name}`;
+  }
   const manual = group.find((row) => row.tableId);
   return manual ? `m:${manual.tableId}` : memberKeyOfRow(group[0]);
 }

@@ -33,13 +33,46 @@ export async function getAssociationMailState() {
     ? await db.from("gw_association_payment_allocations").select("payment_id,slot,person_id").in("payment_id",ids)
     : {data:[],error:null};
   if (allocations.error) return {ok:false as const,error:"Impossibile caricare gli abbinamenti delle quote."};
-  return {ok:true as const, state:state.data, payments:(payments.data??[]).map(p=>({
-    ...p, suggested:(()=>{const matches=(suggestions.data??[]).filter((row: {payment_id:string})=>row.payment_id===p.id);return matches.length===1?{id:matches[0].person_id,name:matches[0].person_name}:null;})(),
+
+  // Una quota dell'anno corrente può essere già nel libro ufficiale, ma il
+  // versamento Gmail/Qonto resta da riconciliare. Mostra il conflitto prima del
+  // clic su Conferma, senza assegnarlo né spostarlo al 2027 automaticamente.
+  const suggestionsByPayment=new Map<string,{id:string;name:string}>();
+  for(const payment of payments.data??[]){
+    const matches=(suggestions.data??[]).filter(
+      (row:{payment_id:string})=>row.payment_id===payment.id
+    );
+    if(matches.length===1)suggestionsByPayment.set(payment.id,{
+      id:matches[0].person_id,name:matches[0].person_name
+    });
+  }
+  const suggestedIds=[...new Set([...suggestionsByPayment.values()].map(x=>x.id))];
+  const suggestedPeople=suggestedIds.length
+    ? await db.from("gw_people").select("id,first_name,last_name,email")
+      .in("id",suggestedIds).is("deleted_at",null).is("merged_into",null)
+    : {data:[],error:null};
+  const peopleById=new Map((suggestedPeople.data??[]).map(person=>[person.id,person]));
+  const evidence=suggestedIds.length&&!suggestedPeople.error
+    ? await readAllMemberEvidence().catch(()=>[])
+    : [];
+  const officialRows=evidence.filter(row=>row.source==="official_members_book");
+
+  return {ok:true as const, state:state.data, payments:(payments.data??[]).map(p=>{
+    const proposed=suggestionsByPayment.get(p.id)??null;
+    const person=proposed?peopleById.get(proposed.id):null;
+    const period=membershipPeriodFor(p.paid_at.slice(0,10));
+    const alreadyPaidPeriod=person&&period&&deriveMembershipState(
+      officialRows,{email:person.email,firstName:person.first_name,lastName:person.last_name},
+      {paymentsFrom:period.paymentsFrom,paymentsUntil:period.validUntil}
+    ).currentYearPaid?period.paymentsFrom:null;
+    return ({
+    ...p, suggested:proposed, alreadyPaidPeriod,
     availableSlots:suggestedQuotaCount({
       provider:p.provider as "paypal"|"qonto", payerName:p.payer_name,
       amountCents:p.amount_cents, transactionRef:null,note:p.note,
     }),slots:(allocations.data??[]).filter(a=>a.payment_id===p.id).map(a=>a.slot as number)
-  }))};
+  });
+  })};
 }
 export type PaymentPersonCandidate = {
  kind:"person"|"member"; id:string; name:string; email:string|null; source:string;
