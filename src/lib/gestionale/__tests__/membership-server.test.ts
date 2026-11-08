@@ -38,7 +38,7 @@ function query(table: string) {
   tableQueries.push(entry);
   const result = () => ({ data: table === "association_members" ? manualRows : [], error: null });
   const builder: Record<string, unknown> = {};
-  for (const method of ["eq", "in", "is", "not", "or", "range"]) {
+  for (const method of ["eq", "in", "is", "not", "or", "ilike", "range"]) {
     builder[method] = (...args: unknown[]) => {
       entry.filters.push(`${method}:${args.join(",")}`);
       return builder;
