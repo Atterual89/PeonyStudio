@@ -19,6 +19,7 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
  const [saved,setSaved]=useState<Record<string,SavedQuota[]>>({});
  const [ignored,setIgnored]=useState<Record<string,boolean>>({});
  const [periodByPayment,setPeriodByPayment]=useState<Record<string,string>>({});
+ const [lastConfirmed,setLastConfirmed]=useState<string|null>(null);
  const periodFor=(id:string)=>periodByPayment[id]??defaultPeriod;
  const periodLabel=(from:string)=>periods.find(p=>p.from===from)?.label??from;
  const blocked=pending||Boolean(working)||Boolean(searching);
@@ -53,6 +54,7 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
       ...(prev[paymentId]??[]),
       {name,period:periodLabel(result.data.periodFrom),slot:result.data.slot},
     ]}));
+    setLastConfirmed(`Quota salvata: ${name} · ${periodLabel(result.data.periodFrom)}. Conferma verificata nel database.`);
    }catch{setError(paymentId,"Non è stato possibile confermare il salvataggio. Ricarica e controlla la quota prima di riprovare.");}
    finally{setWorking(null);}
   });
@@ -73,6 +75,10 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
 
  const unresolved=payments.filter(p=>!ignored[p.id]&&p.slots.length+(saved[p.id]?.length??0)<p.availableSlots).length;
  return <div className="space-y-4">
+  {lastConfirmed&&<div role="status" className="fixed bottom-24 left-4 right-4 z-40 mx-auto flex max-w-xl items-start justify-between gap-3 rounded-xl border border-[#326941]/40 bg-[#eef6ee] p-3 text-sm text-[#326941] shadow-lg">
+    <span>{lastConfirmed}</span>
+    <button type="button" className="shrink-0 font-semibold underline" onClick={()=>setLastConfirmed(null)}>Chiudi</button>
+   </div>}
   <h2 className="font-semibold">Pagamenti da associare ({unresolved})</h2>
   {payments.length===0&&<p className="text-sm text-[#5f524c]">Nessun pagamento in attesa nei risultati caricati.</p>}
   {payments.map(p=>{
