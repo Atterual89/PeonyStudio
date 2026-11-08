@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown, Plus } from "lucide-react";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import {
   refundBookingAction,
@@ -262,11 +262,14 @@ function RegistrationDetails({
   today,
   lastMethod,
   startPayment = false,
+  onSaved,
 }: {
   registration: Registration;
   today: string;
   lastMethod: PaymentMethod | null;
   startPayment?: boolean;
+  /** Richiude la scheda solo dopo un salvataggio confermato dal server. */
+  onSaved?: (message: string) => void;
 }) {
   const [status, setStatus] = useState<BookingStatus>(registration.status);
   const [invoice, setInvoice] = useState<InvoiceStatus>(registration.invoiceStatus);
@@ -308,6 +311,9 @@ function RegistrationDetails({
       const result = await action();
       if (result.ok) {
         setSaved(field);
+        // Le note hanno autosalvataggio al blur: non richiudere la scheda
+        // mentre si passa a un altro controllo con il dito.
+        if (field !== "notes") onSaved?.("Modifica salvata.");
       } else {
         onError?.();
         setMessage({ tone: "error", text: result.error });
@@ -335,8 +341,12 @@ function RegistrationDetails({
     return new Promise((resolve) => {
       startTransition(async () => {
         const result = await setBookingFeeAction({ bookingId: registration.bookingId, version: registration.version, fee: text });
-        if (result.ok) setSaved("fee");
-        else setMessage({ tone: "error", text: result.error });
+        if (result.ok) {
+          setSaved("fee");
+          onSaved?.("Prezzo salvato.");
+        } else {
+          setMessage({ tone: "error", text: result.error });
+        }
         resolve(result.ok);
       });
     });
@@ -359,6 +369,9 @@ function RegistrationDetails({
         targetStatus: justified ? undefined : next,
       });
       if (!justified) return;
+      // Stato già giustificato dai pagamenti: nessun nuovo modulo necessario.
+      // Il salvataggio automatico richiuderà la scheda.
+      setForm(null);
     } else if (form?.kind === "pagamento" && form.targetStatus) {
       setForm(null);
     }
@@ -370,6 +383,7 @@ function RegistrationDetails({
     setForm(null);
     if (text) {
       setMessage({ tone: "success", text });
+      onSaved?.(text);
     } else if (fromStatus) {
       // Chiuso senza registrare: il menu torna allo stato salvato (4g, #14: e lo dice).
       setStatus(registration.status);
@@ -380,7 +394,7 @@ function RegistrationDetails({
   const count = paymentCount(registration.payments);
 
   return (
-    <div className={`${UI.blocks} border-t border-[#211815]/10 p-3`}>
+    <div className={`${UI.blocks} border-t-2 border-[#a8583e]/20 bg-[#f7f3ec] px-3 py-4`}>
       {/* 4f: Quota · Stato affiancati (lo stato va a capo se non entra). */}
       <div className="flex flex-wrap items-start gap-x-2 gap-y-2">
         <div className="flex-[1_1_6rem]">
@@ -408,6 +422,7 @@ function RegistrationDetails({
             onDone={(text) => {
               setPaymentsOpen(true);
               setMessage({ tone: "success", text });
+              onSaved?.(text);
             }}
           />
         ) : null}
@@ -461,6 +476,7 @@ function RegistrationDetails({
                   onDone={closeForm}
                   autoType={autoType}
                   lastMethod={lastMethod}
+                  autoFocus={false}
                   hint={form.kind === "pagamento" && form.targetStatus ? CONFIRM_STATUS_HINT : undefined}
                   onDelete={
                     form.kind === "correzione"
@@ -581,6 +597,8 @@ export function RegistrationsTab({
   const [editingFee, setEditingFee] = useState(false);
   const [feeMessage, setFeeMessage] = useState<Message>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  const expandedCardRef = useRef<HTMLLIElement | null>(null);
+  const [lastSaved, setLastSaved] = useState<{id:string; message:string} | null>(null);
   // 4g (#8): "+ Pagamento" sulla riga chiusa apre la riga col modulo già aperto (il numero la rimonta).
   const [paymentStart, setPaymentStart] = useState<{ id: string; n: number } | null>(null);
   const [query, setQuery] = useState("");
@@ -588,6 +606,40 @@ export function RegistrationsTab({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   // 4g (#18): iscrizione eliminata e quella prima, per mostrare lì "Eliminato · Annulla".
   const [deleted, setDeleted] = useState<{ id: string; afterId: string | null } | null>(null);
+
+  // Quando si apre una scheda, il punto di riferimento è il suo nominativo,
+  // non il primo campo di pagamento a metà pagina. Vale anche per "+ Pagamento".
+  useEffect(() => {
+    if (!openId) return;
+    const frame = window.requestAnimationFrame(() => {
+      const node = expandedCardRef.current;
+      if (!node) return;
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      node.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [openId, paymentStart?.n]);
+
+  useEffect(() => {
+    if (!lastSaved) return;
+    const timer = window.setTimeout(() => setLastSaved(null), 3000);
+    return () => window.clearTimeout(timer);
+  }, [lastSaved]);
+
+  function closeAfterSave(id: string, message: string) {
+    const card = expandedCardRef.current;
+    setOpenId(null);
+    setPaymentStart(null);
+    setLastSaved({id, message});
+    // Conserva in vista la riga appena salvata anche quando si riduce
+    // da molte centinaia di pixel a una sola intestazione.
+    window.requestAnimationFrame(() => {
+      if (card?.isConnected) {
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        card.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+      }
+    });
+  }
 
   if (workshop.defaultFeeCents === null) {
     return (
@@ -665,12 +717,18 @@ export function RegistrationsTab({
       ) : visible.length === 0 ? (
         <p className="text-sm text-[#5f524c]">{query.trim() ? `Nessun nome trovato con «${query.trim()}».` : "Nessuno deve ancora pagare."}</p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-4">
           {visible.flatMap((registration, index) => {
             const open = openId === registration.bookingId;
             const row = (
-              <li key={registration.bookingId} className={cardClass}>
-                <div className="flex items-start">
+              <li
+                key={registration.bookingId}
+                ref={open ? expandedCardRef : undefined}
+                className={`scroll-mt-24 rounded-2xl border-2 bg-white shadow-[0_3px_14px_rgba(33,24,21,0.08)] ${open
+                  ? "border-[#a8583e]/55 shadow-[0_5px_18px_rgba(168,88,62,0.14)]"
+                  : "border-[#211815]/15"}`}
+              >
+                <div className={`flex items-start rounded-t-2xl ${open ? "bg-[#fcf5ee]" : "bg-white"}`}>
                   <button
                     type="button"
                     onClick={() => {
@@ -681,9 +739,16 @@ export function RegistrationsTab({
                     className="flex min-w-0 flex-1 items-start justify-between gap-3 p-3 pr-1 text-left"
                   >
                     <span className="min-w-0 space-y-1">
-                      <span className="flex flex-wrap items-center gap-2">
-                        <span className="font-semibold">{registrationTitle(registration)}</span>
+                      <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="block w-full break-words font-serif text-[22px] font-semibold leading-tight text-[#211815]">
+                          {registrationTitle(registration)}
+                        </span>
                         <StatusTag status={registration.status} />
+                        {lastSaved?.id === registration.bookingId ? (
+                          <span role="status" className="text-xs font-semibold text-[#2f5d3b]">
+                            {lastSaved.message === "Nessuna modifica." ? "Nessuna modifica" : "Salvato"}
+                          </span>
+                        ) : null}
                         {registration.feeCustom ? <span className="text-xs font-semibold text-[#a8583e]">prezzo speciale</span> : null}
                       </span>
                       <span className="block text-sm text-[#5f524c]">{feeSummary(paidCents(registration.payments), registration.agreedFeeCents)}</span>
@@ -745,7 +810,16 @@ export function RegistrationsTab({
                     today={today}
                     lastMethod={lastMethod}
                     startPayment={paymentStart?.id === registration.bookingId}
+                    onSaved={(message) => closeAfterSave(registration.bookingId, message)}
                   />
+                ) : null}
+                {open ? (
+                  <div className="flex justify-end border-t border-[#a8583e]/20 bg-[#f7f3ec] px-3 pb-3 pt-1.5">
+                    <button type="button" className="inline-flex min-h-10 items-center gap-1.5 text-sm font-semibold text-[#a8583e] underline-offset-2 hover:underline"
+                      onClick={() => { setOpenId(null); setPaymentStart(null); }}>
+                      Chiudi scheda <ChevronDown className="h-4 w-4 rotate-180" aria-hidden="true" />
+                    </button>
+                  </div>
                 ) : null}
               </li>
             );
