@@ -5,9 +5,10 @@ import { confirmAssociationPaymentAction, findPaymentPeopleAction, ignoreAssocia
 
 type Person = {kind:"person"|"member";id:string;name:string;email:string|null;source:string};
 type Payment = {id:string;provider:string;payer_name:string|null;amount_cents:number;note:string|null;paid_at:string;availableSlots:number;slots:number[];suggested:{id:string;name:string}|null};
-export function PaymentEmailReview({payments,initialised,lastSync,preferredPerson,periods,defaultPeriod}:{
+export function PaymentEmailReview({payments,initialised,lastSync,preferredPerson,periods,defaultPeriod,gmailStatus,oauthStatus}:{
  payments:Payment[];initialised:boolean;lastSync:string|null;preferredPerson:{id:string;name:string}|null;
- periods:{from:string;label:string}[];defaultPeriod:string
+ periods:{from:string;label:string}[];defaultPeriod:string;
+ gmailStatus:{configured:boolean;connected:boolean;updatedAt:string|null};oauthStatus:string|null
 }){
  const router=useRouter();
  const [busy,start]=useTransition();
@@ -51,12 +52,18 @@ export function PaymentEmailReview({payments,initialised,lastSync,preferredPerso
  return <div className="space-y-4">
   <div className="rounded-xl border border-[#211815]/15 bg-white p-4 space-y-3">
    <h2 className="font-semibold">Verifica email PayPal e Qonto</h2>
+   {oauthStatus==="connected"&&<p role="status" className="text-sm text-[#326941]">Casella Peony Studio collegata.</p>}
+   {oauthStatus&&oauthStatus!=="connected"&&<p role="alert" className="text-sm text-[#9b4b1e]">Collegamento Google non completato ({oauthStatus}). Riprova controllando di selezionare Peony Studio.</p>}
+   {!gmailStatus.connected && (gmailStatus.configured?
+     <a href="/api/gestione/gmail/start" className="inline-flex min-h-10 items-center rounded-xl border border-[#a8583e] px-4 font-semibold text-[#a8583e]">Collega Gmail Peony Studio</a>
+     :<p className="text-sm text-[#9b4b1e]">Collegamento Gmail da configurare nell’hosting: client ID, client secret, redirect URI e chiave di cifratura.</p>
+   )}
    <p className="text-xs text-[#5f524c]">{lastSync?`Ultimo controllo: ${new Date(lastSync).toLocaleString("it-IT")}`:"Nessuna sincronizzazione completata."}</p>
    {!initialised&&<label className="block text-sm">Data da cui cercare le email
     <input aria-label="Data iniziale" type="date" value={date} onChange={e=>setDate(e.target.value)}
       className="mt-1 block w-full max-w-xs rounded-lg border p-2" />
    </label>}
-   <button type="button" disabled={busy||(!initialised&&!date)} onClick={sync}
+   <button type="button" disabled={busy||!gmailStatus.connected||(!initialised&&!date)} onClick={sync}
      className="rounded-xl bg-[#a8583e] px-4 py-2.5 font-semibold text-white disabled:opacity-50">
       {busy?"Operazione in corso…":"Verifica email"}
    </button>
