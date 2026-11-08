@@ -8,6 +8,7 @@
 // validazione è manuale. Gli esiti vanno nel messaggio unico del blocco (Flash).
 
 import { RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { markQuotaOkAction, refreshMembershipAction, revokeQuotaOkAction } from "@/app/gestione/(app)/p/membership-actions";
@@ -72,6 +73,7 @@ function ConfirmBox({
 export function MarkQuotaOk({ personId, name, referenceDate, workshopId, badge, canMark }: Target & { badge: MembershipBadge; canMark: boolean }) {
   const [asking, setAsking] = useState(false);
   const [pending, startTransition] = useTransition();
+  const router=useRouter();
   const flash = useFlash(personId);
   const period = membershipPeriodFor(referenceDate);
   if (!period || !canMarkQuotaOk(badge)) return null;
@@ -103,6 +105,7 @@ export function MarkQuotaOk({ personId, name, referenceDate, workshopId, badge, 
           const result = await markQuotaOkAction({ personId, workshopId: workshopId ?? null, periodFrom: workshopId ? null : period.paymentsFrom });
           setAsking(false);
           flash.result(result, "Quota associativa segnata come pagata.");
+          if(result.ok)router.refresh();
         })
       }
     />
@@ -113,6 +116,7 @@ export function MarkQuotaOk({ personId, name, referenceDate, workshopId, badge, 
 export function RevokeQuotaOk({ personId, name, referenceDate, workshopId, onClose }: Target & { onClose: () => void }) {
   const [pending, startTransition] = useTransition();
   const flash = useFlash(personId);
+  const router=useRouter();
   const period = membershipPeriodFor(referenceDate);
   if (!period) return null;
   return (
@@ -127,6 +131,7 @@ export function RevokeQuotaOk({ personId, name, referenceDate, workshopId, onClo
           const result = await revokeQuotaOkAction({ personId, workshopId: workshopId ?? null, periodFrom: workshopId ? null : period.paymentsFrom });
           onClose();
           flash.result(result, "Validazione revocata.");
+          if(result.ok)router.refresh();
         })
       }
     />
