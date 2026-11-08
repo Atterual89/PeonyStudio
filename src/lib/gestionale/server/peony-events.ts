@@ -98,13 +98,32 @@ export async function loadPeonyEventsSummary(): Promise<PeonyEventSummary[]> {
   if (events.length === 0) return [];
   // Single SQL aggregate: do not transfer every ticket row on each dashboard visit.
   const {data, error: summaryError}=await getGestionaleDb().rpc("gw_peony_ticket_summary");
-  if(summaryError)throw new Error(`Riepilogo biglietti non disponibile: ${summaryError.message}`);
   const counts = new Map<string, number>();
   const freshness = new Map<string, string>();
-  for(const row of data ?? []) {
-    if(!row.ticket_tailor_event_id) continue;
-    counts.set(row.ticket_tailor_event_id, Number(row.ticket_count ?? 0));
-    if(row.last_synced_at)freshness.set(row.ticket_tailor_event_id,row.last_synced_at);
+  if (!summaryError) {
+    for(const row of data ?? []) {
+      if(!row.ticket_tailor_event_id) continue;
+      counts.set(row.ticket_tailor_event_id, Number(row.ticket_count ?? 0));
+      if(row.last_synced_at)freshness.set(row.ticket_tailor_event_id,row.last_synced_at);
+    }
+  } else {
+    // Safe deployment order: the existing dashboard keeps working until the
+    // migration and PostgREST schema reload complete.
+    console.warn("[gestionale] Riepilogo SQL non ancora disponibile; uso conteggio precedente.");
+    const ids=events.map(event=>event.ticketTailorEventId);
+    for(let i=0;i<ids.length;i+=100) {
+      const {data:rows,error}=await getGestionaleDb().from("ticket_tailor_issued_tickets")
+        .select("ticket_tailor_event_id,status,last_synced_at")
+        .in("ticket_tailor_event_id",ids.slice(i,i+100)).range(0,9999);
+      if(error)throw new Error(`Biglietti Ticket Tailor: ${error.message}`);
+      for(const row of rows??[]) {
+        const key=row.ticket_tailor_event_id;
+        if(!key)continue;
+        if(isActivePeonyTicket(row.status)) counts.set(key,(counts.get(key)??0)+1);
+        if(row.last_synced_at&&(!freshness.get(key)||freshness.get(key)!<row.last_synced_at))
+          freshness.set(key,row.last_synced_at);
+      }
+    }
   }
   return events.map((event) => ({
     ...event, ticketCount: counts.get(event.ticketTailorEventId) ?? 0,
