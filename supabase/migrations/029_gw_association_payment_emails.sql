@@ -30,10 +30,12 @@ create table if not exists public.gw_association_payment_allocations (
  id uuid primary key default gen_random_uuid(),
  payment_id uuid not null references public.gw_association_payment_emails(id) on delete restrict,
  person_id uuid not null references public.gw_people(id) on delete restrict,
+ slot smallint not null check (slot between 1 and 3),
  period_from date not null,
  gross_quota_cents integer not null default 1500 check (gross_quota_cents = 1500),
  validated_by uuid not null,
  validated_at timestamptz not null default now(),
+ unique (payment_id, slot),
  unique (payment_id, person_id, period_from),
  unique (person_id, period_from, payment_id)
 );
