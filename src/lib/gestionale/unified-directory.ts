@@ -23,7 +23,7 @@ export type UnifiedContact = {
   possiblePersonId: string | null;
   possiblePersonVersion: number | null;
   kind: "anagrafica" | "unita" | "registro";
-  association: "verificata" | "da_verificare" | "solo_modulo" | "non_presente";
+  association: "verificata" | "da_verificare" | "solo_modulo" | "non_presente" | "non_disponibile";
   source: string;
   link: "confermato" | "email" | "da_verificare" | "nessuno";
   search: string;
