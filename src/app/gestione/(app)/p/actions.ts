@@ -64,7 +64,7 @@ export async function mergePeopleAction(input: {
     !isVersion(primary.version) ||
     !isUuidLike(secondary?.id) ||
     !isVersion(secondary.version) ||
-    (input.memberKey !== null && parseMemberKey(input.memberKey)?.kind !== "manual" && parseMemberKey(input.memberKey)?.kind !== "email")
+    (input.memberKey !== null && !parseMemberKey(input.memberKey))
   ) {
     return INVALID;
   }
@@ -75,6 +75,12 @@ export async function mergePeopleAction(input: {
 
   const before = await getPerson(primary.id);
   if (!before) return INVALID;
+  const originalKey = memberKeyOfPerson(before);
+  // A name-only link may be the ONLY official book link (e.g. Christian).
+  // Keep it on the primary profile. Do not attempt to clear it after merge.
+  if (key?.kind === "name" && originalKey !== input.memberKey) {
+    return {ok:false,error:"Per conservare il collegamento nominale al libro soci, scegli come scheda principale quella già collegata."};
+  }
 
   const result = await mergePeople(operator.id, primary, secondary, {
     ...validation.payload,
@@ -84,8 +90,7 @@ export async function mergePeopleAction(input: {
 
   // D11 (016): il collegamento per email non passa da gw_merge_people; se si
   // tiene quello della secondaria (o nessuno), si aggiorna subito dopo.
-  const primaryEmailKey = memberKeyOfPerson({ association_member_id: null, membership_email: before.membership_email });
-  if (key?.kind !== "manual" && primaryEmailKey !== (input.memberKey ?? null)) {
+  if (key?.kind !== "manual" && key?.kind !== "name" && originalKey !== (input.memberKey ?? null)) {
     const link = key?.kind === "email" ? { memberId: null, email: key.email, firstName: null, lastName: null } : null;
     const linked = await setMembershipLink(operator.id, primary.id, result.data, link);
     if (!linked.ok) return linked;
