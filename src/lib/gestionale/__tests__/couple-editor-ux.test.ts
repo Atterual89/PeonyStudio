@@ -11,7 +11,7 @@ describe("Workshop · coppie",()=>{
   expect(row).toContain("Nome o nickname usato per il workshop");
   expect(row).toContain("updateEnteredParticipantAction");
   expect(row).toContain("people.map(entry=>");
-  expect(row).toContain("I dati sono quelli dell'iscrizione");
+  expect(row).toContain("Questi dati sono quelli dell'iscrizione");
  });
  it("la scheda coppia è prima dei dati economici; la quota resta della coppia",()=>{
   const row=file("src/components/gestionale/RegistrationsTab.tsx");
