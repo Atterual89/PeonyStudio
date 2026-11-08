@@ -31,6 +31,7 @@ const person: Person = {
 
 type Link = { memberId: string | null; email: string | null; firstName: string | null; lastName: string | null };
 let link: Link | null = null;
+let duplicateLink = false;
 let saved={
   membership_name_key:null as string|null,
   membership_email:null as string|null,
@@ -68,7 +69,7 @@ vi.mock("@/lib/gestionale/server/db", () => ({
           neq:()=>({
             is:()=>({
               is:()=>({
-                limit:async()=>({data:[],error:null}),
+                limit:async()=>({data:duplicateLink?[{id:"another-person"}]:[],error:null}),
               })
             })
           }),
@@ -93,6 +94,7 @@ vi.mock("@/lib/gestionale/server/mutations", () => ({
 const { linkMemberAction } = await import("@/app/gestione/(app)/w/actions");
 
 beforeEach(() => {
+  duplicateLink = false;
   saved={membership_name_key:null,membership_email:null,association_member_id:null};
   for (const mock of [refresh, revalidatePath, updatePerson, setMembershipLink, setMembershipNameLink, setMembershipConfirmedBookLink]) mock.mockClear();
 });
@@ -126,6 +128,17 @@ describe("collegare al libro soci", () => {
     if(!outcome.ok)expect(outcome.error).toContain("non è stato memorizzato");
     expect(refresh).not.toHaveBeenCalled();
   });
+  it("blocca anche lato server il collegamento a una socia già assegnata a un'altra persona", async () => {
+    link={memberId:null,email:"claudia@example.test",firstName:"Claudia",lastName:"Acutis"};
+    duplicateLink=true;
+    const result=await linkMemberAction({
+      personId:P,version:4,memberId:"e:claudia@example.test"
+    });
+    expect(result.ok).toBe(false);
+    if(!result.ok)expect(result.error).toContain("già collegata");
+    expect(setMembershipLink).not.toHaveBeenCalled();
+  });
+
   it("la quota non viene verificata automaticamente e la ricerca non dipende da un badge in cache", async()=>{
     link={memberId:null,email:null,firstName:"Claudia",lastName:"Acutis"};
     expect(await linkMemberAction({
