@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { MailCheck, RefreshCw } from "lucide-react";
 import { syncAssociationMailAction } from "@/app/gestione/(app)/quote-email/actions";
 
-export function SyncAssociationMailButton({configured,connected,lastSync}:{
- configured:boolean;connected:boolean;lastSync:string|null
+export function SyncAssociationMailButton({configured,connected,lastSync,missing}:{
+ configured:boolean;connected:boolean;lastSync:string|null;missing:readonly string[]
 }){
  const router=useRouter();
  const [busy,start]=useTransition();
