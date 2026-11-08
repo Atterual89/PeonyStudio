@@ -29,6 +29,7 @@ import {
   type BookingPersonInput,
   type ResolveAction,
   setMembershipNameLink,
+  setMembershipConfirmedBookLink,
 } from "@/lib/gestionale/server/mutations";
 import type { ActionResult, BookingStatus, MemberSummary, MembershipBadge, Person, PersonFields } from "@/lib/gestionale/types";
 import { asText, isIsoDate, isUuidLike, isVersion } from "@/lib/gestionale/validation";
@@ -349,7 +350,7 @@ async function linkPersonToMember(operatorId: string, personId: string, version:
     if(!key||key.kind!=="name")return INVALID;
     // Nome senza email: non limitarsi a riscrivere il nominativo.
     // Salva un vero riferimento nominale, univoco e con audit.
-    return setMembershipNameLink(operatorId,personId,version,key.nameKey);
+    return setMembershipConfirmedBookLink(operatorId,personId,version,key.nameKey);
   }
   if (!link) {
     const person=await getPerson(personId);
