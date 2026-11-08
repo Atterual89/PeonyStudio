@@ -5,14 +5,16 @@ import { isUuidLike } from "@/lib/gestionale/validation";
 import { membershipPeriodFor } from "@/lib/association/membership-periods";
 import { todayInRome } from "@/lib/gestionale/workshops";
 import { getAssociationMailState } from "./actions";
+import { gmailConnectionStatus } from "@/lib/gestionale/server/payment-gmail-oauth";
 import { PaymentEmailReview } from "@/components/gestionale/PaymentEmailReview";
 export const dynamic="force-dynamic";
-export default async function PaymentEmailPage({searchParams}:{searchParams:Promise<{persona?:string}>}){
+export default async function PaymentEmailPage({searchParams}:{searchParams:Promise<{persona?:string;gmail?:string}>}){
  await requireAdmin();
- const {persona}=await searchParams;
- const [result,preferred]=await Promise.all([
+ const {persona,gmail}=await searchParams;
+ const [result,preferred,gmailStatus]=await Promise.all([
   getAssociationMailState(),
   persona && isUuidLike(persona)?getPerson(persona):Promise.resolve(null),
+  gmailConnectionStatus(),
  ]);
  const today=todayInRome();
  const current=membershipPeriodFor(today);
@@ -29,6 +31,7 @@ export default async function PaymentEmailPage({searchParams}:{searchParams:Prom
   {!result.ok?<p role="alert" className="rounded-xl border p-4">{result.error}</p>:
    <PaymentEmailReview payments={result.payments} initialised={Boolean(result.state?.initial_from)}
        lastSync={result.state?.last_success_at??null} preferredPerson={preferredPerson}
-       periods={periods} defaultPeriod={current?.paymentsFrom??periods[0]?.from??""}/>}
+       periods={periods} defaultPeriod={current?.paymentsFrom??periods[0]?.from??""}
+       gmailStatus={gmailStatus} oauthStatus={gmail??null}/>}
  </section>;
 }
