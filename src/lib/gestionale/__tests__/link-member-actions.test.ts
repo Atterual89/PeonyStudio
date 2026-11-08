@@ -65,6 +65,13 @@ vi.mock("@/lib/gestionale/server/db", () => ({
     from:()=>({
       select:()=>({
         eq:()=>({
+          neq:()=>({
+            is:()=>({
+              is:()=>({
+                limit:async()=>({data:[],error:null}),
+              })
+            })
+          }),
           maybeSingle:async()=>({data:saved,error:null})
         })
       })
