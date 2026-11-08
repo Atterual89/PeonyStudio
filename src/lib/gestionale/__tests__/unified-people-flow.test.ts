@@ -26,6 +26,24 @@ describe("anagrafica unica: ricerca e associazione del nickname",()=>{
     });
   });
 
+  it("trova anche un nickname storico scritto nell'iscrizione, senza usarlo come prova associativa",()=>{
+    const contacts=buildUnifiedDirectory({
+      today:"2026-11-08",
+      people:[{
+        id:"p2",version:4,nickname:"NuovoNome",first_name:null,last_name:null,email:null,
+        association_member_id:null,membership_email:null,membership_name_key:null,merged_into:null,
+      }],
+      evidence:[],
+      aliasesByPerson:new Map([["p2",["VecchioNickname","AltraGrafia"]]]),
+    });
+    expect(contacts[0].search).toContain("VecchioNickname");
+    expect(contacts[0].search).toContain("AltraGrafia");
+    expect(contacts[0].link).toBe("nessuno");
+    const loader=file("src/lib/gestionale/server/unified-directory.ts");
+    expect(loader).toContain('"gw_booking_participants"');
+    expect(loader).toContain('"gw_person_aliases"');
+  });
+
   it("Persone usa un solo elenco, senza interrogare eventi e più annualità",()=>{
     const page=file("src/app/gestione/(app)/persone/page.tsx");
     expect(page).toContain("await requireAdmin()");
