@@ -96,23 +96,15 @@ export async function loadPeonyEventsSummary(): Promise<PeonyEventSummary[]> {
   await requireAdmin();
   const events = await loadEvents();
   if (events.length === 0) return [];
-  const ids = events.map((event) => event.ticketTailorEventId);
+  // Single SQL aggregate: do not transfer every ticket row on each dashboard visit.
+  const {data, error: summaryError}=await getGestionaleDb().rpc("gw_peony_ticket_summary");
+  if(summaryError)throw new Error(`Riepilogo biglietti non disponibile: ${summaryError.message}`);
   const counts = new Map<string, number>();
   const freshness = new Map<string, string>();
-  for (let i = 0; i < ids.length; i += 100) {
-    const { data, error } = await getGestionaleDb().from("ticket_tailor_issued_tickets")
-      .select("ticket_tailor_event_id,status,last_synced_at")
-      .in("ticket_tailor_event_id", ids.slice(i, i + 100))
-      .range(0, 9999);
-    if (error) throw new Error(`Biglietti Ticket Tailor: ${error.message}`);
-    for (const ticket of data ?? []) {
-      const key = ticket.ticket_tailor_event_id;
-      if (!key) continue;
-      if (isActivePeonyTicket(ticket.status)) counts.set(key, (counts.get(key) ?? 0) + 1);
-      if (ticket.last_synced_at && (!freshness.get(key) || freshness.get(key)! < ticket.last_synced_at)) {
-        freshness.set(key, ticket.last_synced_at);
-      }
-    }
+  for(const row of data ?? []) {
+    if(!row.ticket_tailor_event_id) continue;
+    counts.set(row.ticket_tailor_event_id, Number(row.ticket_count ?? 0));
+    if(row.last_synced_at)freshness.set(row.ticket_tailor_event_id,row.last_synced_at);
   }
   return events.map((event) => ({
     ...event, ticketCount: counts.get(event.ticketTailorEventId) ?? 0,
