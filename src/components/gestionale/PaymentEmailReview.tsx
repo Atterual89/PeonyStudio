@@ -3,10 +3,11 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { confirmAssociationPaymentAction, findPaymentPeopleAction, ignoreAssociationPaymentAction, syncAssociationMailAction } from "@/app/gestione/(app)/quote-email/actions";
 
-type Person = {id:string;first_name:string|null;last_name:string|null;nickname:string|null;email:string|null};
+type Person = {kind:"person"|"member";id:string;name:string;email:string|null;source:string};
 type Payment = {id:string;provider:string;payer_name:string|null;amount_cents:number;note:string|null;paid_at:string;availableSlots:number;slots:number[];suggested:{id:string;name:string}|null};
-export function PaymentEmailReview({payments,initialised,lastSync,preferredPerson}:{
- payments:Payment[];initialised:boolean;lastSync:string|null;preferredPerson:{id:string;name:string}|null
+export function PaymentEmailReview({payments,initialised,lastSync,preferredPerson,periods,defaultPeriod}:{
+ payments:Payment[];initialised:boolean;lastSync:string|null;preferredPerson:{id:string;name:string}|null;
+ periods:{from:string;label:string}[];defaultPeriod:string
 }){
  const router=useRouter();
  const [busy,start]=useTransition();
@@ -14,6 +15,7 @@ export function PaymentEmailReview({payments,initialised,lastSync,preferredPerso
  const [search,setSearch]=useState<Record<string,string>>({});
  const [results,setResults]=useState<Record<string,Person[]>>({});
  const [message,setMessage]=useState("");
+ const [periodFrom,setPeriodFrom]=useState(defaultPeriod);
  function sync(){
   setMessage("");
   start(async()=>{
@@ -38,8 +40,8 @@ export function PaymentEmailReview({payments,initialised,lastSync,preferredPerso
   start(async()=>{try{const found=await findPaymentPeopleAction(search[id]||"");setResults(s=>({...s,[id]:found}));}
    catch{setMessage("Ricerca persone non riuscita.");}});
  }
- function assign(paymentId:string,personId:string){
-  start(async()=>{const r=await confirmAssociationPaymentAction(paymentId,personId);
+ function assign(paymentId:string,target:{kind:"person"|"member";id:string}){
+  start(async()=>{const r=await confirmAssociationPaymentAction(paymentId,target,periodFrom);
    setMessage(r.ok?"Quota verificata.":r.error);router.refresh();});
  }
  function ignore(paymentId:string){
@@ -61,6 +63,12 @@ export function PaymentEmailReview({payments,initialised,lastSync,preferredPerso
    <p className="text-xs text-[#5f524c]">Importa solo nuovi messaggi (con sovrapposizione di sicurezza). Nessuna quota viene confermata automaticamente.</p>
   </div>
   {message&&<p role="status" className="rounded-lg border p-3 text-sm">{message}</p>}
+  <div className="flex flex-wrap items-center gap-2 text-sm">
+   <label htmlFor="quota-periodo" className="font-semibold">Periodo associativo della quota:</label>
+   <select id="quota-periodo" className="rounded-lg border p-2" value={periodFrom} onChange={e=>setPeriodFrom(e.target.value)}>
+    {periods.map(period=><option key={period.from} value={period.from}>{period.label}</option>)}
+   </select>
+  </div>
   <h2 className="font-semibold">Pagamenti da associare ({payments.length})</h2>
   {preferredPerson&&<p className="rounded-lg border p-3 text-sm">Scheda persona: <strong>{preferredPerson.name}</strong>. Seleziona il pagamento corretto qui sotto.</p>}
   {payments.length===0&&<p className="text-sm text-[#5f524c]">Nessun pagamento in attesa nei risultati caricati.</p>}
@@ -75,11 +83,11 @@ export function PaymentEmailReview({payments,initialised,lastSync,preferredPerso
    {p.suggested&&p.slots.length<p.availableSlots&&<div className="flex items-center justify-between gap-2 rounded-lg bg-[#f6f1e9] p-2 text-sm">
     <span>Persona proposta: <strong>{p.suggested.name}</strong></span>
     <button type="button" disabled={busy} className="rounded-lg bg-[#a8583e] px-3 py-2 text-white disabled:opacity-50"
-      onClick={()=>assign(p.id,p.suggested!.id)}>Conferma</button>
+      onClick={()=>assign(p.id,{kind:"person",id:p.suggested!.id})}>Conferma</button>
    </div>}
    {preferredPerson && p.slots.length < p.availableSlots && <button type="button" disabled={busy}
     className="rounded-lg border border-[#a8583e] p-2 text-sm font-semibold text-[#a8583e] disabled:opacity-50"
-    onClick={()=>assign(p.id,preferredPerson.id)}>Associa a {preferredPerson.name}</button>}
+    onClick={()=>assign(p.id,{kind:"person",id:preferredPerson.id})}>Associa a {preferredPerson.name}</button>}
    <div className="flex gap-2">
     <input className="min-w-0 flex-1 rounded-lg border p-2 text-sm" placeholder="Nome, nickname o email nel libro persone"
       aria-label={`Cerca persona per ${p.payer_name||p.id}`}
@@ -87,11 +95,11 @@ export function PaymentEmailReview({payments,initialised,lastSync,preferredPerso
     <button type="button" disabled={busy||(search[p.id]||"").trim().length<2}
       className="rounded-lg border px-3 py-2 text-sm disabled:opacity-50" onClick={()=>lookup(p.id)}>Cerca</button>
    </div>
-   {(results[p.id]||[]).map(person=><div key={person.id} className="flex items-center justify-between gap-2 border-t pt-2 text-sm">
-    <span>{[person.first_name,person.last_name].filter(Boolean).join(" ")||person.nickname}
-      {person.nickname&&<small className="block text-[#5f524c]">{person.nickname}</small>}</span>
+   {(results[p.id]||[]).map(person=><div key={person.kind+person.id} className="flex items-center justify-between gap-2 border-t pt-2 text-sm">
+    <span className="min-w-0"><strong className="block">{person.name}</strong>
+      <small className="block text-[#5f524c]">{person.source}{person.email?` · ${person.email}`:""}</small></span>
     <button type="button" disabled={busy} className="rounded-lg bg-[#a8583e] px-3 py-2 text-white disabled:opacity-50"
-      onClick={()=>assign(p.id,person.id)}>Associa quota</button>
+      onClick={()=>assign(p.id,{kind:person.kind,id:person.id})}>Associa quota</button>
    </div>)}
    {p.slots.length===0&&<button type="button" disabled={busy} onClick={()=>ignore(p.id)}
      className="text-xs text-[#5f524c] underline disabled:opacity-50">Non è una quota · Ignora</button>}
