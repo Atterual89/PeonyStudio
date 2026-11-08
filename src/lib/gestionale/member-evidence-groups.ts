@@ -17,7 +17,10 @@ export function groupMemberEvidence<T extends {
   for (const row of rows) {
     const email = normalizeMembershipEmail(row.email);
     if (email.includes("@")) {
-      byEmail.set(email, [...(byEmail.get(email) ?? []), row]);
+      const name = normalizeMembershipNameKey(row.first_name, row.last_name);
+      // Un indirizzo condiviso da due nomi differenti non prova identità.
+      const key = `${email}|${name}`;
+      byEmail.set(key, [...(byEmail.get(key) ?? []), row]);
     } else {
       const name = normalizeMembershipNameKey(row.first_name, row.last_name);
       if (name) withoutEmail.set(name, [...(withoutEmail.get(name) ?? []), row]);
