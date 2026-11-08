@@ -17,9 +17,9 @@ import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { findMemberLinkProposals } from "@/lib/gestionale/server/member-links";
 import { listCompletablePeople } from "@/lib/gestionale/server/member-fill";
 
-export default async function SociPage({searchParams}:{searchParams?:Promise<{quote?:string}>}={}){
+export default async function SociPage({searchParams}:{searchParams:Promise<{quote?:string}>}){
  await requireAdmin();
- const openEmailReview=(await searchParams)?.quote==="1";
+ const openEmailReview=(await searchParams).quote==="1";
  const [proposals,completable,mail]=await Promise.all([
   findMemberLinkProposals().catch((error:unknown)=>{
    console.error("[soci] Proposte di collegamento",error instanceof Error?error.message:error);
