@@ -58,7 +58,7 @@ export function SyncAssociationMailButton({configured,connected,lastSync,missing
   {result&&<p role={result.ok?"status":"alert"} className={`max-w-sm text-xs ${result.ok?"text-[#326941]":"text-[#9b4b1e]"}`}>
    {result.message}
    {result.ok
-      ? <a href="/gestione/altro/soci#quote-email" className="ml-1 underline">Controlla quote</a>
+      ? <a href="/gestione/altro/soci?quote=1#quote-email" className="ml-1 underline">Controlla quote</a>
       : <a href="/api/gestione/gmail/start" className="ml-1 underline">Ricollega Gmail</a>}
   </p>}
   {!result&&lastSync&&<p className="text-xs text-[#5f524c]">
