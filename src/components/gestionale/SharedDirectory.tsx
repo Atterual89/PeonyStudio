@@ -100,7 +100,7 @@ export function SharedDirectory({people}:{people:Person[]}) {
   const filtered=people.filter(p=>terms.every(t=>[p.first_name,p.last_name,p.nickname,p.email,...p.enteredNames,...p.courses].join(" ").toLocaleLowerCase("it").includes(t)));
   return <div className="space-y-3">
     <input aria-label="Cerca una persona" value={query} onChange={e=>setQuery(e.target.value)}
-      placeholder="Cerca nome, nickname, email o corso" className="min-h-11 w-full rounded-xl border border-[#211815]/20 bg-white px-3"/>
+      placeholder="Cerca nome, nickname, email o corso" className="min-h-10 w-full rounded-xl border border-[#211815]/20 bg-white px-3"/>
     <p className="text-sm text-[#5f524c]">{filtered.length} persone su {people.length}</p>
     <ul className="space-y-2">{filtered.map(p=><DirectoryPerson key={p.id} person={p}/>)}</ul>
     {!filtered.length&&<p className="text-sm">Nessuna persona trovata.</p>}
