@@ -7,6 +7,7 @@ import { MemberCard } from "@/components/gestionale/MemberCard";
 import { MemberLinker, MemberUnlink } from "@/components/gestionale/MemberLinker";
 import { PersonForm } from "@/components/gestionale/PersonForm";
 import { QuotaOkControls, RefreshMembershipButton } from "@/components/gestionale/QuotaOk";
+import { AssociationMailSyncControl } from "@/components/gestionale/AssociationMailSyncControl";
 import { Notice, Section, buttonClass, cardClass } from "@/components/gestionale/ui";
 import { displayName, formatDate, formatDateRange, fullName } from "@/lib/gestionale/format";
 import { DUPLICATE_REASON_LABELS, findPossibleDuplicates, peopleSharingEmail } from "@/lib/gestionale/people";
@@ -148,8 +149,9 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
             </li>
           ))}
         </ul>
-        <div className="mb-3">
+        <div className="mb-3 flex flex-wrap items-start gap-2">
           <RefreshMembershipButton />
+          <AssociationMailSyncControl />
         </div>
         <div className="mb-3">
           <FlashMessage scope={person.id} />
