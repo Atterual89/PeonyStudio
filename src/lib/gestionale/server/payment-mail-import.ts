@@ -28,17 +28,30 @@ export type PaymentImportResult = {
   scanned: number; imported: number; skipped: number;
   hasMore: boolean; lastSuccessAt: string | null;
 };
-export async function importPaymentNotifications(initialFrom?: string): Promise<PaymentImportResult> {
+export async function importPaymentNotifications(): Promise<PaymentImportResult> {
   const db = getGestionaleDb();
   const {data:state,error}=await db.from("gw_payment_sync_state")
     .select("initial_from,checked_through,last_success_at,pending_window_from,pending_window_until,pending_page_token")
     .eq("source",SOURCE).maybeSingle();
   if(error)throw new Error("Archivio sincronizzazione Gmail non disponibile: applica la migrazione.");
-  const first=!state?.initial_from;
-  if(first && (!initialFrom || !/^\d{4}-\d{2}-\d{2}$/.test(initialFrom) ||
-     !Number.isFinite(Date.parse(initialFrom)) || Date.parse(initialFrom)>Date.now()))
-    throw new Error("Scegli una data iniziale valida.");
-  const initial=first?new Date(initialFrom+"T00:00:00Z"):new Date(state.initial_from);
+  // First run starts automatically at the latest official association-source update.
+  // Never use manual validations as a baseline: those are not source sync events.
+  // Subsequent runs resume only from the Gmail checkpoint (with a 48-hour overlap).
+  let initial:Date;
+  if (state?.initial_from) {
+    initial=new Date(state.initial_from);
+  } else {
+    const {data:baseline,error:baselineError}=await db.from("association_members")
+      .select("updated_at").in("source",["google_sheet","official_members_book"])
+      .not("updated_at","is",null).order("updated_at",{ascending:false}).limit(1).maybeSingle();
+    if(baselineError)throw new Error("Impossibile leggere l'ultimo aggiornamento del libro soci.");
+    // On fresh installs with no historical source, use membership start rather
+    // than silently skipping all past payments.
+    const firstPeriod=Date.parse("2025-09-01T00:00:00Z");
+    const sourceUpdated=baseline?.updated_at?Date.parse(baseline.updated_at):firstPeriod;
+    initial=new Date(Math.max(firstPeriod,Math.min(Date.now(),sourceUpdated)-48*3600_000));
+  }
+  if(!Number.isFinite(initial.getTime()))throw new Error("Data dell'ultimo allineamento non valida.");
   const windowFrom=state?.pending_window_from
     ? new Date(state.pending_window_from)
     : new Date(Math.max(initial.getTime(),(state?.checked_through
