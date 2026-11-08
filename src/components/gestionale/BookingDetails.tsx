@@ -66,6 +66,7 @@ function EnteredEmailHint({ entry }: { entry: BookingPersonView }) {
 function PersonBlock({
   entry,
   partnerOf,
+  onChangePartner,
   booking,
   workshopId,
   workshopStartsOn,
@@ -73,6 +74,7 @@ function PersonBlock({
 }: {
   entry: BookingPersonView;
   partnerOf: string | null;
+  onChangePartner?: () => void;
   booking: BookingView;
   workshopId: string;
   workshopStartsOn: string;
@@ -91,6 +93,14 @@ function PersonBlock({
 
   return (
     <div className="space-y-2 rounded-xl border border-[#211815]/10 bg-white p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-xs font-semibold uppercase tracking-wide text-[#7a5212]">
+          {entry.isPrimary ? "1 · Intestatario" : "2 · Partner"}
+        </span>
+        {!entry.isPrimary&&onChangePartner&&<button type="button"
+          className="min-h-10 text-sm font-semibold text-[#a8583e] underline"
+          onClick={onChangePartner}>Cambia partner</button>}
+      </div>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="font-semibold">
           <Link prefetch={false} href={`/gestione/p/${person.id}`} className="underline-offset-2 hover:underline">
@@ -274,11 +284,13 @@ function BookingDetailsContent({
       </div>
 
       <div className="space-y-2">
+        <h3 className="text-base font-semibold">{partner?"Persone della coppia":"Partecipante"}</h3>
         {booking.people.map((entry) => (
           <PersonBlock
             key={entry.participantId}
             entry={entry}
             partnerOf={entry === partner && primary ? personNames(primary).main : null}
+            onChangePartner={entry === partner ? () => setPartnerMode("change") : undefined}
             booking={booking}
             workshopId={workshopId}
             workshopStartsOn={workshopStartsOn}
@@ -293,11 +305,8 @@ function BookingDetailsContent({
       </div>
 
       {partnerMode === "idle" ? (
-        <div className="flex flex-wrap gap-2">
-          <button type="button" className={buttonClass.secondary} onClick={() => setPartnerMode(partner ? "change" : "add")}>
-            {partner ? "Cambia partner" : "+ Partner"}
-          </button>
-        </div>
+        !partner ? <button type="button" className={buttonClass.secondary}
+          onClick={() => setPartnerMode("add")}>+ Partner</button> : null
       ) : (
         <div className="space-y-3 rounded-xl bg-[#f2ede3] p-3">
           <PersonPicker
