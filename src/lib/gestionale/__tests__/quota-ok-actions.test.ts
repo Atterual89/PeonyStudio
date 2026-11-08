@@ -13,7 +13,7 @@ const save = vi.fn<Mocked<{ ok: true; id: string; created: boolean; expiresAt: s
 const revoke = vi.fn<Mocked<{ ok: true; revoked: number }>>(async () => ({ ok: true, revoked: 1 }));
 const log = vi.fn<Mocked<{ ok: boolean; data: null }>>(async () => ({ ok: true, data: null }));
 const clear = vi.fn(async () => {});
-const confirmSaved = vi.fn(async () => true);
+const confirmSaved = vi.fn(async (..._args:unknown[]) => true);
 
 vi.mock("next/cache", () => ({ refresh: () => {}, revalidatePath: () => {} }));
 vi.mock("@/lib/gestionale/server/auth", () => ({
