@@ -20,12 +20,16 @@ export async function syncAssociationMailAction(initialFrom?: string) {
 export async function getAssociationMailState() {
   await requireAdmin();
   const db = getGestionaleDb();
-  const [state, payments, allocations] = await Promise.all([
+  const [state, payments] = await Promise.all([
     db.from("gw_payment_sync_state").select("initial_from,last_success_at").eq("source","gmail_payments").maybeSingle(),
     db.from("gw_association_payment_emails").select("id,provider,payer_name,amount_cents,note,paid_at,status").eq("status","pending").order("paid_at",{ascending:false}).limit(75),
-    db.from("gw_association_payment_allocations").select("payment_id,slot,person_id").limit(5000),
   ]);
-  if (state.error || payments.error || allocations.error) return {ok:false as const,error:"Archivio pagamenti non disponibile. Verifica che la migrazione sia stata applicata."};
+  if (state.error || payments.error) return {ok:false as const,error:"Archivio pagamenti non disponibile. Verifica che la migrazione sia stata applicata."};
+  const ids=(payments.data??[]).map(p=>p.id);
+  const allocations=ids.length
+    ? await db.from("gw_association_payment_allocations").select("payment_id,slot,person_id").in("payment_id",ids)
+    : {data:[],error:null};
+  if (allocations.error) return {ok:false as const,error:"Impossibile caricare gli abbinamenti delle quote."};
   return {ok:true as const, state:state.data, payments:(payments.data??[]).map(p=>({
     ...p, availableSlots:suggestedQuotaCount({
       provider:p.provider as "paypal"|"qonto", payerName:p.payer_name,
