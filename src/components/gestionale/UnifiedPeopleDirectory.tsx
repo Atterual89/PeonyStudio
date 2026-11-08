@@ -8,7 +8,7 @@ import { MemberQuickLink } from "./MemberQuickLink";
 
 const stateLabel:Record<UnifiedContact["association"],string>={
  verificata:"Quota verificata",da_verificare:"Quota da verificare",
- solo_modulo:"Modulo presente",non_presente:"Non nel libro soci",
+ solo_modulo:"Modulo presente",non_presente:"Non nel libro soci",non_disponibile:"Stato non disponibile",
 };
 const linkLabel:Record<UnifiedContact["link"],string>={
  confermato:"Abbinamento confermato",email:"Stessa email",
