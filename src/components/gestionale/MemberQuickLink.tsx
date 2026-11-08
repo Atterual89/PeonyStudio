@@ -2,8 +2,9 @@
 
 import { useRef, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
-import { linkMemberAction, memberSearchAction } from "@/app/gestione/(app)/w/actions";
+import { findLinkedMemberProfileAction, linkMemberAction, memberSearchAction } from "@/app/gestione/(app)/w/actions";
 import type { MemberSummary } from "@/lib/gestionale/types";
 import { buttonClass, inputClass } from "./ui";
 
@@ -28,6 +29,8 @@ export function MemberQuickLink({
   const [query, setQuery] = useState("");
   const [members, setMembers] = useState<MemberSummary[] | null>(null);
   const [selected, setSelected] = useState<MemberSummary | null>(null);
+  const [linkedProfile,setLinkedProfile]=useState<{id:string;name:string;sameProfile:boolean}|null>(null);
+  const [resolving,setResolving]=useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [searching, setSearching] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -38,6 +41,7 @@ export function MemberQuickLink({
     setQuery(value);
     setMembers(null);
     setSelected(null);
+    setLinkedProfile(null);
     setNotice(null);
     setSearching(false);
   }
@@ -57,12 +61,33 @@ export function MemberQuickLink({
       } else {
         setMembers(result.data.members);
         setSelected(null);
+        setLinkedProfile(null);
       }
     } catch {
       if (sequence.current === request)
         setNotice({ kind: "error", text: "Ricerca nel libro soci non riuscita. Riprova." });
     } finally {
       if (sequence.current === request) setSearching(false);
+    }
+  }
+
+  async function choose(memberId:string){
+    const member=members?.find(item=>item.id===memberId)??null;
+    setSelected(member);
+    setLinkedProfile(null);
+    setNotice(null);
+    const request=++sequence.current;
+    if(!member?.alreadyLinked)return;
+    setResolving(true);
+    try {
+      const result=await findLinkedMemberProfileAction({memberId:member.id,currentPersonId:personId});
+      if(request!==sequence.current)return;
+      if(result.ok)setLinkedProfile(result.data);
+      else setNotice({kind:"error",text:result.error});
+    }catch{
+      if(request===sequence.current)setNotice({kind:"error",text:"Impossibile individuare la scheda già collegata."});
+    }finally{
+      if(request===sequence.current)setResolving(false);
     }
   }
 
@@ -109,17 +134,29 @@ export function MemberQuickLink({
       {members && (members.length ? <div className="space-y-1">
         <label htmlFor={`choose-member-${personId}`} className="block text-xs font-semibold text-[#5f524c]">Seleziona la socia dal libro soci</label>
         <select id={`choose-member-${personId}`} className={inputClass} value={selected?.id??""}
-          disabled={pending} onChange={event=>{
-            setSelected(members.find(member=>member.id===event.target.value)??null);
-            setNotice(null);
-          }}>
+          disabled={pending||resolving} onChange={event=>{void choose(event.target.value);}}> 
           <option value="">Seleziona…</option>
-          {members.map(member=><option key={member.id} value={member.id} disabled={member.alreadyLinked}>
-            {memberName(member)} · {member.email||"email assente"}{member.alreadyLinked?" · già collegata":""}
+          {members.map(member=><option key={member.id} value={member.id}>
+            {memberName(member)} · {member.email||"email assente"}{member.alreadyLinked?" · scheda esistente":""}
           </option>)}
         </select>
-        <p className="text-xs text-[#5f524c]">Le persone già collegate ad altre schede non sono selezionabili.</p>
+        <p className="text-xs text-[#5f524c]">Il nickname non deve coincidere con il nome ufficiale. Se la socia ha già una scheda, puoi confrontare le due anagrafiche senza creare un secondo collegamento.</p>
       </div> : <p className="text-sm text-[#5f524c]">Nessuna socia trovata: prova il cognome o una parte dell'email.</p>)}
+      {selected?.alreadyLinked&&<div className="space-y-2 rounded-lg border border-[#a8583e]/30 bg-white p-3 text-sm">
+        <p><strong>{memberName(selected)}</strong> risulta già collegata a un'anagrafica.</p>
+        {resolving&&<p role="status">Controllo la scheda esistente…</p>}
+        {linkedProfile&&(linkedProfile.sameProfile
+          ? <p role="status" className="text-[#326941]">È già la stessa anagrafica: non serve un secondo collegamento.</p>
+          : <>
+            <p>Scheda esistente: <strong>{linkedProfile.name}</strong>.</p>
+            <p>Se <strong>{personName}</strong> è soltanto un altro nome usato per <strong>{linkedProfile.name}</strong>, confronta i dati e unisci le due schede. Le iscrizioni resteranno collegate alla persona esistente.</p>
+            <p className="font-semibold text-[#9b4b1e]">Se il nome inserito da Ale indica due persone (ad esempio «Pavel/Maru»), verifica prima chi era effettivamente iscritto: non unire schede di persone diverse.</p>
+            <Link prefetch={false} href={`/gestione/p/${linkedProfile.id}/unisci/${personId}`}
+              className="inline-flex min-h-10 items-center rounded-lg bg-[#a8583e] px-3 py-2 font-semibold text-white">
+              Confronta le schede e unisci
+            </Link>
+          </>)}
+      </div>}
       {selected && !selected.alreadyLinked && <div className="space-y-2 rounded-lg border border-[#a8583e]/30 bg-white p-3">
         <p className="text-sm">Confermi che <strong>{personName}</strong> e <strong>{memberName(selected)}</strong> sono la stessa persona?</p>
         <button type="button" disabled={pending} onClick={confirm} className={buttonClass.primary}>
