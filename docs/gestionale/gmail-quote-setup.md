@@ -13,7 +13,7 @@ Il gestionale legge solo la casella `peony.studio.turin@gmail.com` e solo dopo c
    - `GMAIL_PAYMENTS_CLIENT_SECRET`: segreto del client web Google.
    - `GMAIL_PAYMENTS_REDIRECT_URI`: URI di callback configurato al punto 4.
    - `GMAIL_PAYMENTS_TOKEN_KEY`: stringa Base64 di 32 byte casuali per cifrare il refresh token; generabile localmente con `openssl rand -base64 32`.
-6. Pubblica la configurazione con un nuovo deploy. Con PIN amministratore: apri **Quote associative → Collega Gmail Peony Studio**, scegli **peony.studio.turin@gmail.com** e approva il solo permesso Gmail di lettura.
+6. Pubblica la configurazione con un nuovo deploy. Dopo la pubblicazione e l'accesso amministrativo, apri **Gestionale → Eventi Peony** (oppure un evento, anche Rope Jam) e usa **Collega Gmail** accanto a **Allinea libro soci**. Seleziona **peony.studio.turin@gmail.com** e autorizza il permesso Gmail di sola lettura.
 
 **Non incollare token, client secret o chiavi nella chat, in GitHub, in issue o in log.**
 
@@ -27,5 +27,5 @@ Documentazione Google: https://developers.google.com/identity/protocols/oauth2/ 
 - I token OAuth sono cifrati sul server con AES-256-GCM e custoditi in `gw_gmail_connections`, tabella senza accesso pubblico; nessun token è inviato al browser dopo il callback.
 - Non sono archiviate intere email, allegati o la cronologia generale: soltanto ID Gmail, dati di pagamento estratti e stato di revisione.
 - Gli importi di 15 / 30 / 45 euro e i netti PayPal sono **candidati**, non conferme automatiche. Stripe è escluso.
-- Il primo import inizia dalla data scelta dall'admin. Le scansioni successive usano checkpoint persistenti, con sovrapposizione di sicurezza.
-- Non effettuare il primo import prima di aver verificato una data ragionevole e la connessione corretta.
+- Il primo import parte automaticamente dall'ultimo aggiornamento registrato delle fonti associative, con 48 ore di sovrapposizione. Le scansioni successive ripartono dal checkpoint Gmail persistente, senza chiedere date.
+- Dopo la prima autorizzazione, premi **Sincronizza email quote**. I candidati si controllano in **Libro soci → Pagamenti email da verificare**: nessuna quota viene confermata automaticamente. Gli importi multipli si assegnano una persona alla volta.\n- Se Google revoca o fa scadere il permesso, dopo un errore di sincronizzazione usa **Ricollega Gmail** e autorizza nuovamente l'account Peony Studio. Il checkpoint rimane nel database.
