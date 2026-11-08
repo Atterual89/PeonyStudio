@@ -18,6 +18,7 @@ import {
   refundBooking,
   setBookingFee,
   setEnteredEmail,
+  updateEnteredParticipant,
   updateRegistration,
   updateWorkshopSettings,
   type EnteredEntry,
@@ -533,6 +534,24 @@ export async function previewMatchesAction(input: {
  * salva solo l'email che scrive lei. Sul server: se la persona collegata non
  * ha email la prende; se ne ha una diversa non la tocca.
  */
+/** Nome/nickname e email visualizzati nell'iscrizione di Ale.
+ * Aggiorna sia l'intestatario sia il partner, ma non l'anagrafica ufficiale.
+ */
+export async function updateEnteredParticipantAction(input: {
+  participantId:string;name:string;email:string;
+}):Promise<ActionResult> {
+  const operator=await requireOrganizer();
+  if(!isUuidLike(input?.participantId))return INVALID;
+  const name=asText(input.name,200).trim().replace(/\s+/g," ");
+  if(!name||name.length>200)return {ok:false,error:"Inserisci il nome o nickname del partecipante."};
+  const email=readEnteredEmail(input.email);
+  if(email===undefined)return {ok:false,error:"Email non valida. Controlla l'indirizzo."};
+  const result=await updateEnteredParticipant(operator.id,input.participantId,name,email);
+  if(!result.ok)return result;
+  refreshGestione();
+  return {ok:true};
+}
+
 export async function setEnteredEmailAction(input: { participantId: string; email: string }): Promise<ActionResult> {
   const operator = await requireOrganizer();
   if (!isUuidLike(input?.participantId)) return INVALID;
