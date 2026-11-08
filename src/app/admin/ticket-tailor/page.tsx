@@ -19,7 +19,7 @@ type ParticipantRow = {
   email: string | null;
   membership_status: MembershipStatus;
   membership_expires_at: string | null;
-  membership_match_method: "email" | "name" | "manual" | null;
+  membership_match_method: "email" | "name" | "manual" | "payment_email" | null;
   partner_status: PartnerStatus;
   enrollment_id: string | null;
   partner_name: string | null;
@@ -27,7 +27,7 @@ type ParticipantRow = {
   partner_source: string | null;
   partner_membership_status: MembershipStatus | null;
   partner_membership_expires_at: string | null;
-  partner_membership_match_method: "email" | "name" | "manual" | null;
+  partner_membership_match_method: "email" | "name" | "manual" | "payment_email" | null;
 };
 
 type FutureEvent = {
@@ -51,7 +51,7 @@ type MemberCandidate = {
   email: string | null;
   membership_status: MembershipStatus;
   membership_expires_at: string | null;
-  membership_match_method: "email" | "name" | "manual" | null;
+  membership_match_method: "email" | "name" | "manual" | "payment_email" | null;
   form_present: boolean;
   current_year_paid: boolean;
 };

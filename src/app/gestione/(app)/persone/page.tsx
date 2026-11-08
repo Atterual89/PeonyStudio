@@ -6,13 +6,15 @@ import Link from "next/link";
 import { NewPersonForm } from "@/components/gestionale/NewPersonForm";
 import { QuotaCheckbox } from "@/components/gestionale/QuotaCheckbox";
 import { UrlSearchBox } from "@/components/gestionale/UrlSearchBox";
-import { Notice, Section, cardClass } from "@/components/gestionale/ui";
+import { UnifiedPeopleDirectory } from "@/components/gestionale/UnifiedPeopleDirectory";
+import { Notice, Section } from "@/components/gestionale/ui";
 import { formatDateRange } from "@/lib/gestionale/format";
-import { buildPeopleOverview, type OtherContact, type UpcomingContact, type UpcomingBooking, type UpcomingPeopleGroup } from "@/lib/gestionale/people-overview";
+import { buildPeopleOverview, type UpcomingContact, type UpcomingBooking, type UpcomingPeopleGroup } from "@/lib/gestionale/people-overview";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { loadPeople, loadUpcomingLuxuriaPeople } from "@/lib/gestionale/server/data";
 import { loadUpcomingPeonyPeople } from "@/lib/gestionale/server/peony-events";
 import { loadSociReviewData } from "@/lib/gestionale/server/soci";
+import { loadUnifiedDirectory } from "@/lib/gestionale/server/unified-directory";
 import { todayInRome } from "@/lib/gestionale/workshops";
 
 function MembershipText({row}: {row:UpcomingContact}) {
@@ -62,29 +64,6 @@ function BookingCard({booking,year}:{booking:UpcomingBooking;year:string}) {
   );
 }
 
-function PersonLine({row}:{row:OtherContact}) {
-  return (
-    <li className="flex min-h-10 flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-2 text-sm">
-      <span className="min-w-0 flex-1">
-        {row.personId?<Link prefetch={false} href={`/gestione/p/${row.personId}`} className="block font-semibold underline decoration-[#211815]/25">{row.name}</Link>
-          :<span className="block font-semibold">{row.name}</span>}
-        {row.email?<span className="block break-all text-xs text-[#5f524c]">{row.email}</span>:null}
-      </span>
-      <span className="flex flex-col items-end gap-1">
-        <MembershipText row={row}/>
-        {row.status==="payment_missing"&&row.formMemberId?
-          <QuotaCheckbox formMemberId={row.formMemberId} name={row.name} paid={false} paidSource={row.paidSource}/>:null}
-      </span>
-    </li>
-  );
-}
-
-function PersonList({people}:{people:readonly OtherContact[]}) {
-  return <ul className={`${cardClass} divide-y divide-[#211815]/5`}>
-    {people.map(person=><PersonLine key={person.key} row={person}/>)}
-  </ul>;
-}
-
 function EventGroups({events,query}: {events:UpcomingPeopleGroup[];query:string}) {
   return (
     <div className="space-y-2">
@@ -120,14 +99,13 @@ function EventGroups({events,query}: {events:UpcomingPeopleGroup[];query:string}
 export default async function PersonePage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string | string[]; tutte?: string | string[] }>;
+  searchParams: Promise<{ q?: string | string[] }>;
 }) {
   await requireAdmin();
-  const { q, tutte } = await searchParams;
+  const { q } = await searchParams;
   const query = typeof q === "string" ? q.slice(0, 100) : "";
-  const showAll = tutte === "1";
   const today = todayInRome();
-  const [people, peony, luxuria, currentForms] = await Promise.all([
+  const [people, peony, luxuria, currentForms, unifiedContacts] = await Promise.all([
     loadPeople(),
     loadUpcomingPeonyPeople(today),
     loadUpcomingLuxuriaPeople(today),
@@ -135,6 +113,7 @@ export default async function PersonePage({
       console.error("Gestionale (persone: registro soci)", error instanceof Error ? error.message : "errore");
       return null;
     }),
+    loadUnifiedDirectory(today),
   ]);
   const years = [...new Set([...peony, ...luxuria].map((event) => event.startsOn.slice(0, 4)))];
   const formsByYear = new Map<string, NonNullable<typeof currentForms>["rows"]>();
@@ -155,33 +134,21 @@ export default async function PersonePage({
     formsByYear,
     peony, luxuria, today, query,
   });
-  const limit = showAll || query.trim() ? 200 : 30;
-  const others = overview.otherPeople.slice(0, limit);
-  const onlyForms = overview.formOnly.slice(0, limit);
-  const hasResults = overview.upcoming.length || overview.totalOthers;
+  const hasResults = overview.upcoming.length || unifiedContacts.length;
   const ongoing=overview.upcoming.filter(event=>event.startsOn<=today);
   const future=overview.upcoming.filter(event=>event.startsOn>today);
-  const extraLink = (total: number) => total > limit ? (
-    <Link href="/gestione/persone?tutte=1" prefetch={false}
-      className="mt-2 inline-flex min-h-10 items-center text-sm font-semibold text-[#a8583e] underline">
-      Mostra tutte ({total})
-    </Link>
-  ) : null;
-
   return (
     <section className="max-w-4xl">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="font-serif text-xl font-medium">Persone</h1>
           <p className="mt-1 text-sm text-[#5f524c]">
-            Iscritti ai prossimi eventi, poi gli altri contatti.
+            Anagrafica condivisa, libro soci e moduli Google in un unico elenco.
           </p>
         </div>
         <NewPersonForm />
       </div>
-      <div className="mt-4">
-        <UrlSearchBox initialQuery={query} placeholder="Cerca nome, email o evento" />
-      </div>
+
       {!currentForms ? (
         <div className="mt-3">
           <Notice tone="warning">Le informazioni associative salvate non sono disponibili. Le persone e gli eventi restano consultabili.</Notice>
@@ -189,6 +156,15 @@ export default async function PersonePage({
       ) : null}
       {!hasResults ? <p className="mt-4 text-sm text-[#5f524c]">Nessuna persona trovata.</p> : null}
 
+      <div className="mt-4">
+        <Section title="Anagrafica unificata" count={unifiedContacts.length} defaultOpen>
+          <UnifiedPeopleDirectory contacts={unifiedContacts}/>
+        </Section>
+      </div>
+      <div className="mt-4">
+        <p className="mb-2 text-sm font-semibold">Cerca nelle iscrizioni ai prossimi eventi</p>
+        <UrlSearchBox initialQuery={query} placeholder="Nome o evento"/>
+      </div>
       {ongoing.length>0?(
         <Section title="In corso" count={ongoing.length} defaultOpen>
           <EventGroups events={ongoing} query={query}/>
@@ -199,28 +175,6 @@ export default async function PersonePage({
           :<p className="text-sm text-[#5f524c]">Nessun evento futuro con iscrizioni.</p>}
       </Section>
 
-      <Section title="Altre persone" count={overview.totalOthers} defaultOpen={Boolean(query.trim())}>
-        {others.length > 0 ? (
-          <>
-            <p className="mb-2 text-xs font-semibold text-[#5f524c]">Anagrafiche</p>
-            <PersonList people={others} />
-            {extraLink(overview.otherPeople.length)}
-          </>
-        ) : null}
-        {overview.formOnly.length > 0 ? (
-          <details open={Boolean(query.trim())} className="mt-3 rounded-xl border border-[#211815]/10 bg-white/45 p-3">
-            <summary className="min-h-10 cursor-pointer text-sm font-semibold">
-              Solo modulo Google ({overview.formOnly.length})
-            </summary>
-            <p className="mt-1 mb-2 text-xs text-[#5f524c]">
-              Persone che hanno compilato il modulo ma non risultano collegate a un'anagrafica o ai prossimi eventi.
-            </p>
-            <PersonList people={onlyForms} />
-            {extraLink(overview.formOnly.length)}
-          </details>
-        ) : null}
-        {!overview.totalOthers ? <p className="text-sm text-[#5f524c]">Nessun altro contatto.</p> : null}
-      </Section>
     </section>
   );
 }

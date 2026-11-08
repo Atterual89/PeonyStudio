@@ -133,7 +133,7 @@ export const PERSON_FIELD_LABELS: Record<keyof PersonFields, string> = {
  * workshop è prima del primo periodo.
  */
 export type MembershipBadge =
-  | { kind: "in_regola"; expiresAt: string | null; match: "email" | "name" | "manual" | null }
+  | { kind: "in_regola"; expiresAt: string | null; match: "email" | "name" | "manual" | "payment_email" | null }
   | { kind: "quota_mancante"; paymentsFrom: string | null }
   | { kind: "modulo_mancante" }
   /** 017: nessun collegamento esplicito al libro soci e nessuna riga trovata dall'abbinamento admin. */

@@ -48,6 +48,7 @@ function MembershipFacts({ info, ownerLabel }: { info: PeonyMembership | null; o
   if (!info) return null;
   const matchLabel = info.matchMethod === "email" ? "email" :
     info.matchMethod === "name" ? "nome e cognome" :
+    info.matchMethod === "payment_email" ? "email pagamento" :
     info.matchMethod === "manual" ? "manuale" : "non disponibile";
   return (
     <div className="space-y-1 text-sm">

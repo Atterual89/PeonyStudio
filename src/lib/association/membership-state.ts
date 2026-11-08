@@ -13,6 +13,8 @@ export type MembershipEvidenceRow = {
   membership_status: string | null;
   membership_starts_at: string | null;
   membership_expires_at: string | null;
+  /** Provenienza della verifica; non è inviata ai client pubblici. */
+  notes_admin?: string | null;
 };
 
 export type DerivedMembershipState = {
@@ -21,7 +23,7 @@ export type DerivedMembershipState = {
   currentYearPaid: boolean;
   membershipStartsAt: string | null;
   membershipExpiresAt: string | null;
-  paymentMatchMethod: "email" | "name" | "manual" | null;
+  paymentMatchMethod: "email" | "name" | "manual" | "payment_email" | null;
 };
 
 export type DeriveMembershipOptions = {
@@ -62,7 +64,7 @@ export function deriveMembershipState(
     identity.lastName,
   );
 
-  const manualOverride = rows.find((row) => {
+  const matchingOverrides = rows.filter((row) => {
     if (row.source !== "manual_override" || !isCurrentYearPayment(row)) {
       return false;
     }
@@ -78,6 +80,11 @@ export function deriveMembershipState(
     return emailMatches || nameMatches;
   });
 
+  // Un pagamento Gmail/PayPal/Qonto assegnato e confermato è la prova più
+  // solida rispetto al semplice controllo manuale dello stesso periodo.
+  const emailProof = matchingOverrides.find(row =>
+    row.notes_admin?.startsWith("Quota confermata da email ("));
+  const manualOverride = emailProof ?? matchingOverrides[0];
   if (manualOverride) {
     return {
       status: "valid",
@@ -85,7 +92,7 @@ export function deriveMembershipState(
       currentYearPaid: true,
       membershipStartsAt: manualOverride.membership_starts_at,
       membershipExpiresAt: manualOverride.membership_expires_at,
-      paymentMatchMethod: "manual",
+      paymentMatchMethod: emailProof ? "payment_email" : "manual",
     };
   }
 

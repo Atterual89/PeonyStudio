@@ -49,6 +49,7 @@ function pick(row: MembershipEvidenceRow, tableId: string | null): EvidenceRow {
     membership_status: row.membership_status,
     membership_starts_at: row.membership_starts_at,
     membership_expires_at: row.membership_expires_at,
+    notes_admin: row.notes_admin ?? null,
     tableId,
   };
 }
@@ -148,7 +149,7 @@ const readCurrentManualValidations = cache(async (): Promise<EvidenceRow[]> => {
   const rows: EvidenceRow[] = [];
   for(let offset=0;offset<10000;offset+=500) {
     const {data,error}=await getGestionaleDb().from("association_members")
-      .select("id,first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at")
+      .select("id,first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at,notes_admin")
       .eq("source","manual_override").order("id",{ascending:true})
       .range(offset,offset+499);
     if(error)throw new Error(`Gestionale (quote manuali aggiornate): ${error.message}`);
