@@ -232,6 +232,7 @@ export function PaymentForm({
   lastMethod = null,
   onDelete,
   hint,
+  autoFocus = true,
 }: {
   bookingId: string;
   mode: PaymentFormMode;
@@ -244,6 +245,8 @@ export function PaymentForm({
   onDelete?: () => void;
   /** Riga di aiuto sotto il titolo (4g, #14). */
   hint?: string;
+  /** Nelle schede espandibili il focus automatico sposterebbe la pagina in basso. */
+  autoFocus?: boolean;
 }) {
   const original = mode.kind === "correzione" ? mode.original : null;
   const preset = mode.kind === "pagamento" ? mode : null;
@@ -318,6 +321,7 @@ export function PaymentForm({
         today={today}
         refund={refund}
         autoType={original ? undefined : autoType}
+        autoFocus={autoFocus}
         amountMissing={amountMissing}
       />
 
