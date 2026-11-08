@@ -2,6 +2,7 @@
 
 import { refreshGestione } from "@/lib/gestionale/server/refresh";
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
+import { confirmManualQuotaPersisted } from "@/lib/gestionale/server/manual-quota-proof";
 
 import { revokeManualValidation, saveManualValidation } from "@/lib/association/manual-validation";
 import { membershipPeriodFor } from "@/lib/association/membership-periods";
@@ -52,6 +53,9 @@ export async function markQuotaOkAction(input: Target): Promise<ActionResult> {
 
   const result = await saveManualValidation(target.identity, { period: target.period });
   if (!result.ok) return { ok: false, error: "Validazione non riuscita. Riprova." };
+  if(!await confirmManualQuotaPersisted(result.id,target.identity,target.period)) {
+    return {ok:false,error:"La quota non risulta verificata nel database per questo periodo. Aggiorna lo stato prima di ripetere l’operazione."};
+  }
   await logMemberValidation(operator.id, target.person.id, "quota_ok", { periodo: target.period, riga: result.id });
   await clearMembershipCache();
   refreshGestione();
@@ -107,6 +111,9 @@ export async function setFormQuotaPaidAction(formMemberId: string, paid: boolean
     ? await saveManualValidation(identity, { period })
     : await revokeManualValidation(identity, { period });
   if (!result.ok) return { ok: false, error: "Salvataggio quota non riuscito." };
+  if (paid && !await confirmManualQuotaPersisted("id" in result ? result.id : null,identity,period)) {
+    return {ok:false,error:"La quota non risulta verificata nel database. Aggiorna lo stato prima di ripetere l’operazione."};
+  }
   if (!paid && "revoked" in result && result.revoked === 0)
     return { ok: false, error: "Nessuna quota confermata manualmente da annullare." };
 
