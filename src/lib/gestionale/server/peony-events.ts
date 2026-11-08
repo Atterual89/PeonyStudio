@@ -9,6 +9,7 @@ import { choosePartner } from "@/lib/gestionale/peony-booking-partner";
 import { buildPeonyMemberDirectory } from "@/lib/gestionale/peony-member-candidates";
 import { timestampToRomeDate } from "@/lib/gestionale/workshops";
 import { isActivePeonyTicket, isPeonyTicketEvent } from "@/lib/gestionale/peony-ticket-rules";
+import { peonyTicketRole, ticketTypeNameForIssuedTicket, ticketTypeNamesFromEventPayload, type PeonyTicketRole } from "@/lib/gestionale/peony-ticket-type";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
 import { isUuidLike } from "@/lib/gestionale/validation";
@@ -50,6 +51,7 @@ export type PeonyAttendee = {
   name: string;
   email: string | null;
   ticketType: string | null;
+  ticketRole: PeonyTicketRole;
   notes: string | null;
   association: PeonyMembership | null;
   associationRequired: boolean;
@@ -183,9 +185,9 @@ export const readAllMemberEvidence = cache(async (): Promise<Array<MembershipEvi
 export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster> {
   await requireAdmin();
   const db = getGestionaleDb();
-  const [tickets, participants, memberships, people, enrollments, orders, overrides, holderOverrides] = await Promise.all([
+  const [tickets, participants, memberships, people, enrollments, orders, overrides, holderOverrides, rawEvent] = await Promise.all([
     db.from("ticket_tailor_issued_tickets")
-      .select("ticket_tailor_issued_ticket_id,ticket_tailor_order_id,holder_first_name,holder_last_name,holder_email,ticket_type_name,status,last_synced_at")
+      .select("ticket_tailor_issued_ticket_id,ticket_tailor_order_id,holder_first_name,holder_last_name,holder_email,ticket_type_name,raw_payload,status,last_synced_at")
       .eq("ticket_tailor_event_id", event.ticketTailorEventId).range(0, 9999),
     db.from("event_participants")
       .select("ticket_tailor_issued_ticket_id,notes_admin")
@@ -206,15 +208,17 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
     db.from("gw_peony_booking_holders")
       .select("ticket_id,person_id,member_row_id")
       .eq("event_id",event.id).range(0,9999),
+    db.from("events").select("raw_payload").eq("id",event.id).maybeSingle(),
   ]);
   for (const [label, response] of [
     ["Biglietti", tickets], ["Partecipanti", participants],
     ["Anagrafica", people],
     ["Partner", enrollments], ["Ordini", orders], ["Abbinamenti partner", overrides],
-    ["Abbinamenti intestatario",holderOverrides],
+    ["Abbinamenti intestatario",holderOverrides],["Tipi biglietto",rawEvent],
   ] as const) {
     if (response.error) throw new Error(`${label}: ${response.error.message}`);
   }
+  const ticketNames=ticketTypeNamesFromEventPayload(rawEvent.data?.raw_payload);
   const participantByTicket = new Map((participants.data ?? []).map((row) => [row.ticket_tailor_issued_ticket_id, row]));
   const enrollmentByOrder = new Map((enrollments.data ?? []).filter((r) => r.ticket_tailor_order_id)
     .map((row) => [row.ticket_tailor_order_id, row]));
@@ -243,7 +247,9 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
       // Il collegamento esplicito alla prenotazione prevale su Admin e checkout.
       const chosen = choosePartner(overrideByTicket.get(ticket.ticket_tailor_issued_ticket_id) ?? null,
         saved ?? null, fromCheckout);
-      const required = peonyPartnerRequired(event.title, ticket.ticket_type_name);
+      const ticketType=ticketTypeNameForIssuedTicket(ticket.raw_payload,ticketNames,ticket.ticket_type_name);
+      const ticketRole=peonyTicketRole(ticketType);
+      const required = peonyPartnerRequired(event.title, ticketType);
       const partner: PeonyPartner | null = required && chosen ? {
         name: chosen.name, email: chosen.email, source: chosen.source,
         linkedPersonId: chosen.personId ?? null,
@@ -272,11 +278,12 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
         orderId,
         name: [ticket.holder_first_name, ticket.holder_last_name].filter(Boolean).join(" ").trim() || "Intestatario non indicato",
         email: ticket.holder_email?.trim() || null,
-        ticketType: ticket.ticket_type_name || null,
+        ticketType,
+        ticketRole,
         notes: participantByTicket.get(ticket.ticket_tailor_issued_ticket_id)?.notes_admin ?? null,
-        association: /(observer|osservator)/i.test(ticket.ticket_type_name ?? "")
+        association: ticketRole!=="practitioner"
           ? null : associationStatus(evidence, event, identity),
-        associationRequired: !/(observer|osservator)/i.test(ticket.ticket_type_name ?? ""),
+        associationRequired: ticketRole==="practitioner",
         partnerRequired: required,
         partner,
         holderMatch:matchedHolder,
