@@ -656,6 +656,15 @@ export function setPresent(operatorId: string, bookingId: string, version: numbe
   });
 }
 
+/** Collegamento ESPLICITO confermato dall'admin per un socio ufficiale
+ * senza email, anche quando la persona usa un nickname differente.
+ * La funzione PostgreSQL controlla unicità, conflitti e audit. */
+export function setMembershipConfirmedBookLink(operatorId:string,personId:string,version:number,nameKey:string){
+ return callRpc<number>("gw_link_member_name_explicit",{
+  p_operator_id:operatorId,p_person_id:personId,p_version:version,p_name_key:nameKey,
+ });
+}
+
 /** Collegamento nominale, esclusivamente per una corrispondenza unica
  * nel libro soci ufficiale senza indirizzo email. */
 export function setMembershipNameLink(operatorId:string,personId:string,version:number,nameKey:string|null){
