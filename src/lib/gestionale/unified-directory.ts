@@ -8,6 +8,7 @@ export type RegistryEvidence = {
   last_name: string | null;
   email: string | null;
   source: string | null;
+  notes_admin?: string | null;
   membership_status: string | null;
   membership_starts_at: string | null;
   membership_expires_at: string | null;
@@ -40,6 +41,10 @@ const nameKey=(first:string|null|undefined,last:string|null|undefined)=>normaliz
 const nameOf=(row:{first_name:string|null;last_name:string|null})=>[row.first_name,row.last_name].filter(Boolean).join(" ").trim();
 const sources=(rows:readonly RegistryEvidence[])=>{
   const labels=[];
+  // Email evidence supersedes the manual check only when explicitly linked and
+  // recorded by the payment-confirmation transaction, never on raw import.
+  if(rows.some(r=>r.source==="manual_override"&&r.notes_admin?.startsWith("Quota confermata da email")))
+    labels.push("Pagamento email verificato");
   const provenEmail=rows.some(r=>r.source==="manual_override"&&
     r.membership_status==="verified"&&r.notes_admin?.startsWith("Quota confermata da email ("));
   if(provenEmail)labels.push("Pagamento email confermato");
