@@ -78,9 +78,9 @@ vi.mock("@/lib/gestionale/server/membership", () => ({
 }));
 vi.mock("@/lib/gestionale/server/mutations", () => ({
   updatePerson: (...args: unknown[]) => updatePerson(...args),
-  setMembershipLink: (...args: unknown[]) => setMembershipLink(...args),
-  setMembershipNameLink: (...args: unknown[]) => setMembershipNameLink(...args),
-  setMembershipConfirmedBookLink: (...args: unknown[]) => setMembershipConfirmedBookLink(...args),
+  setMembershipLink: (...args: Parameters<typeof setMembershipLink>) => setMembershipLink(...args),
+  setMembershipNameLink: (...args: Parameters<typeof setMembershipNameLink>) => setMembershipNameLink(...args),
+  setMembershipConfirmedBookLink: (...args: Parameters<typeof setMembershipConfirmedBookLink>) => setMembershipConfirmedBookLink(...args),
 }));
 
 const { linkMemberAction } = await import("@/app/gestione/(app)/w/actions");
