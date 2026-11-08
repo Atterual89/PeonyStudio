@@ -206,6 +206,10 @@ export type MemberSummary = {
   outcome?: MembershipBadge;
   /** Solo nei risultati della ricerca: il socio è nel libro soci (non solo nel modulo). */
   in_book?: boolean;
+  /** True se questa fonte compare già in un abbinamento del gestionale. */
+  alreadyLinked?: boolean;
+  /** Nome inserito in una scheda persona o da Ale che ha prodotto il risultato. */
+  matchedAlias?: string | null;
 };
 
 /**
