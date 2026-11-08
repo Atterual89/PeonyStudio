@@ -14,7 +14,7 @@ export function SyncTicketTailorButton({eventId=null}:{eventId?:string|null}) {
   const [progress,setProgress]=useState<string|null>(null);
   const [result,setResult]=useState<{ok:boolean;text:string}|null>(null);
 
-  function sync(){
+  function sync(forceFull=false){
     setResult(null);setProgress(null);
     startTransition(async()=>{
       let events=0,orders=0,tickets=0,warnings=0;
@@ -25,7 +25,7 @@ export function SyncTicketTailorButton({eventId=null}:{eventId?:string|null}) {
       for(let page=1;page<=100;page++){
         setProgress(`Aggiornamento Ticket Tailor · pagina ${page}. ${tickets} biglietti salvati.`);
         try{
-          const response=await syncTicketTailorPageFromGestionale(eventId,cursor,page===1);
+          const response=await syncTicketTailorPageFromGestionale(eventId,cursor,page===1,forceFull);
           if(!response.ok){
             setResult({ok:false,text:response.message+partial()});
             setProgress(null);router.refresh();return;
@@ -54,11 +54,19 @@ export function SyncTicketTailorButton({eventId=null}:{eventId?:string|null}) {
 
   return (
     <div className="space-y-2">
-      <button type="button" onClick={sync} disabled={pending}
+      <button type="button" onClick={()=>sync(false)} disabled={pending}
         className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#a8583e] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#923e2b] disabled:cursor-wait disabled:opacity-65 sm:w-auto">
         <RefreshCw className={`h-4 w-4 ${pending?"animate-spin":""}`} aria-hidden="true"/>
         {pending?"Sincronizzazione in corso…":"Sincronizza Ticket Tailor"}
       </button>
+      <details className="text-xs text-[#5f524c]">
+        <summary className="cursor-pointer py-1">Opzioni sincronizzazione</summary>
+        <p className="mt-1">Il controllo rapido usa l'ultimo aggiornamento; ogni sette giorni viene eseguito anche un controllo completo.</p>
+        <button type="button" disabled={pending} onClick={()=>sync(true)}
+          className="mt-2 rounded-lg border border-[#a8583e] px-3 py-2 font-medium text-[#a8583e] disabled:opacity-50">
+          Controllo completo (anche ordini storici)
+        </button>
+      </details>
       {pending&&progress?<p role="status" className="text-xs text-[#5f524c]">{progress}</p>:null}
       {result?(
         <div role={result.ok?"status":"alert"} className={`rounded-xl border p-3 text-sm ${result.ok
