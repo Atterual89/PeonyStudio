@@ -1,108 +1,121 @@
 "use client";
 
-// Riga iscrizione di Ale (4d, B2): "+ Email" accanto a ogni nome, modificabile.
-// Ale vede e scrive SOLO l'email che ha indicato lei (entered_email), mai
-// quella della scheda. Un'email scritta nelle note si propone con un tocco.
+import { useEffect, useState, useTransition } from "react";
 
-import { useState, useTransition } from "react";
-
-import { setEnteredEmailAction } from "@/app/gestione/(app)/w/registration-actions";
+import { updateEnteredParticipantAction } from "@/app/gestione/(app)/w/registration-actions";
 import { EMAIL_PATTERN, findEmail } from "@/lib/gestionale/parse-roster";
 import type { Registration } from "@/lib/gestionale/types";
 
-import { Notice, buttonClass, compactInputClass } from "./ui";
+import { Notice, buttonClass, inputClass } from "./ui";
 
 type Entry = Registration["people"][number];
+type Message = { tone:"success"|"error";text:string } | null;
 
-function EmailLine({ entry, onMessage }: { entry: Entry; onMessage: (message: { tone: "success" | "error"; text: string }) => void }) {
-  const [editing, setEditing] = useState(false);
-  const [email, setEmail] = useState(entry.enteredEmail ?? "");
-  const [pending, startTransition] = useTransition();
-  const name = entry.enteredAs ?? "Persona";
+/** L'organizzatrice può modificare sia intestatario sia partner.
+ * Sono i dati INSERITI nell'iscrizione: non il nominativo ufficiale del socio.
+ */
+function ParticipantLine({entry,suggestedEmail}:{
+  entry:Entry;suggestedEmail:string|null;
+}) {
+  const [editing,setEditing]=useState(false);
+  const [name,setName]=useState(entry.enteredAs??"");
+  const [email,setEmail]=useState(entry.enteredEmail??"");
+  const [message,setMessage]=useState<Message>(null);
+  const [pending,startTransition]=useTransition();
+  useEffect(()=>{
+    if(editing)return;
+    setName(entry.enteredAs??"");
+    setEmail(entry.enteredEmail??"");
+  },[entry.enteredAs,entry.enteredEmail,editing]);
 
-  function save() {
-    const value = email.trim().toLowerCase();
-    if (value && !EMAIL_PATTERN.test(value)) {
-      onMessage({ tone: "error", text: "Email non valida: controlla l'indirizzo (es. nome@esempio.it)." });
-      return;
+  function save(){
+    const cleanName=name.trim();
+    const cleanEmail=email.trim().toLowerCase();
+    if(!cleanName){setMessage({tone:"error",text:"Inserisci un nome o nickname."});return;}
+    if(cleanEmail&&!EMAIL_PATTERN.test(cleanEmail)){
+      setMessage({tone:"error",text:"Email non valida: controlla l'indirizzo."});return;
     }
-    startTransition(async () => {
-      const result = await setEnteredEmailAction({ participantId: entry.participantId, email: value });
-      if (result.ok) {
-        setEditing(false);
-        onMessage({ tone: "success", text: value ? `Email di ${name} salvata.` : `Email di ${name} tolta.` });
-      } else onMessage({ tone: "error", text: result.error });
+    setMessage(null);
+    startTransition(async()=>{
+      try {
+        const result=await updateEnteredParticipantAction({
+          participantId:entry.participantId,name:cleanName,email:cleanEmail,
+        });
+        if(result.ok){
+          setName(cleanName);
+          setEmail(cleanEmail);
+          setEditing(false);
+          setMessage({tone:"success",text:`Dati ${entry.isPrimary?"dell'intestatario":"del partner"} salvati.`});
+        }else setMessage({tone:"error",text:result.error});
+      }catch{setMessage({tone:"error",text:"Salvataggio non riuscito. Riprova."});}
     });
   }
 
-  if (editing) {
-    return (
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-medium">{name}</span>
-        <input
-          className={`${compactInputClass} w-auto flex-[1_1_12rem]`}
-          type="email"
-          inputMode="email"
-          autoComplete="off"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="nome@esempio.it"
-          autoFocus
-        />
-        <button type="button" className={buttonClass.secondary} disabled={pending} onClick={save}>
-          {pending ? "Salvataggio…" : "Salva"}
+  return <section className="space-y-2 rounded-xl border border-[#211815]/15 bg-white p-3">
+    <div className="flex flex-wrap items-start justify-between gap-2">
+      <div className="min-w-0 space-y-1">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[#7a5212]">
+          {entry.isPrimary?"1 · Intestatario":"2 · Partner"}
+        </p>
+        <p className="break-words text-base font-semibold">{entry.enteredAs||"Nome mancante"}</p>
+        {!editing&&<p className="break-all text-sm text-[#5f524c]">
+          {entry.enteredEmail||"Email mancante"}
+        </p>}
+      </div>
+      {!editing&&<button type="button" className={buttonClass.secondary}
+        onClick={()=>{setEditing(true);setMessage(null);}}>
+        Modifica dati
+      </button>}
+    </div>
+    {editing&&<div className="space-y-3 rounded-lg border border-[#a8583e]/20 bg-[#f8f3ea] p-3">
+      <label className="block text-sm font-semibold">
+        Nome o nickname usato per il workshop
+        <input className={`${inputClass} mt-1`} value={name} maxLength={200}
+          onChange={event=>setName(event.target.value)} autoComplete="off" />
+      </label>
+      <label className="block text-sm font-semibold">
+        Email {entry.isPrimary?"intestatario":"partner"}
+        <input className={`${inputClass} mt-1`} type="email" inputMode="email"
+          autoComplete="off" value={email} onChange={event=>setEmail(event.target.value)}
+          placeholder="nome@esempio.it" />
+      </label>
+      {suggestedEmail&&!email&&<button type="button" className="text-sm font-semibold text-[#a8583e] underline"
+        onClick={()=>setEmail(suggestedEmail)}>
+        Usa l'email trovata nelle note: {suggestedEmail}
+      </button>}
+      <p className="text-xs text-[#5f524c]">
+        Questi dati sono quelli dell'iscrizione; non modificano la tessera né l'anagrafica ufficiale.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" className={buttonClass.primary} disabled={pending} onClick={save}>
+          {pending?"Salvataggio…":"Salva partecipante"}
         </button>
-        <button type="button" className={buttonClass.ghost} disabled={pending} onClick={() => setEditing(false)}>
+        <button type="button" className={buttonClass.ghost} disabled={pending}
+          onClick={()=>{setName(entry.enteredAs??"");setEmail(entry.enteredEmail??"");setEditing(false);setMessage(null);}}>
           Chiudi
         </button>
       </div>
-    );
-  }
-  return (
-    <p className="flex flex-wrap items-center gap-x-2 text-sm">
-      <span className="font-medium">{name}</span>
-      {entry.enteredEmail ? <span className="text-[#5f524c]">{entry.enteredEmail}</span> : null}
-      <button type="button" className="min-h-10 font-semibold text-[#a8583e] underline" onClick={() => setEditing(true)}>
-        {entry.enteredEmail ? "cambia" : "+ Email"}
-      </button>
-    </p>
-  );
+    </div>}
+    {message&&<Notice tone={message.tone}>{message.text}</Notice>}
+  </section>;
 }
 
-export function EnteredEmails({ registration }: { registration: Registration }) {
-  const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
-  const [pending, startTransition] = useTransition();
-  const people = registration.people.filter((entry) => entry.enteredAs);
-  const fromNotes = findEmail(registration.notes);
-  const target = fromNotes && !people.some((entry) => entry.enteredEmail === fromNotes) ? people.find((entry) => !entry.enteredEmail) : undefined;
-  if (people.length === 0) return null;
-
-  return (
-    <div className="space-y-1">
-      {people.map((entry) => (
-        <EmailLine key={`${entry.participantId}-${entry.enteredEmail ?? ""}`} entry={entry} onMessage={setMessage} />
-      ))}
-      {target && fromNotes ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg bg-[#fdf3e1] p-2 text-sm text-[#7a5212]">
-          <span>
-            Nelle note c&apos;è un&apos;email: usare <strong>{fromNotes}</strong> per {target.enteredAs}?
-          </span>
-          <button
-            type="button"
-            className={buttonClass.secondary}
-            disabled={pending}
-            onClick={() =>
-              startTransition(async () => {
-                const result = await setEnteredEmailAction({ participantId: target.participantId, email: fromNotes });
-                setMessage(result.ok ? { tone: "success", text: `Email di ${target.enteredAs} salvata.` } : { tone: "error", text: result.error });
-              })
-            }
-          >
-            Usa questa email
-          </button>
-        </div>
-      ) : null}
-      {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
+/** Mostrato all'inizio della scheda coppia; le due persone hanno le stesse
+ * azioni. La quota e i pagamenti restano a livello d'iscrizione, non per persona.
+ */
+export function EnteredEmails({registration}:{registration:Registration}){
+  const people=registration.people;
+  const fromNotes=findEmail(registration.notes);
+  const target=fromNotes&&!people.some(entry=>entry.enteredEmail===fromNotes)
+    ?people.find(entry=>!entry.enteredEmail):undefined;
+  if(!people.length)return null;
+  return <div className="space-y-2">
+    <h3 className="text-base font-semibold">
+      {people.length>1?"Persone della coppia":"Partecipante"}
+    </h3>
+    <div className="grid gap-3 sm:grid-cols-2">
+      {people.map(entry=><ParticipantLine key={entry.participantId} entry={entry}
+        suggestedEmail={target?.participantId===entry.participantId?fromNotes:null}/>)}
     </div>
-  );
+  </div>;
 }

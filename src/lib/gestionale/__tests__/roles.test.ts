@@ -130,6 +130,7 @@ describe("admin: niente parte economica (3b)", () => {
       "refundBookingAction",
       "setBookingFeeAction",
       "setEnteredEmailAction",
+      "updateEnteredParticipantAction",
       "updateRegistrationAction",
       "updateWorkshopFeeAction",
     ]);
