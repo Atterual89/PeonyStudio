@@ -11,6 +11,7 @@ import { readOfficialMembersBookFromGoogleSheet } from "@/lib/google/members-boo
 import { readAssociationMembersFromGoogleSheet } from "@/lib/google/sheets";
 import { normalizeText } from "@/lib/gestionale/format";
 import { memberLookupScore, previouslyVerifiedBookMember } from "@/lib/gestionale/member-lookup";
+import { groupMemberEvidence } from "@/lib/gestionale/member-evidence-groups";
 import { memberKeyOfPerson, memberKeyOfRow, parseMemberKey, type MemberKey } from "@/lib/gestionale/member-key";
 import { resolveMemberName, singleNameOrder, type SingleNameOrder } from "@/lib/gestionale/member-name";
 import { deriveForWorkshop, membershipBadge, paymentWindowFor } from "@/lib/gestionale/membership-rule";
@@ -358,53 +359,7 @@ const bySourceRank = (a: EvidenceRow, b: EvidenceRow) => (SOURCE_RANK[a.source ?
  * email diverse restano soci diversi.
  */
 function groupMemberRows(rows: readonly EvidenceRow[]): EvidenceRow[][] {
-  const byEmail = new Map<string, EvidenceRow[]>();
-  const withoutEmail = new Map<string, EvidenceRow[]>();
-  const unidentifiable: EvidenceRow[][] = [];
-
-  for (const row of rows) {
-    const email = normalizeMembershipEmail(row.email);
-    if (email.includes("@")) {
-      byEmail.set(email, [...(byEmail.get(email) ?? []), row]);
-      continue;
-    }
-    const name = normalizeMembershipNameKey(row.first_name, row.last_name);
-    if (!name) {
-      if (row.tableId) unidentifiable.push([row]);
-      continue;
-    }
-    withoutEmail.set(name, [...(withoutEmail.get(name) ?? []), row]);
-  }
-
-  const groups: EvidenceRow[][] = [...byEmail.values()];
-  const emailGroupsByName = new Map<string, EvidenceRow[][]>();
-  for (const group of groups) {
-    for (const name of new Set(group.map(row => normalizeMembershipNameKey(row.first_name, row.last_name)))) {
-      if (name) emailGroupsByName.set(name, [...(emailGroupsByName.get(name) ?? []), group]);
-    }
-  }
-
-  for (const [name, without] of withoutEmail) {
-    const matchingEmailGroups = emailGroupsByName.get(name) ?? [];
-    const official = without.filter(row => row.source === "official_members_book");
-    const manual = without.filter(row => row.source === "manual_override");
-
-    // Registro ufficiale + verifica manuale sono PROVE di annualità diverse,
-    // non due soci diversi. Si raggruppano solo con un nome unico e senza
-    // identità in competizione. Nessuna riga viene cancellata dal database.
-    const unambiguous = official.length <= 1 && manual.length <= 1;
-    if (unambiguous && matchingEmailGroups.length === 1) {
-      matchingEmailGroups[0].push(...without);
-    } else if (unambiguous && matchingEmailGroups.length === 0) {
-      groups.push(without);
-    } else {
-      // Omonimi, email discordanti o ripetizioni ufficiali restano separati.
-      for (const row of without) groups.push([row]);
-    }
-  }
-
-  groups.push(...unidentifiable);
-  return groups.map(group => [...group].sort(bySourceRank));
+  return groupMemberEvidence(rows).map(group => [...group].sort(bySourceRank));
 }
 
 /**
