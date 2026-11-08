@@ -104,7 +104,7 @@ function ParticipantLine({entry,suggestedEmail}:{
  * azioni. La quota e i pagamenti restano a livello d'iscrizione, non per persona.
  */
 export function EnteredEmails({registration}:{registration:Registration}){
-  const people=registration.people.filter(entry=>entry.enteredAs);
+  const people=registration.people;
   const fromNotes=findEmail(registration.notes);
   const target=fromNotes&&!people.some(entry=>entry.enteredEmail===fromNotes)
     ?people.find(entry=>!entry.enteredEmail):undefined;
