@@ -4,8 +4,8 @@ import { useEffect,useState } from "react";
 import { memberSearchAction } from "@/app/gestione/(app)/w/actions";
 
 type Result=Extract<Awaited<ReturnType<typeof memberSearchAction>>,{ok:true}>["data"];
-export function MemberDirectorySearch(){
- const [q,setQ]=useState("");
+export function MemberDirectorySearch({initialQuery=""}:{initialQuery?:string}){
+ const [q,setQ]=useState(initialQuery);
  const [result,setResult]=useState<Result|null>(null);
  const [error,setError]=useState<string|null>(null);
  const [busy,setBusy]=useState(false);
