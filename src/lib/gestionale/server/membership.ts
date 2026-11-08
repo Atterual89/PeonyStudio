@@ -359,35 +359,52 @@ const bySourceRank = (a: EvidenceRow, b: EvidenceRow) => (SOURCE_RANK[a.source ?
  */
 function groupMemberRows(rows: readonly EvidenceRow[]): EvidenceRow[][] {
   const byEmail = new Map<string, EvidenceRow[]>();
-  const withoutEmail: EvidenceRow[] = [];
+  const withoutEmail = new Map<string, EvidenceRow[]>();
+  const unidentifiable: EvidenceRow[][] = [];
+
   for (const row of rows) {
     const email = normalizeMembershipEmail(row.email);
-    if (email.includes("@")) byEmail.set(email, [...(byEmail.get(email) ?? []), row]);
-    else withoutEmail.push(row);
+    if (email.includes("@")) {
+      byEmail.set(email, [...(byEmail.get(email) ?? []), row]);
+      continue;
+    }
+    const name = normalizeMembershipNameKey(row.first_name, row.last_name);
+    if (!name) {
+      if (row.tableId) unidentifiable.push([row]);
+      continue;
+    }
+    withoutEmail.set(name, [...(withoutEmail.get(name) ?? []), row]);
   }
+
+  const groups: EvidenceRow[][] = [...byEmail.values()];
   const emailGroupsByName = new Map<string, EvidenceRow[][]>();
-  for (const group of byEmail.values()) {
-    for (const nameKey of new Set(group.map((row) => normalizeMembershipNameKey(row.first_name, row.last_name)))) {
-      if (nameKey) emailGroupsByName.set(nameKey, [...(emailGroupsByName.get(nameKey) ?? []), group]);
+  for (const group of groups) {
+    for (const name of new Set(group.map(row => normalizeMembershipNameKey(row.first_name, row.last_name)))) {
+      if (name) emailGroupsByName.set(name, [...(emailGroupsByName.get(name) ?? []), group]);
     }
   }
-  const groups = [...byEmail.values()];
-  const byName = new Map<string, EvidenceRow[]>();
-  for (const row of withoutEmail) {
-    const nameKey = normalizeMembershipNameKey(row.first_name, row.last_name);
-    const sameName = nameKey ? (emailGroupsByName.get(nameKey) ?? []) : [];
-    if (sameName.length === 1) sameName[0].push(row);
-    else if (row.tableId) groups.push([row]);
-    else if (nameKey) {
-      const group = byName.get(nameKey) ?? [];
-      if (group.length === 0) {
-        byName.set(nameKey, group);
-        groups.push(group);
-      }
-      group.push(row);
+
+  for (const [name, without] of withoutEmail) {
+    const matchingEmailGroups = emailGroupsByName.get(name) ?? [];
+    const official = without.filter(row => row.source === "official_members_book");
+    const manual = without.filter(row => row.source === "manual_override");
+
+    // Registro ufficiale + verifica manuale sono PROVE di annualità diverse,
+    // non due soci diversi. Si raggruppano solo con un nome unico e senza
+    // identità in competizione. Nessuna riga viene cancellata dal database.
+    const unambiguous = official.length <= 1 && manual.length <= 1;
+    if (unambiguous && matchingEmailGroups.length === 1) {
+      matchingEmailGroups[0].push(...without);
+    } else if (unambiguous && matchingEmailGroups.length === 0) {
+      groups.push(without);
+    } else {
+      // Omonimi, email discordanti o ripetizioni ufficiali restano separati.
+      for (const row of without) groups.push([row]);
     }
   }
-  return groups.map((group) => [...group].sort(bySourceRank));
+
+  groups.push(...unidentifiable);
+  return groups.map(group => [...group].sort(bySourceRank));
 }
 
 /**
