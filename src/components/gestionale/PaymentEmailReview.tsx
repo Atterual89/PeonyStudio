@@ -3,7 +3,7 @@ import { useState, useTransition } from "react";
 import { confirmAssociationPaymentAction, findPaymentPeopleAction, ignoreAssociationPaymentAction } from "@/app/gestione/(app)/quote-email/actions";
 
 type Person = {kind:"person"|"member";id:string;name:string;email:string|null;source:string};
-type Payment = {id:string;provider:string;payer_name:string|null;amount_cents:number;note:string|null;paid_at:string;availableSlots:number;slots:number[];suggested:{id:string;name:string}|null};
+type Payment = {id:string;provider:string;payer_name:string|null;amount_cents:number;note:string|null;paid_at:string;availableSlots:number;slots:number[];suggested:{id:string;name:string}|null;alreadyPaidPeriod:string|null};
 type SavedQuota = {name:string;period:string;slot:number};
 type Notice = {tone:"error"|"success";text:string};
 
@@ -79,7 +79,7 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
     <span>{lastConfirmed}</span>
     <button type="button" className="shrink-0 font-semibold underline" onClick={()=>setLastConfirmed(null)}>Chiudi</button>
    </div>}
-  <h2 className="font-semibold">Pagamenti da associare ({unresolved})</h2>
+  <h2 className="font-semibold">Pagamenti da verificare ({unresolved})</h2>
   {payments.length===0&&<p className="text-sm text-[#5f524c]">Nessun pagamento in attesa nei risultati caricati.</p>}
   {payments.map(p=>{
    const extra=saved[p.id]??[];
@@ -87,6 +87,8 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
    const closed=Boolean(ignored[p.id])||used>=p.availableSlots;
    const isWorking=working===p.id;
    const notice=feedback[p.id];
+   const periodAlreadyPaid=Boolean(p.alreadyPaidPeriod&&periodFor(p.id)===p.alreadyPaidPeriod);
+   const nextPeriod=p.alreadyPaidPeriod?periods.find(period=>period.from>p.alreadyPaidPeriod!)??null:null;
    return <section key={p.id} className="space-y-3 rounded-xl border border-[#211815]/15 bg-white p-3 sm:p-4">
     <div className="flex justify-between gap-2">
      <strong>{p.provider.toUpperCase()} · {(p.amount_cents/100).toLocaleString("it-IT",{style:"currency",currency:"EUR"})}</strong>
@@ -107,6 +109,17 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
       </select>
      </label>}
     </div>
+    {p.alreadyPaidPeriod && !closed && <div className="space-y-2 rounded-lg border border-[#a8583e]/30 bg-[#f8f3ea] p-3 text-sm">
+      <p><strong>Periodo {periodLabel(p.alreadyPaidPeriod)} già verificato nel libro soci.</strong> Il pagamento email è ancora da riconciliare: non è possibile assegnarlo due volte allo stesso periodo.</p>
+      {nextPeriod && <div className="flex flex-wrap items-center gap-2">
+        <p>Se si tratta della quota {nextPeriod.label}, seleziona quell'anno e poi conferma la persona.</p>
+        {periodAlreadyPaid&&<button type="button" disabled={blocked} className="min-h-10 rounded-lg border border-[#a8583e] px-3 py-2 font-semibold text-[#a8583e] disabled:opacity-50"
+          onClick={()=>{setPeriodByPayment(previous=>({...previous,[p.id]:nextPeriod.from}));setFeedback(previous=>{const next={...previous};delete next[p.id];return next;});}}>
+          Seleziona {nextPeriod.label}
+        </button>}
+      </div>}
+      {!periodAlreadyPaid&&<p className="font-semibold text-[#326941]">Periodo selezionato: {periodLabel(periodFor(p.id))}. Verifica che sia la destinazione corretta del versamento.</p>}
+    </div>}
     {extra.map((item,i)=><p key={`${item.slot}-${i}`} role="status" className="rounded-lg border border-[#326941]/30 bg-[#eef6ee] p-3 text-sm text-[#326941]">
      Quota salvata nel database: <strong>{item.name}</strong> · periodo {item.period} · quota {item.slot}/{p.availableSlots}.
     </p>)}
@@ -115,7 +128,7 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
     {!closed&&<>
      {p.suggested&&!(results[p.id]??[]).some(person=>person.kind==="person"&&person.id===p.suggested?.id)&&<div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[#f6f1e9] p-2 text-sm">
       <span>Persona proposta: <strong>{p.suggested.name}</strong></span>
-      <button type="button" disabled={blocked} className="min-h-10 rounded-lg bg-[#a8583e] px-3 py-2 text-white disabled:opacity-50"
+      <button type="button" disabled={blocked||periodAlreadyPaid} className="min-h-10 rounded-lg bg-[#a8583e] px-3 py-2 text-white disabled:opacity-50"
        onClick={()=>assign(p.id,{kind:"person",id:p.suggested!.id},p.suggested!.name)}>
        {isWorking?"Salvataggio…":"Conferma"}
       </button>
