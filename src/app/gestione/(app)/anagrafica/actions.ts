@@ -26,7 +26,7 @@ export async function saveSharedPersonAction(input: {
     if (linkError) return { ok: false, error: "Impossibile verificare l'accesso." };
     const permitted = (links ?? []).some((row) => {
       const booking = Array.isArray(row.gw_bookings) ? row.gw_bookings[0] : row.gw_bookings;
-      return booking && booking.created_by === operator.id && !booking.deleted_at;
+      return Boolean(booking && !booking.deleted_at);
     });
     if (!permitted) return { ok: false, error: "Questa persona non risulta tra le tue iscrizioni." };
   }
