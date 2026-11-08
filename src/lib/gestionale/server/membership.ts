@@ -490,10 +490,12 @@ export async function searchMembers(
     if(rank===null)continue;
     const identity=groupIdentity(group);
     const summary=toSummary(key,group,rows,null,identity);
-    summary.alreadyLinked=alreadyLinked;
-    summary.matchedAlias=aliases.find(alias=>memberLookupScore(query,{
-      firstName:null,lastName:null,email:null,
-    },[alias])!==null)??null;
+    if(options.includeLinked){
+      summary.alreadyLinked=alreadyLinked;
+      summary.matchedAlias=aliases.find(alias=>memberLookupScore(query,{
+        firstName:null,lastName:null,email:null,
+      },[alias])!==null)??null;
+    }
     if(referenceDate){
       summary.outcome=membershipBadge({
         workshopStartsOn:referenceDate,

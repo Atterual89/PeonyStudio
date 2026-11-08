@@ -27,6 +27,6 @@ describe("Ricerca completa anagrafica e associazioni",()=>{
   it("è possibile aprire la ricerca anche da modulo mancante o quota mancante",()=>{
     expect(booking).toContain('badge.kind !== "in_regola"');
     expect(booking).toContain("Cerca nei registri soci e nei moduli");
-    expect(ui).toContain("Il libro soci Team Artist resta invariato");
+    expect(ui).toContain("Il collegamento al libro soci Team Artist resta invariato.");
   });
 });

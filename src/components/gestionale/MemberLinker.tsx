@@ -100,7 +100,7 @@ export function MemberLinker({
                 <li key={member.id} className="border-b border-[#211815]/10 last:border-b-0">
                   <button type="button" disabled={blocked(member)} onClick={()=>setSelected(member)}
                     aria-pressed={selected?.id===member.id}
-                    className={`flex min-h-12 w-full flex-col items-start justify-center gap-1 px-3 py-2 text-left
+                    className={`flex min-h-10 w-full flex-col items-start justify-center gap-1 px-3 py-2 text-left
                       ${selected?.id===member.id?"bg-[#a8583e]/10":""} disabled:cursor-default disabled:opacity-70`}>
                     <span className="font-semibold">{name(member)}</span>
                     <span className="break-all text-xs text-[#5f524c]">
