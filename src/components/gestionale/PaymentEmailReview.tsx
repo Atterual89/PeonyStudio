@@ -23,7 +23,7 @@ export function PaymentEmailReview({payments,initialised,lastSync,preferredPerso
   });
  }
  function lookup(id:string){
-  start(async()=>{try{setResults(s=>({...s,[id]:await findPaymentPeopleAction(search[id]||"")}));}
+  start(async()=>{try{const found=await findPaymentPeopleAction(search[id]||"");setResults(s=>({...s,[id]:found}));}
    catch{setMessage("Ricerca persone non riuscita.");}});
  }
  function assign(paymentId:string,personId:string){
