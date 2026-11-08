@@ -11,6 +11,7 @@ export type RegistryEvidence = {
   membership_status: string | null;
   membership_starts_at: string | null;
   membership_expires_at: string | null;
+  notes_admin?: string | null;
 };
 export type UnifiedContact = {
   key: string;
@@ -39,9 +40,12 @@ const nameKey=(first:string|null|undefined,last:string|null|undefined)=>normaliz
 const nameOf=(row:{first_name:string|null;last_name:string|null})=>[row.first_name,row.last_name].filter(Boolean).join(" ").trim();
 const sources=(rows:readonly RegistryEvidence[])=>{
   const labels=[];
+  const provenEmail=rows.some(r=>r.source==="manual_override"&&
+    r.membership_status==="verified"&&r.notes_admin?.startsWith("Quota confermata da email ("));
+  if(provenEmail)labels.push("Pagamento email confermato");
   if(rows.some(r=>r.source==="official_members_book"))labels.push("Libro soci");
   if(rows.some(r=>r.source==="google_sheet"))labels.push("Modulo Google");
-  if(rows.some(r=>r.source==="manual_override"))labels.push("Verifica manuale");
+  if(!provenEmail&&rows.some(r=>r.source==="manual_override"))labels.push("Verifica manuale");
   return labels.join(" · ");
 };
 function association(rows:readonly RegistryEvidence[],date:string):UnifiedContact["association"]{
