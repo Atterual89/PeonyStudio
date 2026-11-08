@@ -113,7 +113,7 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
     {ignored[p.id]&&<p role="status" className="rounded-lg bg-[#f2ede3] p-3 text-sm">Pagamento ignorato e salvato.</p>}
     {notice?.tone==="error"&&<p role="alert" className="rounded-lg border border-[#9b4b1e]/30 bg-[#fdf3e9] p-3 text-sm font-medium text-[#9b4b1e]">{notice.text}</p>}
     {!closed&&<>
-     {p.suggested&&<div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[#f6f1e9] p-2 text-sm">
+     {p.suggested&&!(results[p.id]??[]).some(person=>person.kind==="person"&&person.id===p.suggested?.id)&&<div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[#f6f1e9] p-2 text-sm">
       <span>Persona proposta: <strong>{p.suggested.name}</strong></span>
       <button type="button" disabled={blocked} className="min-h-10 rounded-lg bg-[#a8583e] px-3 py-2 text-white disabled:opacity-50"
        onClick={()=>assign(p.id,{kind:"person",id:p.suggested!.id},p.suggested!.name)}>
