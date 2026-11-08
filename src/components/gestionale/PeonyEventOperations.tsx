@@ -13,6 +13,7 @@ import {
 import { markPeonyEmailSent, savePeonyEmailTemplate } from "@/app/gestione/(app)/peony/actions";
 
 type Tab = "partecipanti" | "email";
+type TicketFilter = "all" | "practitioner" | "observer" | "unknown";
 const card = "rounded-2xl border border-[#211815]/10 bg-white/75 p-3";
 const button = "h-10 rounded-xl bg-[#a8583e] px-3 text-sm font-semibold text-white disabled:opacity-50";
 
@@ -25,8 +26,7 @@ function formattedSync(value: string | null): string {
   }).format(date);
 }
 
-function MembershipBadge({ info, required }: { info: PeonyMembership | null; required: boolean }) {
-  if (!required) return <span className="text-xs font-semibold text-[#5f524c]">Observer</span>;
+function MembershipBadge({ info }: { info: PeonyMembership | null }) {
   if (!info) return <span className="text-xs font-semibold text-[#96641b]">Da verificare</span>;
   const label = info.status === "valid" ? "Verificata" :
     info.status === "payment_missing" ? "Quota da verificare" : "Modulo assente";
@@ -70,7 +70,7 @@ function MembershipFacts({ info, ownerLabel }: { info: PeonyMembership | null; o
 function PersonRow({ person, eventId }: { person: PeonyAttendee; eventId: string }) {
   const [expanded,setExpanded]=useState(false);
   const ticketType=person.ticketType?.trim();
-  const showTicketType=Boolean(ticketType && !/^biglietto ticket tailor$/i.test(ticketType));
+  const roleLabel=person.ticketRole==="observer"?"Observer":person.ticketRole==="practitioner"?"Praticante":"Tipo da identificare";
   const partnerLabel=person.partner?.name||person.partner?.email||"Partner da indicare";
   return (
     <li className="rounded-xl border border-[#211815]/10 bg-white/80 px-3 py-2.5">
@@ -80,17 +80,21 @@ function PersonRow({ person, eventId }: { person: PeonyAttendee; eventId: string
           <span className="block break-words text-sm font-semibold">
             {person.name}
             {person.partnerRequired ? <span className="font-normal"> + {partnerLabel}</span>:null}
-            {showTicketType?<span className="ml-2 text-xs font-normal text-[#5f524c]">{ticketType}</span>:null}
           </span>
           <span className="block text-xs text-[#5f524c]">
-            <strong className="font-medium">Intestatario:</strong>{" "}
-            <MembershipBadge info={person.association} required={person.associationRequired}/>
+            <strong className="font-semibold">{roleLabel}</strong>
+            {ticketType?` · ${ticketType}`:null}
+          </span>
+          <span className="block text-xs text-[#5f524c]">
+            {person.ticketRole==="observer" ? "Tessera associativa non richiesta"
+              :person.ticketRole==="unknown" ? "Tipo biglietto da sincronizzare"
+              :<><strong className="font-medium">Associazione:</strong>{" "}<MembershipBadge info={person.association}/></>}
           </span>
           {person.partnerRequired?(
             <span className="block text-xs text-[#5f524c]">
               <strong className="font-medium">Partner:</strong>{" "}
               {person.partner
-                ? <MembershipBadge info={person.partner.membership} required />
+                ? <MembershipBadge info={person.partner.membership} />
                 : <span className="font-semibold text-[#9b4b1e]">Da indicare</span>}
             </span>
           ):null}
@@ -180,6 +184,7 @@ export function PeonyEventOperations({
   const [message, setMessage] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [ticketFilter,setTicketFilter]=useState<TicketFilter>("all");
   const [confirmingSend, setConfirmingSend] = useState(false);
 
   const template = templates[kind];
@@ -196,9 +201,13 @@ export function PeonyEventOperations({
     return items;
   }, [kind, sends]);
   const visible = attendees.filter((person) =>
+    (ticketFilter==="all"||person.ticketRole===ticketFilter) &&
     [person.name, person.email, person.ticketType, person.orderId, person.partner?.name, person.partner?.email]
       .some((value) => value?.toLowerCase().includes(search.trim().toLowerCase())),
   );
+  const observers=attendees.filter(person=>person.ticketRole==="observer").length;
+  const practitioners=attendees.filter(person=>person.ticketRole==="practitioner").length;
+  const unknownTypes=attendees.length-observers-practitioners;
   const formToCheck = attendees.filter((person) => person.associationRequired &&
     (!person.association || person.association.status !== "valid")).length;
   const partnerToCheck = attendees.filter((person) => person.partnerRequired &&
@@ -249,6 +258,8 @@ export function PeonyEventOperations({
         <section className="space-y-3">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             <span><strong>{attendees.length}</strong> iscritti</span>
+            <span>{practitioners} praticanti · {observers} observer</span>
+            {unknownTypes>0?<span className="font-semibold text-[#9b4b1e]">{unknownTypes} tipi da identificare</span>:null}
             {formToCheck > 0 ? <span className="font-semibold text-[#9b4b1e]">{formToCheck} associazioni da verificare</span> : null}
             {partnerToCheck > 0 ? <span className="font-semibold text-[#9b4b1e]">{partnerToCheck} partner da verificare</span> : null}
           </div>
@@ -263,6 +274,16 @@ export function PeonyEventOperations({
             <p>Associazione: {formattedSync(associationLastSyncedAt)}</p>
             <p>Le verifiche associative derivano dai dati salvati; controlla TeamArtist per le conferme recenti.</p>
           </details>
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <label htmlFor="peony-ticket-role-filter" className="text-[#5f524c]">Biglietti</label>
+            <select id="peony-ticket-role-filter" value={ticketFilter} onChange={event=>setTicketFilter(event.target.value as TicketFilter)}
+              className="min-h-10 flex-1 rounded-xl border border-[#211815]/15 bg-white px-3">
+              <option value="all">Tutti ({attendees.length})</option>
+              <option value="practitioner">Praticanti ({practitioners})</option>
+              <option value="observer">Observer ({observers})</option>
+              {unknownTypes>0?<option value="unknown">Tipo mancante ({unknownTypes})</option>:null}
+            </select>
+          </div>
           <input type="search" value={search} onChange={(event) => setSearch(event.target.value)}
             placeholder="Cerca nome o partner" aria-label="Cerca partecipanti e partner"
             className="h-10 w-full rounded-xl border border-[#211815]/15 bg-white px-3 text-sm" />
