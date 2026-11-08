@@ -67,18 +67,21 @@ function groupEvidence(rows:readonly RegistryEvidence[]):Group[]{
   for(const row of rows){
     const email=mail(row.email);
     const nk=nameKey(row.first_name,row.last_name);
-    const key=email?`e:${email}|n:${nk}`:nk?`n:${nk}`:`row:${row.id}`;
+    const key=email?`e:${email}|n:${nk}`:`row:${row.id}`;
     const group=groups.get(key)??{id:key,nameKey:nk,rows:[],emails:new Set<string>()};
     group.rows.push(row);
     if(email.includes("@"))group.emails.add(email);
     groups.set(key,group);
   }
   const emailGroups=[...groups.values()].filter(g=>g.emails.size>0);
-  for(const group of [...groups.values()]){
-    if(group.emails.size || !group.nameKey)continue;
+  const noEmailGroups=[...groups.values()].filter(g=>!g.emails.size);
+  for(const group of noEmailGroups){
+    if(!group.nameKey)continue;
     const withEmail=emailGroups.filter(g=>g.nameKey===group.nameKey);
-    // Do not combine homonyms or multiple official book records by name alone.
-    if(withEmail.length!==1 || group.rows.filter(r=>r.source==="official_members_book").length>1)continue;
+    const sameNameWithoutEmail=noEmailGroups.filter(g=>g.nameKey===group.nameKey);
+    // A name-only entry can join only when both sides are unambiguous.
+    // Two people with the same name in TeamArtist must stay distinct.
+    if(withEmail.length!==1 || sameNameWithoutEmail.length!==1)continue;
     withEmail[0].rows.push(...group.rows);
     groups.delete(group.id);
   }
