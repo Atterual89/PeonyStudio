@@ -17,8 +17,20 @@ export function PaymentEmailReview({payments,initialised,lastSync,preferredPerso
  function sync(){
   setMessage("");
   start(async()=>{
-   const r=await syncAssociationMailAction(initialised?undefined:date);
-   setMessage(r.ok?`Analizzate ${r.data.scanned} email; nuovi pagamenti: ${r.data.imported}.`:r.error);
+   let scanned=0, imported=0;
+   for(let page=1;page<=30;page++){
+    try {
+     const r=await syncAssociationMailAction(initialised?undefined:date);
+     if(!r.ok){setMessage(r.error);router.refresh();return;}
+     scanned+=r.data.scanned;imported+=r.data.imported;
+     setMessage(`Analizzate ${scanned} email · ${imported} nuovi pagamenti${r.data.hasMore?" · importazione in corso":""}.`);
+     if(!r.data.hasMore){router.refresh();return;}
+    } catch {
+     setMessage("Importazione interrotta. I dati elaborati sono salvati: riprova per riprendere.");
+     router.refresh();return;
+    }
+   }
+   setMessage(`Analizzate ${scanned} email · ${imported} nuovi pagamenti. Altri messaggi da importare: ripremi Verifica email.`);
    router.refresh();
   });
  }
