@@ -237,6 +237,41 @@ export async function memberSearchAction(query:string,referenceDate?:string):Pro
   }
 }
 
+/** Il nickname e il nome ufficiale possono essere totalmente diversi.
+ * Se il socio è già collegato a un'altra scheda, proporre il confronto delle
+ * due anagrafiche invece di permettere una seconda associazione.
+ * Mai unione automatica e mai modifica alle quote da questa azione.
+ */
+export async function findLinkedMemberProfileAction(input:{
+  memberId:string;
+  currentPersonId:string;
+}):Promise<ActionResult<{id:string;name:string;sameProfile:boolean}>>{
+  await requireAdmin();
+  if(!isUuidLike(input?.currentPersonId))return INVALID;
+  const key=parseMemberKey(input?.memberId??"");
+  if(!key)return INVALID;
+  const [current,member]=await Promise.all([
+    getPerson(input.currentPersonId),
+    getMemberSummary(input.memberId),
+  ]);
+  if(!current||current.merged_into||!member)return INVALID;
+
+  const column=key.kind==="manual"?"association_member_id"
+    :key.kind==="email"?"membership_email":"membership_name_key";
+  const value=key.kind==="manual"?key.id:key.kind==="email"?key.email:key.nameKey;
+  const {data,error}=await getGestionaleDb().from("gw_people")
+    .select("id,first_name,last_name,nickname,email")
+    .eq(column,value).is("deleted_at",null).is("merged_into",null).limit(3);
+  if(error)return {ok:false,error:"Impossibile verificare il collegamento esistente."};
+  if((data??[]).length!==1)return {ok:false,error:
+    "Il socio risulta collegato, ma non a una sola anagrafica identificabile. Controlla i collegamenti prima di unire le schede."
+  };
+  const owner=data![0];
+  const name=[owner.first_name,owner.last_name].filter(Boolean).join(" ").trim()
+    ||owner.nickname||owner.email||"Persona esistente";
+  return {ok:true,data:{id:owner.id,name,sameProfile:owner.id===input.currentPersonId}};
+}
+
 // ---------------------------------------------------------------------------
 // Prenotazioni
 // ---------------------------------------------------------------------------
