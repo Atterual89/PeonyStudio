@@ -30,10 +30,6 @@ begin
   if not found then
     raise exception 'gw_not_found' using errcode='GW404';
   end if;
-  if v_before.entered_as is null then
-    raise exception 'gw_invalid' using errcode='GW400',
-      detail='Questa persona non ha un nome inserito dall’organizzatrice.';
-  end if;
   if v_before.entered_as is not distinct from v_name and
      v_before.entered_email is not distinct from v_email then
     return;
