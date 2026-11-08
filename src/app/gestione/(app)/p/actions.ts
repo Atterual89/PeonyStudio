@@ -169,7 +169,7 @@ export async function suggestPersonEmailsAction(personId: string): Promise<
   const found = new Map<string, { email: string; source: string; identity: string; exactName: boolean }>();
   function offer(email: string | null | undefined, source: string, identity: string, exactName: boolean) {
     const clean = (email ?? "").trim().toLowerCase();
-    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(clean)) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) return;
     const key = clean;
     const prior = found.get(key);
     if (!prior || (!prior.exactName && exactName)) found.set(key, { email: clean, source, identity, exactName });
