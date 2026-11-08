@@ -1,7 +1,8 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextRequest,NextResponse } from "next/server";
 import { google } from "googleapis";
-import { requireAdmin } from "@/lib/gestionale/server/auth";
+import { GMAIL_OAUTH_COOKIE_PATH } from "@/lib/gestionale/gmail-oauth-path";
+import { requireAdmin, SESSION_COOKIE } from "@/lib/gestionale/server/auth";
 import { newGmailOAuthClient,PEONY_GMAIL_ADDRESS,saveGmailRefreshToken } from "@/lib/gestionale/server/payment-gmail-oauth";
 const STATE_COOKIE="gw_gmail_oauth_state";
 function safeEqual(a:string,b:string){
@@ -11,7 +12,9 @@ function safeEqual(a:string,b:string){
 function redirectWith(request:NextRequest,status:string){
  const response=NextResponse.redirect(new URL(`/gestione?gmail=${status}`,request.url));
  response.cookies.set(STATE_COOKIE,"",{httpOnly:true,sameSite:"lax",
-  secure:request.nextUrl.protocol==="https:",path:"/api/gestione/gmail",maxAge:0});
+  secure:request.nextUrl.protocol==="https:",path:GMAIL_OAUTH_COOKIE_PATH,maxAge:0});
+ response.cookies.set(SESSION_COOKIE,"",{httpOnly:true,sameSite:"lax",
+  secure:request.nextUrl.protocol==="https:",path:GMAIL_OAUTH_COOKIE_PATH,maxAge:0});
  return response;
 }
 export async function GET(request:NextRequest){
