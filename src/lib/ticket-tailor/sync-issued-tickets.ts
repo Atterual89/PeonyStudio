@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { ticketTypeNameForIssuedTicket, ticketTypeNamesFromEventPayload } from "@/lib/gestionale/peony-ticket-type";
 
 const TICKET_TAILOR_ORDERS_ENDPOINT = "https://api.tickettailor.com/v1/orders";
 const PAGE_SIZE = 100;
@@ -19,6 +20,7 @@ type SyncMessage = {
 type TargetEvent = {
   id: string;
   ticket_tailor_event_id: string;
+  raw_payload: TicketTailorRecord | null;
 };
 
 type SupabaseOrderRow = {
@@ -76,6 +78,9 @@ export async function syncTicketTailorIssuedTickets(options: TicketTailorChunkOp
     const eventIdByTicketTailorId = new Map(
       targetEvents.map((event) => [event.ticket_tailor_event_id, event.id]),
     );
+    const typeNamesByEvent = new Map(targetEvents.map(event=>[
+      event.ticket_tailor_event_id,ticketTypeNamesFromEventPayload(event.raw_payload),
+    ] as const));
 
     const orderRows: SupabaseOrderRow[] = [];
     const ticketRows: SupabaseIssuedTicketRow[] = [];
@@ -232,14 +237,8 @@ export async function syncTicketTailorIssuedTickets(options: TicketTailorChunkOp
           event_id: ticketEventId
             ? eventIdByTicketTailorId.get(ticketEventId) ?? localEventId
             : localEventId,
-          ticket_type_name: findString(ticket, [
-            "ticket_type_name",
-            "ticket_type",
-            "ticket_type.name",
-            "ticket_type.description",
-            "ticket_group_name",
-            "name",
-          ]),
+          ticket_type_name: ticketTypeNameForIssuedTicket(ticket,
+            typeNamesByEvent.get(ticketEventId??orderEventId??"")??new Map()),
           holder_first_name:
             findString(ticket, [
               "holder_first_name",
@@ -310,7 +309,7 @@ export async function syncTicketTailorIssuedTickets(options: TicketTailorChunkOp
     async function loadTargetEvents() {
       let query = supabase
         .from("events")
-        .select("id,ticket_tailor_event_id")
+        .select("id,ticket_tailor_event_id,raw_payload")
         .not("ticket_tailor_event_id", "is", null);
       if (options.ticketTailorEventId) {
         query = query.eq("ticket_tailor_event_id", options.ticketTailorEventId);
@@ -357,6 +356,16 @@ export async function syncTicketTailorIssuedTickets(options: TicketTailorChunkOp
 
       for (let index = 0; index < rows.length; index += UPSERT_BATCH_SIZE) {
         const batch = rows.slice(index, index + UPSERT_BATCH_SIZE);
+        // Incomplete API payloads must not erase a type resolved previously.
+        const missing=batch.filter(row=>!row.ticket_type_name);
+        if(missing.length){
+          const {data:old,error:oldError}=await supabase.from("ticket_tailor_issued_tickets")
+            .select("ticket_tailor_issued_ticket_id,ticket_type_name")
+            .in("ticket_tailor_issued_ticket_id",missing.map(row=>row.ticket_tailor_issued_ticket_id));
+          if(oldError)throw new Error("Impossibile preservare i tipi biglietto già sincronizzati.");
+          const previous=new Map((old??[]).map(row=>[row.ticket_tailor_issued_ticket_id,row.ticket_type_name]));
+          for(const row of missing)row.ticket_type_name=previous.get(row.ticket_tailor_issued_ticket_id)??null;
+        }
         const { error } = await supabase
           .from("ticket_tailor_issued_tickets")
           .upsert(batch, { onConflict: "ticket_tailor_issued_ticket_id" });
