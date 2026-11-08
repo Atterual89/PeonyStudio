@@ -68,7 +68,7 @@ export async function confirmAssociationPaymentAction(paymentId: string,personId
   const {data:payment,error}=await db.from("gw_association_payment_emails")
     .select("id,provider,amount_cents,status").eq("id",paymentId).maybeSingle();
   if(error||!payment||payment.status!=="pending")return {ok:false as const,error:"Pagamento già chiuso o inesistente."};
-  const capacity=suggestedQuotaCount({provider:payment.provider,payerName:null,amountCents:payment.amount_cents,transactionRef:null,note:null});
+  const capacity=suggestedQuotaCount({provider:payment.provider as "paypal"|"qonto",payerName:null,amountCents:payment.amount_cents,transactionRef:null,note:null});
   if(capacity<1)return {ok:false as const,error:"Importo non compatibile con una quota."};
   const [person, usedResult]=await Promise.all([
     getPerson(personId),db.from("gw_association_payment_allocations").select("slot,person_id").eq("payment_id",paymentId),
