@@ -200,13 +200,27 @@ export async function memberSearchAction(query:string,referenceDate?:string):Pro
       searchMembers(text,25,referenceDate,{includeLinked:true}),
       loadPeople(),
     ]);
-    // Se nickname e nome ufficiale sono diversi, mostra anche i risultati
-    // dell'ultima parola significativa, senza considerarli stessa persona.
-    // Esempio: "Gesù Christian" nell'anagrafica e "Christian Martelli" nel libro.
-    const lastToken=text.split(/\s+/).filter(token=>token.length>=3).at(-1)??"";
-    const bookResults=members.length===0&&lastToken&&lastToken.toLocaleLowerCase("it")!==text.toLocaleLowerCase("it")
+    // Se il modulo Google include un secondo nome non presente nel libro
+    // ufficiale, il risultato completo puo' trovare soltanto il modulo.
+    // Cerca anche per cognome e propone i candidati con primo nome e
+    // cognome compatibili. Nessun collegamento avviene automaticamente.
+    const tokens=text.trim().split(/\s+/).filter(Boolean);
+    const lastToken=tokens.at(-1)??"";
+    const considerSurname=lastToken.length>=3&&normalizeText(lastToken)!==normalizeText(text);
+    const extra=considerSurname
       ? await searchMembers(lastToken,25,referenceDate,{includeLinked:true})
-      : members;
+      : [];
+    const firstToken=normalizeText(tokens[0]??"");
+    const normalizedLast=normalizeText(lastToken);
+    const compatible=extra.filter(member=>{
+      if(tokens.length<3)return members.length===0; // fallback precedente
+      const names=normalizeText(member.first_name).split(/\s+/);
+      const surname=normalizeText(member.last_name).split(/\s+/);
+      return names.some(part=>part.startsWith(firstToken))&&
+        surname.some(part=>part.startsWith(normalizedLast));
+    });
+    const bookResults=[...new Map([...members,...compatible]
+      .map(member=>[member.id,member] as const)).values()].slice(0,25);
     const found=searchPeople(people,text,12);
     return {ok:true,data:{
       members:bookResults,
