@@ -208,7 +208,7 @@ export default async function WorkshopDashboard({
       : Promise.resolve([]),
     viewer === "admin" && activeTab === "peony"
       ? gmailConnectionStatus()
-      : Promise.resolve({configured:false,connected:false,updatedAt:null}),
+      : Promise.resolve({configured:false,connected:false,updatedAt:null,missing:[] as string[]}),
     viewer === "admin" && activeTab === "peony"
       ? getGestionaleDb().from("gw_payment_sync_state").select("last_success_at")
           .eq("source","gmail_payments").maybeSingle()
@@ -300,7 +300,8 @@ export default async function WorkshopDashboard({
               Allinea libro soci
             </Link>
             <SyncAssociationMailButton configured={gmailStatus.configured}
-              connected={gmailStatus.connected} lastSync={mailSync.data?.last_success_at??null}/>
+              connected={gmailStatus.connected} lastSync={mailSync.data?.last_success_at??null}
+              missing={gmailStatus.missing}/>
           </div>
           <div className="flex justify-end">
             <YearSelect value={year} years={years} vista="peony" />
