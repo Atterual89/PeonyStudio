@@ -25,7 +25,7 @@ type Candidate = {
   email: string | null;
   membership_status: "missing_form" | "payment_missing" | "valid";
   membership_expires_at: string | null;
-  membership_match_method: "email" | "name" | "manual" | null;
+  membership_match_method: "email" | "name" | "manual" | "payment_email" | null;
   form_present: boolean;
   current_year_paid: boolean;
 };
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
         await supabase
           .from("association_members")
           .select(
-            "first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at",
+            "first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at,notes_admin",
           )
           .eq("source", "manual_override")
           .range(0, 9999),
