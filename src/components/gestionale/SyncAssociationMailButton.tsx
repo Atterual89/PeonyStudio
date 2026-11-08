@@ -47,7 +47,7 @@ export function SyncAssociationMailButton({configured,connected,lastSync,missing
     {busy?"Controllo email…":"Sincronizza email quote"}
    </button>
    :configured?
-    <a href="/api/gestione/gmail/start"
+    <a href="/gestione/gmail/connect"
      className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#a8583e] bg-white/85 px-4 text-sm font-semibold text-[#a8583e] sm:w-auto">
      <MailCheck aria-hidden="true" className="h-4 w-4"/>Collega Gmail
     </a>
@@ -59,7 +59,7 @@ export function SyncAssociationMailButton({configured,connected,lastSync,missing
    {result.message}
    {result.ok
       ? <a href="/gestione/altro/soci?quote=1#quote-email" className="ml-1 underline">Controlla quote</a>
-      : <a href="/api/gestione/gmail/start" className="ml-1 underline">Ricollega Gmail</a>}
+      : <a href="/gestione/gmail/connect" className="ml-1 underline">Ricollega Gmail</a>}
   </p>}
   {!result&&lastSync&&<p className="text-xs text-[#5f524c]">
    Ultimo controllo: {new Date(lastSync).toLocaleDateString("it-IT")}
