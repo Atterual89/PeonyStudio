@@ -20,7 +20,7 @@ describe("pulsante Gmail condiviso dove si controllano le quote",()=>{
   it("non chiede date e segnala come controllare gli abbinamenti",()=>{
     const button=file("src/components/gestionale/SyncAssociationMailButton.tsx");
     expect(button).toContain("syncAssociationMailAction()");
-    expect(button).toContain("/gestione/altro/soci#quote-email");
+    expect(button).toContain("/gestione/altro/soci?quote=1#quote-email");
     expect(button).not.toContain("type=\"date\"");
   });
 });
