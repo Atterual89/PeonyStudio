@@ -4,13 +4,12 @@ import { getGestionaleDb } from "@/lib/gestionale/server/db";
 import { SharedDirectory } from "@/components/gestionale/SharedDirectory";
 
 export default async function AnagraficaPage() {
-  const operator = await requireOperator();
+  await requireOperator();
   const db = getGestionaleDb();
 
   const { data: bookings, error: bookingsError } = await db.from("gw_bookings")
     .select("id,workshop_id,created_by,gw_workshops(name)")
     .is("deleted_at", null)
-    .eq("created_by", operator.id)
     .limit(10000);
   if (bookingsError) throw new Error("Impossibile caricare i corsi.");
   const bookingIds = (bookings ?? []).map(b => b.id);
