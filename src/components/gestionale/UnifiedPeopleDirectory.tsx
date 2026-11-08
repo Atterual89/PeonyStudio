@@ -7,7 +7,7 @@ import type { UnifiedContact } from "@/lib/gestionale/unified-directory";
 import { MemberQuickLink } from "./MemberQuickLink";
 
 const stateLabel:Record<UnifiedContact["association"],string>={
- verificata:"Quota verificata",da_verificare:"Quota da verificare",
+ verificata:"Verificata",da_verificare:"Quota da verificare",
  solo_modulo:"Modulo presente",non_presente:"Non nel libro soci",non_disponibile:"Stato non disponibile",
 };
 const linkLabel:Record<UnifiedContact["link"],string>={
@@ -68,9 +68,9 @@ export function UnifiedPeopleDirectory({contacts,initialQuery=""}:{contacts:Unif
      {!contact.personId&&contact.possiblePersonId&&<Link prefetch={false} href={`/gestione/p/${contact.possiblePersonId}`}
        className="text-[#5f524c] underline">Apri persona possibile</Link>}
     </div>
-    {contact.personId&&contact.personVersion!==null&&
+    {contact.personId&&contact.personVersion!==null&&contact.link!=="confermato"&&
       <MemberQuickLink personId={contact.personId} version={contact.personVersion}
-        personName={contact.nickname||contact.name} alreadyConfirmed={contact.link==="confermato"}/>}
+        personName={contact.nickname||contact.name}/>}
     {!contact.personId&&contact.possiblePersonId&&contact.possiblePersonVersion!==null&&
       <MemberQuickLink personId={contact.possiblePersonId} version={contact.possiblePersonVersion}
         personName={contact.name}/>}
