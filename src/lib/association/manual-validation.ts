@@ -24,6 +24,7 @@ type ManualRow = {
   email: string | null;
   membership_status: string | null;
   membership_starts_at: string | null;
+  notes_admin: string | null;
 };
 
 export type ManualValidationResult =
@@ -65,7 +66,7 @@ async function loadManualRows(supabase: ReturnType<typeof createSupabaseAdminCli
     async () =>
       await supabase
         .from("association_members")
-        .select("id,first_name,last_name,email,membership_status,membership_starts_at")
+        .select("id,first_name,last_name,email,membership_status,membership_starts_at,notes_admin")
         .eq("source", "manual_override")
         .range(0, 9999),
     (result) => result.error,
@@ -95,6 +96,13 @@ export async function saveManualValidation(
   const existing = ((existingResult.data ?? []) as ManualRow[]).find(
     (row) => sameIdentity(row, email, nameKey) && (!period || row.membership_starts_at?.slice(0, 10) === period.paymentsFrom),
   );
+
+  // La prova del bonifico/PayPal già associato prevale sul controllo
+  // manuale e non deve essere degradata da un secondo "Segna quota ok".
+  if (existing?.membership_status === "verified" &&
+      existing.notes_admin?.startsWith("Quota confermata da email (")) {
+    return { ok: true, id: existing.id, created: false, expiresAt: dates.validUntil };
+  }
 
   const payload = {
     first_name: firstName || null,
@@ -151,6 +159,7 @@ export async function revokeManualValidation(
       const startsAt = row.membership_starts_at?.slice(0, 10) ?? "";
       return (
         row.membership_status === "verified" &&
+        !row.notes_admin?.startsWith("Quota confermata da email (") &&
         sameIdentity(row, email, nameKey) &&
         startsAt >= period.paymentsFrom &&
         startsAt <= period.validUntil
