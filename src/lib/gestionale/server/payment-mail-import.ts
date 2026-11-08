@@ -1,18 +1,10 @@
 import "server-only";
 import { google, gmail_v1 } from "googleapis";
+import { gmailAuthForPayments, PEONY_GMAIL_ADDRESS } from "@/lib/gestionale/server/payment-gmail-oauth";
 import { parsePaymentNotification, suggestedQuotaCount } from "@/lib/gestionale/payment-email-parser";
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
 
 const SOURCE = "gmail_payments";
-function oauthClient() {
-  const id = process.env.GMAIL_PAYMENTS_CLIENT_ID;
-  const secret = process.env.GMAIL_PAYMENTS_CLIENT_SECRET;
-  const token = process.env.GMAIL_PAYMENTS_REFRESH_TOKEN;
-  if (!id || !secret || !token) throw new Error("Accesso Gmail per il gestionale non configurato. Servono OAuth client ID, secret e refresh token con ambito gmail.readonly.");
-  const auth = new google.auth.OAuth2(id, secret);
-  auth.setCredentials({ refresh_token: token });
-  return auth;
-}
 function decode(data?: string | null) {
   if (!data) return "";
   return Buffer.from(data.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
@@ -55,7 +47,10 @@ export async function importPaymentNotifications(initialFrom?: string): Promise<
     ? new Date(state.pending_window_until):new Date(Date.now()-120_000);
   if(!Number.isFinite(windowFrom.getTime())||!Number.isFinite(windowUntil.getTime()))
     throw new Error("Checkpoint Gmail non valido.");
-  const gmail=google.gmail({version:"v1",auth:oauthClient()});
+  const gmail=google.gmail({version:"v1",auth:await gmailAuthForPayments()});
+  const profile=await gmail.users.getProfile({userId:"me"});
+  if(profile.data.emailAddress?.toLowerCase()!==PEONY_GMAIL_ADDRESS)
+    throw new Error("La casella Gmail autorizzata non è Peony Studio. Nessun pagamento importato.");
   const query=`after:${Math.floor(windowFrom.getTime()/1000)} before:${Math.ceil(windowUntil.getTime()/1000)} {from:paypal.com from:paypal.it from:qonto.com} {subject:"Hai ricevuto denaro" subject:"Hai ricevuto un bonifico"}`;
   // One small Gmail page per server request. The UI can continue the import.
   const list=await gmail.users.messages.list({
