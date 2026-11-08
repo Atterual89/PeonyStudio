@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import {useRouter} from "next/navigation";
-import {useEffect,useState,useTransition} from "react";
+import {useRef,useState,useTransition,type FormEvent} from "react";
 
 import {
   attachMemberFormEmailAction,linkMemberAction,memberSearchAction,
@@ -34,6 +34,8 @@ export function MemberLinker({
   const [people,setPeople]=useState<RegistryPersonHit[]>([]);
   const [selected,setSelected]=useState<MemberSummary|null>(null);
   const [searchError,setSearchError]=useState<string|null>(null);
+  const [searching,setSearching]=useState(false);
+  const latestSearch=useRef(0);
   const [pending,startTransition]=useTransition();
   const flash=useFlash(person.id);
   const trimmed=query.trim();
@@ -46,23 +48,42 @@ export function MemberLinker({
   const name=(member:MemberSummary)=>
     [member.first_name,member.last_name].filter(Boolean).join(" ")||member.email||"Socio";
 
-  useEffect(()=>{
+  // Ricerca esplicita: i risultati non scompaiono se una conferma fallisce.
+  // Il contatore evita che una risposta in ritardo sovrascriva una nuova ricerca.
+  function changeQuery(value:string){
+    latestSearch.current+=1;
+    setQuery(value);
     setSelected(null);
-    if(trimmed.length<2){setMembers(null);setPeople([]);setSearchError(null);return;}
-    let cancelled=false;
-    const timer=setTimeout(async()=>{
-      let result:Awaited<ReturnType<typeof memberSearchAction>>;
-      try{ result=await memberSearchAction(trimmed,referenceDate); }
-      catch { if(!cancelled)setSearchError("Ricerca temporaneamente non disponibile. Riprova.");return; }
-      if(cancelled)return;
-      setSearchError(result.ok?null:result.error);
+    setMembers(null);
+    setPeople([]);
+    setSearchError(null);
+    setSearching(false);
+  }
+
+  async function search(event?:FormEvent<HTMLFormElement>){
+    event?.preventDefault();
+    if(trimmed.length<2||pending)return;
+    const request=++latestSearch.current;
+    setSearching(true);
+    setSelected(null);
+    setSearchError(null);
+    try{
+      const result=await memberSearchAction(trimmed,referenceDate);
+      if(request!==latestSearch.current)return;
       if(result.ok){
         setMembers(result.data.members);
         setPeople(result.data.people.filter(item=>item.id!==person.id));
+      }else{
+        setMembers(null);
+        setPeople([]);
+        setSearchError(result.error);
       }
-    },250);
-    return ()=>{cancelled=true;clearTimeout(timer);};
-  },[trimmed,referenceDate,person.id]);
+    }catch{
+      if(request===latestSearch.current)setSearchError("Ricerca temporaneamente non disponibile. Riprova con Cerca.");
+    }finally{
+      if(request===latestSearch.current)setSearching(false);
+    }
+  }
 
   function confirm(){
     if(!selected||blocked(selected))return;
@@ -74,13 +95,13 @@ export function MemberLinker({
           personId:person.id,version:person.version,memberId:selected.id,
         });
         flash.result(result,"Email del modulo collegata. Il libro soci resta invariato; la quota 2027 va verificata separatamente.");
-        if(result.ok){setSelected(null);setMembers(null);router.refresh();}
+        if(result.ok){setSelected(null);setMembers(null);setPeople([]);router.refresh();}
       }else{
         const result=await linkMemberAction({
           personId:person.id,version:person.version,memberId:selected.id,referenceDate,
         });
         if(result.ok&&result.data.warning){
-          flash.show("warning",`Collegamento salvato, ma lo stato va verificato: ${result.data.warning}`);
+          flash.show("warning",`Collegamento salvato. ${result.data.warning}`);
         }else flash.result(result,`Collegata a ${name(selected)}.`);
         if(result.ok){setSelected(null);setMembers(null);router.refresh();}
       }
@@ -90,12 +111,20 @@ export function MemberLinker({
 
   return (
     <div className="space-y-3 rounded-lg border border-[#211815]/10 bg-[#f8f3ea] p-3">
-      <label className="block space-y-1">
-        <span className="text-sm font-semibold">Cerca nei registri soci e nell'anagrafica</span>
-        <input className={inputClass} value={query} onChange={event=>setQuery(event.target.value)}
-          placeholder="Anche solo parte di nome, cognome, nickname o email" autoComplete="off"
-          enterKeyHint="search" />
-      </label>
+      <form onSubmit={search} className="space-y-2">
+        <label htmlFor={`member-search-${person.id}`} className="block text-sm font-semibold">
+          Cerca nel libro soci
+        </label>
+        <div className="flex flex-wrap gap-2">
+          <input id={`member-search-${person.id}`} className={`${inputClass} min-w-0 flex-1`}
+            value={query} onChange={event=>changeQuery(event.target.value)}
+            placeholder="Nome, cognome, nickname o email" autoComplete="off" enterKeyHint="search"/>
+          <button type="submit" disabled={pending||searching||trimmed.length<2}
+            className={`${buttonClass.primary} min-h-10 disabled:opacity-50`}>
+            {searching?"Ricerca…":"Cerca"}
+          </button>
+        </div>
+      </form>
       {searchError?<Notice tone="error">{searchError}</Notice>:null}
       {members&&trimmed.length>=2?(
         <>

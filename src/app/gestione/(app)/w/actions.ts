@@ -5,7 +5,7 @@ import { refreshGestione } from "@/lib/gestionale/server/refresh";
 import { uniqueExactMatches, type ExactMatch } from "@/lib/gestionale/exact-matches";
 import { displayName, fullName, normalizeText } from "@/lib/gestionale/format";
 import { compatibleFormName } from "@/lib/gestionale/member-lookup";
-import { ADMIN_BOOKING_STATUSES, HOMONYMS_WARNING } from "@/lib/gestionale/labels";
+import { ADMIN_BOOKING_STATUSES } from "@/lib/gestionale/labels";
 import { personFieldsFromFreeText, searchPeople } from "@/lib/gestionale/people";
 import { parsePersonChoice, type PersonChoice } from "@/lib/gestionale/person-choice";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
@@ -420,15 +420,31 @@ export async function linkMemberAction(input: {
 
   const result = await linkPersonToMember(operator.id, input.personId, input.version, input.memberId);
   if (!result.ok) return result;
-  refreshGestione();
 
-  let warning: string | null = null;
-  const person = input.memberId ? await getPerson(input.personId) : null;
-  if (person) {
-    const badge = (await getMembershipBadges([person], input.referenceDate ?? todayInRome())).get(person.id);
-    if (badge?.kind === "non_collegata") warning = HOMONYMS_WARNING;
+  // La lettura diretta bypassa la cache di React: un trigger DB può annullare
+  // il valore scritto, e in quel caso NON si deve mostrare "salvato".
+  const {data:stored,error:storedError}=await getGestionaleDb()
+    .from("gw_people")
+    .select("membership_name_key,membership_email,association_member_id")
+    .eq("id",input.personId).maybeSingle();
+  if(storedError||!stored)
+    return {ok:false,error:"Impossibile verificare il collegamento salvato. Ricarica la scheda e riprova."};
+  const key=input.memberId?parseMemberKey(input.memberId):null;
+  const confirmed=key===null
+    ? (!stored.membership_name_key&&!stored.membership_email&&!stored.association_member_id)
+    : key.kind==="name"
+      ? stored.membership_name_key===key.nameKey
+      : key.kind==="email"
+        ? stored.membership_email?.toLowerCase()===key.email
+        : stored.association_member_id===key.id;
+  if(!confirmed){
+    console.error("[gestionale] Collegamento associativo non persistito",input.personId);
+    return {ok:false,error:"Il collegamento non è stato memorizzato. Riprova dopo aver aggiornato la scheda."};
   }
-  return { ok: true, data: { warning } };
+  refreshGestione();
+  // Il link prova solo che la scheda corrisponde a un socio; quota pagata e
+  // validità per uno specifico anno si determinano separatamente.
+  return {ok:true,data:{warning:null}};
 }
 
 /** Corrispondenze esatte e uniche col libro soci delle persone non collegate del workshop (#10). */
