@@ -150,3 +150,61 @@ export async function completeAllFromMemberAction(): Promise<ActionResult<{ upda
   refreshGestione();
   return { ok: true, data: { updated, failed } };
 }
+
+/** Proposte non vincolanti dalle fonti gia' salvate. Nessun abbinamento automatico. */
+export async function suggestPersonEmailsAction(personId: string): Promise<
+  { ok: true; suggestions: { email: string; source: string; identity: string; exactName: boolean }[] } |
+  { ok: false; error: string }
+> {
+  await requireAdmin();
+  if (!isUuidLike(personId)) return { ok: false, error: "Persona non valida." };
+  const person = await getPerson(personId);
+  if (!person || person.deleted_at || person.merged_into) return { ok: false, error: "Persona non trovata." };
+  const { getGestionaleDb } = await import("@/lib/gestionale/server/db");
+  const db = getGestionaleDb();
+  const tokens = [person.last_name, person.first_name, person.nickname]
+    .map(v => (v ?? "").trim()).filter(v => v.length >= 3);
+  const surname = person.last_name?.trim().toLowerCase() ?? "";
+  const first = person.first_name?.trim().toLowerCase() ?? "";
+  const found = new Map<string, { email: string; source: string; identity: string; exactName: boolean }>();
+  function offer(email: string | null | undefined, source: string, identity: string, exactName: boolean) {
+    const clean = (email ?? "").trim().toLowerCase();
+    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(clean)) return;
+    const key = clean;
+    const prior = found.get(key);
+    if (!prior || (!prior.exactName && exactName)) found.set(key, { email: clean, source, identity, exactName });
+  }
+  const { data: entries } = await db.from("gw_booking_participants")
+    .select("entered_email,entered_as").eq("person_id", person.id)
+    .is("deleted_at", null).limit(200);
+  for (const row of entries ?? []) offer(row.entered_email, "Iscrizione workshop", row.entered_as || "Partecipante", true);
+  if (tokens.length) {
+    const terms = tokens.slice(0, 3);
+    for (const token of terms) {
+      const safe = token.replace(/[%_,]/g, "");
+      if (safe.length < 3) continue;
+      const { data: forms } = await db.from("association_members")
+        .select("first_name,last_name,email,source")
+        .eq("source", "google_sheet")
+        .or(`first_name.ilike.%${safe}%,last_name.ilike.%${safe}%,email.ilike.%${safe}%`)
+        .not("email", "is", null).limit(30);
+      for (const row of forms ?? []) {
+        const name = [row.first_name,row.last_name].filter(Boolean).join(" ");
+        const text = name.toLowerCase();
+        const exact = Boolean(first && surname && text.includes(first) && text.includes(surname));
+        offer(row.email, "Modulo Google", name || "Nominativo non disponibile", exact);
+      }
+      const { data: known } = await db.from("gw_people")
+        .select("id,first_name,last_name,nickname,email")
+        .neq("id",person.id).is("deleted_at",null).is("merged_into",null)
+        .or(`first_name.ilike.%${safe}%,last_name.ilike.%${safe}%,nickname.ilike.%${safe}%`)
+        .not("email","is",null).limit(30);
+      for (const row of known ?? []) {
+        const name = [row.first_name,row.last_name].filter(Boolean).join(" ") || row.nickname || "Altra scheda";
+        const exact = Boolean(first && surname && row.first_name?.trim().toLowerCase() === first && row.last_name?.trim().toLowerCase() === surname);
+        offer(row.email, "Altra anagrafica", name, exact);
+      }
+    }
+  }
+  return { ok: true, suggestions: [...found.values()].sort((a,b) => Number(b.exactName)-Number(a.exactName)).slice(0,12) };
+}
