@@ -2,12 +2,17 @@
 -- Nessun dato sensibile e' accessibile dai client pubblici.
 begin;
 create table if not exists public.gw_payment_sync_state (
-  source text primary key check (source in ('gmail_payments','ticket_tailor')),
+  source text primary key check (source = 'gmail_payments' or source like 'ticket_tailor:%'),
   initial_from timestamptz,
   checked_through timestamptz,
   pending_window_from timestamptz,
   pending_window_until timestamptz,
   pending_page_token text,
+  tt_head_id text,
+  tt_pending_head_id text,
+  tt_pending_cursor text,
+  tt_pending_mode text check (tt_pending_mode in ('full','incremental')),
+  tt_last_full_at timestamptz,
   last_success_at timestamptz,
   updated_at timestamptz not null default now()
 );
