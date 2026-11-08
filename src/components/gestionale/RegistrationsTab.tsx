@@ -395,6 +395,12 @@ function RegistrationDetails({
 
   return (
     <div className={`${UI.blocks} border-t-2 border-[#a8583e]/20 bg-[#f7f3ec] px-3 py-4`}>
+      <EnteredEmails registration={registration} />
+      <div className="border-t border-[#211815]/15 pt-3">
+        <h3 className="mb-2 text-sm font-semibold text-[#5f524c]">
+          Iscrizione · quota e pagamenti {registration.people.length>1?"della coppia":""}
+        </h3>
+      </div>
       {/* 4f: Quota · Stato affiancati (lo stato va a capo se non entra). */}
       <div className="flex flex-wrap items-start gap-x-2 gap-y-2">
         <div className="flex-[1_1_6rem]">
@@ -516,7 +522,7 @@ function RegistrationDetails({
         </button>
         {otherOpen ? (
           <div className="space-y-2 px-2 pb-2">
-            {/* 4f: Fattura · Email affiancati; Note a tutta larghezza. */}
+            {/* Le persone sono modificabili in alto; qui restano solo fattura e note. */}
             <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
               <label className="block min-w-0 flex-[0_1_11.5rem]">
               <span className={UI.label}>
@@ -541,10 +547,6 @@ function RegistrationDetails({
                 ))}
               </select>
               </label>
-              <div className="min-w-0 flex-[1_1_12rem]">
-                <span className={UI.label}>Email</span>
-                <EnteredEmails registration={registration} />
-              </div>
             </div>
 
             <label className="block">
