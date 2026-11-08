@@ -5,6 +5,9 @@ create table if not exists public.gw_payment_sync_state (
   source text primary key check (source in ('gmail_payments','ticket_tailor')),
   initial_from timestamptz,
   checked_through timestamptz,
+  pending_window_from timestamptz,
+  pending_window_until timestamptz,
+  pending_page_token text,
   last_success_at timestamptz,
   updated_at timestamptz not null default now()
 );
