@@ -48,6 +48,32 @@ describe("anagrafica unificata",()=>{
   ]});
   expect(contacts).toHaveLength(3);
  });
+ it("una voce sola per Christian: libro ufficiale 2025/26 + verifica manuale 2027",()=>{
+  const contact={...person("p","Christian","Martelli",null),
+    membership_name_key:"christian martelli"};
+  const contacts=buildUnifiedDirectory({today,people:[contact],evidence:[
+    member("official","official_members_book","Christian","Martelli",null),
+    member("manual","manual_override","Christian","Martelli",null,{
+      membership_starts_at:"2027-01-01",membership_expires_at:"2027-12-31",
+    }),
+  ]});
+  expect(contacts).toHaveLength(1);
+  expect(contacts[0]).toMatchObject({kind:"unita",link:"confermato",name:"Christian Martelli"});
+  expect(contacts[0].source).toContain("Libro soci");
+  expect(contacts[0].source).toContain("Verifica manuale");
+ });
+ it("una voce sola per Riccardo con annualità distinte e nessuna email",()=>{
+  const contact={...person("p","Riccardo","Stopazzola",null),
+    membership_name_key:"riccardo stopazzola"};
+  const contacts=buildUnifiedDirectory({today,people:[contact],evidence:[
+    member("official","official_members_book","Riccardo","Stopazzola",null),
+    member("manual","manual_override","Riccardo","Stopazzola",null,{
+      membership_starts_at:"2027-01-01",membership_expires_at:"2027-12-31",
+    }),
+  ]});
+  expect(contacts).toHaveLength(1);
+  expect(contacts[0]).toMatchObject({kind:"unita",link:"confermato"});
+ });
  it("non fonde due omonimi presenti senza email nel registro ufficiale",()=>{
   const contacts=buildUnifiedDirectory({today,people:[],evidence:[
    member("o1","official_members_book","Mario","Rossi",null),
