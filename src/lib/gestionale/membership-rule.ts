@@ -38,6 +38,8 @@ export function membershipBadge(input: {
   state: DerivedMembershipState;
   /** Collegata esplicitamente al libro soci (member-key.ts). */
   linked: boolean;
+  /** Il libro ufficiale conferma una quota in un periodo precedente. */
+  knownHistoricalMember?: boolean;
 }): MembershipBadge {
   const date = input.workshopStartsOn.slice(0, 10);
   switch (input.state.status) {
@@ -46,6 +48,10 @@ export function membershipBadge(input: {
     case "payment_missing":
       return { kind: "quota_mancante", paymentsFrom: membershipPeriodFor(date)?.paymentsFrom ?? null };
     case "missing_form":
+      // Un socio accertato in una annualità precedente non è "modulo assente":
+      // la quota del nuovo periodo non è ancora registrata.
+      if(input.linked && input.knownHistoricalMember)
+        return {kind:"quota_mancante",paymentsFrom:membershipPeriodFor(date)?.paymentsFrom??null};
       return input.linked ? { kind: "modulo_mancante" } : { kind: "non_collegata" };
   }
 }

@@ -7,6 +7,7 @@ import { setPartnerAction, updateBookingNotesAction, applyEnteredEmailAction } f
 import { membershipPeriodFor } from "@/lib/association/membership-periods";
 import { personNames } from "@/lib/gestionale/bookings";
 import { formatDate, normalizeText } from "@/lib/gestionale/format";
+import { memberKeyOfPerson } from "@/lib/gestionale/member-key";
 import { PARTY_LABELS, UI_LABELS } from "@/lib/gestionale/labels";
 import type { PersonChoice } from "@/lib/gestionale/person-choice";
 import type { BookingPersonView, BookingView } from "@/lib/gestionale/types";
@@ -125,20 +126,43 @@ function PersonBlock({
 
       {editing ? (
         <PersonInlineEditor person={person} member={entry.member} onDone={() => setEditing(false)} />
-      ) : notLinked ? (
-        linking ? (
-          <MemberLinker
-            person={{ id: person.id, version: person.version }}
-            initialQuery={[person.first_name, person.last_name].filter(Boolean).join(" ") || person.nickname || person.email || ""}
-            referenceDate={workshopStartsOn}
-          />
-        ) : (
-          <button type="button" className={buttonClass.primary} onClick={() => setLinking(true)}>
-            Cerca nel libro soci
-          </button>
-        )
       ) : (
-        <MarkQuotaOk {...target} badge={badge} canMark={Boolean(entry.fullName || person.email || entry.member?.email)} />
+        <div className="space-y-2">
+          {!notLinked ? (
+            <MarkQuotaOk {...target} badge={badge}
+              canMark={Boolean(entry.fullName || person.email || entry.member?.email)} />
+          ) : null}
+          {badge.kind === "quota_mancante" && entry.member?.expires_at &&
+            entry.member.expires_at < workshopStartsOn ? (
+              <p className="text-xs text-[#7a5212]">
+                Registrazione associativa precedente trovata (scadenza {formatDate(entry.member.expires_at)}).
+                La quota per questo workshop non risulta ancora verificata.
+              </p>
+          ) : null}
+          {notLinked || badge.kind !== "in_regola" ? (
+            linking ? (
+              <div className="space-y-2">
+                <MemberLinker
+                  person={{
+                    id:person.id,version:person.version,
+                    currentMemberId:memberKeyOfPerson(person),
+                    hasNameLink:Boolean(person.membership_name_key),email:person.email,
+                  }}
+                  initialQuery={[person.first_name, person.last_name].filter(Boolean).join(" ") ||
+                    person.nickname || person.email || ""}
+                  referenceDate={workshopStartsOn}
+                />
+                <button type="button" className={buttonClass.ghost}
+                  onClick={() => setLinking(false)}>Chiudi ricerca</button>
+              </div>
+            ) : (
+              <button type="button" className={notLinked ? buttonClass.primary : buttonClass.secondary}
+                onClick={() => setLinking(true)}>
+                {notLinked ? "Cerca nel libro soci" : "Cerca nei registri soci e nei moduli"}
+              </button>
+            )
+          ) : null}
+        </div>
       )}
 
       {badge.kind !== "in_regola" && !editing && membershipPeriodFor(workshopStartsOn) ? (

@@ -160,7 +160,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
             <MemberCard person={person} member={member} badge={badges.get(person.id) ?? null} showDifferences={false} />
             <div className="mt-2">
               <MemberUnlink
-                person={{ id: person.id, version: person.version }}
+                person={{ id:person.id,version:person.version }}
                 memberName={[member.first_name, member.last_name].filter(Boolean).join(" ") || member.email || "questo socio"}
               />
             </div>
@@ -176,7 +176,11 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
           <>
             <p className="mb-3 text-[#5f524c]">Non collegata.</p>
             <MemberLinker
-              person={{ id: person.id, version: person.version }}
+              person={{
+                id:person.id,version:person.version,
+                currentMemberId:memberKeyOfPerson(person),
+                hasNameLink:Boolean(person.membership_name_key),email:person.email,
+              }}
               initialQuery={[person.first_name, person.last_name].filter(Boolean).join(" ") || person.nickname || ""}
               referenceDate={todayInRome()}
             />

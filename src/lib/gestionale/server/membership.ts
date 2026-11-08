@@ -9,9 +9,10 @@ import {
 import { readOfficialMembersBookFromGoogleSheet } from "@/lib/google/members-book";
 import { readAssociationMembersFromGoogleSheet } from "@/lib/google/sheets";
 import { normalizeText } from "@/lib/gestionale/format";
+import { memberLookupScore, previouslyVerifiedBookMember } from "@/lib/gestionale/member-lookup";
 import { memberKeyOfPerson, memberKeyOfRow, parseMemberKey, type MemberKey } from "@/lib/gestionale/member-key";
 import { resolveMemberName, singleNameOrder, type SingleNameOrder } from "@/lib/gestionale/member-name";
-import { deriveForWorkshop, membershipBadge } from "@/lib/gestionale/membership-rule";
+import { deriveForWorkshop, membershipBadge, paymentWindowFor } from "@/lib/gestionale/membership-rule";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
 import type { MemberCandidate } from "@/lib/gestionale/exact-matches";
@@ -215,7 +216,12 @@ function identityOfPerson(
     if (manual) return identityOfRow(manual);
   }
   const selected=person.membership_name_key ? rowsOfKey({kind:"name",nameKey:person.membership_name_key},rows) : [];
-  if(selected.length===1) return identityOfRow(selected[0]);
+  if(selected.length===1) return {
+    ...identityOfRow(selected[0]),
+    // Un'email di modulo confermata dall'admin può integrare un libro soci
+    // senza email e con secondo nome diverso, senza perdere il link ufficiale.
+    email:person.email??selected[0].email,
+  };
   return { email: person.membership_email ?? person.email, firstName: person.first_name, lastName: person.last_name };
 }
 
@@ -277,6 +283,14 @@ export async function getMembershipBadges(
         workshopStartsOn,
         state: stateFor(identityOfPerson(person, rows), rows, workshopStartsOn.slice(0, 10)),
         linked: Boolean(memberKeyOfPerson(person)),
+        knownHistoricalMember: (() => {
+          const key=memberKeyOfPerson(person);
+          const parsed=key?parseMemberKey(key):null;
+          return parsed ? previouslyVerifiedBookMember(
+            rowsOfKey(parsed,rows),
+            paymentWindowFor(workshopStartsOn).period?.paymentsFrom??null,
+          ) : false;
+        })(),
       }),
     );
   }
@@ -404,33 +418,99 @@ function isLinkedGroup(group: readonly EvidenceRow[], key: string, linked: Reado
   return group.some((row) => linked.has(memberKeyOfRow(row) ?? "")) || linked.has(key);
 }
 
-export async function searchMembers(query: string, limit = 8, referenceDate?: string): Promise<MemberSummary[]> {
+/** Ricerca parziale tra libro ufficiale, moduli Google e nickname già
+ * registrati. L'elenco espanso NON equivale ad abbinamento automatico.
+ * includeLinked è usato per cercare anche soci già collegati alla persona.
+ */
+export async function searchMembers(
+  query: string,limit=8,referenceDate?:string,
+  options:{includeLinked?:boolean}={},
+):Promise<MemberSummary[]> {
   await requireAdmin();
-  const tokens = normalizeText(query).split(" ").filter(Boolean);
-  if (tokens.length === 0) return [];
-
-  const [rows, linked] = await Promise.all([loadEvidence(), loadLinkedMemberKeys()]);
-
-  const results: MemberSummary[] = [];
-  for (const group of groupMemberRows(rows)) {
-    const key = groupKey(group);
-    if (!key || isLinkedGroup(group, key, linked)) continue;
-    const text = normalizeText(group.flatMap((row) => [row.first_name, row.last_name, row.email]).filter(Boolean).join(" "));
-    if (!tokens.every((token) => text.includes(token))) continue;
-    const identity = groupIdentity(group);
-    const summary = toSummary(key, group, rows, null, identity);
-    if (referenceDate) {
-      summary.outcome = membershipBadge({
-        workshopStartsOn: referenceDate,
-        state: stateFor(identity, rows, referenceDate.slice(0, 10)),
-        linked: true,
-      });
-      summary.in_book = group.some((row) => row.source === "official_members_book");
+  const normalized=normalizeText(query);
+  if(normalized.length<2)return [];
+  // Gli alias si cercano lato database: non scaricare tutte le iscrizioni
+  // storiche ad ogni carattere digitato nella ricerca.
+  const aliasTerm=normalized.split(/\s+/).find(token=>token.length>=2)
+    ?.replace(/[%_\\]/g,"")??"";
+  const aliasPattern=`%${aliasTerm}%`;
+  const [rows,linked,aliasRows,bookingAliases]=await Promise.all([
+    loadEvidence(),loadLinkedMemberKeys(),
+    getGestionaleDb().from("gw_people")
+      .select("id,nickname,association_member_id,membership_email,membership_name_key")
+      .ilike("nickname",aliasPattern).is("deleted_at",null).is("merged_into",null).range(0,999),
+    getGestionaleDb().from("gw_booking_participants")
+      .select("person_id,entered_as").ilike("entered_as",aliasPattern).is("deleted_at",null).range(0,999),
+  ]);
+  if(aliasRows.error||bookingAliases.error)throw new Error("Impossibile leggere i nickname dell'anagrafica.");
+  const byKey=new Map<string,string[]>();
+  const keysByPerson=new Map<string,string>();
+  for(const person of aliasRows.data??[]){
+    const key=memberKeyOfPerson(person);
+    if(key){
+      keysByPerson.set(person.id,key);
+      if(person.nickname)byKey.set(key,[...(byKey.get(key)??[]),person.nickname]);
     }
-    results.push(summary);
-    if (results.length >= limit) break;
   }
-  return results;
+  // Il nickname scritto da Ale può essere conservato solo nell'iscrizione.
+  // Usa il collegamento della persona, MAI la somiglianza del nickname per
+  // dichiarare verificata una quota.
+  const unlinkedPeople=(bookingAliases.data??[])
+    .filter(row=>!keysByPerson.has(row.person_id))
+    .map(row=>row.person_id);
+  if(unlinkedPeople.length){
+    const ids=[...new Set(unlinkedPeople)].slice(0,9999);
+    for(let i=0;i<ids.length;i+=500){
+      const chunk=await getGestionaleDb().from("gw_people")
+        .select("id,association_member_id,membership_email,membership_name_key")
+        .in("id",ids.slice(i,i+500)).is("deleted_at",null).is("merged_into",null);
+      if(chunk.error)throw new Error("Impossibile risolvere gli alias storici.");
+      for(const person of chunk.data??[]){
+        const key=memberKeyOfPerson(person);
+        if(key)keysByPerson.set(person.id,key);
+      }
+    }
+  }
+  for(const row of bookingAliases.data??[]){
+    const key=keysByPerson.get(row.person_id);
+    if(key&&row.entered_as)byKey.set(key,[...(byKey.get(key)??[]),row.entered_as]);
+  }
+  const matches: {rank:number;summary:MemberSummary}[]=[];
+  for(const group of groupMemberRows(rows)){
+    const key=groupKey(group);
+    if(!key)continue;
+    const alreadyLinked=isLinkedGroup(group,key,linked);
+    if(!options.includeLinked&&alreadyLinked)continue;
+    const aliases=[...new Set(group.flatMap(row=>byKey.get(memberKeyOfRow(row)??"")??[]).concat(byKey.get(key)??[]))];
+    const rank=memberLookupScore(query,{
+      firstName:group.map(r=>r.first_name).filter(Boolean).join(" "),
+      lastName:group.map(r=>r.last_name).filter(Boolean).join(" "),
+      email:group.map(r=>r.email).filter(Boolean).join(" "),
+    },aliases);
+    if(rank===null)continue;
+    const identity=groupIdentity(group);
+    const summary=toSummary(key,group,rows,null,identity);
+    if(options.includeLinked){
+      summary.alreadyLinked=alreadyLinked;
+      summary.matchedAlias=aliases.find(alias=>memberLookupScore(query,{
+        firstName:null,lastName:null,email:null,
+      },[alias])!==null)??null;
+    }
+    if(referenceDate){
+      summary.outcome=membershipBadge({
+        workshopStartsOn:referenceDate,
+        state:stateFor(identity,rows,referenceDate.slice(0,10)),
+        linked:true,
+        knownHistoricalMember:previouslyVerifiedBookMember(
+          group,paymentWindowFor(referenceDate).period?.paymentsFrom??null),
+      });
+      summary.in_book=group.some(row=>row.source==="official_members_book");
+    }
+    matches.push({rank,summary});
+  }
+  matches.sort((a,b)=>a.rank-b.rank||
+    (a.summary.first_name??"").localeCompare(b.summary.first_name??"","it"));
+  return matches.slice(0,limit).map(item=>item.summary);
 }
 
 /** Badge di un socio scelto per una persona nuova (aggiunta rapida, abbinamento). */
@@ -440,7 +520,13 @@ export async function getMemberBadge(memberKey: string, workshopStartsOn: string
   const rows = await loadEvidence();
   const best = key ? rowsOfKey(key, rows)[0] : undefined;
   const identity: Identity = best ? identityOfRow(best) : { email: null, firstName: null, lastName: null };
-  return membershipBadge({ workshopStartsOn, state: stateFor(identity, rows, workshopStartsOn.slice(0, 10)), linked: Boolean(best) });
+  return membershipBadge({
+    workshopStartsOn,
+    state:stateFor(identity,rows,workshopStartsOn.slice(0,10)),
+    linked:Boolean(best),
+    knownHistoricalMember:best?previouslyVerifiedBookMember(
+      rowsOfKey(key!,rows),paymentWindowFor(workshopStartsOn).period?.paymentsFrom??null):false,
+  });
 }
 
 /**

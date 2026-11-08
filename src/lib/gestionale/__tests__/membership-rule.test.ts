@@ -60,6 +60,13 @@ describe("badge del gestionale = stato della pagina admin", () => {
     expect(membershipLabel(badge(withForm, identity, "2027-02-06"))).toBe("Quota non registrata dal 1 gen 2027");
   });
 
+  it("quando il libro ufficiale conferma l'annualità precedente, nel 2027 indica quota non verificata e non modulo assente", () => {
+    const rows=[evidence({email:null,first_name:"Gaia",last_name:"Baietti"})];
+    const state=deriveForWorkshop(rows,{firstName:"Gaia",lastName:"Baietti"},"2027-02-19");
+    expect(membershipBadge({workshopStartsOn:"2027-02-19",state,linked:true,knownHistoricalMember:true}))
+      .toEqual({kind:"quota_mancante",paymentsFrom:"2027-01-01"});
+  });
+
   it("dal 2027 conta la quota pagata nell'anno solare; una quota del 2027 non vale per il 2026", () => {
     const paid2027 = [evidence({ membership_starts_at: "2027-01-03", membership_expires_at: "2027-12-31" })];
     expect(badge(paid2027, { email: "viola@example.test" }, "2027-02-06")).toMatchObject({ kind: "in_regola", expiresAt: "2027-12-31" });

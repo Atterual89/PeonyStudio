@@ -38,7 +38,7 @@ function query(table: string) {
   tableQueries.push(entry);
   const result = () => ({ data: table === "association_members" ? manualRows : [], error: null });
   const builder: Record<string, unknown> = {};
-  for (const method of ["eq", "in", "is", "not", "or", "range"]) {
+  for (const method of ["eq", "in", "is", "not", "or", "ilike", "range"]) {
     builder[method] = (...args: unknown[]) => {
       entry.filters.push(`${method}:${args.join(",")}`);
       return builder;
@@ -102,7 +102,9 @@ describe("stato socio dalle fonti admin", () => {
     // Workshop nov 2026: stesso periodo, in regola. Feb 2027 (anno solare): la quota di ottobre 2025 non vale.
     expect((await membership.getMembershipBadges([book], "2026-11-14")).get(book.id)?.kind).toBe("in_regola");
     expect((await membership.getMembershipBadges([book], "2027-02-06")).get(book.id)?.kind).toBe("non_collegata");
-    expect((await membership.getMembershipBadges([linkedByKey], "2027-02-06")).get(linkedByKey.id)?.kind).toBe("modulo_mancante");
+    // Socia riconosciuta nel 2026: nel 2027 deve rinnovare la quota.
+    expect((await membership.getMembershipBadges([linkedByKey], "2027-02-06")).get(linkedByKey.id))
+      .toEqual({kind:"quota_mancante",paymentsFrom:"2027-01-01"});
   });
 
   it("dalla tabella si leggono solo le righe manual_override, senza colonne sensibili", async () => {
