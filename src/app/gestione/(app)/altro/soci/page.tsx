@@ -7,6 +7,7 @@ import { PaymentEmailReview } from "@/components/gestionale/PaymentEmailReview";
 import { CompleteAllFromMembers } from "@/components/gestionale/CompleteAllFromMembers";
 import { RefreshMembershipButton } from "@/components/gestionale/QuotaOk";
 import { SyncSociButton } from "@/components/gestionale/SyncSociButton";
+import { AssociationMailSyncControl } from "@/components/gestionale/AssociationMailSyncControl";
 import { SociBookUpload } from "@/components/gestionale/SociBookUpload";
 import { Notice } from "@/components/gestionale/ui";
 import { getAssociationMailState } from "@/app/gestione/(app)/quote-email/actions";
@@ -38,6 +39,9 @@ export default async function SociPage(){
  return <section className="mx-auto max-w-3xl space-y-3">
   <Link prefetch={false} href="/gestione" className="text-sm text-[#5f524c] underline">← Gestionale</Link>
   <h1 className="font-serif text-xl font-medium">Libro soci</h1>
+  <div className="flex flex-wrap gap-2 items-start">
+   <AssociationMailSyncControl />
+  </div>
   <div className="rounded-xl border border-[#211815]/10 bg-white/80 p-3">
    <MemberDirectorySearch/>
   </div>
