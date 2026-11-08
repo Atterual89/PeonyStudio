@@ -45,6 +45,6 @@ describe("una persona, più prove associative",()=>{
    row("one","google_sheet","family@example.org","Mario Rossi"),
    row("two","google_sheet","family@example.org","Eva Verdi"),
   ]);
-  expect(groups).toHaveLength(1); // only a display group, not a confirmed identity
+  expect(groups).toHaveLength(2); // same email, incompatible identities
  });
 });
