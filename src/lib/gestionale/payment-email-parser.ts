@@ -40,8 +40,8 @@ export function parsePaymentNotification(input: {
     };
   }
   if (subject === "hai ricevuto un bonifico" && isQonto) {
-    const amount = cents(line(body, /Importo:\s*([\d.,]+)\s*EUR/i) || "");
-    const payer = line(body, /^Da:\s*([^\n]+)/im);
+    const amount = cents(line(body, /Importo:?\s*([\d.,]+)\s*(?:EUR|€)/i) || "");
+    const payer = line(body, /^Da:?\s*([^\n]+)/im);
     // Stripe transfers are settlements, not individual membership payments.
     if (!amount || !payer || /^(stripe|paypal)\b/i.test(payer)) return null;
     return { provider: "qonto", payerName: payer, amountCents: amount,
