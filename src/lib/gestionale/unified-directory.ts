@@ -1,5 +1,6 @@
 import { normalizeMembershipEmail, normalizeMembershipNameKey } from "@/lib/association/membership-state";
 import { membershipPeriodFor } from "@/lib/association/membership-periods";
+import { groupMemberEvidence } from "@/lib/gestionale/member-evidence-groups";
 import type { Person } from "@/lib/gestionale/types";
 
 export type RegistryEvidence = {
@@ -66,29 +67,17 @@ function association(rows:readonly RegistryEvidence[],date:string):UnifiedContac
  * This is presentation-only; it does not persist links or verify identities.
  */
 function groupEvidence(rows:readonly RegistryEvidence[]):Group[]{
-  const groups=new Map<string,Group>();
-  for(const row of rows){
-    const email=mail(row.email);
-    const nk=nameKey(row.first_name,row.last_name);
-    const key=email?`e:${email}|n:${nk}`:`row:${row.id}`;
-    const group=groups.get(key)??{id:key,nameKey:nk,rows:[],emails:new Set<string>()};
-    group.rows.push(row);
-    if(email.includes("@"))group.emails.add(email);
-    groups.set(key,group);
-  }
-  const emailGroups=[...groups.values()].filter(g=>g.emails.size>0);
-  const noEmailGroups=[...groups.values()].filter(g=>!g.emails.size);
-  for(const group of noEmailGroups){
-    if(!group.nameKey)continue;
-    const withEmail=emailGroups.filter(g=>g.nameKey===group.nameKey);
-    const sameNameWithoutEmail=noEmailGroups.filter(g=>g.nameKey===group.nameKey);
-    // A name-only entry can join only when both sides are unambiguous.
-    // Two people with the same name in TeamArtist must stay distinct.
-    if(withEmail.length!==1 || sameNameWithoutEmail.length!==1)continue;
-    withEmail[0].rows.push(...group.rows);
-    groups.delete(group.id);
-  }
-  return [...groups.values()];
+  // The same identity logic must be used in the member selector and in
+  // Persone. A book record without email and one manual yearly validation
+  // are separate proofs, not separate people when the name is unambiguous.
+  return groupMemberEvidence(rows.map(row=>({
+    ...row,tableId:row.source==="manual_override"?row.id:null,
+  }))).map(group=>({
+    id:group.map(row=>row.id).sort().join("|"),
+    nameKey:nameKey(group[0]?.first_name,group[0]?.last_name),
+    rows:group,
+    emails:new Set(group.map(row=>mail(row.email)).filter(email=>email.includes("@"))),
+  }));
 }
 const compatible=(person:PersonRef,group:Group)=>{
   const pn=nameKey(person.first_name,person.last_name);
