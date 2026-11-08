@@ -18,8 +18,6 @@ import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
 import type { MemberCandidate } from "@/lib/gestionale/exact-matches";
 import type { MemberSummary, MembershipBadge, Person } from "@/lib/gestionale/types";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { withSupabaseClockSkewRetry } from "@/lib/supabase/retry";
 
 // D11 (016): stato socio con le STESSE fonti e la STESSA logica della pagina
 // admin (src/app/api/admin/association-members/lookup): Google Sheet live per
