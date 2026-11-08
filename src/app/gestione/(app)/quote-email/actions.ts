@@ -13,9 +13,9 @@ import { refreshGestione } from "@/lib/gestionale/server/refresh";
 import { todayInRome } from "@/lib/gestionale/workshops";
 import { isUuidLike } from "@/lib/gestionale/validation";
 
-export async function syncAssociationMailAction(initialFrom?: string) {
+export async function syncAssociationMailAction() {
   await requireAdmin();
-  try { return {ok:true as const, data:await importPaymentNotifications(initialFrom)}; }
+  try { return {ok:true as const, data:await importPaymentNotifications()}; }
   catch (error) { return {ok:false as const,error:error instanceof Error?error.message:"Impossibile leggere Gmail."}; }
 }
 export async function getAssociationMailState() {
