@@ -31,14 +31,14 @@ export async function saveSharedPersonAction(input: {
     if (!permitted) return { ok: false, error: "Questa persona non risulta tra le tue iscrizioni." };
   }
 
-  // Evita di sovrascrivere una modifica piu' recente dell'altro operatore.
+  // Evita di sovrascrivere una modifica piu' recente dell'altra persona.
   const { data: current, error: fetchError } = await db.from("gw_people")
     .select("id,version,merged_into,deleted_at,teamartist_id,notes")
     .eq("id", input.personId).maybeSingle();
   if (fetchError || !current || current.merged_into || current.deleted_at)
     return { ok: false, error: "Anagrafica non disponibile." };
   if (current.version !== input.version)
-    return { ok: false, error: "Scheda modificata da un altro operatore. Ricarica prima di salvare." };
+    return { ok: false, error: "Scheda modificata da un altra persona. Ricarica prima di salvare." };
 
   // I campi amministrativi non sono modificabili da Alessandra.
   const fields = valid.payload;
