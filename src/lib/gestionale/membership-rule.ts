@@ -68,7 +68,7 @@ export function formatShortDate(iso: string): string {
 export function membershipLabel(badge: MembershipBadge): string {
   switch (badge.kind) {
     case "in_regola":
-      return badge.match === "manual" ? "In regola (manuale)" : "In regola";
+      return badge.match === "payment_email" ? "In regola (pagamento email)" : badge.match === "manual" ? "In regola (manuale)" : "In regola";
     case "quota_mancante":
       return badge.paymentsFrom ? `Quota non registrata dal ${formatShortDate(badge.paymentsFrom)}` : "Quota non registrata";
     case "modulo_mancante":
