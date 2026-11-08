@@ -14,7 +14,7 @@ import { getEnrolledPersonIds, getPerson, getWorkshopBookings, getWorkshopView, 
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
 import { parseMemberKey } from "@/lib/gestionale/member-key";
 import { findMemberLinkProposals } from "@/lib/gestionale/server/member-links";
-import { getMemberBadge, getMemberLink, getMembershipBadges, searchMembers } from "@/lib/gestionale/server/membership";
+import { getMemberBadge, getMemberLink, getMemberSummary, getMembershipBadges, searchMembers } from "@/lib/gestionale/server/membership";
 import {
   confirmMatch,
   createBooking,
