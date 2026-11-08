@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { confirmAssociationPaymentAction, findPaymentPeopleAction, ignoreAssociationPaymentAction, syncAssociationMailAction } from "@/app/gestione/(app)/quote-email/actions";
 
 type Person = {id:string;first_name:string|null;last_name:string|null;nickname:string|null;email:string|null};
-type Payment = {id:string;provider:string;payer_name:string|null;amount_cents:number;note:string|null;paid_at:string;availableSlots:number;slots:number[]};
+type Payment = {id:string;provider:string;payer_name:string|null;amount_cents:number;note:string|null;paid_at:string;availableSlots:number;slots:number[];suggested:{id:string;name:string}|null};
 export function PaymentEmailReview({payments,initialised,lastSync,preferredPerson}:{
  payments:Payment[];initialised:boolean;lastSync:string|null;preferredPerson:{id:string;name:string}|null
 }){
@@ -72,6 +72,11 @@ export function PaymentEmailReview({payments,initialised,lastSync,preferredPerso
    <p className="text-sm">{p.payer_name||"Pagante non riconosciuto"}</p>
    {p.note&&<p className="text-xs text-[#5f524c]">Messaggio: {p.note}</p>}
    <p className="text-xs text-[#5f524c]">Quote assegnate: {p.slots.length}/{p.availableSlots}</p>
+   {p.suggested&&p.slots.length<p.availableSlots&&<div className="flex items-center justify-between gap-2 rounded-lg bg-[#f6f1e9] p-2 text-sm">
+    <span>Persona proposta: <strong>{p.suggested.name}</strong></span>
+    <button type="button" disabled={busy} className="rounded-lg bg-[#a8583e] px-3 py-2 text-white disabled:opacity-50"
+      onClick={()=>assign(p.id,p.suggested!.id)}>Conferma</button>
+   </div>}
    {preferredPerson && p.slots.length < p.availableSlots && <button type="button" disabled={busy}
     className="rounded-lg border border-[#a8583e] p-2 text-sm font-semibold text-[#a8583e] disabled:opacity-50"
     onClick={()=>assign(p.id,preferredPerson.id)}>Associa a {preferredPerson.name}</button>}
