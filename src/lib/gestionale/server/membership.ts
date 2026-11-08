@@ -414,6 +414,13 @@ function groupMemberRows(rows: readonly EvidenceRow[]): EvidenceRow[][] {
 function groupKey(group: readonly EvidenceRow[]): string | null {
   const withEmail = group.find((row) => !row.tableId && normalizeMembershipEmail(row.email).includes("@"));
   if (withEmail) return `e:${normalizeMembershipEmail(withEmail.email)}`;
+  const official = group.find(row => row.source === "official_members_book");
+  // Nelle annualità diverse la prova manuale cambia id; il socio resta uno.
+  // Se presente, il libro ufficiale senza email è il riferimento stabile.
+  if (official) {
+    const name = normalizeMembershipNameKey(official.first_name, official.last_name);
+    if (name) return `n:${name}`;
+  }
   const manual = group.find((row) => row.tableId);
   return manual ? `m:${manual.tableId}` : memberKeyOfRow(group[0]);
 }
