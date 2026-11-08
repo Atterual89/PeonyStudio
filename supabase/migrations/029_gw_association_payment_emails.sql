@@ -97,7 +97,7 @@ create or replace function public.gw_confirm_association_payment(
   p_first_name text, p_last_name text, p_email text
 ) returns smallint
 language plpgsql security invoker set search_path = public, pg_temp
-as $
+as $$
 declare
   v_payment public.gw_association_payment_emails%rowtype;
   v_capacity integer;
@@ -188,7 +188,7 @@ begin
   end if;
   return v_slot;
 end;
-$;
+$$;
 revoke execute on function public.gw_confirm_association_payment(uuid,uuid,text,date,date,uuid,text,text,text)
  from public,anon,authenticated;
 grant execute on function public.gw_confirm_association_payment(uuid,uuid,text,date,date,uuid,text,text,text)
