@@ -16,7 +16,7 @@ export default async function PaymentEmailPage({searchParams}:{searchParams:Prom
   id:preferred.id,name:[preferred.first_name,preferred.last_name].filter(Boolean).join(" ")||preferred.nickname||preferred.email||"Persona selezionata"
  }:null;
  return <section className="mx-auto max-w-3xl space-y-4">
-  <Link href="/gestione" className="text-sm underline">← Gestionale</Link>
+  <Link href="/gestione" prefetch={false} className="text-sm underline">← Gestionale</Link>
   <h1 className="font-serif text-2xl">Quote associative · email</h1>
   {!result.ok?<p role="alert" className="rounded-xl border p-4">{result.error}</p>:
    <PaymentEmailReview payments={result.payments} initialised={Boolean(result.state?.initial_from)}
