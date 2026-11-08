@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 
 import {
   deriveMembershipState,
@@ -17,8 +18,6 @@ import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
 import type { MemberCandidate } from "@/lib/gestionale/exact-matches";
 import type { MemberSummary, MembershipBadge, Person } from "@/lib/gestionale/types";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { withSupabaseClockSkewRetry } from "@/lib/supabase/retry";
 
 // D11 (016): stato socio con le STESSE fonti e la STESSA logica della pagina
 // admin (src/app/api/admin/association-members/lookup): Google Sheet live per
@@ -77,7 +76,7 @@ async function fetchSavedEvidence(): Promise<Evidence> {
     const { data, error } = await getGestionaleDb()
       .from("association_members")
       .select("id,first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at,updated_at")
-      .in("source", ["google_sheet", "official_members_book", "manual_override"])
+      .in("source", ["google_sheet", "official_members_book"])
       .order("id", { ascending: true })
       .range(offset, offset + 499);
     if (error) throw new Error(`Gestionale (copia libro soci): ${error.message}`);
@@ -90,7 +89,7 @@ async function fetchSavedEvidence(): Promise<Evidence> {
     .filter((value): value is string => typeof value === "string")
     .sort().at(-1) ?? null;
   return {
-    rows: rows.map((row) => pick(row, row.source === "manual_override" ? row.id : null)),
+    rows: rows.map((row) => pick(row, null)),
     formNameOrder: null,
     source: "snapshot",
     snapshotUpdatedAt: timestamp,
@@ -111,20 +110,10 @@ async function fetchEvidence(): Promise<Evidence> {
     return fetchSavedEvidence();
   }
   try {
-    const [formSource, bookSource, manualResult] = await Promise.all([
+    const [formSource, bookSource] = await Promise.all([
       readAssociationMembersFromGoogleSheet(),
       readOfficialMembersBookFromGoogleSheet(),
-      withSupabaseClockSkewRetry(
-        async () =>
-          await createSupabaseAdminClient()
-            .from("association_members")
-            .select("id,first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at")
-            .eq("source", "manual_override")
-            .range(0, 9999),
-        (result) => result.error,
-      ),
     ]);
-    if (manualResult.error) throw new Error(`Gestionale (validazioni manuali): ${manualResult.error.message}`);
 
     // Modulo con nome e cognome in un'unica colonna: l'ordine lo dice l'intestazione.
     const formFirst = formSource.detectedColumns?.first_name;
@@ -138,7 +127,6 @@ async function fetchEvidence(): Promise<Evidence> {
       rows: [
         ...formSource.rows.map((row) => pick(row, null)),
         ...bookSource.rows.map((row) => pick(row, null)),
-        ...((manualResult.data ?? []) as (MembershipEvidenceRow & { id: string })[]).map((row) => pick(row, row.id)),
       ],
       formNameOrder,
       source: "live",
@@ -149,6 +137,26 @@ async function fetchEvidence(): Promise<Evidence> {
     return fetchSavedEvidence();
   }
 }
+
+/** Le validazioni manuali NON vanno mai nella cache globale dei Google Sheet.
+ * Su Netlify due richieste possono arrivare su istanze server diverse:
+ * invalidare una cache locale non invalida quelle delle altre istanze.
+ * La cache React limita a una sola lettura per render lato server.
+ */
+const readCurrentManualValidations = cache(async (): Promise<EvidenceRow[]> => {
+  await requireAdmin();
+  const rows: EvidenceRow[] = [];
+  for(let offset=0;offset<10000;offset+=500) {
+    const {data,error}=await getGestionaleDb().from("association_members")
+      .select("id,first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at")
+      .eq("source","manual_override").order("id",{ascending:true})
+      .range(offset,offset+499);
+    if(error)throw new Error(`Gestionale (quote manuali aggiornate): ${error.message}`);
+    rows.push(...(data??[]).map(row=>pick(row,row.id)));
+    if((data??[]).length<500)break;
+  }
+  return rows;
+});
 
 /** Per segnalare all'admin se le verifiche derivano da fonti live o da copia. */
 export async function getMembershipEvidenceStatus(): Promise<{
@@ -170,7 +178,12 @@ async function loadEvidenceWithOrder(): Promise<Evidence> {
       if (evidenceCache?.evidence === evidence) evidenceCache = null;
     });
   }
-  return evidenceCache.evidence;
+  const [sources, manual]=await Promise.all([
+    evidenceCache.evidence,
+    readCurrentManualValidations(),
+  ]);
+  // Nessuna quota può risultare scaduta per colpa di una cache server obsoleta.
+  return {...sources, rows:[...sources.rows, ...manual]};
 }
 
 async function loadEvidence(): Promise<EvidenceRow[]> {

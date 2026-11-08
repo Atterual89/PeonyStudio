@@ -13,6 +13,7 @@ const save = vi.fn<Mocked<{ ok: true; id: string; created: boolean; expiresAt: s
 const revoke = vi.fn<Mocked<{ ok: true; revoked: number }>>(async () => ({ ok: true, revoked: 1 }));
 const log = vi.fn<Mocked<{ ok: boolean; data: null }>>(async () => ({ ok: true, data: null }));
 const clear = vi.fn(async () => {});
+const confirmSaved = vi.fn(async (..._args:unknown[]) => true);
 
 vi.mock("next/cache", () => ({ refresh: () => {}, revalidatePath: () => {} }));
 vi.mock("@/lib/gestionale/server/auth", () => ({
@@ -30,6 +31,9 @@ vi.mock("@/lib/gestionale/server/membership", () => ({
   clearMembershipCache: () => clear(),
 }));
 vi.mock("@/lib/gestionale/server/mutations", () => ({ logMemberValidation: (...args: unknown[]) => log(...args) }));
+vi.mock("@/lib/gestionale/server/manual-quota-proof", () => ({
+  confirmManualQuotaPersisted: (...args: unknown[]) => confirmSaved(...args),
+}));
 vi.mock("@/lib/association/manual-validation", () => ({
   saveManualValidation: (...args: unknown[]) => save(...args),
   revokeManualValidation: (...args: unknown[]) => revoke(...args),
@@ -42,7 +46,8 @@ const PERIOD_2027 = { paymentsFrom: "2027-01-01", validUntil: "2027-12-31" };
 beforeEach(() => {
   role = "admin";
   identity = { email: null, firstName: "Viola", lastName: "Prova" };
-  for (const mock of [save, revoke, log, clear]) mock.mockClear();
+  for (const mock of [save, revoke, log, clear, confirmSaved]) mock.mockClear();
+  confirmSaved.mockResolvedValue(true);
 });
 
 describe("Segna quota ok", () => {
@@ -60,8 +65,18 @@ describe("Segna quota ok", () => {
     const { markQuotaOkAction } = await import("@/app/gestione/(app)/p/membership-actions");
     expect(await markQuotaOkAction({ personId: P, workshopId: W })).toEqual({ ok: true });
     expect(save).toHaveBeenCalledWith(identity, { period: PERIOD_2027 });
+    expect(confirmSaved).toHaveBeenCalledWith("riga",identity,PERIOD_2027);
     expect(log).toHaveBeenCalledWith("op-admin", P, "quota_ok", expect.objectContaining({ riga: "riga" }));
     expect(clear).toHaveBeenCalled();
+  });
+
+  it("non mostra una conferma se il database non restituisce una quota realmente verificata", async () => {
+    confirmSaved.mockResolvedValueOnce(false);
+    const {markQuotaOkAction}=await import("@/app/gestione/(app)/p/membership-actions");
+    const r=await markQuotaOkAction({personId:P,workshopId:W});
+    expect(r.ok).toBe(false);
+    expect(log).not.toHaveBeenCalled();
+    expect(clear).not.toHaveBeenCalled();
   });
 
   it("senza nome e cognome né email: chiede di completarli, niente scritture", async () => {
