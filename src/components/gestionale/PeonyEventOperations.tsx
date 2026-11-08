@@ -26,7 +26,7 @@ function formattedSync(value: string | null): string {
 }
 
 function MembershipBadge({ info, required }: { info: PeonyMembership | null; required: boolean }) {
-  if (!required) return <span className="text-xs text-[#5f524c]">Non richiesta</span>;
+  if (!required) return <span className="text-xs font-semibold text-[#5f524c]">Observer</span>;
   if (!info) return <span className="text-xs font-semibold text-[#96641b]">Da verificare</span>;
   const label = info.status === "valid" ? "Verificata" :
     info.status === "payment_missing" ? "Quota da verificare" : "Modulo assente";
