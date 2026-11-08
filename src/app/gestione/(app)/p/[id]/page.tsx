@@ -160,7 +160,11 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
             <MemberCard person={person} member={member} badge={badges.get(person.id) ?? null} showDifferences={false} />
             <div className="mt-2">
               <MemberUnlink
-                person={{ id: person.id, version: person.version }}
+                person={{
+                id:person.id,version:person.version,
+                currentMemberId:memberKeyOfPerson(person),
+                hasNameLink:Boolean(person.membership_name_key),email:person.email,
+              }}
                 memberName={[member.first_name, member.last_name].filter(Boolean).join(" ") || member.email || "questo socio"}
               />
             </div>
