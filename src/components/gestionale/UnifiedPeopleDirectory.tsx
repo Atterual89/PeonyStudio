@@ -15,12 +15,12 @@ const linkLabel:Record<UnifiedContact["link"],string>={
  da_verificare:"Abbinamento da controllare",nessuno:"",
 };
 type Filter="all"|"to_review"|"book_only";
+const needsReview=(contact:UnifiedContact)=>contact.personId?contact.link!=="confermato":contact.link==="da_verificare";
 export function UnifiedPeopleDirectory({contacts,initialQuery=""}:{contacts:UnifiedContact[];initialQuery?:string}){
  const [q,setQ]=useState(initialQuery);
  const [filter,setFilter]=useState<Filter>("all");
  const [expanded,setExpanded]=useState(false);
  const [savedMessage,setSavedMessage]=useState<string|null>(null);
- const needsReview=(contact:UnifiedContact)=>contact.personId?contact.link!=="confermato":contact.link==="da_verificare";
  const matching=useMemo(()=>{
   const tokens=normalizeText(q).split(/\s+/).filter(Boolean);
   return contacts.filter(contact=>(filter!=="to_review"||needsReview(contact))&&
