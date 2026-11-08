@@ -418,6 +418,23 @@ export async function linkMemberAction(input: {
   if (input.memberId !== null && !parseMemberKey(input.memberId)) return INVALID;
   if (input.referenceDate !== undefined && !isIsoDate(input.referenceDate)) return INVALID;
 
+  // Check duplicate links on the server as well as in the picker. A nickname
+  // is a search aid, not evidence that two member records are the same person.
+  const memberKey = input.memberId ? parseMemberKey(input.memberId) : null;
+  if (memberKey) {
+    const linkColumn = memberKey.kind === "manual" ? "association_member_id"
+      : memberKey.kind === "email" ? "membership_email" : "membership_name_key";
+    const linkValue = memberKey.kind === "manual" ? memberKey.id
+      : memberKey.kind === "email" ? memberKey.email : memberKey.nameKey;
+    const conflict = await getGestionaleDb().from("gw_people")
+      .select("id").eq(linkColumn, linkValue)
+      .neq("id", input.personId).is("deleted_at", null).is("merged_into", null).limit(1);
+    if (conflict.error) return { ok: false, error: "Controllo dei collegamenti esistenti non riuscito. Riprova." };
+    if (conflict.data?.length) return {
+      ok: false, error: "Questa socia è già collegata a un'altra anagrafica. Controlla i duplicati prima di procedere.",
+    };
+  }
+
   const result = await linkPersonToMember(operator.id, input.personId, input.version, input.memberId);
   if (!result.ok) return result;
 
