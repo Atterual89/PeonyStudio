@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 
 import { PeonyEventOperations } from "@/components/gestionale/PeonyEventOperations";
 import { SyncTicketTailorButton } from "@/components/gestionale/SyncTicketTailorButton";
+import { AssociationMailSyncControl } from "@/components/gestionale/AssociationMailSyncControl";
 import { getPeonyEvent, loadPeonyAttendees } from "@/lib/gestionale/server/peony-events";
 import { loadPeonyEmailState } from "@/lib/gestionale/server/peony-email";
 
@@ -37,6 +38,7 @@ export default async function PeonyEventPage({ params }: {
           className="inline-flex min-h-10 items-center justify-center rounded-xl border border-[#a8583e] bg-white/85 px-4 text-sm font-semibold text-[#a8583e]">
           Allinea libro soci
         </Link>
+        <AssociationMailSyncControl />
       </div>
       <PeonyEventOperations
         eventId={event.id}
