@@ -19,6 +19,7 @@ export function UnifiedPeopleDirectory({contacts,initialQuery=""}:{contacts:Unif
  const [q,setQ]=useState(initialQuery);
  const [filter,setFilter]=useState<Filter>("all");
  const [expanded,setExpanded]=useState(false);
+ const [savedMessage,setSavedMessage]=useState<string|null>(null);
  const matching=useMemo(()=>{
   const tokens=normalizeText(q).split(/\s+/).filter(Boolean);
   return contacts.filter(contact=>(filter!=="to_review"||contact.link==="da_verificare"||(Boolean(contact.personId)&&contact.link==="nessuno"))&&
@@ -29,6 +30,10 @@ export function UnifiedPeopleDirectory({contacts,initialQuery=""}:{contacts:Unif
  const memberCount=contacts.filter(c=>c.kind==="registro").length;
  const reviewCount=contacts.filter(c=>c.link==="da_verificare"||(c.personId&&c.link==="nessuno")).length;
  return <div className="space-y-3">
+  {savedMessage&&<div role="status" className="fixed inset-x-4 bottom-24 z-40 mx-auto flex max-w-xl items-center justify-between gap-3 rounded-xl border border-[#326941]/40 bg-[#eef6ee] p-3 text-sm text-[#326941] shadow-lg">
+   <span>{savedMessage}</span>
+   <button type="button" className="shrink-0 font-semibold underline" onClick={()=>setSavedMessage(null)}>Chiudi</button>
+  </div>}
   <div>
    <label htmlFor="unified-directory-search" className="sr-only">Cerca persone nel gestionale e nel libro soci</label>
    <input id="unified-directory-search" type="search" autoComplete="off" value={q}
@@ -70,10 +75,10 @@ export function UnifiedPeopleDirectory({contacts,initialQuery=""}:{contacts:Unif
     </div>
     {contact.personId&&contact.personVersion!==null&&contact.link!=="confermato"&&
       <MemberQuickLink personId={contact.personId} version={contact.personVersion}
-        personName={contact.nickname||contact.name}/>}
+        personName={contact.nickname||contact.name} onSaved={setSavedMessage}/>}
     {!contact.personId&&contact.possiblePersonId&&contact.possiblePersonVersion!==null&&
       <MemberQuickLink personId={contact.possiblePersonId} version={contact.possiblePersonVersion}
-        personName={contact.name}/>}
+        personName={contact.name} onSaved={setSavedMessage}/>}
     {!contact.personId&&!contact.possiblePersonId&&
       <p className="text-xs text-[#5f524c]">Presente solo nelle fonti associative. Non creare duplicati: cerca prima un'anagrafica esistente.</p>}
    </li>)}
