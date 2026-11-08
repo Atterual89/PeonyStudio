@@ -16,6 +16,15 @@ describe("Ricerca completa anagrafica e associazioni",()=>{
     expect(ui).toContain("Persone già nell'anagrafica");
     expect(ui).toContain("Trovata anche come");
   });
+  it("trova anche il libro ufficiale con nome abbreviato se il modulo include un secondo nome",()=>{
+    expect(actions).toContain("const considerSurname=");
+    expect(actions).toContain("await searchMembers(lastToken,25,referenceDate,{includeLinked:true})");
+    expect(actions).toContain("const compatible=extra.filter");
+    expect(actions).toContain("surname.some(part=>part.startsWith(normalizedLast))");
+    expect(actions).toContain("new Map([...members,...compatible]");
+    // Proporre un candidato non equivale ad associarlo alla persona.
+    expect(actions.indexOf("const bookResults=")).toBeLessThan(actions.indexOf("const found=searchPeople(people,text,12);"));
+  });
   it("il modulo Google può completare l'email senza eliminare il link al libro ufficiale",()=>{
     expect(actions).toContain("attachMemberFormEmailAction");
     expect(actions).toContain("if(!person||person.merged_into||!person.membership_name_key)");
