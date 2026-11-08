@@ -55,6 +55,7 @@ describe("scheda coppia: modifiche separate per partner e intestatario",()=>{
  });
  it("l'admin non può impersonare Ale con questa funzione",async()=>{
   const admin=await t.operator("Admin test");
+  await t.db.query("update gw_operators set role='admin' where id=$1",[admin]);
   const error=await t.error("select gw_update_entered_participant($1,$2,'Nome cambiato',null)",[admin,partnerId]);
   expect(error?.code).toBe("GW403");
  });
