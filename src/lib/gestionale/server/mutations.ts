@@ -624,6 +624,18 @@ export function setEnteredEmail(operatorId: string, participantId: string, email
   return callRpc<null>("gw_set_entered_email", { p_operator_id: operatorId, p_participant_id: participantId, p_email: email });
 }
 
+/** Corregge il nome usato nell'iscrizione e l'email di un partecipante,
+ * intestatario o partner, insieme e con audit; non cambia la persona canonica.
+ */
+export function updateEnteredParticipant(
+  operatorId: string, participantId: string, name: string, email: string | null
+) {
+  return callRpc<null>("gw_update_entered_participant", {
+    p_operator_id:operatorId,p_participant_id:participantId,
+    p_entered_as:name,p_entered_email:email,
+  });
+}
+
 export function addPersonAlias(operatorId: string, personId: string, alias: string) {
   return callRpc<string>("gw_add_person_alias", { p_operator_id: operatorId, p_person_id: personId, p_alias: alias });
 }
