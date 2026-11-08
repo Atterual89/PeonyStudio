@@ -1,3 +1,5 @@
+import { peonyTicketRole } from "@/lib/gestionale/peony-ticket-type";
+
 /** Lettura non invasiva delle risposte Ticket Tailor per il partner. */
 export type CheckoutPartner = { name: string | null; email: string | null; source: "ticket_tailor" };
 
@@ -23,7 +25,7 @@ export function partnerFromCheckout(rawPayload: unknown): CheckoutPartner | null
 }
 
 export function peonyPartnerRequired(eventTitle: string, ticketType: string | null): boolean {
-  if (/(observer|osservator)/i.test(ticketType ?? "")) return false;
+  if (peonyTicketRole(ticketType)==="observer") return false;
   const title = eventTitle.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[-_]+/g, " ");
   return !["rope jam", "open day", "pratica assistita", "aperi bottom", "aperibottom"].some((word) => title.includes(word));
 }
