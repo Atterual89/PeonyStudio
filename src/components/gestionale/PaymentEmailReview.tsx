@@ -5,8 +5,8 @@ import { confirmAssociationPaymentAction, findPaymentPeopleAction, ignoreAssocia
 
 type Person = {id:string;first_name:string|null;last_name:string|null;nickname:string|null;email:string|null};
 type Payment = {id:string;provider:string;payer_name:string|null;amount_cents:number;note:string|null;paid_at:string;availableSlots:number;slots:number[]};
-export function PaymentEmailReview({payments,initialised,lastSync}:{
- payments:Payment[];initialised:boolean;lastSync:string|null
+export function PaymentEmailReview({payments,initialised,lastSync,preferredPerson}:{
+ payments:Payment[];initialised:boolean;lastSync:string|null;preferredPerson:{id:string;name:string}|null
 }){
  const router=useRouter();
  const [busy,start]=useTransition();
@@ -50,6 +50,7 @@ export function PaymentEmailReview({payments,initialised,lastSync}:{
   </div>
   {message&&<p role="status" className="rounded-lg border p-3 text-sm">{message}</p>}
   <h2 className="font-semibold">Pagamenti da associare ({payments.length})</h2>
+  {preferredPerson&&<p className="rounded-lg border p-3 text-sm">Scheda persona: <strong>{preferredPerson.name}</strong>. Seleziona il pagamento corretto qui sotto.</p>}
   {payments.length===0&&<p className="text-sm text-[#5f524c]">Nessun pagamento in attesa nei risultati caricati.</p>}
   {payments.map(p=><section key={p.id} className="rounded-xl border border-[#211815]/15 bg-white p-4 space-y-2">
    <div className="flex justify-between gap-2">
@@ -59,6 +60,9 @@ export function PaymentEmailReview({payments,initialised,lastSync}:{
    <p className="text-sm">{p.payer_name||"Pagante non riconosciuto"}</p>
    {p.note&&<p className="text-xs text-[#5f524c]">Messaggio: {p.note}</p>}
    <p className="text-xs text-[#5f524c]">Quote assegnate: {p.slots.length}/{p.availableSlots}</p>
+   {preferredPerson && p.slots.length < p.availableSlots && <button type="button" disabled={busy}
+    className="rounded-lg border border-[#a8583e] p-2 text-sm font-semibold text-[#a8583e] disabled:opacity-50"
+    onClick={()=>assign(p.id,preferredPerson.id)}>Associa a {preferredPerson.name}</button>}
    <div className="flex gap-2">
     <input className="min-w-0 flex-1 rounded-lg border p-2 text-sm" placeholder="Nome, nickname o email nel libro persone"
       aria-label={`Cerca persona per ${p.payer_name||p.id}`}
