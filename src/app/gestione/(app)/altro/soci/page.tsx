@@ -3,6 +3,10 @@ export const maxDuration = 120;
 import Link from "next/link";
 
 import { MemberLinkReview } from "@/components/gestionale/MemberLinkReview";
+import { PaymentEmailReview } from "@/components/gestionale/PaymentEmailReview";
+import { getAssociationMailState } from "@/app/gestione/(app)/quote-email/actions";
+import { membershipPeriodFor } from "@/lib/association/membership-periods";
+import { todayInRome } from "@/lib/gestionale/workshops";
 import { CompleteAllFromMembers } from "@/components/gestionale/CompleteAllFromMembers";
 import { RefreshMembershipButton } from "@/components/gestionale/QuotaOk";
 import { SyncSociButton } from "@/components/gestionale/SyncSociButton";
@@ -18,7 +22,7 @@ import { listCompletablePeople } from "@/lib/gestionale/server/member-fill";
 
 export default async function SociPage() {
   await requireAdmin();
-  const [result, completable] = await Promise.all([
+  const [result, completable, mail] = await Promise.all([
     findMemberLinkProposals().catch((error: unknown) => {
       console.error("Gestionale (proposte libro soci):", error instanceof Error ? error.message : error);
       return null;
@@ -27,6 +31,7 @@ export default async function SociPage() {
       console.error("Gestionale (completamento dati):", error instanceof Error ? error.message : error);
       return null;
     }),
+    getAssociationMailState(),
   ]);
 
   return (
@@ -42,6 +47,26 @@ export default async function SociPage() {
         <SyncSociButton />
       </div>
       <SociBookUpload />
+      <details id="quote-email" className="mt-4 rounded-xl border border-[#211815]/10 bg-white/65 p-3">
+        <summary className="cursor-pointer text-sm font-semibold">
+          Pagamenti email da verificare {mail.ok?`· ${mail.payments.length}`:""}
+        </summary>
+        <p className="mt-2 text-xs text-[#5f524c]">
+          PayPal e Qonto: i pagamenti importati vanno associati manualmente alla persona corretta.
+          Non modificano automaticamente il libro ufficiale.
+        </p>
+        {mail.ok?(
+          <div className="mt-3">
+            <PaymentEmailReview payments={mail.payments}
+              periods={Array.from({length:Math.max(1,Number(todayInRome().slice(0,4))-2025+2)},(_,i)=>membershipPeriodFor(`${2025+i}-01-01`))
+                .filter((p):p is NonNullable<typeof p>=>Boolean(p))
+                .filter((p,i,all)=>all.findIndex(other=>other.paymentsFrom===p.paymentsFrom)===i)
+                .map(p=>({from:p.paymentsFrom,label:p.paymentsFrom==="2025-09-01"?"2025/26":p.paymentsFrom.slice(0,4)}))}
+              defaultPeriod={membershipPeriodFor(todayInRome())?.paymentsFrom??"2025-09-01"}
+            />
+          </div>
+        ):<Notice tone="error">{mail.error}</Notice>}
+      </details>
       <details id="allineamento-anagrafiche" open className="mt-4 rounded-xl border border-[#211815]/10 bg-white/65 p-3">
         <summary className="cursor-pointer text-sm font-semibold">Allinea persone con il libro soci</summary>
         <p className="mt-2 text-xs text-[#5f524c]">
