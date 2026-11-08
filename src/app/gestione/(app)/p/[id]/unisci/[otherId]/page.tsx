@@ -33,6 +33,11 @@ export default async function UnisciPage({ params }: { params: Promise<{ id: str
       <p className="mt-1 text-[#5f524c]">
         Principale: <strong>{displayName(primary)}</strong> · da unire: <strong>{displayName(secondary)}</strong>
       </p>
+      <p className="mt-3 rounded-xl border border-[#a8583e]/20 bg-[#f8f3ea] p-3 text-sm">
+        I nomi usati per l'iscrizione possono essere diversi dal nome anagrafico e resteranno nello storico del workshop.
+        Unisci solo se tutte le iscrizioni della seconda scheda appartengono alla stessa persona.
+        Se un nome come «Pavel/Maru» indica due persone distinte, verifica prima il partecipante effettivo.
+      </p>
 
       <div className="mt-5">
         {primary.merged_into || secondary.merged_into ? (
