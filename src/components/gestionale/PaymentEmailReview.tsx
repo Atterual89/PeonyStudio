@@ -1,42 +1,19 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { confirmAssociationPaymentAction, findPaymentPeopleAction, ignoreAssociationPaymentAction, syncAssociationMailAction } from "@/app/gestione/(app)/quote-email/actions";
+import { confirmAssociationPaymentAction, findPaymentPeopleAction, ignoreAssociationPaymentAction } from "@/app/gestione/(app)/quote-email/actions";
 
 type Person = {kind:"person"|"member";id:string;name:string;email:string|null;source:string};
 type Payment = {id:string;provider:string;payer_name:string|null;amount_cents:number;note:string|null;paid_at:string;availableSlots:number;slots:number[];suggested:{id:string;name:string}|null};
-export function PaymentEmailReview({payments,initialised,lastSync,preferredPerson,periods,defaultPeriod,gmailStatus,oauthStatus}:{
- payments:Payment[];initialised:boolean;lastSync:string|null;preferredPerson:{id:string;name:string}|null;
- periods:{from:string;label:string}[];defaultPeriod:string;
- gmailStatus:{configured:boolean;connected:boolean;updatedAt:string|null};oauthStatus:string|null
+export function PaymentEmailReview({payments,periods,defaultPeriod}:{
+ payments:Payment[];periods:{from:string;label:string}[];defaultPeriod:string
 }){
  const router=useRouter();
  const [busy,start]=useTransition();
- const [date,setDate]=useState("");
  const [search,setSearch]=useState<Record<string,string>>({});
  const [results,setResults]=useState<Record<string,Person[]>>({});
  const [message,setMessage]=useState("");
  const [periodFrom,setPeriodFrom]=useState(defaultPeriod);
- function sync(){
-  setMessage("");
-  start(async()=>{
-   let scanned=0, imported=0;
-   for(let page=1;page<=30;page++){
-    try {
-     const r=await syncAssociationMailAction(initialised?undefined:date);
-     if(!r.ok){setMessage(r.error);router.refresh();return;}
-     scanned+=r.data.scanned;imported+=r.data.imported;
-     setMessage(`Analizzate ${scanned} email · ${imported} nuovi pagamenti${r.data.hasMore?" · importazione in corso":""}.`);
-     if(!r.data.hasMore){router.refresh();return;}
-    } catch {
-     setMessage("Importazione interrotta. I dati elaborati sono salvati: riprova per riprendere.");
-     router.refresh();return;
-    }
-   }
-   setMessage(`Analizzate ${scanned} email · ${imported} nuovi pagamenti. Altri messaggi da importare: ripremi Verifica email.`);
-   router.refresh();
-  });
- }
  function lookup(id:string){
   start(async()=>{try{const found=await findPaymentPeopleAction(search[id]||"");setResults(s=>({...s,[id]:found}));}
    catch{setMessage("Ricerca persone non riuscita.");}});
@@ -50,30 +27,6 @@ export function PaymentEmailReview({payments,initialised,lastSync,preferredPerso
    setMessage(r.ok?"Pagamento ignorato.":r.error);router.refresh();});
  }
  return <div className="space-y-4">
-  <div className="rounded-xl border border-[#211815]/15 bg-white p-4 space-y-3">
-   <h2 className="font-semibold">Verifica email PayPal e Qonto</h2>
-   {oauthStatus==="connected"&&<p role="status" className="text-sm text-[#326941]">Casella Peony Studio collegata.</p>}
-   {oauthStatus&&oauthStatus!=="connected"&&<p role="alert" className="text-sm text-[#9b4b1e]">Collegamento Google non completato ({oauthStatus}). Riprova controllando di selezionare Peony Studio.</p>}
-   {gmailStatus.configured?
-     <div className="flex flex-wrap items-center gap-3">
-       <a href="/api/gestione/gmail/start" className="inline-flex min-h-10 items-center rounded-xl border border-[#a8583e] px-4 font-semibold text-[#a8583e]">
-         {gmailStatus.connected?"Ricollega Gmail":"Collega Gmail Peony Studio"}
-       </a>
-       {gmailStatus.connected&&<span className="text-xs text-[#326941]">Collegamento registrato</span>}
-     </div>
-     :<p className="text-sm text-[#9b4b1e]">Collegamento Gmail da configurare nell’hosting: client ID, client secret, redirect URI e chiave di cifratura.</p>
-   }
-   <p className="text-xs text-[#5f524c]">{lastSync?`Ultimo controllo: ${new Date(lastSync).toLocaleString("it-IT")}`:"Nessuna sincronizzazione completata."}</p>
-   {!initialised&&<label className="block text-sm">Data da cui cercare le email
-    <input aria-label="Data iniziale" type="date" value={date} onChange={e=>setDate(e.target.value)}
-      className="mt-1 block w-full max-w-xs rounded-lg border p-2" />
-   </label>}
-   <button type="button" disabled={busy||!gmailStatus.connected||(!initialised&&!date)} onClick={sync}
-     className="rounded-xl bg-[#a8583e] px-4 py-2.5 font-semibold text-white disabled:opacity-50">
-      {busy?"Operazione in corso…":"Verifica email"}
-   </button>
-   <p className="text-xs text-[#5f524c]">Importa solo nuovi messaggi (con sovrapposizione di sicurezza). Nessuna quota viene confermata automaticamente.</p>
-  </div>
   {message&&<p role="status" className="rounded-lg border p-3 text-sm">{message}</p>}
   <div className="flex flex-wrap items-center gap-2 text-sm">
    <label htmlFor="quota-periodo" className="font-semibold">Periodo associativo della quota:</label>
@@ -82,7 +35,6 @@ export function PaymentEmailReview({payments,initialised,lastSync,preferredPerso
    </select>
   </div>
   <h2 className="font-semibold">Pagamenti da associare ({payments.length})</h2>
-  {preferredPerson&&<p className="rounded-lg border p-3 text-sm">Scheda persona: <strong>{preferredPerson.name}</strong>. Seleziona il pagamento corretto qui sotto.</p>}
   {payments.length===0&&<p className="text-sm text-[#5f524c]">Nessun pagamento in attesa nei risultati caricati.</p>}
   {payments.map(p=><section key={p.id} className="rounded-xl border border-[#211815]/15 bg-white p-4 space-y-2">
    <div className="flex justify-between gap-2">
@@ -97,9 +49,6 @@ export function PaymentEmailReview({payments,initialised,lastSync,preferredPerso
     <button type="button" disabled={busy} className="rounded-lg bg-[#a8583e] px-3 py-2 text-white disabled:opacity-50"
       onClick={()=>assign(p.id,{kind:"person",id:p.suggested!.id})}>Conferma</button>
    </div>}
-   {preferredPerson && p.slots.length < p.availableSlots && <button type="button" disabled={busy}
-    className="rounded-lg border border-[#a8583e] p-2 text-sm font-semibold text-[#a8583e] disabled:opacity-50"
-    onClick={()=>assign(p.id,{kind:"person",id:preferredPerson.id})}>Associa a {preferredPerson.name}</button>}
    <div className="flex gap-2">
     <input className="min-w-0 flex-1 rounded-lg border p-2 text-sm" placeholder="Nome, nickname o email nel libro persone"
       aria-label={`Cerca persona per ${p.payer_name||p.id}`}
