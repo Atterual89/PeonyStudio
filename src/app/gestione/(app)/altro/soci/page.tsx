@@ -17,9 +17,10 @@ import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { findMemberLinkProposals } from "@/lib/gestionale/server/member-links";
 import { listCompletablePeople } from "@/lib/gestionale/server/member-fill";
 
-export default async function SociPage({searchParams}:{searchParams:Promise<{quote?:string}>}){
+export default async function SociPage({searchParams}:{searchParams:Promise<{quote?:string;q?:string}>}){
  await requireAdmin();
- const openEmailReview=(await searchParams).quote==="1";
+ const params=await searchParams;
+ const openEmailReview=params.quote==="1";
  const [proposals,completable,mail]=await Promise.all([
   findMemberLinkProposals().catch((error:unknown)=>{
    console.error("[soci] Proposte di collegamento",error instanceof Error?error.message:error);
@@ -44,7 +45,7 @@ export default async function SociPage({searchParams}:{searchParams:Promise<{quo
    <AssociationMailSyncControl />
   </div>
   <div className="rounded-xl border border-[#211815]/10 bg-white/80 p-3">
-   <MemberDirectorySearch/>
+   <MemberDirectorySearch initialQuery={typeof params.q==="string"?params.q.slice(0,100):""}/>
   </div>
   <details id="allineamento-anagrafiche" className="rounded-xl border border-[#211815]/10 bg-white/70 p-3">
    <summary className="cursor-pointer text-sm font-semibold">Abbinamenti da confermare{proposals?.proposals.length?` · ${proposals.proposals.length}`:""}</summary>
