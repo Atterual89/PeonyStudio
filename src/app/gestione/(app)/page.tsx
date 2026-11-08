@@ -251,7 +251,7 @@ export default async function WorkshopDashboard({
     // pari" e il workshop in corso o il prossimo; i riquadri dell'anno sotto.
     return (
       <section>
-        <h1 className="font-serif text-xl font-medium">Workshop</h1>
+        <div className="flex flex-wrap items-center justify-between gap-2"><h1 className="font-serif text-xl font-medium">Workshop</h1><Link prefetch={false} href="/gestione/anagrafica" className="inline-flex min-h-10 items-center rounded-xl border border-[#a8583e] px-4 text-sm font-semibold text-[#a8583e]">Anagrafica partecipanti</Link></div>
         {error}
         {totals.conguagli.alePeony > 0 || totals.conguagli.peonyAle > 0 ? (
           <p className="mt-3 font-serif text-xl font-medium leading-tight text-[#a8583e]">{conguagli}</p>
