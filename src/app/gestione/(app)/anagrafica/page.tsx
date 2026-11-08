@@ -49,7 +49,7 @@ export default async function AnagraficaPage() {
   }).sort((a,b) => [a.last_name,a.first_name,a.nickname].filter(Boolean).join(" ").localeCompare([b.last_name,b.first_name,b.nickname].filter(Boolean).join(" "),"it"));
 
   return <section className="max-w-4xl space-y-3">
-    <Link href="/gestione" className="text-sm underline">← Workshop</Link>
+    <Link prefetch={false} href="/gestione" className="text-sm underline">← Workshop</Link>
     <h1 className="font-serif text-xl">Anagrafica partecipanti</h1>
     <p className="text-sm text-[#5f524c]">Una sola scheda per persona, condivisa con Peony. Sono mostrati i partecipanti ai tuoi corsi; i dati associativi e i pagamenti non sono visibili qui.</p>
     <SharedDirectory people={directory} />
