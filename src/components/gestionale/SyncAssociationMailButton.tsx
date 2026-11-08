@@ -47,7 +47,7 @@ export function SyncAssociationMailButton({configured,connected,lastSync,missing
      <MailCheck aria-hidden="true" className="h-4 w-4"/>Collega Gmail
     </a>
    :<span className="inline-flex min-h-10 items-center rounded-xl border border-[#9b4b1e]/30 px-3 text-xs text-[#9b4b1e]">
-      Gmail non configurato nell'hosting
+      Gmail non configurato nell'hosting{missing.length?`: ${missing.join(", ")}`:""}
     </span>}
   {result&&<p role={result.ok?"status":"alert"} className={`max-w-sm text-xs ${result.ok?"text-[#326941]":"text-[#9b4b1e]"}`}>
    {result.message}
