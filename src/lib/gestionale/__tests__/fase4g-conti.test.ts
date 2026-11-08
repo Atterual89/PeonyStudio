@@ -111,7 +111,7 @@ describe("Conti di Ale (ipotesi 6, #31–#38)", () => {
 
   it("in cima la frase, 'Ho dato', Guadagno, Spese con '+ Spesa', da incassare; il resto in 'Dettagli'", () => {
     expect(ale).toContain('debtPhrase(settlement.residuo, "organizzatrice")');
-    expect(ale).toContain('<SettleResidual data={data} viewer="organizzatrice" />');
+    expect(ale).toContain('<SettleResidual data={data} viewer="organizzatrice" today={today} />');
     expect(ale).toContain("<FinanceDashboard data={data} />");
     expect(ale).toContain('<AddExpense workshopId={workshop.id} today={today} defaultPaidBy="redsabbath" />');
     expect(ale.indexOf("<AddExpense")).toBeLessThan(ale.indexOf('<Section title="Dettagli">'));

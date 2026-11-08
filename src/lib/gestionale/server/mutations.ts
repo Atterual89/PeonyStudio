@@ -410,6 +410,14 @@ export function createTransfer(operatorId: string, workshopId: string, data: Tra
   return callRpc<string>("gw_create_transfer", { p_operator_id: operatorId, p_workshop_id: workshopId, p_data: data });
 }
 
+export function updateTransfer(
+  operatorId: string,id: string,version: number,data: TransferPayload,
+){
+  return callRpc<number>("gw_update_transfer",{
+    p_operator_id:operatorId,p_id:id,p_version:version,p_data:data,
+  });
+}
+
 export function setTransferExecuted(operatorId: string, id: string, version: number, executedOn: string | null) {
   return callRpc<number>("gw_set_transfer_executed", {
     p_operator_id: operatorId,
