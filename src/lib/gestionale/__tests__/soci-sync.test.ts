@@ -44,7 +44,10 @@ describe("sync soci nel gestionale PIN", () => {
   it("la pagina di revisione soci è protetta e legge tutte le righe", () => {
     const page = source("src/app/gestione/(app)/persone/page.tsx");
     expect(page).toContain("await requireAdmin()");
-    expect(page).toContain("loadSociReviewData()");
+    expect(page).toContain("loadUnifiedDirectory(today)");
+    expect(page).not.toContain("loadSociReviewData()");
+    expect(page).not.toContain("loadUpcomingPeonyPeople");
+    expect(page).not.toContain("loadUpcomingLuxuriaPeople");
     const loader = source("src/lib/gestionale/server/soci.ts");
     expect(loader).toContain("offset += 500");
     expect(loader).toContain("deriveMembershipState");

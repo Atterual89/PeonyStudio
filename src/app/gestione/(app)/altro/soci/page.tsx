@@ -1,7 +1,6 @@
 export const maxDuration = 120;
 
 import Link from "next/link";
-import { MemberDirectorySearch } from "@/components/gestionale/MemberDirectorySearch";
 import { MemberLinkReview } from "@/components/gestionale/MemberLinkReview";
 import { PaymentEmailReview } from "@/components/gestionale/PaymentEmailReview";
 import { CompleteAllFromMembers } from "@/components/gestionale/CompleteAllFromMembers";
@@ -44,8 +43,12 @@ export default async function SociPage({searchParams}:{searchParams:Promise<{quo
   <div className="flex flex-wrap gap-2 items-start">
    <AssociationMailSyncControl />
   </div>
-  <div className="rounded-xl border border-[#211815]/10 bg-white/80 p-3">
-   <MemberDirectorySearch initialQuery={typeof params.q==="string"?params.q.slice(0,100):""}/>
+  <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#211815]/10 bg-white/80 p-3 text-sm">
+   <p className="text-[#5f524c]">Per cercare un nickname, trovare la socia e collegarla, usa l'elenco unico Persone.</p>
+   <Link prefetch={false} href={`/gestione/persone${typeof params.q==="string"?`?q=${encodeURIComponent(params.q.slice(0,100))}`:""}`}
+    className="inline-flex min-h-10 items-center rounded-lg bg-[#a8583e] px-3 font-semibold text-white">
+    Cerca e collega persone
+   </Link>
   </div>
   <details id="allineamento-anagrafiche" className="rounded-xl border border-[#211815]/10 bg-white/70 p-3">
    <summary className="cursor-pointer text-sm font-semibold">Abbinamenti da confermare{proposals?.proposals.length?` · ${proposals.proposals.length}`:""}</summary>
