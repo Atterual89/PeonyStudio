@@ -117,15 +117,20 @@ export async function confirmAssociationPaymentAction(paymentId: string,target:P
     payerName:null,amountCents:payment.amount_cents,transactionRef:null,note:null
   });
   if(capacity<1)return {ok:false as const,error:"Importo non compatibile con una quota."};
-  // Avoid re-validating a member whose fee is already recorded by TeamArtist.
-  const state=deriveMembershipState(await readAllMemberEvidence(),identity,{
-    paymentsFrom:period.paymentsFrom,paymentsUntil:period.validUntil
-  });
-  if(state.currentYearPaid)return {ok:false as const,error:
-    period.paymentsFrom==="2025-09-01"
-      ?"Quota 2025/26 già verificata: non è stato salvato nulla. Se il pagamento riguarda il 2027, seleziona 2027 nella scheda e riprova."
-      :`Quota ${period.paymentsFrom.slice(0,4)} già verificata: non è stato salvato nulla. Controlla il libro soci.`
-  };
+  const evidence=await readAllMemberEvidence();
+  const window={paymentsFrom:period.paymentsFrom,paymentsUntil:period.validUntil};
+  // Il libro ufficiale resta autorevole: non associare due volte la stessa
+  // quota già registrata da TeamArtist.
+  const official=deriveMembershipState(evidence.filter(row=>row.source!=="manual_override"),identity,window);
+  const state=deriveMembershipState(evidence,identity,window);
+  if(official.currentYearPaid||(state.currentYearPaid&&state.paymentMatchMethod!=="manual"))
+    return {ok:false as const,error:
+      period.paymentsFrom==="2025-09-01"
+        ?"Quota 2025/26 già verificata: non è stato salvato nulla. Se il pagamento riguarda il 2027, seleziona 2027 nella scheda e riprova."
+        :`Quota ${period.paymentsFrom.slice(0,4)} già verificata: non è stato salvato nulla. Controlla il libro soci.`
+    };
+  // Una verifica esclusivamente manuale NON blocca un pagamento documentato:
+  // la funzione SQL sostituisce la sua prova conservando l'abbinamento e lo storico.
   const {error:rpcError}=await db.rpc("gw_confirm_association_payment",{
     p_payment_id:paymentId,p_person_id:personId,p_member_key:memberKey,
     p_period_from:period.paymentsFrom,p_period_until:period.validUntil,
