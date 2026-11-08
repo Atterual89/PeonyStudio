@@ -81,7 +81,8 @@ export default async function SociPage() {
                   ))}
                 </ul>
               )}
-            </Section>
+              </Section>
+            </details>
           </>
         )}
       </details>

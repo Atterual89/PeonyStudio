@@ -71,8 +71,8 @@ export function MemberLinkReview({ proposals }: { proposals: LinkProposal[] }) {
                 → {proposal.memberName}
               </span>
               <span className="block break-all text-[#5f524c]">
-                {proposal.personEmail ?? "senza email"}
-                {proposal.by === "nome" ? ` · nel libro soci: ${proposal.memberEmail ?? "senza email"}` : null}
+                {proposal.personEmail ?? "Email non disponibile nella scheda"}
+                {proposal.by === "nome" ? ` · libro soci: ${proposal.memberEmail ?? "email non presente"}` : null}
               </span>
               {proposal.differentEmail ? <span className="block text-xs font-semibold text-[#7a5212]">email diversa: controlla che sia la stessa persona</span> : null}
             </span>
