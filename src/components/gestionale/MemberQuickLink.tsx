@@ -106,21 +106,20 @@ export function MemberQuickLink({
         <button type="submit" disabled={pending || searching || query.trim().length < 2}
           className={buttonClass.secondary}>{searching ? "Ricerca…" : "Cerca"}</button>
       </form>
-      {members && (members.length ? <ul className="divide-y divide-[#211815]/10 rounded-xl border bg-white">
-        {members.map(member => <li key={member.id}>
-          <button type="button" disabled={pending || member.alreadyLinked}
-            aria-pressed={selected?.id === member.id}
-            onClick={() => { setSelected(member); setNotice(null); }}
-            className={`flex min-h-10 w-full flex-col items-start gap-1 px-3 py-2 text-left text-sm disabled:opacity-60 ${selected?.id === member.id ? "bg-[#a8583e]/10" : ""}`}>
-            <span className="font-semibold">{memberName(member)}</span>
-            <span className="break-all text-xs text-[#5f524c]">
-              {member.source === "libro" ? "Libro ufficiale" : member.source === "modulo" ? "Modulo Google" : "Verifica manuale"}
-              {member.email ? ` · ${member.email}` : ""}
-            </span>
-            {member.alreadyLinked && <span className="text-xs text-[#9b4b1e]">Già collegata a un'altra scheda o da verificare</span>}
-          </button>
-        </li>)}
-      </ul> : <p className="text-sm text-[#5f524c]">Nessuna socia trovata: prova il cognome o una parte dell'email.</p>)}
+      {members && (members.length ? <div className="space-y-1">
+        <label htmlFor={`choose-member-${personId}`} className="block text-xs font-semibold text-[#5f524c]">Seleziona la socia dal libro soci</label>
+        <select id={`choose-member-${personId}`} className={inputClass} value={selected?.id??""}
+          disabled={pending} onChange={event=>{
+            setSelected(members.find(member=>member.id===event.target.value)??null);
+            setNotice(null);
+          }}>
+          <option value="">Seleziona…</option>
+          {members.map(member=><option key={member.id} value={member.id} disabled={member.alreadyLinked}>
+            {memberName(member)} · {member.email||"email assente"}{member.alreadyLinked?" · già collegata":""}
+          </option>)}
+        </select>
+        <p className="text-xs text-[#5f524c]">Le persone già collegate ad altre schede non sono selezionabili.</p>
+      </div> : <p className="text-sm text-[#5f524c]">Nessuna socia trovata: prova il cognome o una parte dell'email.</p>)}
       {selected && !selected.alreadyLinked && <div className="space-y-2 rounded-lg border border-[#a8583e]/30 bg-white p-3">
         <p className="text-sm">Confermi che <strong>{personName}</strong> e <strong>{memberName(selected)}</strong> sono la stessa persona?</p>
         <button type="button" disabled={pending} onClick={confirm} className={buttonClass.primary}>
