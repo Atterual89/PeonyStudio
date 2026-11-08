@@ -32,7 +32,9 @@ create index if not exists gw_assoc_payment_review_idx
 create table if not exists public.gw_association_payment_allocations (
  id uuid primary key default gen_random_uuid(),
  payment_id uuid not null references public.gw_association_payment_emails(id) on delete restrict,
- person_id uuid not null references public.gw_people(id) on delete restrict,
+ person_id uuid references public.gw_people(id) on delete restrict,
+ member_key text,
+ constraint gw_payment_target_one check (num_nonnulls(person_id,member_key)=1),
  slot smallint not null check (slot between 1 and 3),
  period_from date not null,
  gross_quota_cents integer not null default 1500 check (gross_quota_cents = 1500),
@@ -40,9 +42,11 @@ create table if not exists public.gw_association_payment_allocations (
  validated_at timestamptz not null default now(),
  unique (payment_id, slot),
  unique (payment_id, person_id, period_from),
- unique (person_id, period_from)
+ unique (payment_id, member_key, period_from)
 );
 create index if not exists gw_assoc_alloc_payment on public.gw_association_payment_allocations(payment_id);
+create unique index if not exists gw_alloc_unique_person_period on public.gw_association_payment_allocations(person_id,period_from) where person_id is not null;
+create unique index if not exists gw_alloc_unique_member_period on public.gw_association_payment_allocations(member_key,period_from) where member_key is not null;
 alter table public.gw_payment_sync_state enable row level security;
 alter table public.gw_association_payment_emails enable row level security;
 alter table public.gw_association_payment_allocations enable row level security;
