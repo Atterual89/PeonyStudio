@@ -48,6 +48,14 @@ describe("anagrafica unificata",()=>{
   ]});
   expect(contacts).toHaveLength(3);
  });
+ it("non fonde due omonimi presenti senza email nel registro ufficiale",()=>{
+  const contacts=buildUnifiedDirectory({today,people:[],evidence:[
+   member("o1","official_members_book","Mario","Rossi",null),
+   member("o2","official_members_book","Mario","Rossi",null),
+  ]});
+  expect(contacts).toHaveLength(2);
+  expect(contacts.every(c=>c.kind==="registro")).toBe(true);
+ });
  it("se quota email confermata prevale sul controllo manuale nella provenienza visibile",()=>{
   const contacts=buildUnifiedDirectory({today,
    people:[person("a","Iris","Rosa","iris@example.test")],
