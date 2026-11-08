@@ -70,11 +70,12 @@ describe("#3 + #4 — riga aperta di Ale", () => {
     expect(tab).not.toContain("<PaymentList");
   });
 
-  it("ordine: Quota · Stato · Pagamenti · Altri dati (fattura ed email affiancate, 4f; note)", () => {
+  it("ordine: partecipanti della coppia prima delle finanze, fattura e note sotto Altri dati", () => {
     const details = tab.slice(tab.indexOf("function RegistrationDetails"), tab.indexOf("export function RegistrationsTab"));
-    const order = ["<FeeEditor", "<StatusPicker", "Pagamenti ·", "Altri dati", "Fattura <Saved", "<EnteredEmails", "Note <Saved"].map((marker) => details.indexOf(marker));
+    const order = ["<EnteredEmails", "<FeeEditor", "<StatusPicker", "Pagamenti ·", "Altri dati", "Fattura <Saved", "Note <Saved"].map((marker) => details.indexOf(marker));
     expect(order.every((index) => index >= 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(details.match(/<EnteredEmails/g)).toHaveLength(1);
   });
 
   it("'+ Nuovo pagamento' usa la preimpostazione e l'avviso della cancellata ha il pulsante del rimborso", () => {
