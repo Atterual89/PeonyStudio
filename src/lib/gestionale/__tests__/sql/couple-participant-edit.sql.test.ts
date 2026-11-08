@@ -14,7 +14,6 @@ beforeEach(async()=>{
   t=await createTestDb(MIGRATIONS);
   await t.db.exec(migration);
   organizer=await t.operator("Ale test");
-  await t.db.query("update gw_operators set role='organizzatrice' where id=$1",[organizer]);
   const workshop=await t.value<string>(
     "select gw_ensure_workshop_for_event($1,'eeeeeeee-0000-4000-8000-000000000299','Coppie test','2026-11-19',null) v",[organizer]
   );
@@ -27,6 +26,8 @@ beforeEach(async()=>{
   );
   primaryId=participants[0].id;
   partnerId=participants[1].id;
+  // Preparazione da admin; poi l'operatrice agisce come organizzatrice.
+  await t.db.query("update gw_operators set role='organizzatrice' where id=$1",[organizer]);
 });
 
 describe("scheda coppia: modifiche separate per partner e intestatario",()=>{
