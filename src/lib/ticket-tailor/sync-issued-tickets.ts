@@ -56,6 +56,7 @@ export type TicketTailorChunkOptions = {
   ticketTailorEventId?: string;
   startingAfter?: string | null;
   maxPages?: number;
+  stopAfterOrderId?: string | null;
 };
 
 /** Importazione anche a blocchi, senza cancellazioni; usata dal gestionale
@@ -302,6 +303,8 @@ export async function syncTicketTailorIssuedTickets(options: TicketTailorChunkOp
       ignoredOrders,
       errors,
       nextCursor: orderResult.nextCursor,
+      newestOrderId: orderResult.newestOrderId,
+      hitPreviousHead: orderResult.hitPreviousHead,
     };
 
     async function loadTargetEvents() {
@@ -383,6 +386,8 @@ async function fetchOrders(apiKey: string, options: TicketTailorChunkOptions) {
   let pagesRead = 0;
   let startingAfter = options.startingAfter ?? null;
   let nextCursor: string | null = null;
+  let newestOrderId: string | null = null;
+  let hitPreviousHead = false;
   const maxPages = options.maxPages === undefined ? MAX_PAGES :
     Math.max(1, Math.min(MAX_PAGES, Math.floor(options.maxPages)));
   if (startingAfter && (!/^[a-zA-Z0-9_-]{2,200}$/.test(startingAfter))) {
@@ -406,7 +411,11 @@ async function fetchOrders(apiKey: string, options: TicketTailorChunkOptions) {
     }
     const payload = (await response.json()) as unknown;
     const page = extractRecords(payload);
-    records.push(...page);
+    if (pagesRead===1) newestOrderId=findString(page[0]??{},["id","order_id","orderId","object_id"]);
+    const stopAt=options.stopAfterOrderId;
+    const index=stopAt?page.findIndex(order=>findString(order,["id","order_id","orderId","object_id"])===stopAt):-1;
+    records.push(...(index>=0?page.slice(0,index+1):page));
+    if(index>=0){hitPreviousHead=true;nextCursor=null;break;}
     if (page.length < PAGE_SIZE) { nextCursor = null; break; }
 
     const lastOrderId = findString(page[page.length - 1], [
@@ -418,7 +427,7 @@ async function fetchOrders(apiKey: string, options: TicketTailorChunkOptions) {
     startingAfter = lastOrderId;
     nextCursor = lastOrderId;
   }
-  return { records, pagesRead, nextCursor };
+  return { records, pagesRead, nextCursor, newestOrderId, hitPreviousHead };
 }
 
 function getIssuedTickets(order: TicketTailorRecord) {
