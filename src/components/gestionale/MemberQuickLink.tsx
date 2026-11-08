@@ -16,12 +16,12 @@ const memberName = (member: MemberSummary) =>
  * explicitly choose and save the link. Does not validate or modify membership dues.
  */
 export function MemberQuickLink({
-  personId, version, personName, alreadyConfirmed = false,
+  personId, version, personName, onSaved,
 }: {
   personId: string;
   version: number;
   personName: string;
-  alreadyConfirmed?: boolean;
+  onSaved?: (message: string) => void;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -78,10 +78,9 @@ export function MemberQuickLink({
           setNotice({ kind: "error", text: result.error });
           return;
         }
-        setNotice({
-          kind: "success",
-          text: `Collegamento salvato: ${personName} → ${memberName(selected)}. La quota associativa non è stata modificata.`,
-        });
+        const message = `Collegamento salvato: ${personName} → ${memberName(selected)}. La quota associativa non è stata modificata.`;
+        setNotice({ kind: "success", text: message });
+        onSaved?.(message);
         setMembers(null);
         setSelected(null);
         router.refresh();
@@ -94,7 +93,7 @@ export function MemberQuickLink({
   return <div className="space-y-2">
     <button type="button" className="min-h-10 text-sm font-semibold text-[#a8583e] underline"
       aria-expanded={open} onClick={() => { setOpen(!open); setNotice(null); }}>
-      {alreadyConfirmed ? "Modifica collegamento" : "Collega al libro soci"}
+      Collega al libro soci
     </button>
     {open && <div className="space-y-2 rounded-xl border border-[#a8583e]/30 bg-[#f8f3ea] p-3">
       <p className="text-sm font-semibold">Collega {personName} a una socia o un socio</p>
