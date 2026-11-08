@@ -44,7 +44,7 @@ const sources=(rows:readonly RegistryEvidence[])=>{
   // Email evidence supersedes the manual check only when explicitly linked and
   // recorded by the payment-confirmation transaction, never on raw import.
   if(rows.some(r=>r.source==="manual_override"&&r.notes_admin?.startsWith("Quota confermata da email")))
-    labels.push("Pagamento email verificato");
+    labels.push("Pagamento email confermato");
   const provenEmail=rows.some(r=>r.source==="manual_override"&&
     r.membership_status==="verified"&&r.notes_admin?.startsWith("Quota confermata da email ("));
   if(provenEmail)labels.push("Pagamento email confermato");
