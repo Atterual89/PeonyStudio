@@ -146,3 +146,25 @@ export function memberLinkProposals(
     none: [...none, ...people.filter((person) => dropped.has(person.id))],
   };
 }
+
+
+/**
+ * Una quota GIÀ verificata nel libro soci non è un "abbinamento da confermare"
+ * solo perché il libro non contiene email. Non scrive alcun collegamento:
+ * riconosce una corrispondenza inequivocabile ai fini della lista operativa.
+ * Nomi duplicati o email differenti richiedono sempre revisione umana.
+ */
+export function isVerifiedOfficialNameOnlyMatch(
+  proposal: LinkProposal,
+  allPeople: readonly Pick<LinkPerson, "nameKey" | "id">[],
+  member: {source:string; badgeKind:string} | null,
+): boolean {
+  if(proposal.by!=="nome" || proposal.personEmail || proposal.memberEmail ||
+    !proposal.memberId.startsWith("n:") ||
+    member?.source!=="libro" || member.badgeKind!=="in_regola") return false;
+  const key=proposal.memberId.slice(2);
+  if(!key || !proposal.personId) return false;
+  // Verifica anche le anagrafiche già collegate; un omonimo NON si fonde.
+  return allPeople.filter(person=>person.nameKey===key).length===1 &&
+    allPeople.some(person=>person.id===proposal.personId && person.nameKey===key);
+}
