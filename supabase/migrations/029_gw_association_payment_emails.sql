@@ -54,7 +54,7 @@ grant select,insert,update,delete on public.gw_payment_sync_state,
 create or replace function public.gw_peony_ticket_summary()
 returns table(ticket_tailor_event_id text, ticket_count bigint, last_synced_at timestamptz)
 language sql stable security invoker set search_path = public, pg_temp
-as $
+as $$
  select t.ticket_tailor_event_id::text,
         count(*) filter (where t.status is null or lower(t.status) not similar to
           '%(void|cancelled|canceled|refunded|deleted|inactive)%')::bigint,
@@ -62,7 +62,7 @@ as $
  from public.ticket_tailor_issued_tickets t
  where t.ticket_tailor_event_id is not null
  group by t.ticket_tailor_event_id
-$;
+$$;
 revoke execute on function public.gw_peony_ticket_summary() from public,anon,authenticated;
 grant execute on function public.gw_peony_ticket_summary() to service_role;
 -- Proposte deterministiche: soltanto coincidenze esatte di nome/cognome o nickname.
@@ -70,7 +70,7 @@ grant execute on function public.gw_peony_ticket_summary() to service_role;
 create or replace function public.gw_payment_suggest_people()
 returns table(payment_id uuid,person_id uuid,person_name text)
 language sql stable security invoker set search_path = public, pg_temp
-as $
+as $$
  select e.id,p.id,
         coalesce(nullif(btrim(concat_ws(' ',p.first_name,p.last_name)),''),p.nickname,p.email)
  from public.gw_association_payment_emails e
@@ -81,7 +81,7 @@ as $
    or lower(btrim(e.payer_name))=lower(btrim(concat_ws(' ',p.last_name,p.first_name)))
    or lower(btrim(e.payer_name))=lower(btrim(coalesce(p.nickname,'')))
  )
-$;
+$$;
 revoke execute on function public.gw_payment_suggest_people() from public,anon,authenticated;
 grant execute on function public.gw_payment_suggest_people() to service_role;
 commit;
