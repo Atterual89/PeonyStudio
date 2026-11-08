@@ -47,5 +47,20 @@ revoke all on public.gw_payment_sync_state, public.gw_association_payment_emails
  public.gw_association_payment_allocations from public, anon, authenticated;
 grant select,insert,update,delete on public.gw_payment_sync_state,
  public.gw_association_payment_emails, public.gw_association_payment_allocations to service_role;
+-- Aggregate in PostgreSQL instead of downloading every ticket to render the admin home.
+create or replace function public.gw_peony_ticket_summary()
+returns table(ticket_tailor_event_id text, ticket_count bigint, last_synced_at timestamptz)
+language sql stable security invoker set search_path = public, pg_temp
+as $
+ select t.ticket_tailor_event_id::text,
+        count(*) filter (where t.status is null or lower(t.status) not similar to
+          '%(void|cancelled|canceled|refunded|deleted|inactive)%')::bigint,
+        max(t.last_synced_at)
+ from public.ticket_tailor_issued_tickets t
+ where t.ticket_tailor_event_id is not null
+ group by t.ticket_tailor_event_id
+$;
+revoke execute on function public.gw_peony_ticket_summary() from public,anon,authenticated;
+grant execute on function public.gw_peony_ticket_summary() to service_role;
 commit;
 notify pgrst, 'reload schema';
