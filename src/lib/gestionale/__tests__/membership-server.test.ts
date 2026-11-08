@@ -38,7 +38,7 @@ function query(table: string) {
   tableQueries.push(entry);
   const result = () => ({ data: table === "association_members" ? manualRows : [], error: null });
   const builder: Record<string, unknown> = {};
-  for (const method of ["eq", "in", "is", "not", "or", "ilike", "range"]) {
+  for (const method of ["eq", "in", "is", "not", "or", "ilike", "range", "order"]) {
     builder[method] = (...args: unknown[]) => {
       entry.filters.push(`${method}:${args.join(",")}`);
       return builder;
@@ -115,6 +115,26 @@ describe("stato socio dalle fonti admin", () => {
     expect(members).toHaveLength(1);
     expect(members[0].filters).toContain("eq:source,manual_override");
     expect(members[0].columns).not.toMatch(/fiscal|birth|card/);
+  });
+
+  it("una quota manuale appena salvata vale subito anche se il libro soci è ancora in cache", async () => {
+    const p=person({first_name:"Adriano",last_name:"Giuffrè",email:"adriano.giuff@gmail.com",membership_email:"adriano.giuff@gmail.com"});
+    const first=(await membership.getMembershipBadges([p],"2027-02-06")).get(p.id);
+    expect(first?.kind).not.toBe("in_regola");
+    const row={
+      id:"00000000-0000-4000-8000-00000000b0b7",
+      first_name:"Adriano",last_name:"Giuffrè",email:"adrianogiuff@gmail.com",
+      source:"manual_override",membership_status:"verified",
+      membership_starts_at:"2027-01-01",membership_expires_at:"2027-12-31"
+    };
+    manualRows.push(row);
+    try {
+      const badge=(await membership.getMembershipBadges([p],"2027-02-06")).get(p.id);
+      expect(badge).toEqual({kind:"in_regola",expiresAt:"2027-12-31",match:"manual"});
+      row.membership_status="revoked";
+      const revoked=(await membership.getMembershipBadges([p],"2027-02-06")).get(p.id);
+      expect(revoked?.kind).not.toBe("in_regola");
+    } finally { manualRows.pop(); }
   });
 
   it("cache di 5 minuti: i Google Sheet si leggono una volta sola", async () => {
