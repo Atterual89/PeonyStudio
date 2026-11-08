@@ -4,14 +4,12 @@ import Link from "next/link";
 
 import { WorkshopTable, YearSelect } from "@/components/gestionale/HomeControls";
 import { SyncTicketTailorButton } from "@/components/gestionale/SyncTicketTailorButton";
-import { SyncAssociationMailButton } from "@/components/gestionale/SyncAssociationMailButton";
+import { AssociationMailSyncControl } from "@/components/gestionale/AssociationMailSyncControl";
 import { EconomicBadge, RecapTiles, RecheckBadge } from "@/components/gestionale/Recap";
 import { Notice, Section, cardClass } from "@/components/gestionale/ui";
 import { formatCents, formatDateRange } from "@/lib/gestionale/format";
 import { availableYears, conguagliText, homeView, parseYearFilter, recapLine } from "@/lib/gestionale/recap";
 import { requireOperator } from "@/lib/gestionale/server/auth";
-import { getGestionaleDb } from "@/lib/gestionale/server/db";
-import { gmailConnectionStatus } from "@/lib/gestionale/server/payment-gmail-oauth";
 import { loadPeonyEventsSummary, type PeonyEventSummary } from "@/lib/gestionale/server/peony-events";
 import { getDashboard } from "@/lib/gestionale/server/data";
 import type { OperatorRole } from "@/lib/gestionale/types";
@@ -199,21 +197,13 @@ export default async function WorkshopDashboard({
   const activeTab = viewer === "admin" && vista === "luxuria" ? "luxuria" : "peony";
   // Carichiamo solo il contenuto della scheda visibile: una lunga lista
   // Peony non rallenta piu' la consultazione dei workshop di Ale.
-  const [entries, peonyEvents, gmailStatus, mailSync] = await Promise.all([
+  const [entries, peonyEvents] = await Promise.all([
     viewer === "organizzatrice" || activeTab === "luxuria"
       ? getDashboard()
       : Promise.resolve([]),
     viewer === "admin" && activeTab === "peony"
       ? loadPeonyEventsSummary()
       : Promise.resolve([]),
-    viewer === "admin" && activeTab === "peony"
-      ? gmailConnectionStatus()
-      : Promise.resolve({configured:false,connected:false,updatedAt:null,missing:[] as string[]}),
-    viewer === "admin" && activeTab === "peony"
-      ? getGestionaleDb().from("gw_payment_sync_state").select("last_success_at")
-          .eq("source","gmail_payments").maybeSingle()
-      : Promise.resolve({data:null}),
-
   ]);
   const today = todayInRome();
   const year = parseYearFilter(anno, today);
@@ -299,9 +289,7 @@ export default async function WorkshopDashboard({
               className="inline-flex min-h-10 items-center justify-center rounded-xl border border-[#a8583e] bg-white/85 px-4 text-sm font-semibold text-[#a8583e]">
               Allinea libro soci
             </Link>
-            <SyncAssociationMailButton configured={gmailStatus.configured}
-              connected={gmailStatus.connected} lastSync={mailSync.data?.last_success_at??null}
-              missing={gmailStatus.missing}/>
+            <AssociationMailSyncControl />
           </div>
           <div className="flex justify-end">
             <YearSelect value={year} years={years} vista="peony" />
