@@ -65,5 +65,24 @@ as $
 $;
 revoke execute on function public.gw_peony_ticket_summary() from public,anon,authenticated;
 grant execute on function public.gw_peony_ticket_summary() to service_role;
+-- Proposte deterministiche: soltanto coincidenze esatte di nome/cognome o nickname.
+-- Le proposte non confermano mai la quota.
+create or replace function public.gw_payment_suggest_people()
+returns table(payment_id uuid,person_id uuid,person_name text)
+language sql stable security invoker set search_path = public, pg_temp
+as $
+ select e.id,p.id,
+        coalesce(nullif(btrim(concat_ws(' ',p.first_name,p.last_name)),''),p.nickname,p.email)
+ from public.gw_association_payment_emails e
+ join public.gw_people p on p.deleted_at is null and p.merged_into is null
+ where e.status='pending' and e.payer_name is not null
+ and (
+   lower(btrim(e.payer_name))=lower(btrim(concat_ws(' ',p.first_name,p.last_name)))
+   or lower(btrim(e.payer_name))=lower(btrim(concat_ws(' ',p.last_name,p.first_name)))
+   or lower(btrim(e.payer_name))=lower(btrim(coalesce(p.nickname,'')))
+ )
+$;
+revoke execute on function public.gw_payment_suggest_people() from public,anon,authenticated;
+grant execute on function public.gw_payment_suggest_people() to service_role;
 commit;
 notify pgrst, 'reload schema';
