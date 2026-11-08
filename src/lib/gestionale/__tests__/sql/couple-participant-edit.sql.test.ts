@@ -17,6 +17,10 @@ beforeEach(async()=>{
   const workshop=await t.value<string>(
     "select gw_ensure_workshop_for_event($1,'eeeeeeee-0000-4000-8000-000000000299','Coppie test','2026-11-19',null) v",[organizer]
   );
+  await t.value(
+    "select gw_update_workshop_settings($1,$2,(select version from gw_workshops where id=$2),'{\"default_fee_cents\":50000}'::jsonb) v",
+    [organizer,workshop]
+  );
   booking=await t.value<string>(
     "select gw_create_booking_entered($1,$2,$3::jsonb,'prenotato',null,null) v",
     [organizer,workshop,JSON.stringify(["Chiara","Pietro"])]
