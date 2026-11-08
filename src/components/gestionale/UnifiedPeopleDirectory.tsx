@@ -33,7 +33,7 @@ export function UnifiedPeopleDirectory({contacts}:{contacts:UnifiedContact[]}){
    <input id="unified-directory-search" type="search" autoComplete="off" value={q}
     onChange={event=>{setQ(event.target.value);setExpanded(false);}}
     placeholder="Cerca nome, cognome, nickname o email"
-    className="min-h-11 w-full rounded-xl border border-[#211815]/20 bg-white p-3 text-sm"/>
+    className="min-h-10 w-full rounded-xl border border-[#211815]/20 bg-white p-3 text-sm"/>
   </div>
   <div className="flex flex-wrap items-center gap-2">
    <label htmlFor="unified-directory-filter" className="text-xs text-[#5f524c]">Mostra</label>
