@@ -429,13 +429,18 @@ export async function searchMembers(
   await requireAdmin();
   const normalized=normalizeText(query);
   if(normalized.length<2)return [];
+  // Gli alias si cercano lato database: non scaricare tutte le iscrizioni
+  // storiche ad ogni carattere digitato nella ricerca.
+  const aliasTerm=normalized.split(/\s+/).find(token=>token.length>=2)
+    ?.replace(/[%_\\]/g,"")??"";
+  const aliasPattern=`%${aliasTerm}%`;
   const [rows,linked,aliasRows,bookingAliases]=await Promise.all([
     loadEvidence(),loadLinkedMemberKeys(),
     getGestionaleDb().from("gw_people")
       .select("id,nickname,association_member_id,membership_email,membership_name_key")
-      .not("nickname","is",null).is("deleted_at",null).is("merged_into",null).range(0,9999),
+      .ilike("nickname",aliasPattern).is("deleted_at",null).is("merged_into",null).range(0,999),
     getGestionaleDb().from("gw_booking_participants")
-      .select("person_id,entered_as").not("entered_as","is",null).is("deleted_at",null).range(0,9999),
+      .select("person_id,entered_as").ilike("entered_as",aliasPattern).is("deleted_at",null).range(0,999),
   ]);
   if(aliasRows.error||bookingAliases.error)throw new Error("Impossibile leggere i nickname dell'anagrafica.");
   const byKey=new Map<string,string[]>();
