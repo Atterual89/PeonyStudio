@@ -14,6 +14,8 @@ describe("quote associative email: SQL, atomicità e permessi", () => {
     `);
     const sql=readFileSync(join(process.cwd(),"supabase/migrations/029_gw_association_payment_emails.sql"),"utf8");
     await t.db.exec(sql);
+    await t.db.exec(readFileSync(join(process.cwd(),"supabase/migrations/030_gw_gmail_oauth_connection.sql"),"utf8"));
+    expect(await t.value<boolean>(`select has_table_privilege('anon','public.gw_gmail_connections','SELECT') v`)).toBe(false);
     const op=await t.operator();
     const a=await t.value<string>(`select gw_create_person($1,'{"first_name":"Anna","last_name":"Rossi","email":"anna@example.test"}'::jsonb) v`,[op]);
     const b=await t.value<string>(`select gw_create_person($1,'{"first_name":"Bruno","last_name":"Verdi","email":"bruno@example.test"}'::jsonb) v`,[op]);
