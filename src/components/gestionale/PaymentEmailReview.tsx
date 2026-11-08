@@ -54,10 +54,15 @@ export function PaymentEmailReview({payments,initialised,lastSync,preferredPerso
    <h2 className="font-semibold">Verifica email PayPal e Qonto</h2>
    {oauthStatus==="connected"&&<p role="status" className="text-sm text-[#326941]">Casella Peony Studio collegata.</p>}
    {oauthStatus&&oauthStatus!=="connected"&&<p role="alert" className="text-sm text-[#9b4b1e]">Collegamento Google non completato ({oauthStatus}). Riprova controllando di selezionare Peony Studio.</p>}
-   {!gmailStatus.connected && (gmailStatus.configured?
-     <a href="/api/gestione/gmail/start" className="inline-flex min-h-10 items-center rounded-xl border border-[#a8583e] px-4 font-semibold text-[#a8583e]">Collega Gmail Peony Studio</a>
+   {gmailStatus.configured?
+     <div className="flex flex-wrap items-center gap-3">
+       <a href="/api/gestione/gmail/start" className="inline-flex min-h-10 items-center rounded-xl border border-[#a8583e] px-4 font-semibold text-[#a8583e]">
+         {gmailStatus.connected?"Ricollega Gmail":"Collega Gmail Peony Studio"}
+       </a>
+       {gmailStatus.connected&&<span className="text-xs text-[#326941]">Collegamento registrato</span>}
+     </div>
      :<p className="text-sm text-[#9b4b1e]">Collegamento Gmail da configurare nell’hosting: client ID, client secret, redirect URI e chiave di cifratura.</p>
-   )}
+   }
    <p className="text-xs text-[#5f524c]">{lastSync?`Ultimo controllo: ${new Date(lastSync).toLocaleString("it-IT")}`:"Nessuna sincronizzazione completata."}</p>
    {!initialised&&<label className="block text-sm">Data da cui cercare le email
     <input aria-label="Data iniziale" type="date" value={date} onChange={e=>setDate(e.target.value)}
