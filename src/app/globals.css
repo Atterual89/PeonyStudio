@@ -1,16 +1,18 @@
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap");
 @import "tailwindcss";
 
 :root {
   --background: #f4efe8;
   --foreground: #211815;
+  --font-peony-sans: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-peony-serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
-  --font-serif: var(--font-serif), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-peony-sans);
+  --font-serif: var(--font-peony-serif);
 }
 
 @keyframes marquee {
@@ -103,7 +105,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans);
+  font-family: var(--font-peony-sans);
   overflow-x: hidden;
 }
 
