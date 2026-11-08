@@ -39,7 +39,7 @@ export function MemberLinker({
     Boolean(person.hasNameLink&&!person.email&&member.source==="modulo"&&member.email);
   const blocked=(member:MemberSummary)=>
     member.id===person.currentMemberId ||
-    Boolean(member.alreadyLinked && !canUseFormEmail(member)) ||
+    Boolean(member.alreadyLinked) ||
     Boolean(person.currentMemberId && !canUseFormEmail(member));
   const name=(member:MemberSummary)=>
     [member.first_name,member.last_name].filter(Boolean).join(" ")||member.email||"Socio";

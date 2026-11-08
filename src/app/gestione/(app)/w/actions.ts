@@ -382,10 +382,15 @@ export async function attachMemberFormEmailAction(input:{
   if(!compatibleFormName(fullName(person),[member.first_name,member.last_name].filter(Boolean).join(" ")))
     return {ok:false,error:"Il nome e il cognome non sono sufficientemente compatibili. Verifica l'identità."};
   const db=getGestionaleDb();
-  const existing=await db.from("gw_people").select("id")
-    .ilike("email",member.email).is("deleted_at",null).is("merged_into",null).neq("id",person.id).limit(1);
-  if(existing.error)return {ok:false,error:"Non riesco a controllare le email già presenti."};
-  if(existing.data?.length)return {ok:false,error:"Questa email è già usata da un'altra scheda: verifica il possibile duplicato."};
+  const [existing,alreadyLinked]=await Promise.all([
+    db.from("gw_people").select("id")
+      .ilike("email",member.email).is("deleted_at",null).is("merged_into",null).neq("id",person.id).limit(1),
+    db.from("gw_people").select("id")
+      .ilike("membership_email",member.email).is("deleted_at",null).is("merged_into",null).neq("id",person.id).limit(1),
+  ]);
+  if(existing.error||alreadyLinked.error)return {ok:false,error:"Non riesco a controllare le email già presenti."};
+  if(existing.data?.length||alreadyLinked.data?.length)
+    return {ok:false,error:"Questa email è già usata da un'altra scheda: verifica il possibile duplicato."};
   const updated=await updatePerson(operator.id,person.id,person.version,{
     ...personFieldsOf(person),email:member.email,
   });
