@@ -4,8 +4,9 @@ import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
 import { importPaymentNotifications } from "@/lib/gestionale/server/payment-mail-import";
 import { getPerson } from "@/lib/gestionale/server/data";
-import { membershipIdentityOf, clearMembershipCache } from "@/lib/gestionale/server/membership";
-import { saveManualValidation } from "@/lib/association/manual-validation";
+import { membershipIdentityOf, clearMembershipCache, searchMembers, getMemberLink } from "@/lib/gestionale/server/membership";
+import { deriveMembershipState } from "@/lib/association/membership-state";
+import { readAllMemberEvidence } from "@/lib/gestionale/server/peony-events";
 import { membershipPeriodFor } from "@/lib/association/membership-periods";
 import { suggestedQuotaCount } from "@/lib/gestionale/payment-email-parser";
 import { refreshGestione } from "@/lib/gestionale/server/refresh";
@@ -39,18 +40,33 @@ export async function getAssociationMailState() {
     }),slots:(allocations.data??[]).filter(a=>a.payment_id===p.id).map(a=>a.slot as number)
   }))};
 }
-export async function findPaymentPeopleAction(query: string) {
+export type PaymentPersonCandidate = {
+ kind:"person"|"member"; id:string; name:string; email:string|null; source:string;
+};
+export async function findPaymentPeopleAction(query: string): Promise<PaymentPersonCandidate[]> {
   await requireAdmin();
-  const q=query.trim().replace(/[%(),.]/g,"").slice(0,80);
+  if(typeof query!=="string")return [];
+  const q=query.trim().replace(/[%_,()\\]/g,"").slice(0,80);
   if(q.length<2)return [];
   const db=getGestionaleDb();
-  const {data,error}=await db.from("gw_people")
-    .select("id,first_name,last_name,nickname,email")
-    .is("deleted_at",null).is("merged_into",null)
-    .or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,nickname.ilike.%${q}%,email.ilike.%${q}%`)
-    .limit(20);
-  if(error)throw new Error("Ricerca persone non disponibile.");
-  return data??[];
+  const [people, members]=await Promise.all([
+    db.from("gw_people").select("id,first_name,last_name,nickname,email")
+      .is("deleted_at",null).is("merged_into",null)
+      .or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,nickname.ilike.%${q}%,email.ilike.%${q}%`).limit(15),
+    searchMembers(q,15,undefined,{includeLinked:true}),
+  ]);
+  if(people.error)throw new Error("Ricerca persone non disponibile.");
+  const local=(people.data??[]).map(p=>({
+    kind:"person" as const,id:p.id,
+    name:[p.first_name,p.last_name].filter(Boolean).join(" ")||p.nickname||p.email||"Persona",
+    email:p.email,source:p.nickname?`Anagrafica · ${p.nickname}`:"Anagrafica"
+  }));
+  const book=members.map(m=>({
+    kind:"member" as const,id:m.id,
+    name:[m.first_name,m.last_name].filter(Boolean).join(" ")||m.email||"Socio",
+    email:m.email,source:`Libro soci / modulo${m.matchedAlias?` · ${m.matchedAlias}`:""}`
+  }));
+  return [...local,...book];
 }
 export async function ignoreAssociationPaymentAction(paymentId: string) {
   await requireAdmin();
@@ -63,40 +79,57 @@ export async function ignoreAssociationPaymentAction(paymentId: string) {
   if(error)return {ok:false as const,error:"Impossibile ignorare il pagamento."};
   refreshGestione();return {ok:true as const};
 }
-export async function confirmAssociationPaymentAction(paymentId: string,personId: string) {
+export type PaymentTarget = {kind:"person"|"member"; id:string};
+export async function confirmAssociationPaymentAction(paymentId: string,target:PaymentTarget,periodFrom:string) {
   const operator=await requireAdmin();
-  if(!isUuidLike(paymentId)||!isUuidLike(personId))return {ok:false as const,error:"Dati non validi."};
+  if(!isUuidLike(paymentId)||!target||!["person","member"].includes(target.kind)||
+     typeof target.id!=="string"||target.id.length>300||typeof periodFrom!=="string")
+    return {ok:false as const,error:"Dati non validi."};
+  const period=membershipPeriodFor(periodFrom);
+  const currentYear=Number(todayInRome().slice(0,4));
+  if(!period||period.paymentsFrom!==periodFrom||
+     Number(period.validUntil.slice(0,4))>currentYear+1)
+    return {ok:false as const,error:"Periodo associativo non valido."};
+  let identity: {email:string|null;firstName:string|null;lastName:string|null};
+  let personId:string|null=null;
+  let memberKey:string|null=null;
+  if(target.kind==="person") {
+    if(!isUuidLike(target.id))return {ok:false as const,error:"Persona non valida."};
+    const person=await getPerson(target.id);
+    if(!person||person.merged_into)return {ok:false as const,error:"Persona non disponibile."};
+    identity=await membershipIdentityOf(person);
+    personId=person.id;
+  } else {
+    const member=await getMemberLink(target.id);
+    if(!member)return {ok:false as const,error:"Socio non trovato nel libro associativo."};
+    identity={email:member.email,firstName:member.firstName,lastName:member.lastName};
+    memberKey=target.id;
+  }
+  if(!identity.email&&!(identity.firstName&&identity.lastName))
+    return {ok:false as const,error:"Anagrafica insufficiente per verificare la quota."};
   const db=getGestionaleDb();
   const {data:payment,error}=await db.from("gw_association_payment_emails")
     .select("id,provider,amount_cents,status").eq("id",paymentId).maybeSingle();
-  if(error||!payment||payment.status!=="pending")return {ok:false as const,error:"Pagamento già chiuso o inesistente."};
-  const capacity=suggestedQuotaCount({provider:payment.provider as "paypal"|"qonto",payerName:null,amountCents:payment.amount_cents,transactionRef:null,note:null});
+  if(error||!payment||payment.status!=="pending")
+    return {ok:false as const,error:"Pagamento già chiuso o inesistente."};
+  const capacity=suggestedQuotaCount({
+    provider:payment.provider as "paypal"|"qonto",
+    payerName:null,amountCents:payment.amount_cents,transactionRef:null,note:null
+  });
   if(capacity<1)return {ok:false as const,error:"Importo non compatibile con una quota."};
-  const [person, usedResult]=await Promise.all([
-    getPerson(personId),db.from("gw_association_payment_allocations").select("slot,person_id").eq("payment_id",paymentId),
-  ]);
-  if(!person||person.merged_into||usedResult.error)return {ok:false as const,error:"Persona non disponibile."};
-  if((usedResult.data??[]).some(row=>row.person_id===personId))return {ok:false as const,error:"Questa persona è già stata associata al pagamento."};
-  const slot=Array.from({length:capacity},(_,i)=>i+1).find(n=>!(usedResult.data??[]).some(row=>row.slot===n));
-  if(!slot)return {ok:false as const,error:"Tutte le quote di questo pagamento sono già assegnate."};
-  const identity=await membershipIdentityOf(person);
-  if(!identity.email && !(identity.firstName&&identity.lastName))return {ok:false as const,error:"Completa prima l'anagrafica della persona."};
-  const period=membershipPeriodFor(todayInRome());
-  if(!period)return {ok:false as const,error:"Periodo associativo non valido."};
-  // Reserve the allocation before issuing membership validation; unique slot prevents double allocation.
-  const {data:allocation,error:allocationError}=await db.from("gw_association_payment_allocations")
-    .insert({payment_id:paymentId,person_id:personId,slot,period_from:period.paymentsFrom,
-      validated_by:operator.id}).select("id").single();
-  if(allocationError||!allocation)return {ok:false as const,error:"Quota già assegnata o registrazione non riuscita."};
-  const validation=await saveManualValidation(identity,{period});
-  if(!validation.ok){
-    await db.from("gw_association_payment_allocations").delete().eq("id",allocation.id);
-    return {ok:false as const,error:"Validazione associativa non riuscita. Abbinamento annullato."};
-  }
-  if((usedResult.data??[]).length+1===capacity){
-    const {error:statusError}=await db.from("gw_association_payment_emails")
-      .update({status:"confirmed",updated_at:new Date().toISOString()}).eq("id",paymentId);
-    if(statusError)return {ok:false as const,error:"Quota verificata, ma impossibile chiudere il pagamento. Ricarica per controllare."};
+  // Avoid re-validating a member whose fee is already recorded by TeamArtist.
+  const state=deriveMembershipState(await readAllMemberEvidence(),identity,{
+    paymentsFrom:period.paymentsFrom,paymentsUntil:period.validUntil
+  });
+  if(state.currentYearPaid)return {ok:false as const,error:"Quota già verificata per questo periodo. Non assegnare un secondo pagamento: controlla il libro soci."};
+  const {error:rpcError}=await db.rpc("gw_confirm_association_payment",{
+    p_payment_id:paymentId,p_person_id:personId,p_member_key:memberKey,
+    p_period_from:period.paymentsFrom,p_period_until:period.validUntil,
+    p_operator_id:operator.id,p_first_name:identity.firstName,p_last_name:identity.lastName,p_email:identity.email
+  });
+  if(rpcError){
+    console.error("[quote-email] Conferma quota fallita",rpcError.code);
+    return {ok:false as const,error:"Abbinamento non effettuato: quota già assegnata o dati cambiati. Ricarica e verifica."};
   }
   await clearMembershipCache();
   refreshGestione();
