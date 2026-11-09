@@ -254,7 +254,7 @@ export function correctPayment(
 }
 
 /** Persona scritta da Ale: il testo, oppure testo + email (4d, B2: gw_create_booking_entered). */
-export type EnteredEntry = string | { text: string; email: string };
+export type EnteredEntry = string | { text: string; email: string; person_id?: string };
 
 export type ImportRowInput = {
   booking_id: string | null;

@@ -131,6 +131,8 @@ export async function addRegistrationAction(input: {
   /** 4d (B2): email facoltative scritte da Ale. */
   personEmail?: string;
   partnerEmail?: string;
+  personId?: string | null;
+  partnerId?: string | null;
   status: string;
   fee: string | null;
   notes: string;
@@ -142,6 +144,7 @@ export async function addRegistrationAction(input: {
   const fee = input?.fee === null ? null : readCents(input?.fee, { allowEmpty: false });
   if (!isUuidLike(input?.workshopId) || !isBookingStatus(input.status) || fee === undefined) return INVALID;
   if (!person) return { ok: false, error: "Nome: scrivi il nome, il nickname o l'email." };
+  if ((input.personId && !isUuidLike(input.personId)) || (input.partnerId && !isUuidLike(input.partnerId))) return INVALID;
   const personEmail = readEnteredEmail(input.personEmail);
   const partnerEmail = readEnteredEmail(input.partnerEmail);
   if (personEmail === undefined || partnerEmail === undefined) return { ok: false, error: "Email: controlla l'indirizzo (es. nome@esempio.it)." };
@@ -161,7 +164,7 @@ export async function addRegistrationAction(input: {
     workshopId: input.workshopId,
     // Partner del tutto facoltativo: se c'è soltanto l'email, registralo con
     // quell'indirizzo come identificativo provvisorio; non perderlo.
-    entries: [entry(person, personEmail), ...(partner || partnerEmail ? [entry(partner || partnerEmail!, partnerEmail)] : [])],
+    entries: [entry(person, personEmail, input.personId), ...(partner || partnerEmail ? [entry(partner || partnerEmail!, partnerEmail, input.partnerId)] : [])],
     status: input.status,
     feeCents: fee,
     notes: asText(input.notes).trim() || null,
@@ -403,8 +406,8 @@ function readEnteredEmail(value: unknown): string | null | undefined {
   return EMAIL_PATTERN.test(email) ? email : undefined;
 }
 
-function entry(text: string, email: string | null): EnteredEntry {
-  return email ? { text, email } : text;
+function entry(text: string, email: string | null, personId?: string | null): EnteredEntry {
+  return email || personId ? { text, email: email ?? "", ...(personId ? { person_id: personId } : {}) } : text;
 }
 
 /** Persona di una riga importata: testo, oppure { text, email }. */

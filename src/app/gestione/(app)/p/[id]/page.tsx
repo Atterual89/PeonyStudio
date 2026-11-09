@@ -23,6 +23,7 @@ import { MembershipBadge } from "@/components/gestionale/MembershipBadge";
 import type { MembershipBadge as Badge } from "@/lib/gestionale/types";
 import { getPersonContacts } from "@/lib/gestionale/server/contacts";
 import { loadAliases } from "@/lib/gestionale/server/aliases";
+import { getGestionaleDb } from "@/lib/gestionale/server/db";
 import { BOOKING_STATUS_LABELS } from "@/lib/gestionale/labels";
 
 export default async function PersonPage({ params }: { params: Promise<{ id: string }> }) {
@@ -76,6 +77,9 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
   const canMark = Boolean((person.first_name && person.last_name) || person.email || member?.email || (member?.first_name && member?.last_name));
   const duplicates = findPossibleDuplicates(person, people);
   const sharedEmail = peopleSharingEmail(person, people);
+  const {data:billingProfile}=await getGestionaleDb().from("gw_billing_profiles").select("fields").eq("person_id",person.id).maybeSingle();
+  const billingFields=(billingProfile?.fields??{}) as Record<string,string>;
+  const visibleBilling=Object.entries(billingFields).filter(([key])=>!key.startsWith("__"));
 
   return (
     <section className="max-w-3xl">
@@ -133,6 +137,14 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
       <div className="mt-3">
         <PersonForm person={person} member={member} aliases={aliases} />
       </div>
+      {visibleBilling.length>0&&<Section title="Dati per fatturazione" defaultOpen={false}>
+        <p className="mb-2 text-xs text-[#5f524c]">Importati da Alessandra, separati da quota associativa e nickname.</p>
+        <dl className="grid gap-2 text-sm sm:grid-cols-2">
+          {visibleBilling.map(([key,value])=><div key={key} className="break-words">
+            <dt className="text-xs text-[#5f524c]">{key}</dt><dd>{String(value)}</dd>
+          </div>)}
+        </dl>
+      </Section>}
 
       <Section title="Libro soci" defaultOpen>
         <FlashProvider>
