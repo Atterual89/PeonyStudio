@@ -86,7 +86,7 @@ export function AdminAleMatchingPanel({rows,candidates}:{rows:AleMatchRow[];cand
     <ul className="space-y-2">
       {filtered.slice(0,150).map(row=>{
         const linked=row.personId||matchedLocal[row.id];
-        const chosen=candidates.find(c=>c.personId===selected);
+        const chosen=selected?candidates.find(c=>c.personId===selected):null;
         return <li key={row.id} className="rounded-xl border border-[#211815]/10 bg-white p-3">
           <button type="button" className="flex w-full items-center justify-between gap-2 text-left"
             disabled={Boolean(linked)} aria-expanded={open===row.id}
