@@ -8,7 +8,7 @@ import { mappedBillingRows, readBillingFile, suggestBillingColumns } from "@/lib
 import { isUuidLike } from "@/lib/gestionale/validation";
 
 export type BillingEntry = { id:string;name:string;email:string;nickname?:string|null;
-  personId:string|null;source:"ale"|"linked"; };
+  fields?:Record<string,string>;personId?:string|null;source?:"ale"|"linked"; };
 export type BillingReview = {
   id: string; name: string; email: string; reason: string;
   candidates: { id: string; name: string }[];
