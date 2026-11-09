@@ -20,6 +20,13 @@ begin
     where p.id=p_participant_id and p.removed_at is null and p.deleted_at is null
     for update of p;
   if not found then raise exception 'gw_not_found' using errcode='GW404'; end if;
+  -- Un nome composto mai abbinato non può essere trattato come una
+  -- persona sola. Prima occorre dividerlo in due partecipanti.
+  if v_part.auto_created_person and v_part.match_status::text='da_abbinare'
+     and v_part.entered_as ~* '(/|\\+|[[:space:]]e[[:space:]])'
+     and (select count(*) from public.gw_booking_participants
+       where booking_id=v_part.booking_id and removed_at is null and deleted_at is null)=1
+  then raise exception 'gw_split_required' using errcode='GW409'; end if;
   perform 1 from public.gw_people
     where id=p_person_id and deleted_at is null and merged_into is null;
   if not found then raise exception 'gw_invalid' using errcode='GW400'; end if;
