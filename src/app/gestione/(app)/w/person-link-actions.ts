@@ -123,7 +123,7 @@ export async function linkOrganizerPersonAction(input:{participantId:string;pers
     p_operator_id:operator.id,p_participant_id:input.participantId,p_person_id:input.personId,
   });
   if(error)return fail(error.code==="GW409"?
-    "Questa persona è già iscritta al workshop. Controlla l'altra prenotazione.":
+    "Questa persona è già iscritta al workshop. Controlla l'altra iscrizione.":
     "Abbinamento non salvato. Riprova dopo aver verificato la persona.");
   refreshGestione();
   return {ok:true,data:null};
