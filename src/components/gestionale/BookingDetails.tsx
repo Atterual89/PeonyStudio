@@ -102,7 +102,8 @@ function PersonBlock({
           onClick={onChangePartner}>Cambia partner</button>}
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="font-semibold">
+        <p className="flex flex-wrap items-center gap-2 font-semibold">
+          <MembershipBadge badge={badge} compact />
           <Link prefetch={false} href={`/gestione/p/${person.id}`} className="underline-offset-2 hover:underline">
             {names.main}
           </Link>
@@ -110,7 +111,6 @@ function PersonBlock({
           {partnerOf ? <span className="ml-2 text-sm font-normal text-[#5f524c]">partner di {partnerOf}</span> : null}
         </p>
         <span className="flex items-center gap-1">
-          <MembershipBadge badge={badge} />
           {canRevokeQuotaOk(badge) ? (
             <RowMenu
               label="Altre azioni sulla tessera"
