@@ -346,7 +346,7 @@ export function PeonyEventOperations({
             <input id="peony-subject" value={template.subject} maxLength={300}
               onChange={e => setTemplateField("subject",e.target.value)}
               className="mt-1 h-10 w-full rounded-lg border border-[#211815]/15 bg-white p-2 text-sm" />
-            {kind === "details" && audience === "observer" ? <p className="mt-1 text-xs text-[#5f524c]">Nell\u0027oggetto sarà aggiunto «| Observer».</p> : null}
+            {kind === "details" && audience === "observer" ? <p className="mt-1 text-xs text-[#5f524c]">Nell'oggetto sarà aggiunto «| Observer».</p> : null}
             <label htmlFor="peony-body" className="mt-3 block text-sm font-semibold">Introduzione / note aggiuntive</label>
             <textarea id="peony-body" rows={7} value={template.body} maxLength={30000}
               onChange={e => setTemplateField("body",e.target.value)}
