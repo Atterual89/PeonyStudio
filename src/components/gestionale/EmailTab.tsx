@@ -96,7 +96,7 @@ function EditWorkshopDetails({workshop,defaults,saved,ticketTailorFields,onSave,
     !fromTicketTailor&&!data.program?.length?"Descrizione workshop":null].filter(Boolean);
   return <details className={cardClass+" p-3"}>
     <summary className="min-h-10 cursor-pointer font-semibold">Dettagli del workshop · {fromTicketTailor ? "Recuperati da Ticket Tailor ✓" : missing.length ? "Dati non disponibili: "+missing.join(", ") : "Completi ✓"}</summary>
-    <p className="mt-2 text-sm text-[#5f524c]">Programma, materiali, requisiti e orari vengono letti dall\u0027evento Ticket Tailor collegato. Gli eventuali campi sottostanti servono solo per integrazioni o correzioni specifiche.</p>
+    <p className="mt-2 text-sm text-[#5f524c]">Programma, materiali, requisiti e orari vengono letti dall’evento Ticket Tailor collegato. Gli eventuali campi sottostanti servono solo per integrazioni o correzioni specifiche.</p>
     {data.ticketTailor?.description ? <details className="mt-2 rounded-lg bg-[#f2ede3] p-3 text-sm"><summary className="cursor-pointer font-medium">Fonte Ticket Tailor · programma e materiali originali</summary><p className="mt-2 whitespace-pre-wrap text-xs">{data.ticketTailor.description}</p></details> :
       <p className="mt-2 text-sm text-[#9b4b1e]">Descrizione non disponibile nella scheda Ticket Tailor collegata. Puoi integrare il testo manualmente.</p>}
     <p className="mt-2 text-sm"><Link prefetch={false} href="/gestione/altro/impostazioni-email" className="text-[#8f2635] underline">Modifica impostazioni generali: associazione, indirizzo, regole, firma</Link></p>
