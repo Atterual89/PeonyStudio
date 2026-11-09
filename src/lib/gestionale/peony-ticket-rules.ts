@@ -1,4 +1,5 @@
 import { isLuxuriaTitle } from "@/lib/gestionale/workshops";
+import type { PeonyTicketRole } from "@/lib/gestionale/peony-ticket-type";
 
 /** Un evento Peony usa solo ticket Ticket Tailor, mai iscrizioni manuali LuXuria. */
 export function isPeonyTicketEvent(item: {
@@ -28,4 +29,8 @@ export function isMembershipFreePeonyEvent(title:string|null|undefined):boolean{
   const normalized=(title??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"")
     .toLowerCase().replace(/[-_]+/g," ").replace(/\s+/g," ").trim();
   return /\baperi\s*bottom\b/.test(normalized)&&/\bfree\b/.test(normalized);
+}
+
+export function peonyAssociationRequired(eventTitle:string,role:PeonyTicketRole):boolean{
+  return !isMembershipFreePeonyEvent(eventTitle)&&role==="practitioner";
 }
