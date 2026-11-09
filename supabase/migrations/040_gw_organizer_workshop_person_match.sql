@@ -98,6 +98,18 @@ begin
     insert into public.gw_people(nickname,created_by)
       values(v_second,p_operator_id) returning id into v_person;
   end if;
+  -- Se il vecchio profilo è soltanto un segnaposto della stessa iscrizione,
+  -- rinominalo Pavel anziché lasciare in Persone il falso profilo Pavel/Maru.
+  -- Mai toccare profili usati altrove, con recapiti, tessere o nomi ufficiali.
+  update public.gw_people p set nickname=v_first,version=p.version+1,updated_at=now()
+    where p.id=v_part.person_id and p.created_by=p_operator_id
+      and p.deleted_at is null and p.merged_into is null
+      and p.first_name is null and p.last_name is null and p.email is null
+      and p.association_member_id is null and p.membership_email is null
+      and p.membership_name_key is null
+      and p.nickname=v_part.entered_as
+      and (select count(*) from public.gw_booking_participants bp
+        where bp.person_id=p.id and bp.removed_at is null and bp.deleted_at is null)=1;
   update public.gw_booking_participants set
     entered_as=v_first,updated_at=now(),version=version+1
     where id=p_participant_id;
