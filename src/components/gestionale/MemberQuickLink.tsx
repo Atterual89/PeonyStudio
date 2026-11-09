@@ -17,12 +17,13 @@ const memberName = (member: MemberSummary) =>
  * explicitly choose and save the link. Does not validate or modify membership dues.
  */
 export function MemberQuickLink({
-  personId, version, personName, onSaved,
+  personId, version, personName, onSaved, mode = "link",
 }: {
   personId: string;
   version: number;
   personName: string;
   onSaved?: (message: string) => void;
+  mode?: "link" | "change";
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -65,7 +66,7 @@ export function MemberQuickLink({
       }
     } catch {
       if (sequence.current === request)
-        setNotice({ kind: "error", text: "Ricerca nel moduli Google non riuscita. Riprova." });
+        setNotice({ kind: "error", text: "Ricerca nel libro soci non riuscita. Riprova." });
     } finally {
       if (sequence.current === request) setSearching(false);
     }
@@ -118,13 +119,13 @@ export function MemberQuickLink({
   return <div className="space-y-2">
     <button type="button" className="min-h-10 text-sm font-semibold text-[#a8583e] underline"
       aria-expanded={open} onClick={() => { setOpen(!open); setNotice(null); }}>
-      Collega al moduli Google
+      {mode === "change" ? "Cambia abbinamento" : "Cerca nel libro soci"}
     </button>
     {open && <div className="space-y-2 rounded-xl border border-[#a8583e]/30 bg-[#f8f3ea] p-3">
       <p className="text-sm font-semibold">Collega {personName} a una socia o un socio</p>
-      <p className="text-xs text-[#5f524c]">Cerca con il nome anagrafico o l'email del moduli Google, anche se il nickname è diverso.</p>
+      <p className="text-xs text-[#5f524c]">Cerca per nome, nickname o email, anche se il nickname è diverso.</p>
       <form onSubmit={search} className="flex flex-wrap gap-2">
-        <label className="sr-only" htmlFor={`find-member-${personId}`}>Nome o email nel moduli Google</label>
+        <label className="sr-only" htmlFor={`find-member-${personId}`}>Nome o email nel libro soci</label>
         <input id={`find-member-${personId}`} className={`${inputClass} min-w-0 flex-1`}
           type="search" value={query} onChange={event => editQuery(event.target.value)}
           placeholder="Nome, cognome o email della socia" autoComplete="off" />
@@ -132,7 +133,7 @@ export function MemberQuickLink({
           className={buttonClass.secondary}>{searching ? "Ricerca…" : "Cerca"}</button>
       </form>
       {members && (members.length ? <div className="space-y-1">
-        <label htmlFor={`choose-member-${personId}`} className="block text-xs font-semibold text-[#5f524c]">Seleziona la socia dal moduli Google</label>
+        <label htmlFor={`choose-member-${personId}`} className="block text-xs font-semibold text-[#5f524c]">Seleziona la registrazione</label>
         <select id={`choose-member-${personId}`} className={inputClass} value={selected?.id??""}
           disabled={pending||resolving} onChange={event=>{void choose(event.target.value);}}> 
           <option value="">Seleziona…</option>

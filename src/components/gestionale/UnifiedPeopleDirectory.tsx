@@ -9,7 +9,7 @@ import { AssociationStatusDot, AssociationDotLegend, type AssociationDotStatus }
 
 const directoryDot:Record<UnifiedContact["association"],AssociationDotStatus>={
  verificata:"verified",
- da_verificare:"payment_missing",
+ da_verificare:"missing_form",
  solo_modulo:"payment_missing",
  non_presente:"unlinked",
  non_disponibile:"unknown",
@@ -78,9 +78,9 @@ export function UnifiedPeopleDirectory({contacts,initialQuery=""}:{contacts:Unif
      {!contact.personId&&contact.possiblePersonId&&<Link prefetch={false} href={`/gestione/p/${contact.possiblePersonId}`}
        className="text-[#5f524c] underline">Apri persona possibile</Link>}
     </div>
-    {contact.personId&&contact.personVersion!==null&&contact.link!=="confermato"&&
+    {contact.personId&&contact.personVersion!==null&&
       <MemberQuickLink personId={contact.personId} version={contact.personVersion}
-        personName={contact.nickname||contact.name} onSaved={setSavedMessage}/>}
+        personName={contact.nickname||contact.name} mode={contact.link==="confermato"?"change":"link"} onSaved={setSavedMessage}/>}
     {!contact.personId&&contact.possiblePersonId&&contact.possiblePersonVersion!==null&&
       <MemberQuickLink personId={contact.possiblePersonId} version={contact.possiblePersonVersion}
         personName={contact.name} onSaved={setSavedMessage}/>}
