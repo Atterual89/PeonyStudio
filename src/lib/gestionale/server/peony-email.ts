@@ -39,7 +39,7 @@ export async function loadPeonyEmailState(event: PeonyEvent): Promise<{
       .select("kind,subject,body").eq("event_id", event.id),
     getGestionaleDb().from("gw_peony_email_sends")
       .select("id,ticket_id,subject,kind,sent_on")
-      .eq("event_id", event.id).order("sent_on", { ascending: false }).limit(1000),
+      .eq("event_id", event.id).order("sent_on", { ascending: false }).range(0,9999),
     loadPeonyEventEmailPayload(event.id),
   ]);
   if (templateResult.error) throw new Error("Email evento: " + templateResult.error.message);
