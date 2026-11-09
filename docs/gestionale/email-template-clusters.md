@@ -50,3 +50,11 @@ Non ricavare ore di apertura, pausa pranzo, materiali o prerequisiti da supposiz
 - Rendering di titolo/data al momento dell'anteprima e del copia/incolla.
 - Template persistenti personalizzabili senza sovrascrittura automatica; pulsante ripristino esplicito.
 - Verifica CI Vitest/TypeScript e resa Gmail mobile/desktop prima del merge. Nessun invio reale durante i test.
+
+## Aggiornamento: confronto con gli allegati EML
+
+Le informative non devono essere un riassunto della descrizione Ticket Tailor. Il layout workshop riproduce in inglese la sequenza delle email Neck Rope / 3 Dimensions / KL Level 2+: intestazione, introduzione, Important at a glance, Event Schedule, Workshop Information, What to Bring, Prerequisites, Location con immagine, How to Access, Important Notes, Lunch and Facilities, Venue Rules, Photo / Video Policy, Association, Emergency Contact, firma e footer. Le sezioni evento senza dati verificati vengono omesse; orari di apertura e orari giornalieri vanno confermati prima della copia. Per la Rope Jam in italiano l'ordine deriva dai due esempi praticante/observer e non si includono blocchi workshop non pertinenti.
+
+La lingua è un'impostazione evento ('auto', italiano o inglese), con automatico inglese per workshop; l'intero testo gestito e la formattazione delle date seguono la lingua selezionata. La descrizione pubblicata su Ticket Tailor si può includere letteralmente o escludere e sostituire con un testo specifico, perché potrebbe non essere nella lingua richiesta e potrebbe contenere informazioni di marketing anziché istruzioni pratiche.
+
+Gli override puntuali vengono salvati in `gw_peony_email_settings` (migrazione 042); la sincronizzazione Ticket Tailor continua a essere l'origine di titolo, date e descrizione, non viene sovrascritta. I template associativi e partner rimangono separati. Le informative Kinbaku LuXuria continuano in inglese e seguono anch'esse le intestazioni degli allegati; la descrizione Ticket Tailor esplicitamente collegata viene mostrata sotto Workshop Information.
