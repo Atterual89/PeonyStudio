@@ -218,8 +218,8 @@ export function PeonyEventOperations({
     (sendMode === "reminder" ?
       sends.some(send=>send.kind===kind && send.ticketId===person.ticketId) :
       !sends.some(send=>send.kind===kind && send.ticketId===person.ticketId)) && (
-    kind==="membership" ? person.associationRequired :
-    kind==="partner" ? person.partnerRequired :
+    kind==="membership" ? person.associationRequired && person.association?.status!=="valid" :
+    kind==="partner" ? person.partnerRequired && !person.partner :
     audience==="observer" ? person.ticketRole==="observer" : person.ticketRole!=="observer"
   ));
   const selected = eligible.filter((person) => checked.includes(person.ticketId));
