@@ -7,7 +7,6 @@ import {
   type MembershipEvidenceRow,
 } from "@/lib/association/membership-state";
 import { readAssociationMembersFromGoogleSheet } from "@/lib/google/sheets";
-import { readOfficialMembersBookFromGoogleSheet } from "@/lib/google/members-book";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { withSupabaseClockSkewRetry } from "@/lib/supabase/retry";
 
@@ -55,9 +54,8 @@ export async function GET(request: NextRequest) {
 
   const supabase = createSupabaseAdminClient();
 
-  const [formSource, bookSource, manualResult, profileResult] = await Promise.all([
+  const [formSource, manualResult, profileResult] = await Promise.all([
     readAssociationMembersFromGoogleSheet(),
-    readOfficialMembersBookFromGoogleSheet(),
     withSupabaseClockSkewRetry(
       async () =>
         await supabase
@@ -116,15 +114,6 @@ export async function GET(request: NextRequest) {
       membership_starts_at: row.membership_starts_at,
       membership_expires_at: row.membership_expires_at,
     })),
-    ...bookSource.rows.map((row) => ({
-      first_name: row.first_name,
-      last_name: row.last_name,
-      email: row.email,
-      source: row.source,
-      membership_status: row.membership_status,
-      membership_starts_at: row.membership_starts_at,
-      membership_expires_at: row.membership_expires_at,
-    })),
     ...((manualData ?? []) as MembershipEvidenceRow[]),
   ];
   const profiles = (profileData ?? []) as ProfileRow[];
@@ -137,19 +126,6 @@ export async function GET(request: NextRequest) {
         : normalizeMembershipNameKey(row.first_name, row.last_name) ===
           searchNameKey),
   );
-
-  const matchingOfficialRows = email
-    ? members.filter(
-        (row) =>
-          row.source === "official_members_book" &&
-          normalizeMembershipEmail(row.email) === email,
-      )
-    : members.filter(
-        (row) =>
-          row.source === "official_members_book" &&
-          normalizeMembershipNameKey(row.first_name, row.last_name) ===
-            searchNameKey,
-      );
 
   const matchingManualRows = members.filter(
     (row) =>
@@ -197,7 +173,6 @@ export async function GET(request: NextRequest) {
 
   for (const row of matchingFormRows) addIdentity(row);
   for (const profile of profiles) addIdentity(profile);
-  for (const row of matchingOfficialRows) addIdentity(row);
   for (const row of matchingManualRows) addIdentity(row);
 
   const candidates: Candidate[] = Array.from(identities.values())
