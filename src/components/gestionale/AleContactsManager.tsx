@@ -30,7 +30,9 @@ export function AleContactsManager(){
     if(r.ok)setContacts(r.data);
     else setError(r.error);
   }
-  useEffect(()=>{void reload();},[]);
+  useEffect(() => {
+    void reload();
+  }, []);
 
   function inspect(){
     if(!file)return;
@@ -113,16 +115,14 @@ export function AleContactsManager(){
       <input type="search" placeholder="Cerca nome, email, indirizzo o dato fiscale"
         aria-label="Cerca contatti di Alessandra" value={search} onChange={e=>setSearch(e.target.value)}
         className={inputStyle}/>
-      <div className="flex flex-wrap gap-2" aria-label="Filtri abbinamento">
-        {([
-          ["all","Tutti",contacts.length],["unmatched","Da abbinare",contacts.filter(c=>!c.matched).length],
-          ["matched","Collegati",contacts.filter(c=>c.matched).length],
-        ] as const).map(([id,label,count])=><button type="button" key={id}
-          onClick={()=>setView(id)} aria-pressed={view===id}
-          className={`min-h-9 rounded-lg border px-3 text-xs font-semibold ${view===id?"border-[#a8583e] bg-[#a8583e]/10":"border-[#211815]/15 bg-white"}`}>
-          {label} ({count})
-        </button>)}
-      </div>
+      <label className="block text-sm">Mostra
+        <select className={inputStyle+" ml-2"} aria-label="Filtra contatti per stato"
+          value={view} onChange={e=>setView(e.target.value as "all"|"unmatched"|"matched")}>
+          <option value="all">Tutti ({contacts.length})</option>
+          <option value="unmatched">Da abbinare ({contacts.filter(c=>!c.matched).length})</option>
+          <option value="matched">Collegati ({contacts.filter(c=>c.matched).length})</option>
+        </select>
+      </label>
       <ul className="divide-y rounded-xl border border-[#211815]/10 bg-white">
         {filtered.slice(0,150).map(c=><li key={c.id} className="p-3">
           <button type="button" className="flex w-full items-center justify-between gap-2 text-left"
