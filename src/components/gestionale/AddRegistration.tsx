@@ -164,7 +164,7 @@ export function AddRegistration({
             <BillingNameAutocomplete value={person} selectedId={personLookupId}
               onText={text=>{setPerson(text);if(personLookupId){setPersonLookupId(null);setPersonId(null);setPersonEmail("");}}}
               onPick={entry=>{setPerson(entry.name);setPersonLookupId(entry.id);
-                setPersonId(entry.personId);setPersonEmail(entry.email);}}
+                setPersonId(entry.personId??null);setPersonEmail(entry.email);}}
               placeholder="Nome, cognome o nickname" />
           </Field>
           <Field label="Email intestatario">
@@ -184,7 +184,7 @@ export function AddRegistration({
             <BillingNameAutocomplete value={partner} selectedId={partnerLookupId}
               onText={text=>{setPartner(text);if(partnerLookupId){setPartnerLookupId(null);setPartnerId(null);setPartnerEmail("");}}}
               onPick={entry=>{setPartner(entry.name);setPartnerLookupId(entry.id);
-                setPartnerId(entry.personId);setPartnerEmail(entry.email);}}
+                setPartnerId(entry.personId??null);setPartnerEmail(entry.email);}}
               placeholder="Nome o nickname" />
           </Field>
           <Field label="Email partner">
