@@ -265,9 +265,10 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
     const entered=[person.first_name,person.last_name].filter(Boolean).join(" ").trim()
       ||person.nickname||fallback;
     const key=person.membership_name_key;
-    const official=key?evidence.filter(row=>row.source==="official_members_book" &&
+    const official=evidence.filter(row=>row.source==="official_members_book" &&
       (row.membership_status==="verified"||row.membership_status==="expired") &&
-      normalizeMembershipNameKey(row.first_name,row.last_name)===key):[];
+      (row.id===person.association_member_id ||
+        Boolean(key&&normalizeMembershipNameKey(row.first_name,row.last_name)===key)));
     const verifiedName=official.length===1
       ?[official[0].first_name,official[0].last_name].filter(Boolean).join(" ").trim():null;
     const name=verifiedName||entered;
