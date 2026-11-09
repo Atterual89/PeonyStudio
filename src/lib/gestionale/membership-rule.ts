@@ -64,6 +64,13 @@ export function formatShortDate(iso: string): string {
   return `${day} ${MONTHS[month - 1]} ${year}`;
 }
 
+/** Una quota provata dalle email non va duplicata con la spunta manuale. */
+export function hasEmailPaymentProof(badge: MembershipBadge): boolean {
+  return (badge.kind === "in_regola" && badge.match === "payment_email") ||
+    ((badge.kind === "modulo_mancante" || badge.kind === "non_collegata") &&
+      badge.quotaPaid === true && badge.quotaMatch === "payment_email");
+}
+
 /** Stati della pagina admin, in breve; "(manuale)" per le validazioni "Quota ok". */
 export function membershipLabel(badge: MembershipBadge): string {
   switch (badge.kind) {

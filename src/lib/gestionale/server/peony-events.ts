@@ -286,7 +286,7 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
         ticketRole,
         freeEvent,
         notes: participantByTicket.get(ticket.ticket_tailor_issued_ticket_id)?.notes_admin ?? null,
-        association: membershipRequired ? associationStatus(evidence, event, identity) : null,
+        association: associationStatus(evidence, event, identity),
         associationRequired: membershipRequired,
         partnerRequired: required,
         partner,

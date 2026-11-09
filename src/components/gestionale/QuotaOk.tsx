@@ -14,7 +14,7 @@ import { useState, useTransition } from "react";
 import { markQuotaOkAction, refreshMembershipAction, revokeQuotaOkAction } from "@/app/gestione/(app)/p/membership-actions";
 import { membershipPeriodFor } from "@/lib/association/membership-periods";
 import { UI_LABELS } from "@/lib/gestionale/labels";
-import { formatPeriod } from "@/lib/gestionale/membership-rule";
+import { formatPeriod, hasEmailPaymentProof } from "@/lib/gestionale/membership-rule";
 import type { MembershipBadge } from "@/lib/gestionale/types";
 
 import { useFlash } from "./Flash";
@@ -143,6 +143,7 @@ export function RevokeQuotaOk({ personId, name, referenceDate, workshopId, onClo
 
 /** Casella immediata per la quota anche nella scheda persona. */
 export function QuotaOkControls(props: Target & { badge: MembershipBadge; canMark: boolean }) {
+  if (hasEmailPaymentProof(props.badge)) return null;
   const checked = props.badge.kind === "in_regola" ||
     Boolean("quotaPaid" in props.badge && props.badge.quotaPaid);
   return <QuotaOkCheckbox

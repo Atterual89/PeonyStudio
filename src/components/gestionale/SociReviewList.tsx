@@ -60,14 +60,14 @@ export function SociReviewList({ rows }: { rows: SociReviewRow[] }) {
                 {row.email ? <span className="block break-all text-xs text-[#5f524c]">{row.email}</span> : null}
                 {row.personId ? <a className="text-xs text-[#a8583e] underline" href={`/gestione/p/${row.personId}`}>Scheda</a> : null}
               </span>
-              <label className="flex min-h-10 items-center gap-2 text-xs font-semibold">
+              {!protectedEmail && <label className="flex min-h-10 items-center gap-2 text-xs font-semibold">
                 <input type="checkbox" checked={row.paid}
-                  disabled={busy || protectedEmail}
+                  disabled={busy}
                   onChange={(event) => updateQuota(row, event.target.checked)}
                   aria-label={`Quota pagata: ${row.name}`}
                   className="h-5 w-5 accent-[#a8583e]" />
                 <span>{busyId === row.formMemberId ? "Salvataggio…" : "Quota OK"}</span>
-              </label>
+              </label>}
             </li>
           );
         })}

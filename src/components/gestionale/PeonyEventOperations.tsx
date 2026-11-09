@@ -29,6 +29,7 @@ function formattedSync(value: string | null): string {
 }
 
 function peonyStatus(info:PeonyMembership|null,required:boolean):AssociationDotStatus{
+  if(info?.status==="valid")return "verified";
   if(!required)return "not_required";
   if(!info)return "unknown";
   return info.status==="valid"?"verified":
@@ -79,7 +80,7 @@ function PersonRow({ person, eventId }: { person: PeonyAttendee; eventId: string
             <span className="min-w-0 break-words">{person.name}</span>
             {person.partnerRequired && person.partner ? (
               <span className="inline-flex min-w-0 items-center gap-1.5 font-normal">
-                + <AssociationStatusDot status={peonyStatus(person.partner.membership,true)}/>
+                + <AssociationStatusDot status={peonyStatus(person.partner.membership,person.associationRequired)}/>
                 <span className="break-words">{partnerLabel}</span>
               </span>
             ) : person.partnerRequired ? <span className="font-normal"> + {partnerLabel}</span> : null}
@@ -95,7 +96,7 @@ function PersonRow({ person, eventId }: { person: PeonyAttendee; eventId: string
           <div>
             <p className="text-xs font-semibold text-[#5f524c]">Intestatario · {person.name}</p>
             {person.email?<a href={"mailto:"+person.email} className="block break-all text-sm text-[#a8583e] underline">{person.email}</a>:null}
-            {person.associationRequired&&
+            {person.associationRequired && person.association?.matchMethod !== "payment_email" &&
               <QuotaOkCheckbox
                 checked={Boolean(person.association?.feePaid)}
                 editable={!person.association?.feePaid||person.association.matchMethod==="manual"}
@@ -119,7 +120,7 @@ function PersonRow({ person, eventId }: { person: PeonyAttendee; eventId: string
             <div className="space-y-1 border-t border-[#211815]/10 pt-2">
               <p className="text-xs font-semibold text-[#5f524c]">Partner: {partnerLabel}</p>
               {person.partner?.email?<p className="break-all text-xs text-[#5f524c]">{person.partner.email}</p>:null}
-              {person.partner&&
+              {person.partner && person.associationRequired && person.partner.membership?.matchMethod !== "payment_email" &&
                 <QuotaOkCheckbox checked={Boolean(person.partner.membership?.feePaid)}
                   editable={!person.partner.membership?.feePaid||person.partner.membership.matchMethod==="manual"}
                   onToggle={paid=>setPeonyQuotaOkAction({

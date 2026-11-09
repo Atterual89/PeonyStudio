@@ -17,12 +17,12 @@ export function QuotaCheckbox({
   const [busy, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const provenByEmail = paid && paidSource === "email";
-  const protectedProof = provenByEmail;
   const periodYear = periodDate ? Number(periodDate.slice(0, 4)) : null;
+  if (provenByEmail) return null;
   return (
     <span className="inline-flex max-w-full flex-col items-end gap-1">
       <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 text-xs font-medium">
-        <input type="checkbox" checked={paid} disabled={busy || protectedProof}
+        <input type="checkbox" checked={paid} disabled={busy}
           aria-label={`Quota pagata: ${name}${periodYear ? ` (${periodYear})` : ""}`}
           onChange={(event) => {
             const next = event.target.checked;
@@ -38,7 +38,7 @@ export function QuotaCheckbox({
             });
           }}
           className="h-5 w-5 shrink-0 accent-[#a8583e]" />
-        <span className={protectedProof ? "text-[#326941]" : "text-[#5f524c]"}>
+        <span className="text-[#5f524c]">
           {busy ? "Salvataggio…" : "Quota OK"}
         </span>
       </label>

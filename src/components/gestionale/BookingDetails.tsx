@@ -9,6 +9,7 @@ import { membershipPeriodFor } from "@/lib/association/membership-periods";
 import { personNames } from "@/lib/gestionale/bookings";
 import { formatDate, normalizeText } from "@/lib/gestionale/format";
 import { memberKeyOfPerson } from "@/lib/gestionale/member-key";
+import { hasEmailPaymentProof } from "@/lib/gestionale/membership-rule";
 import { PARTY_LABELS, UI_LABELS } from "@/lib/gestionale/labels";
 import type { PersonChoice } from "@/lib/gestionale/person-choice";
 import type { BookingPersonView, BookingView } from "@/lib/gestionale/types";
@@ -130,13 +131,13 @@ function PersonBlock({
         <PersonInlineEditor person={person} member={entry.member} onDone={() => setEditing(false)} />
       ) : (
         <div className="space-y-2">
-          <QuotaOkCheckbox
+          {!hasEmailPaymentProof(badge) && <QuotaOkCheckbox
               checked={badge.kind==="in_regola" || Boolean("quotaPaid" in badge && badge.quotaPaid)}
               editable={canRevokeQuotaOk(badge) || (canMarkQuotaOk(badge)&&Boolean(entry.fullName||person.email||entry.member?.email))}
               onToggle={paid=>paid
                 ? markQuotaOkAction({personId:person.id,workshopId})
                 : revokeQuotaOkAction({personId:person.id,workshopId})}
-            />
+            />}
           {badge.kind === "quota_mancante" && entry.member?.expires_at &&
             entry.member.expires_at < workshopStartsOn ? (
               <p className="text-xs text-[#7a5212]">
