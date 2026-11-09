@@ -4,7 +4,7 @@ import { refreshGestione } from "@/lib/gestionale/server/refresh";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { getPerson } from "@/lib/gestionale/server/data";
 import { membershipIdentityOf, clearMembershipCache } from "@/lib/gestionale/server/membership";
-import { saveManualValidation, revokeManualValidation } from "@/lib/association/manual-validation";
+import { saveManualValidation, revokeManualValidation, type ManualIdentity } from "@/lib/association/manual-validation";
 import { membershipPeriodFor } from "@/lib/association/membership-periods";
 import { confirmManualQuotaPersisted } from "@/lib/gestionale/server/manual-quota-proof";
 import { logMemberValidation } from "@/lib/gestionale/server/mutations";
@@ -49,7 +49,7 @@ export async function setPeonyQuotaOkAction(input:{
 
   const db=getGestionaleDb();
   let personId=isPartner?attendee.partner?.linkedPersonId:attendee.linkedPersonId;
-  let identity: {email:string|null;firstName:string|null;lastName:string|null}|null=null;
+  let identity: ManualIdentity|null=null;
   const linked=await db.from("gw_peony_booking_holders")
     .select("person_id,member_row_id")
     .eq("event_id",input.eventId).eq("ticket_id",input.ticketId).maybeSingle();
