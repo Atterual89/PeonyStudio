@@ -5,10 +5,14 @@ import { useMemo, useState } from "react";
 import { normalizeText } from "@/lib/gestionale/format";
 import type { UnifiedContact } from "@/lib/gestionale/unified-directory";
 import { MemberQuickLink } from "./MemberQuickLink";
+import { AssociationStatusDot, type AssociationDotStatus } from "./AssociationStatusDot";
 
-const stateLabel:Record<UnifiedContact["association"],string>={
- verificata:"Verificata",da_verificare:"Quota da verificare",
- solo_modulo:"Modulo presente",non_presente:"Non collegata",non_disponibile:"Stato non disponibile",
+const directoryDot:Record<UnifiedContact["association"],AssociationDotStatus>={
+ verificata:"verified",
+ da_verificare:"payment_missing",
+ solo_modulo:"payment_missing",
+ non_presente:"unlinked",
+ non_disponibile:"unknown",
 };
 const linkLabel:Record<UnifiedContact["link"],string>={
  confermato:"Abbinamento confermato",email:"Stessa email",
@@ -53,19 +57,20 @@ export function UnifiedPeopleDirectory({contacts,initialQuery=""}:{contacts:Unif
    </select>
   </div>
   <p className="text-xs text-[#5f524c]">
-    {matching.length} persone · Una scheda per i contatti corrispondenti, senza unire omonimi
+    {matching.length} persone · I pallini indicano lo stato della quota o del collegamento (tocca il nome per i dettagli).
   </p>
   <ul className="divide-y divide-[#211815]/10 overflow-hidden rounded-xl border border-[#211815]/10 bg-white">
    {shown.map(contact=><li key={contact.key} className="space-y-2 p-3">
     <div className="flex flex-wrap items-start justify-between gap-2">
      <div className="min-w-0">
-      <p className="font-semibold">{contact.name}</p>
+      <p className="flex items-center gap-2 font-semibold">
+        <AssociationStatusDot status={directoryDot[contact.association]}/>
+        <span>{contact.name}</span>
+      </p>
       {contact.nickname&&<p className="text-xs text-[#5f524c]">Nickname: {contact.nickname}</p>}
       {contact.email&&<p className="break-all text-xs text-[#5f524c]">{contact.email}</p>}
      </div>
-     <span className={`rounded-md px-2 py-1 text-xs font-semibold ${contact.association==="verificata"?"bg-[#eef6ee] text-[#326941]":"bg-[#f5f0e8] text-[#675244]"}`}>
-      {stateLabel[contact.association]}
-     </span>
+
     </div>
     <p className="text-xs text-[#5f524c]">{contact.source}{contact.link!=="nessuno"?` · ${linkLabel[contact.link]}`:""}</p>
     <div className="flex flex-wrap items-center gap-3 text-sm">
