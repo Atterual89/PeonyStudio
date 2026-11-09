@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { normalizeText } from "@/lib/gestionale/format";
 import type { UnifiedContact } from "@/lib/gestionale/unified-directory";
 import { MemberQuickLink } from "./MemberQuickLink";
+import { InlinePersonNickname, QuickPersonQuota, RegistryPersonActions } from "./PersonDirectoryActions";
 import { AssociationStatusDot, AssociationDotLegend, type AssociationDotStatus } from "./AssociationStatusDot";
 
 const directoryDot:Record<UnifiedContact["association"],AssociationDotStatus>={
@@ -72,20 +73,23 @@ export function UnifiedPeopleDirectory({contacts,initialQuery=""}:{contacts:Unif
 
     </div>
     <p className="text-xs text-[#5f524c]">{contact.source}{contact.link!=="nessuno"?` · ${linkLabel[contact.link]}`:""}</p>
-    <div className="flex flex-wrap items-center gap-3 text-sm">
-     {contact.personId&&<Link prefetch={false} href={`/gestione/p/${contact.personId}`}
-       className="text-[#5f524c] underline">Dettagli persona</Link>}
-     {!contact.personId&&contact.possiblePersonId&&<Link prefetch={false} href={`/gestione/p/${contact.possiblePersonId}`}
-       className="text-[#5f524c] underline">Apri persona possibile</Link>}
+    <div className="flex flex-wrap items-center gap-2 text-sm">
+      {contact.personId&&<Link prefetch={false} href={`/gestione/p/${contact.personId}`}
+        className="inline-flex min-h-9 items-center rounded-lg border border-[#211815]/15 px-3 font-semibold text-[#a8583e]">Apri / modifica</Link>}
+      {contact.personId&&<InlinePersonNickname personId={contact.personId} onSaved={setSavedMessage}/>}
+      {contact.personId&&contact.association==="solo_modulo"&&
+        <QuickPersonQuota personId={contact.personId} onSaved={setSavedMessage}/>}
+      {!contact.personId&&contact.possiblePersonId&&
+        <Link prefetch={false} href={`/gestione/p/${contact.possiblePersonId}`}
+          className="inline-flex min-h-9 items-center text-[#5f524c] underline">Apri anagrafica suggerita</Link>}
+      {!contact.personId&&contact.memberKey&&
+        <RegistryPersonActions memberKey={contact.memberKey} registryName={contact.name} onSaved={setSavedMessage}/>}
     </div>
     {contact.personId&&contact.personVersion!==null&&
       <MemberQuickLink personId={contact.personId} version={contact.personVersion}
         personName={contact.nickname||contact.name} mode={contact.link==="confermato"?"change":"link"} onSaved={setSavedMessage}/>}
-    {!contact.personId&&contact.possiblePersonId&&contact.possiblePersonVersion!==null&&
-      <MemberQuickLink personId={contact.possiblePersonId} version={contact.possiblePersonVersion}
-        personName={contact.name} onSaved={setSavedMessage}/>}
-    {!contact.personId&&!contact.possiblePersonId&&
-      <p className="text-xs text-[#5f524c]">Presente solo nelle fonti associative. Non creare duplicati: cerca prima un'anagrafica esistente.</p>}
+    {!contact.personId&&!contact.memberKey&&
+      <p className="text-xs text-[#5f524c]">Identità da verificare: controlla i dati prima di collegarla.</p>}
    </li>)}
   </ul>
   {matching.length===0&&<p className="text-sm">Nessun risultato con questi filtri.</p>}

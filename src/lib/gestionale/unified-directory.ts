@@ -16,6 +16,8 @@ export type RegistryEvidence = {
 };
 export type UnifiedContact = {
   key: string;
+  /** Chiave associativa utilizzabile per associare la registrazione a una persona. */
+  memberKey: string | null;
   name: string;
   nickname: string | null;
   email: string | null;
@@ -93,6 +95,26 @@ const preferred=(group:Group)=>{
 };
 const active=(people:readonly PersonRef[])=>people.filter(p=>!p.merged_into);
 
+/** Una chiave di registro viene offerta per azioni solo se identifica una
+ * sorgente univoca, non una email condivisa o un omonimo ambiguo.
+ */
+function memberKeyForGroup(group:Group,groups:readonly Group[]):string|null{
+  const emails=[...group.emails];
+  if(emails.length>1)return null;
+  if(emails.length===1){
+    const matches=groups.filter(other=>other.emails.has(emails[0]));
+    return matches.length===1?`e:${emails[0]}`:null;
+  }
+  const books=group.rows.filter(r=>r.source==="official_members_book");
+  if(books.length===1&&group.nameKey){
+    const sameName=groups.filter(other=>other.nameKey===group.nameKey);
+    if(sameName.length===1)return `n:${group.nameKey}`;
+  }
+  const manual=group.rows.filter(r=>r.source==="manual_override");
+  if(manual.length===1)return `m:${manual[0].id}`;
+  return null;
+}
+
 export function buildUnifiedDirectory(input:{
   people:readonly PersonRef[];
   evidence:readonly RegistryEvidence[];
@@ -142,7 +164,7 @@ export function buildUnifiedDirectory(input:{
     const fullName=nameOf(person)||nameOf(best??{first_name:null,last_name:null})||person.nickname||person.email||"Persona senza nome";
     const email=person.email||best?.email||null;
     contacts.push({
-      key:`person:${person.id}`,name:fullName,nickname:person.nickname,email,
+      key:`person:${person.id}`,memberKey:null,name:fullName,nickname:person.nickname,email,
       personId:person.id,personVersion:person.version??null,possiblePersonId:null,possiblePersonVersion:null,kind:group?"unita":"anagrafica",
       association:association(group?.rows??[],input.today),source:group?sources(group.rows):"Anagrafica",
       link,search:[fullName,person.nickname,email,person.instagram,person.phone,person.teamartist_id,
@@ -158,7 +180,7 @@ export function buildUnifiedDirectory(input:{
       compatible(person,group)&&(!person.email||!group.emails.size||group.emails.has(mail(person.email))));
     const possiblePersonId=group.nameKey&&matched.length===1?matched[0].id:null;
     contacts.push({
-      key:`source:${group.id}`,name,email,nickname:null,personId:null,personVersion:null,possiblePersonId,
+      key:`source:${group.id}`,memberKey:memberKeyForGroup(group,groups),name,email,nickname:null,personId:null,personVersion:null,possiblePersonId,
       possiblePersonVersion:possiblePersonId?(matched[0].version??null):null,
       kind:"registro",association:association(group.rows,input.today),source:sources(group.rows),
       link:possiblePersonId?"da_verificare":"nessuno",
