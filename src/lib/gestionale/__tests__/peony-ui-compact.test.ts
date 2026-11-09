@@ -10,7 +10,8 @@ describe("schede partecipanti ed email Peony senza informazioni ridondanti", () 
   );
 
   it("mostra uno stato breve senza ripetere la verifica nel riepilogo", () => {
-    expect(source).toContain('info.status === "valid" ? "Verificata"');
+    expect(source).toContain('<AssociationStatusDot status={peonyStatus(person.association,person.associationRequired)}/>');
+    expect(source).not.toContain("<strong className=\"font-medium\">Associazione:</strong>");
     expect(source).not.toContain("Verificata per il periodo dell'evento");
     expect(source).not.toContain("Quota verificata per il periodo");
     expect(source).not.toContain("Biglietto Ticket Tailor</span>");
