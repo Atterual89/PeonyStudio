@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 
 import { updateEnteredParticipantAction } from "@/app/gestione/(app)/w/registration-actions";
 import { EMAIL_PATTERN, findEmail } from "@/lib/gestionale/parse-roster";
+import { OrganizerPersonMatcher, OrganizerCompoundSplitter } from "./OrganizerPersonMatcher";
 import type { Registration } from "@/lib/gestionale/types";
 
 import { Notice, buttonClass, inputClass } from "./ui";
@@ -60,6 +61,7 @@ function ParticipantLine({entry,suggestedEmail}:{
         <p className="break-words text-base font-semibold">{entry.enteredAs||"Nome mancante"}</p>
         {!editing&&<p className="break-all text-sm text-[#5f524c]">
           {entry.enteredEmail||"Email mancante"}
+          <span className="ml-2 text-xs">{entry.matchStatus==="confermato"&&!entry.autoCreated?"· Anagrafica collegata":"· Da abbinare"}</span>
         </p>}
       </div>
       {!editing&&<button type="button" className={buttonClass.secondary}
@@ -97,6 +99,7 @@ function ParticipantLine({entry,suggestedEmail}:{
       </div>
     </div>}
     {message&&<Notice tone={message.tone}>{message.text}</Notice>}
+    {!editing&&<OrganizerPersonMatcher participantId={entry.participantId} enteredAs={entry.enteredAs??""}/>}
   </section>;
 }
 
@@ -117,5 +120,9 @@ export function EnteredEmails({registration}:{registration:Registration}){
       {people.map(entry=><ParticipantLine key={entry.participantId} entry={entry}
         suggestedEmail={target?.participantId===entry.participantId?fromNotes:null}/>)}
     </div>
+    {people.length===1&&people[0].autoCreated&&people[0].matchStatus==="da_abbinare"&&
+      <OrganizerCompoundSplitter participantId={people[0].participantId}
+        enteredAs={people[0].enteredAs??""}/>}
+
   </div>;
 }
