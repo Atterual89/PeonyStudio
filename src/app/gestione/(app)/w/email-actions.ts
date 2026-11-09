@@ -82,10 +82,13 @@ export async function markEmailSentAction(input: {
   workshopId: string;
   personIds: string[];
   kind: "partner" | "partner_reminder" | "workshop_details";
+  mode?: "initial" | "reminder";
   sentOn: string;
 }): Promise<ActionResult<{ count: number }>> {
   const operator = await requireAdmin();
-  if (!isUuidLike(input?.workshopId) || !(typeof input?.kind === "string" && (VALID_TYPES as readonly string[]).includes(input.kind)) || !isIsoDate(input?.sentOn) ||
+  if (!isUuidLike(input?.workshopId) || !(typeof input?.kind === "string" && (VALID_TYPES as readonly string[]).includes(input.kind)) ||
+      (input.mode !== undefined && input.mode !== "initial" && input.mode !== "reminder") ||
+      (input.mode === "reminder" && input.kind !== "workshop_details") || !isIsoDate(input?.sentOn) ||
       input.sentOn > todayInRome() || !Array.isArray(input.personIds) || !input.personIds.length ||
       input.personIds.length > 500 || !input.personIds.every(isUuidLike)) return INVALID;
   const workshop = await getWorkshopView(input.workshopId);
@@ -99,7 +102,8 @@ export async function markEmailSentAction(input: {
   const sends: EmailSendRow[] = (sendRows ?? []).map((row) => ({
     id: row.id, personId: row.person_id, kind: row.kind, number: row.number, sentOn: row.sent_on,
   }));
-  const recipientKind = input.kind === "workshop_details" ? "workshop_details"
+  const recipientKind = input.kind === "workshop_details" ?
+    (input.mode==="reminder" ? "workshop_details_reminder" : "workshop_details")
     : input.kind === "partner_reminder" ? "partner_reminder" : "partner";
   const valid = new Set(emailRecipients(bookings, sends)
     .filter((candidate) => candidate.type === recipientKind && candidate.email)
