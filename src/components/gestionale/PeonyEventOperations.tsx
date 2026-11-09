@@ -11,7 +11,7 @@ import { QuotaOkCheckbox } from "@/components/gestionale/QuotaOkCheckbox";
 import { AssociationStatusDot, AssociationDotLegend, type AssociationDotStatus } from "@/components/gestionale/AssociationStatusDot";
 import type { PeonyEmailSend } from "@/lib/gestionale/server/peony-email";
 import {
-  PEONY_EMAIL_KINDS, buildPeonyEmailHtml, defaultPeonyEmailTemplate,
+  PEONY_EMAIL_KINDS, buildPeonyEmailHtml, defaultPeonyEmailTemplate, resolvePeonyTemplateText,
   type PeonyEmailKind, type PeonyEmailTemplate,
 } from "@/lib/gestionale/peony-email-html";
 import { peonyEmailLanguage, type PeonyEmailAudience, type PeonyEmailEventContext } from "@/lib/gestionale/peony-email-context";
@@ -198,14 +198,19 @@ export function PeonyEventOperations({
   const [confirmingSend, setConfirmingSend] = useState(false);
 
   const template = templates[kind];
-  const emailSubject = kind === "details" && audience === "observer" ? template.subject + " | Observer" : template.subject;
+  const baseSubject = resolvePeonyTemplateText(template.subject,eventTitle,dateLabel);
+  const emailSubject = kind === "details" && audience === "observer" ? baseSubject + " | Observer" : baseSubject;
   const html = useMemo(() => buildPeonyEmailHtml({
     kind, eventTitle, dateLabel, template: { ...template, subject: emailSubject },
     context: emailContext, audience,
   }), [kind, eventTitle, dateLabel, template, emailContext, audience, emailSubject]);
   const hasObserverTickets = attendees.some(person => person.ticketRole === "observer");
   const templateLanguage = peonyEmailLanguage(eventTitle,emailContext);
-  const eligible = attendees.filter((person) => Boolean(person.email));
+  const eligible = attendees.filter((person) => Boolean(person.email) && (
+    kind==="membership" ? person.associationRequired :
+    kind==="partner" ? person.partnerRequired :
+    audience==="observer" ? person.ticketRole==="observer" : person.ticketRole!=="observer"
+  ));
   const selected = eligible.filter((person) => checked.includes(person.ticketId));
   const distinctEmails = [...new Set(selected.map((person) => person.email!.trim().toLowerCase()))];
   const latestSend = useMemo(() => {
@@ -346,7 +351,8 @@ export function PeonyEventOperations({
             <input id="peony-subject" value={template.subject} maxLength={300}
               onChange={e => setTemplateField("subject",e.target.value)}
               className="mt-1 h-10 w-full rounded-lg border border-[#211815]/15 bg-white p-2 text-sm" />
-            {kind === "details" && audience === "observer" ? <p className="mt-1 text-xs text-[#5f524c]">Nell'oggetto sarà aggiunto «| Observer».</p> : null}
+            <p className="mt-1 break-words text-xs text-[#5f524c]">Oggetto finale: {emailSubject}</p>
+            <p className="mt-1 text-xs text-[#5f524c]">Puoi usare {"{{event_title}}"} e {"{{event_date}}"}: saranno sostituiti con i dati Ticket Tailor.</p>
             <label htmlFor="peony-body" className="mt-3 block text-sm font-semibold">Introduzione / note aggiuntive</label>
             <textarea id="peony-body" rows={7} value={template.body} maxLength={30000}
               onChange={e => setTemplateField("body",e.target.value)}
@@ -359,6 +365,7 @@ export function PeonyEventOperations({
               }}>Ripristina base</button>
               <button type="button" className={button} disabled={busy || !template.subject.trim()}
                 onClick={() => run(() => savePeonyEmailTemplate(eventId, kind, template.subject, template.body), "Testo salvato per questa comunicazione.")}>Salva</button>
+              <button type="button" className="h-10 rounded-xl border border-[#211815]/20 px-3 text-sm" onClick={() => copy(emailSubject, "Oggetto copiato.")}>Copia oggetto</button>
               <button type="button" className="h-10 rounded-xl border border-[#a8583e] px-3 text-sm font-semibold text-[#a8583e]"
                 onClick={async () => {
                   try { await copyRichHtml(html); setMessage("Email HTML copiata: puoi incollarla in Gmail."); setFailure(null); }
@@ -387,7 +394,7 @@ export function PeonyEventOperations({
               <div className="mt-2 max-h-64 space-y-2 overflow-y-auto">
                 {attendees.map(person => (
                   <label key={person.ticketId} className="flex items-start gap-2 border-b border-[#211815]/10 pb-2 text-sm">
-                    <input type="checkbox" disabled={!person.email || (kind==="details" && (audience==="observer" ? person.ticketRole!=="observer" : person.ticketRole==="observer"))} checked={checked.includes(person.ticketId)}
+                    <input type="checkbox" disabled={!eligible.some(entry=>entry.ticketId===person.ticketId)} checked={checked.includes(person.ticketId)}
                       onChange={e => setChecked(prev => e.target.checked ? [...prev,person.ticketId] : prev.filter(id => id !== person.ticketId))}
                       className="mt-1" />
                     <span className="min-w-0 flex-1">
