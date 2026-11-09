@@ -25,3 +25,21 @@ export function AssociationStatusDot({status}:{
   return <span className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ring-2 ${info.style}`}
     role="img" aria-label={info.label} title={info.label}/>;
 }
+
+/** Legenda disponibile una sola volta per pagina, non ripetuta su ogni persona. */
+export function AssociationDotLegend(){
+  const entries: {status:AssociationDotStatus; label:string}[]=[
+    {status:"verified",label:"Verificata"},
+    {status:"payment_missing",label:"Quota da verificare"},
+    {status:"missing_form",label:"Modulo assente"},
+    {status:"not_required",label:"Non richiesta"},
+  ];
+  return <details className="text-xs text-[#5f524c]">
+    <summary className="w-fit cursor-pointer py-1 text-[#a8583e]">Legenda pallini</summary>
+    <div className="mt-1 flex flex-wrap gap-x-4 gap-y-2">
+      {entries.map(entry=><span key={entry.status} className="inline-flex items-center gap-2">
+        <AssociationStatusDot status={entry.status}/>{entry.label}
+      </span>)}
+    </div>
+  </details>;
+}
