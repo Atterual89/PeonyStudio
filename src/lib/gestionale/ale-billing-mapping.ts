@@ -47,7 +47,8 @@ export function mappedAleRows(sheet:BillingSheet,mapping:{name:number;email:numb
     const external=namedKey("codiceinterno");
     const tax=namedKey("codicefiscale")||namedKey("pivataxid");
     const signature=external?"external:"+normalize(external):
-      ["person",normalize(display_name),normalize(email),normalize(tax)].join("|");
+      tax.length>=8?["tax",normalize(display_name),normalize(tax)].join("|"):
+      ["person",normalize(display_name),normalize(email)].join("|");
     const nth=(duplicates.get(signature)||0)+1;
     duplicates.set(signature,nth);
     const source_key=createHash("sha256").update(signature+"#"+nth).digest("hex");
