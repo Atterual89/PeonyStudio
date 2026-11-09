@@ -83,7 +83,7 @@ begin
   if v_first is null or v_second is null
     or length(v_first)>200 or length(v_second)>200
     or v_first=v_second or v_first ~ '[/+]' or v_second ~ '[/+]'
-    or (p_second_person_id is null)=(not coalesce(p_create_provisional,false))
+    or (p_second_person_id is null)<>coalesce(p_create_provisional,false)
   then raise exception 'gw_invalid' using errcode='GW400'; end if;
   if p_second_person_id is not null then
     select id into v_person from public.gw_people
