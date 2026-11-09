@@ -4,7 +4,8 @@ import {
   PEONY_EMAIL_KINDS, defaultPeonyEmailTemplate,
   type PeonyEmailKind, type PeonyEmailTemplate,
 } from "@/lib/gestionale/peony-email-html";
-import { peonyEmailLanguage, type PeonyEmailEventContext } from "@/lib/gestionale/peony-email-context";
+import { peonyEmailLanguage, type PeonyEmailEventContext, type PeonyEmailLanguage } from "@/lib/gestionale/peony-email-context";
+import type { PeonyEmailDetailFields } from "@/lib/gestionale/peony-email-details";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
 import { loadPeonyEventEmailPayload, type PeonyEvent } from "@/lib/gestionale/server/peony-events";
@@ -32,15 +33,19 @@ export async function loadPeonyEmailState(event: PeonyEvent): Promise<{
   templates: Record<PeonyEmailKind, PeonyEmailTemplate>;
   sends: PeonyEmailSend[];
   context: PeonyEmailEventContext;
+  languageOverride: PeonyEmailLanguage | null;
+  detailFields: PeonyEmailDetailFields;
 }> {
   await requireAdmin();
-  const [templateResult, sendsResult, eventResult] = await Promise.all([
+  const [templateResult, sendsResult, eventResult, settingsResult] = await Promise.all([
     getGestionaleDb().from("gw_peony_email_kinds")
       .select("kind,subject,body").eq("event_id", event.id),
     getGestionaleDb().from("gw_peony_email_sends")
       .select("id,ticket_id,subject,kind,sent_on")
       .eq("event_id", event.id).order("sent_on", { ascending: false }).range(0,9999),
     loadPeonyEventEmailPayload(event.id),
+    getGestionaleDb().from("gw_peony_email_settings")
+      .select("language_override,detail_fields").eq("event_id",event.id).maybeSingle(),
   ]);
   if (templateResult.error) throw new Error("Email evento: " + templateResult.error.message);
   if (sendsResult.error) throw new Error("Storico email: " + sendsResult.error.message);
@@ -60,14 +65,22 @@ export async function loadPeonyEmailState(event: PeonyEvent): Promise<{
       stringField(normalized.bookingUrl),
   };
   const date = event.startsOn ? formatDateRange(event.startsOn, event.endsOn) : "data da definire";
-  const language = peonyEmailLanguage(event.title, context);
+  // Backward compatible read during staged deployments before migration 042.
+  if (settingsResult.error && !["42P01","PGRST205","PGRST116"].includes(settingsResult.error.code ?? ""))
+    throw new Error("Impostazioni email: " + settingsResult.error.message);
+  const savedSettings=settingsResult.error ? null : settingsResult.data;
+  const languageOverride = savedSettings?.language_override === "en" || savedSettings?.language_override === "it" ?
+    savedSettings.language_override as PeonyEmailLanguage : null;
+  const detailFields = (savedSettings?.detail_fields && typeof savedSettings.detail_fields === "object" && !Array.isArray(savedSettings.detail_fields) ?
+    savedSettings.detail_fields : {}) as PeonyEmailDetailFields;
+  const language = languageOverride ?? peonyEmailLanguage(event.title, context);
   const templates = Object.fromEntries(PEONY_EMAIL_KINDS.map(({ id }) => {
     const saved = (templateResult.data ?? []).find((row) => row.kind === id);
     return [id, saved ? { subject: saved.subject, body: saved.body }
       : defaultPeonyEmailTemplate(id, event.title, date, language)];
   })) as Record<PeonyEmailKind, PeonyEmailTemplate>;
   return {
-    templates, context,
+    templates, context, languageOverride, detailFields,
     sends: (sendsResult.data ?? []).map((row) => ({
       id: row.id, ticketId: row.ticket_id,
       subject: row.subject, sentOn: row.sent_on,
