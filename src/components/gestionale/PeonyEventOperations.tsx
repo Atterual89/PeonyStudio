@@ -104,10 +104,10 @@ function PersonRow({ person, eventId,initialExpanded=false }: { person: PeonyAtt
             :person.name}
           alias={displayAlias}
           email={primaryEmail} emailLabel={!person.linkedPersonId?"Biglietto:":undefined}>
-          {person.associationRequired&&person.association?.matchMethod !== "payment_email"&&!person.association?.verifiedInOfficialBook&&
+          {person.associationRequired&&person.association?.matchMethod !== "payment_email"&&
             <QuotaOkCheckbox
-              checked={Boolean(person.association?.feePaid)}
-              editable={!person.association?.feePaid||person.association.matchMethod==="manual"}
+              checked={Boolean(person.association?.feePaid||person.association?.verifiedInOfficialBook)}
+              editable={!person.association?.verifiedInOfficialBook&&(!person.association?.feePaid||person.association.matchMethod==="manual")}
               onToggle={paid=>setPeonyQuotaOkAction({eventId,ticketId:person.ticketId,person:"holder",paid})}
             />}
           {person.associationRequired&&<MembershipFacts info={person.association} ownerLabel={person.name}/>}
@@ -123,9 +123,9 @@ function PersonRow({ person, eventId,initialExpanded=false }: { person: PeonyAtt
               :partnerLabel}
             alias={person.partner.profileAlias||(person.partner.enteredName&&person.partner.enteredName!==partnerLabel?person.partner.enteredName:null)}
             email={partnerEmail} emailLabel={!person.partner.linkedPersonId?"Biglietto:":undefined}>
-            {person.associationRequired&&person.partner.membership?.matchMethod !== "payment_email"&&!person.partner.membership?.verifiedInOfficialBook&&
-              <QuotaOkCheckbox checked={Boolean(person.partner.membership?.feePaid)}
-                editable={!person.partner.membership?.feePaid||person.partner.membership.matchMethod==="manual"}
+            {person.associationRequired&&person.partner.membership?.matchMethod !== "payment_email"&&
+              <QuotaOkCheckbox checked={Boolean(person.partner.membership?.feePaid||person.partner.membership?.verifiedInOfficialBook)}
+                editable={!person.partner.membership?.verifiedInOfficialBook&&(!person.partner.membership?.feePaid||person.partner.membership.matchMethod==="manual")}
                 onToggle={paid=>setPeonyQuotaOkAction({eventId,ticketId:person.ticketId,person:"partner",paid})}/>}
             {person.associationRequired&&<MembershipFacts info={person.partner.membership} ownerLabel={partnerLabel}/>}
             <PeonyPartnerFinder eventId={eventId} ticketId={person.ticketId} hasPartner={true}/>
