@@ -159,9 +159,9 @@ async function copyRichHtml(html: string): Promise<void> {
   }
 }
 
-function defaultRecipients(kind: PeonyEmailKind, attendees: PeonyAttendee[], audience: PeonyEmailAudience = "practitioner"): string[] {
+function defaultRecipients(kind: PeonyEmailKind, attendees: PeonyAttendee[], audience: PeonyEmailAudience = "practitioner", sends: PeonyEmailSend[] = []): string[] {
   return attendees.filter((person) => {
-    if (!person.email) return false;
+    if (!person.email || sends.some(send => send.kind === kind && send.ticketId === person.ticketId)) return false;
     if (kind === "membership") return person.associationRequired && person.association?.status !== "valid";
     if (kind === "partner") return person.partnerRequired && !person.partner;
     return audience === "observer" ? person.ticketRole === "observer" : person.ticketRole !== "observer";
@@ -187,8 +187,9 @@ export function PeonyEventOperations({
   const [tab, setTab] = useState<Tab>("partecipanti");
   const [kind, setKind] = useState<PeonyEmailKind>("membership");
   const [audience, setAudience] = useState<PeonyEmailAudience>("practitioner");
+  const [sendMode,setSendMode] = useState<"initial"|"reminder">("initial");
   const [templates, setTemplates] = useState(initialTemplates);
-  const [checked, setChecked] = useState<string[]>(() => defaultRecipients("membership", attendees));
+  const [checked, setChecked] = useState<string[]>(() => defaultRecipients("membership", attendees, "practitioner", sends));
   const [busy, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
@@ -199,14 +200,24 @@ export function PeonyEventOperations({
 
   const template = templates[kind];
   const baseSubject = resolvePeonyTemplateText(template.subject,eventTitle,dateLabel);
-  const emailSubject = kind === "details" && audience === "observer" ? baseSubject + " | Observer" : baseSubject;
+  const audienceSubject = kind === "details" && audience === "observer" ? baseSubject + " | Observer" : baseSubject;
+  const emailSubject = sendMode === "reminder" ?
+    (peonyEmailLanguage(eventTitle,emailContext)==="en" ? "Reminder | " : "Sollecito | ") + audienceSubject : audienceSubject;
+  const reminderIntro = sendMode === "reminder" ?
+    (peonyEmailLanguage(eventTitle,emailContext)==="en" ?
+      "This is a reminder regarding the information requested for your booking. Please reply if you have already completed the necessary steps.\n\n" :
+      "Questo è un promemoria relativo alla tua prenotazione. Se hai già completato i passaggi richiesti, rispondi a questa email per una verifica.\n\n") : "";
   const html = useMemo(() => buildPeonyEmailHtml({
-    kind, eventTitle, dateLabel, template: { ...template, subject: emailSubject },
+    kind, eventTitle, dateLabel, template: { ...template, subject: emailSubject, body: reminderIntro+template.body },
     context: emailContext, audience,
-  }), [kind, eventTitle, dateLabel, template, emailContext, audience, emailSubject]);
+  }), [kind, eventTitle, dateLabel, template, emailContext, audience, emailSubject, reminderIntro]);
   const hasObserverTickets = attendees.some(person => person.ticketRole === "observer");
   const templateLanguage = peonyEmailLanguage(eventTitle,emailContext);
-  const eligible = attendees.filter((person) => Boolean(person.email) && (
+  const eligible = attendees.filter((person) =>
+    Boolean(person.email) &&
+    (sendMode === "reminder" ?
+      sends.some(send=>send.kind===kind && send.ticketId===person.ticketId) :
+      !sends.some(send=>send.kind===kind && send.ticketId===person.ticketId)) && (
     kind==="membership" ? person.associationRequired :
     kind==="partner" ? person.partnerRequired :
     audience==="observer" ? person.ticketRole==="observer" : person.ticketRole!=="observer"
@@ -242,6 +253,7 @@ export function PeonyEventOperations({
         const result = await operation();
         if (!result.ok) { setFailure(result.error || "Operazione non riuscita."); return; }
         setMessage(success);
+        setChecked([]);
         router.refresh();
       } catch { setFailure("Errore di collegamento. Riprova."); }
     });
@@ -254,13 +266,20 @@ export function PeonyEventOperations({
 
   function switchKind(next: PeonyEmailKind) {
     setKind(next);
-    setChecked(defaultRecipients(next, attendees, audience));
+    setSendMode("initial");
+    setChecked(defaultRecipients(next, attendees, audience, sends));
     setMessage(null); setFailure(null); setConfirmingSend(false);
   }
   function changeAudience(next: PeonyEmailAudience) {
     setAudience(next);
-    setChecked(defaultRecipients("details", attendees, next));
+    setChecked(sendMode==="initial" ? defaultRecipients("details", attendees, next, sends) : []);
     setMessage(null); setFailure(null); setConfirmingSend(false);
+  }
+  function changeSendMode(next:"initial"|"reminder") {
+    setSendMode(next);
+    // No implicit selection for reminders: the operator must choose recipients.
+    setChecked(next==="initial" ? defaultRecipients(kind,attendees,audience,sends) : []);
+    setMessage(null);setFailure(null);setConfirmingSend(false);
   }
   function setTemplateField(key: "subject" | "body", value: string) {
     setTemplates((prev) => ({ ...prev, [kind]: { ...prev[kind], [key]: value } }));
@@ -329,6 +348,15 @@ export function PeonyEventOperations({
               ))}
             </select>
           </div>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" aria-pressed={sendMode==="initial"} onClick={()=>changeSendMode("initial")}
+              className={sendMode==="initial"?button:"h-10 rounded-xl border border-[#211815]/20 px-3 text-sm"}>Prima email</button>
+            <button type="button" aria-pressed={sendMode==="reminder"} onClick={()=>changeSendMode("reminder")}
+              className={sendMode==="reminder"?button:"h-10 rounded-xl border border-[#211815]/20 px-3 text-sm"}>Sollecito</button>
+          </div>
+          {sendMode==="reminder" ?
+            <p className="text-xs text-[#5f524c]">Mostra solo chi ha già ricevuto questa comunicazione. Seleziona esplicitamente a chi inviare il sollecito.</p> :
+            <p className="text-xs text-[#5f524c]">Chi ha già ricevuto questa comunicazione viene escluso dalla selezione.</p>}
           {kind === "details" && hasObserverTickets ? (
             <label className="block text-sm">
               <span className="font-semibold">Destinatari</span>
@@ -383,7 +411,7 @@ export function PeonyEventOperations({
             </details>
           </div>
           <div className={card}>
-            <h3 className="text-sm font-semibold">Destinatari · {distinctEmails.length}</h3>
+            <h3 className="text-sm font-semibold">Destinatari {sendMode==="reminder"?"del sollecito":"del primo invio"} · {distinctEmails.length}</h3>
             <details className="mt-2">
               <summary className="w-fit cursor-pointer py-1 text-sm text-[#a8583e]">Modifica selezione ({selected.length}/{eligible.length})</summary>
               <label className="mt-2 flex items-center gap-2 text-sm">
@@ -425,7 +453,7 @@ export function PeonyEventOperations({
                 <div className="mt-2 flex gap-2">
                   <button className={button} disabled={busy} onClick={() => {
                     setConfirmingSend(false);
-                    run(() => markPeonyEmailSent(eventId, selected.map(p => p.ticketId), kind, emailSubject), "Invio registrato nello storico.");
+                    run(() => markPeonyEmailSent(eventId, selected.map(p => p.ticketId), kind, emailSubject, sendMode), "Invio registrato nello storico.");
                   }}>Conferma</button>
                   <button className="h-10 rounded-xl border border-[#211815]/15 px-3 text-sm" onClick={() => setConfirmingSend(false)}>Annulla</button>
                 </div>
