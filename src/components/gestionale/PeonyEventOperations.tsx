@@ -210,7 +210,7 @@ export function PeonyEventOperations({
   const freeOnly=attendees.length>0&&attendees.every(person=>person.freeEvent);
   const visible = attendees.filter((person) =>
     (freeOnly||ticketFilter==="all"||person.ticketRole===ticketFilter) &&
-    [person.name, person.email, person.ticketType, person.orderId, person.partner?.name, person.partner?.email]
+    [person.name, person.profileAlias, person.enteredName, person.email, person.profileEmail, person.ticketType, person.orderId, person.partner?.name, person.partner?.profileAlias, person.partner?.enteredName, person.partner?.email]
       .some((value) => value?.toLowerCase().includes(search.trim().toLowerCase())),
   );
   const observers=attendees.filter(person=>person.ticketRole==="observer").length;
