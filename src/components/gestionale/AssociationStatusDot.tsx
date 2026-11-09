@@ -15,7 +15,7 @@ const STATUS:Record<AssociationDotStatus,{label:string;style:string}>={
   missing_form:{label:"Modulo associativo assente",style:"bg-[#c73535] ring-[#c73535]/20"},
   not_required:{label:"Tessera associativa non richiesta",style:"bg-[#929292] ring-[#929292]/20"},
   unlinked:{label:"Non collegata al libro soci",style:"bg-[#c73535] ring-[#c73535]/20"},
-  unknown:{label:"Stato associativo non disponibile",style:"bg-[#929292] ring-[#929292]/20"},
+  unknown:{label:"Stato associativo non disponibile",style:"bg-transparent border border-dashed border-[#707070] ring-[#707070]/10"},
 };
 
 export function AssociationStatusDot({status}:{
