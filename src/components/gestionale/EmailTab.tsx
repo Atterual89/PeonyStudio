@@ -81,6 +81,11 @@ function EditWorkshopDetails({workshop,defaults,saved,ticketTailorFields,onSave,
       const fields:Partial<WorkshopEmailData>={...data};
       delete fields.ticketTailor; // TT remains live, not part of saved overrides.
       // TT-sourced values remain live; only explicitly edited overrides are stored.
+      // Keep TT-derived source fields live after later synchronizations.
+      if (ticketTailorFields.title && fields.title===ticketTailorFields.title)
+        delete fields.title;
+      if (ticketTailorFields.dateLabel && fields.dateLabel===ticketTailorFields.dateLabel)
+        delete fields.dateLabel;
       if (ticketTailorFields.schedule && JSON.stringify(fields.schedule)===JSON.stringify(ticketTailorFields.schedule))
         delete fields.schedule;
       if (ticketTailorFields.extraNotes && fields.extraNotes===ticketTailorFields.extraNotes)
