@@ -41,6 +41,8 @@ export type PeonyMembership = {
 
 export type PeonyPartner = {
   name: string | null;
+  /** Testo originale del partner in TT/gestionale, senza sovrascrivere il nome ufficiale. */
+  enteredName?:string|null;
   email: string | null;
   source: "ticket_tailor" | "user" | "admin" | "gestionale";
   membership: PeonyMembership | null;
@@ -278,7 +280,9 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
       }):null;
       const partnerPerson=partnerProfile?personById.get(partnerProfile.personId):null;
       const partner: PeonyPartner | null = required && chosen ? {
-        name: chosen.name, email: chosen.email, source: chosen.source,
+        name:partnerPerson?[partnerPerson.first_name,partnerPerson.last_name].filter(Boolean).join(" ").trim()||partnerPerson.nickname||chosen.name:chosen.name,
+        enteredName:chosen.name,
+        email:partnerPerson?.email??chosen.email, source: chosen.source,
         linkedPersonId: partnerProfile?.personId??null,
         memberRowId: chosen.memberRowId ?? null,
         membership: associationStatus(evidence,event,identityForLinkedPeonyAttendee(

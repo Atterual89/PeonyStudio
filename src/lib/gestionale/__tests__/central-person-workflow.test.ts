@@ -22,6 +22,8 @@ describe("Ticket Tailor -> Anagrafica <- Kinbaku LuXuria",()=>{
  it("il nome originale di Ticket Tailor rimane separato dal profilo ufficiale",()=>{
   expect(resolver).toContain("resolveCentralPerson");
   expect(resolver).toContain("enteredName:ticketName");
+  expect(resolver).toContain("enteredName:chosen.name");
+  expect(resolver).toContain("name:partnerPerson?");
   expect(resolver).toContain("linkedPersonId:resolved?.personId??null");
   expect(peony).toContain("Nome nel biglietto:");
  });

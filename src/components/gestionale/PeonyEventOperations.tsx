@@ -119,7 +119,7 @@ function PersonRow({ person, eventId,initialExpanded=false }: { person: PeonyAtt
         <p>Nome nel biglietto: {person.enteredName??person.name}</p>
         <p>Ordine: {person.orderId||"non disponibile"}</p>
         {person.ticketType&&<p>Tipo: {person.ticketType}</p>}
-        {person.partner&&<p>Partner indicato {person.partner.source==="gestionale"?"nel gestionale":person.partner.source==="ticket_tailor"?"in Ticket Tailor":person.partner.source==="admin"?"in Admin":"dal partecipante"}</p>}
+        {person.partner&&<p>Partner indicato {person.partner.source==="gestionale"?"nel gestionale":person.partner.source==="ticket_tailor"?"in Ticket Tailor":person.partner.source==="admin"?"in Admin":"dal partecipante"}: {person.partner.enteredName??person.partner.name}</p>}
       </details>
     </UnifiedParticipantCard>
   </li>;
