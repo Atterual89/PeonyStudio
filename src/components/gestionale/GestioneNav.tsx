@@ -23,12 +23,17 @@ function isActive(href: string, pathname: string) {
   if (href === "/gestione/persone") {
     return pathname.startsWith("/gestione/persone") || pathname.startsWith("/gestione/p/") || pathname.startsWith("/gestione/cerca");
   }
+  if (href === "/gestione/altro/soci") return pathname.startsWith("/gestione/altro");
   return pathname.startsWith(href);
 }
 
 export function GestioneNav({ role }: { role: OperatorRole }) {
   const pathname = usePathname();
-  const visible = items.filter((item) => role === "admin" || !item.adminOnly);
+  // Accesso diretto alle verifiche per gli admin: nessun passaggio intermedio.
+  const visible = role === "admin"
+    ? [...items.filter(item => item.href !== "/gestione/altro"),
+       { href: "/gestione/altro/soci", label: "Verifiche", icon: Settings2 }]
+    : items.filter(item => !item.adminOnly);
 
   return (
     <nav
@@ -40,7 +45,7 @@ export function GestioneNav({ role }: { role: OperatorRole }) {
         {visible.map(({ href, label, icon: Icon }) => {
           const active = isActive(href, pathname);
           return (
-            <li key={href} className={href === "/gestione/altro" ? "w-16 shrink-0" : "flex-1"}>
+            <li key={href} className="flex-1">
               <Link prefetch={false}
                 href={href}
                 aria-current={active ? "page" : undefined}
@@ -51,7 +56,7 @@ export function GestioneNav({ role }: { role: OperatorRole }) {
                 }`}
               >
                 <Icon className="h-6 w-6" aria-hidden="true" strokeWidth={1.8} />
-                {href === "/gestione/altro" ? <span className="sr-only">{label}</span> : role === "organizzatrice" && href === "/gestione" ? "Workshop" : label}
+                {role === "organizzatrice" && href === "/gestione" ? "Workshop" : label}
               </Link>
             </li>
           );

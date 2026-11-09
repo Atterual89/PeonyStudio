@@ -4,7 +4,6 @@ import Link from "next/link";
 
 import { WorkshopTable, YearSelect } from "@/components/gestionale/HomeControls";
 import { SyncTicketTailorButton } from "@/components/gestionale/SyncTicketTailorButton";
-import { AssociationMailSyncControl } from "@/components/gestionale/AssociationMailSyncControl";
 import { EconomicBadge, RecapTiles, RecheckBadge } from "@/components/gestionale/Recap";
 import { Notice, Section, cardClass } from "@/components/gestionale/ui";
 import { formatCents, formatDateRange } from "@/lib/gestionale/format";
@@ -285,11 +284,6 @@ export default async function WorkshopDashboard({
           </p>}
           <div className="mb-4 grid gap-2 sm:flex sm:items-start">
             <SyncTicketTailorButton />
-            <Link href="/gestione/altro/soci#allineamento-anagrafiche" prefetch={false}
-              className="inline-flex min-h-10 items-center justify-center rounded-xl border border-[#a8583e] bg-white/85 px-4 text-sm font-semibold text-[#a8583e]">
-              Allinea libro soci
-            </Link>
-            <AssociationMailSyncControl />
           </div>
           <div className="flex justify-end">
             <YearSelect value={year} years={years} vista="peony" />

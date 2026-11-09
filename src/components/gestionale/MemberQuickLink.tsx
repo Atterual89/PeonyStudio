@@ -141,7 +141,7 @@ export function MemberQuickLink({
             {memberName(member)} · {member.email||"email assente"}{member.alreadyLinked?" · scheda esistente":""}
           </option>)}
         </select>
-        <p className="text-xs text-[#5f524c]">Il nickname non deve coincidere con il nome ufficiale. Se la socia ha già una scheda, puoi confrontare le due anagrafiche senza creare un secondo collegamento.</p>
+        <p className="text-xs text-[#5f524c]">Se è già collegata, apri la scheda esistente.</p>
       </div> : <p className="text-sm text-[#5f524c]">Nessuna socia trovata: prova il cognome o una parte dell'email.</p>)}
       {selected?.alreadyLinked&&<div className="space-y-2 rounded-lg border border-[#a8583e]/30 bg-white p-3 text-sm">
         <p><strong>{memberName(selected)}</strong> risulta già collegata a un'anagrafica.</p>

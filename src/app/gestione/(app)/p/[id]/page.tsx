@@ -9,7 +9,7 @@ import { PersonForm } from "@/components/gestionale/PersonForm";
 import { QuotaOkControls, RefreshMembershipButton } from "@/components/gestionale/QuotaOk";
 import { AssociationMailSyncControl } from "@/components/gestionale/AssociationMailSyncControl";
 import { Notice, Section, buttonClass, cardClass } from "@/components/gestionale/ui";
-import { displayName, formatDate, formatDateRange, fullName } from "@/lib/gestionale/format";
+import { displayName, formatDateRange, fullName } from "@/lib/gestionale/format";
 import { DUPLICATE_REASON_LABELS, findPossibleDuplicates, peopleSharingEmail } from "@/lib/gestionale/people";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { getPerson, getPersonHistory, loadPeople } from "@/lib/gestionale/server/data";
@@ -87,13 +87,6 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         ← Persone
       </Link>
       <h1 className="mt-2 font-serif text-xl font-medium">{displayName(person)}</h1>
-      <p className="mt-1 text-sm text-[#5f524c]">
-        Creata il {formatDate(person.created_at)} · aggiornata il {formatDate(person.updated_at)} ·{" "}
-        {/* Fase 5: storico già filtrato su questa persona. */}
-        <Link prefetch={false} href={`/gestione/altro/storico?persona=${person.id}`} className="underline">
-          Storico
-        </Link>
-      </p>
 
       {sharedEmail.length > 0 ? (
         <div className="mt-4">

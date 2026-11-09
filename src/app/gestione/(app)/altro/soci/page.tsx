@@ -37,16 +37,17 @@ export default async function SociPage({searchParams}:{searchParams:Promise<{quo
    .filter((p,i,all)=>all.findIndex(other=>other.paymentsFrom===p.paymentsFrom)===i)
    .map(p=>({from:p.paymentsFrom,label:p.paymentsFrom==="2025-09-01"?"2025/26":p.paymentsFrom.slice(0,4)}));
  return <section className="mx-auto max-w-3xl space-y-3">
-  <Link prefetch={false} href="/gestione" className="text-sm text-[#5f524c] underline">← Gestionale</Link>
-  <h1 className="font-serif text-xl font-medium">Libro soci</h1>
+  <div className="flex flex-wrap items-center justify-between gap-2">
+   <h1 className="font-serif text-xl font-medium">Verifiche soci e quote</h1>
+   <Link prefetch={false} href="/gestione/altro" className="text-sm text-[#5f524c] underline">Altre impostazioni</Link>
+  </div>
   <div className="flex flex-wrap gap-2 items-start">
    <AssociationMailSyncControl />
   </div>
-  <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#211815]/10 bg-white/80 p-3 text-sm">
-   <p className="text-[#5f524c]">Per cercare un nickname, trovare la socia e collegarla, usa l'elenco unico Persone.</p>
+  <div className="flex justify-end">
    <Link prefetch={false} href={`/gestione/persone${typeof params.q==="string"?`?q=${encodeURIComponent(params.q.slice(0,100))}`:""}`}
-    className="inline-flex min-h-10 items-center rounded-lg bg-[#a8583e] px-3 font-semibold text-white">
-    Cerca e collega persone
+    className="inline-flex min-h-10 items-center rounded-lg border border-[#a8583e] px-3 text-sm font-semibold text-[#a8583e]">
+    Apri anagrafiche
    </Link>
   </div>
   <details id="allineamento-anagrafiche" className="rounded-xl border border-[#211815]/10 bg-white/70 p-3">
@@ -65,7 +66,7 @@ export default async function SociPage({searchParams}:{searchParams:Promise<{quo
    </div>
   </details>
   <details className="rounded-xl border border-[#211815]/10 bg-white/55 p-3">
-   <summary className="cursor-pointer text-sm font-semibold text-[#5f524c]">Aggiornamenti e strumenti avanzati</summary>
+   <summary className="cursor-pointer text-sm font-semibold text-[#5f524c]">Sincronizzazioni e manutenzione</summary>
    <div className="mt-3 space-y-4 text-sm">
     <div>
      <p className="mb-2 text-xs text-[#5f524c]">Aggiorna le registrazioni dai moduli Google. Le quote si verificano tramite email o manualmente.</p>
