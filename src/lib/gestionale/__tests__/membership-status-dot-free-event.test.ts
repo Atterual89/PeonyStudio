@@ -29,12 +29,15 @@ describe("Aperi-Bottom Free: tessera non obbligatoria per tutte le persone",()=>
     const loader=file("src/lib/gestionale/server/peony-events.ts");
     expect(loader).toContain("const freeEvent=isMembershipFreePeonyEvent(event.title)");
     expect(loader).toContain("const membershipRequired=peonyAssociationRequired(event.title,ticketRole)");
-    expect(loader).toContain("association: membershipRequired ? associationStatus");
+    expect(loader).toContain("association: associationStatus(evidence, event, identity)");
     expect(loader).toContain("associationRequired: membershipRequired");
     const operations=file("src/components/gestionale/PeonyEventOperations.tsx");
     expect(operations).toContain('person.freeEvent?"Ingresso libero"');
     expect(operations).toContain("peonyStatus(person.association,person.associationRequired)");
     expect(operations).toContain("person.associationRequired &&");
+    expect(operations).toContain('if(info?.status==="valid")return "verified";');
+    expect(operations).toContain('if(!required)return "not_required";');
+    expect(operations).toContain("peonyStatus(person.partner.membership,person.associationRequired)");
   });
 });
 

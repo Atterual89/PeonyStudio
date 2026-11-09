@@ -51,7 +51,7 @@ describe("roster e sincronizzazione",()=>{
     expect(roster).toContain('select("raw_payload").eq("id",event.id)');
     expect(roster).toContain("ticketTypeNameForIssuedTicket(ticket.raw_payload,ticketNames,ticket.ticket_type_name)");
     expect(roster).toContain('associationRequired: membershipRequired');
-    expect(roster).toContain('association: membershipRequired ? associationStatus');
+    expect(roster).toContain('association: associationStatus(evidence, event, identity)');
   });
   it("mostra il ruolo e filtra gli observer senza entrare nella verifica quote",()=>{
     expect(ui).toContain("Praticanti ({practitioners})");

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe,expect,it } from "vitest";
 import {deriveMembershipState,type MembershipEvidenceRow} from "@/lib/association/membership-state";
-import {membershipBadge,membershipLabel} from "@/lib/gestionale/membership-rule";
+import {membershipBadge,membershipLabel,hasEmailPaymentProof} from "@/lib/gestionale/membership-rule";
 const evidence=(notes_admin:string|null):MembershipEvidenceRow=>({
  first_name:"Elena",last_name:"Verdi",email:"elena@example.test",
  source:"manual_override",membership_status:"verified",
@@ -19,6 +19,19 @@ describe("precedenza della quota confermata via email",()=>{
   expect(state.paymentMatchMethod).toBe("payment_email");
   const badge=membershipBadge({workshopStartsOn:"2027-06-01",state,linked:true});
   expect(membershipLabel(badge)).toContain("pagamento email");
+  expect(hasEmailPaymentProof(badge)).toBe(true);
+ });
+ it("nasconde Quota OK in scheda persona, LuXuria, Rope Jam e libro soci quando c'è la prova email",()=>{
+  expect(hasEmailPaymentProof({kind:"in_regola",match:"manual",expiresAt:"2027-12-31"})).toBe(false);
+  expect(hasEmailPaymentProof({kind:"modulo_mancante",quotaPaid:true,quotaMatch:"payment_email"})).toBe(true);
+  expect(hasEmailPaymentProof({kind:"modulo_mancante",quotaPaid:true,quotaMatch:"manual"})).toBe(false);
+  const read=(p:string)=>readFileSync(join(process.cwd(),p),"utf8");
+  expect(read("src/components/gestionale/BookingDetails.tsx")).toContain("!hasEmailPaymentProof(badge)");
+  expect(read("src/components/gestionale/QuotaOk.tsx")).toContain("if (hasEmailPaymentProof(props.badge)) return null;");
+  expect(read("src/components/gestionale/PeonyEventOperations.tsx")).toContain('person.association?.matchMethod !== "payment_email"');
+  expect(read("src/components/gestionale/PeonyEventOperations.tsx")).toContain('person.partner.membership?.matchMethod !== "payment_email"');
+  expect(read("src/components/gestionale/QuotaCheckbox.tsx")).toContain("if (provenByEmail) return null;");
+  expect(read("src/components/gestionale/SociReviewList.tsx")).toContain("!protectedEmail &&");
  });
  it("non permette di annullare via spunta una prova email",()=>{
   const src=readFileSync(join(process.cwd(),"src/lib/association/manual-validation.ts"),"utf8");
