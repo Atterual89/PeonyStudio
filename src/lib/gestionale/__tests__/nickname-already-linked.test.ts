@@ -29,7 +29,7 @@ describe("nickname scritto da Ale diverso dal nome anagrafico",()=>{
     expect(actions).toContain('if(owners.length!==1)');
   });
   it("non considera il nickname una condizione di identità",()=>{
-    expect(picker).toContain("Il nickname non deve coincidere con il nome ufficiale");
+    expect(picker).toContain("Se è già collegata, apri la scheda esistente.");
     expect(review).toContain("I nomi usati per l'iscrizione possono essere diversi");
     expect(review).toContain("Pavel/Maru");
     expect(review).toContain("Se un nome come");
