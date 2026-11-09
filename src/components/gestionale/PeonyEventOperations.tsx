@@ -72,6 +72,7 @@ function PersonRow({ person, eventId,initialExpanded=false }: { person: PeonyAtt
   const roleLabel=person.freeEvent?"Ingresso libero":person.ticketRole==="observer"?"Observer":person.ticketRole==="practitioner"?"Praticante":"Tipo da identificare";
   const partnerLabel=person.partner?.name||person.partner?.email||"Partner da indicare";
   const ticketAlias=person.enteredName&&person.enteredName.trim()!==person.name.trim()?person.enteredName:null;
+  const displayAlias=person.profileAlias||ticketAlias;
   const primaryEmail=person.linkedPersonId?person.profileEmail:person.email;
   const partnerEmail=person.partner?.linkedPersonId?person.partner.profileEmail:person.partner?.email;
   const date=person.createdAt?new Intl.DateTimeFormat("it-IT",{
@@ -83,7 +84,7 @@ function PersonRow({ person, eventId,initialExpanded=false }: { person: PeonyAtt
       primary={<span className="inline-flex flex-wrap items-center gap-2">
         <AssociationStatusDot status={peonyStatus(person.association,person.associationRequired)}/>
         <span>{person.name}</span>
-        {ticketAlias?<span className="text-xs font-normal text-[#5f524c]">{ticketAlias}</span>:null}
+        {displayAlias?<span className="text-xs font-normal text-[#5f524c]">{displayAlias}</span>:null}
         {person.partnerRequired&&<span className="inline-flex items-center gap-1.5 font-normal">
           <span>+</span>
           {person.partner&&<AssociationStatusDot status={peonyStatus(person.partner.membership,person.associationRequired)}/>}
@@ -101,7 +102,7 @@ function PersonRow({ person, eventId,initialExpanded=false }: { person: PeonyAtt
           name={person.linkedPersonId
             ?<a href={"/gestione/p/"+person.linkedPersonId} className="underline-offset-2 hover:underline">{person.name}</a>
             :person.name}
-          alias={ticketAlias}
+          alias={displayAlias}
           email={primaryEmail} emailLabel={!person.linkedPersonId?"Biglietto:":undefined}>
           {person.associationRequired&&person.association?.matchMethod !== "payment_email"&&!person.association?.verifiedInOfficialBook&&
             <QuotaOkCheckbox
@@ -120,7 +121,7 @@ function PersonRow({ person, eventId,initialExpanded=false }: { person: PeonyAtt
             name={person.partner.linkedPersonId
               ?<a href={"/gestione/p/"+person.partner.linkedPersonId} className="underline-offset-2 hover:underline">{partnerLabel}</a>
               :partnerLabel}
-            alias={person.partner.enteredName&&person.partner.enteredName!==partnerLabel?person.partner.enteredName:null}
+            alias={person.partner.profileAlias||(person.partner.enteredName&&person.partner.enteredName!==partnerLabel?person.partner.enteredName:null)}
             email={partnerEmail} emailLabel={!person.partner.linkedPersonId?"Biglietto:":undefined}>
             {person.associationRequired&&person.partner.membership?.matchMethod !== "payment_email"&&!person.partner.membership?.verifiedInOfficialBook&&
               <QuotaOkCheckbox checked={Boolean(person.partner.membership?.feePaid)}
