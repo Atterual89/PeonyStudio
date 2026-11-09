@@ -27,16 +27,23 @@ describe("registrazione Google e quota indipendenti", () => {
     expect(status([row("official_members_book")])).toMatchObject({kind:"in_regola",expiresAt:"2026-12-31"});
     expect(status([form(), row("official_members_book")])).toMatchObject({kind:"in_regola"});
     expect(deriveForWorkshop([row("official_members_book")],{email:"viola@example.test"}, "2026-11-10"))
-      .toMatchObject({formPresent:false,currentYearPaid:false,verifiedInOfficialBook:true});
+      .toMatchObject({formPresent:true,currentYearPaid:false,verifiedInOfficialBook:true});
     expect(status([row("official_members_book")],"2027-02-19"))
-      .toMatchObject({kind:"modulo_mancante",quotaPaid:false});
+      .toMatchObject({kind:"quota_mancante"});
     expect(status([row("official_members_book",{membership_status:"expired"})]))
-      .toMatchObject({kind:"modulo_mancante",quotaPaid:false});
+      .toMatchObject({kind:"quota_mancante"});
   });
   it("non conferma automaticamente l'omonima quando il modulo ha un'altra email", () => {
     const book=row("official_members_book",{email:null});
     const formRow=form({email:"altra@example.test"});
     expect(status([book,formRow])).toMatchObject({kind:"modulo_mancante",quotaPaid:false});
+  });
+  it("una registrazione ufficiale del 2026 conserva il modulo nel 2027, non la quota", () => {
+    const rows=[row("official_members_book",{membership_status:"expired",membership_expires_at:"2026-12-31"})];
+    expect(deriveForWorkshop(rows,{email:"viola@example.test",firstName:"Viola",lastName:"Serra"},"2027-02-19"))
+      .toMatchObject({formPresent:true,currentYearPaid:false,verifiedInOfficialBook:false,status:"payment_missing"});
+    expect(status([...rows,manual({membership_starts_at:"2027-01-01",membership_expires_at:"2027-12-31"})],"2027-02-19"))
+      .toMatchObject({kind:"in_regola"});
   });
   it("quota manuale senza modulo salvata, ma modulo ancora assente", () => {
     const s = deriveForWorkshop([manual()], {email:"viola@example.test"}, "2026-11-10");

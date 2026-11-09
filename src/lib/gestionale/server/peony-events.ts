@@ -8,6 +8,7 @@ import { partnerFromCheckout, peonyPartnerRequired, type CheckoutPartner } from 
 import { choosePartner } from "@/lib/gestionale/peony-booking-partner";
 import { buildPeonyMemberDirectory } from "@/lib/gestionale/peony-member-candidates";
 import { identityForLinkedPeonyAttendee } from "@/lib/gestionale/peony-linked-identity";
+import { ticketTailorCreatedAt, compareTicketChronology } from "@/lib/gestionale/ticket-order-chronology";
 import { timestampToRomeDate } from "@/lib/gestionale/workshops";
 import { isActivePeonyTicket, isPeonyTicketEvent, isMembershipFreePeonyEvent, peonyAssociationRequired } from "@/lib/gestionale/peony-ticket-rules";
 import { peonyTicketRole, ticketTypeNameForIssuedTicket, ticketTypeNamesFromEventPayload, type PeonyTicketRole } from "@/lib/gestionale/peony-ticket-type";
@@ -232,8 +233,10 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
   const overrideByTicket = new Map((overrides.data ?? []).map((row) => [row.ticket_id, row]));
   const holderByTicket = new Map((holderOverrides.data??[]).map(row=>[row.ticket_id,row]));
   const checkoutByOrder = new Map<string, CheckoutPartner | null>();
+  const purchasedAtByOrder = new Map<string, number | null>();
   for (const order of orders.data ?? []) {
     checkoutByOrder.set(order.ticket_tailor_order_id, partnerFromCheckout(order.raw_payload));
+    purchasedAtByOrder.set(order.ticket_tailor_order_id, ticketTailorCreatedAt(order.raw_payload));
   }
   const evidence = memberships;
   const candidates=buildPeonyMemberDirectory(memberships,people.data??[]);
@@ -247,6 +250,14 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
   }
   const attendees = (tickets.data ?? [])
     .filter((ticket) => isActivePeonyTicket(ticket.status))
+    .sort((a,b) => compareTicketChronology(
+      {id:a.ticket_tailor_issued_ticket_id,
+        time:(a.ticket_tailor_order_id?purchasedAtByOrder.get(a.ticket_tailor_order_id):null)
+          ??ticketTailorCreatedAt(a.raw_payload)},
+      {id:b.ticket_tailor_issued_ticket_id,
+        time:(b.ticket_tailor_order_id?purchasedAtByOrder.get(b.ticket_tailor_order_id):null)
+          ??ticketTailorCreatedAt(b.raw_payload)},
+    ))
     .map((ticket): PeonyAttendee => {
       const orderId = ticket.ticket_tailor_order_id;
       const saved = orderId ? enrollmentByOrder.get(orderId) : undefined;
@@ -306,7 +317,7 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
             peopleByEmail.get(normalizeMembershipEmail(ticket.holder_email))
         )??null,
       };
-    }).sort((a, b) => a.name.localeCompare(b.name, "it", { sensitivity: "base" }));
+    });
   return {
     attendees,
     ticketsLastSyncedAt: (tickets.data ?? []).map((t) => t.last_synced_at).filter((x): x is string => Boolean(x)).sort().at(-1) ?? null,

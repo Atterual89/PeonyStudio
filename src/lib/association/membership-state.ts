@@ -59,8 +59,9 @@ export function deriveMembershipState(
     return Boolean(targetName) && normalizeNameKey(row.first_name, row.last_name) === targetName &&
       (!targetEmail || !email || email === targetEmail);
   };
-  // La registrazione è attestata soltanto dal modulo Google.
-  const formPresent = rows.some(row => row.source === "google_sheet" && samePerson(row));
+  // Il modulo Google non scade. Il libro ufficiale puo' confermare una
+  // precedente registrazione: la sua scadenza limita SOLO la quota annuale.
+  const googleFormPresent = rows.some(row => row.source === "google_sheet" && samePerson(row));
   // La quota è confermata esclusivamente da un pagamento email abbinato
   // oppure da un inserimento manuale salvato nel gestionale.
   const payments = rows.filter(row => row.source === "manual_override" &&
@@ -89,6 +90,18 @@ export function deriveMembershipState(
     (!targetEmail || formEmails.size === 0 || formEmails.has(targetEmail));
   const officialProof = directOfficial.length === 1 ? directOfficial[0] : safeNameMatch ? nameOfficial[0] : null;
   const verifiedInOfficialBook = Boolean(officialProof);
+  const historicalOfficial = rows.filter(row => row.source === "official_members_book" &&
+    (row.membership_status === "verified" || row.membership_status === "expired"));
+  const directHistorical = targetEmail ? historicalOfficial.filter(row =>
+    normalizeEmail(row.email) === targetEmail && (!targetName || sameOfficialName(row))) : [];
+  const nameHistorical = historicalOfficial.filter(row => sameOfficialName(row) &&
+    (!normalizeEmail(row.email) || normalizeEmail(row.email) === targetEmail));
+  // Senza email, non fondere automaticamente omonimi o due moduli che
+  // indicano indirizzi incompatibili: richiedono revisione manuale.
+  const safeHistoricalName = nameHistorical.length === 1 && formEmails.size <= 1 &&
+    (!targetEmail || formEmails.size === 0 || formEmails.has(targetEmail));
+  const registeredInOfficialBook = directHistorical.length === 1 || safeHistoricalName;
+  const formPresent = googleFormPresent || registeredInOfficialBook;
 
   return {
     status: verifiedInOfficialBook || (formPresent && paid) ? "valid" : !formPresent ? "missing_form" : "payment_missing",
