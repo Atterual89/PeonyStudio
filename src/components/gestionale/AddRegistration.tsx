@@ -39,7 +39,9 @@ export function AddRegistration({
   const [person, setPerson] = useState("");
   const [partner, setPartner] = useState("");
   const [personId,setPersonId]=useState<string|null>(null);
+  const [personLookupId,setPersonLookupId]=useState<string|null>(null);
   const [partnerId,setPartnerId]=useState<string|null>(null);
+  const [partnerLookupId,setPartnerLookupId]=useState<string|null>(null);
   // 4d (B2): email facoltative (Ale vede solo quelle che scrive lei).
   const [personEmail, setPersonEmail] = useState("");
   const [partnerEmail, setPartnerEmail] = useState("");
@@ -58,6 +60,8 @@ export function AddRegistration({
     setPartner("");
     setPersonId(null);
     setPartnerId(null);
+    setPersonLookupId(null);
+    setPartnerLookupId(null);
     setPersonEmail("");
     setPartnerEmail("");
     setStatus("prenotato");
@@ -157,9 +161,10 @@ export function AddRegistration({
       <div className="space-y-2">
         <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-2">
           <Field label="Intestatario *" hint="Nome, cognome o nickname">
-            <BillingNameAutocomplete value={person} selectedId={personId}
-              onText={text=>{setPerson(text);if(personId){setPersonId(null);setPersonEmail("");}}}
-              onPick={entry=>{setPerson(entry.name);setPersonId(entry.id);setPersonEmail(entry.email);}}
+            <BillingNameAutocomplete value={person} selectedId={personLookupId}
+              onText={text=>{setPerson(text);if(personLookupId){setPersonLookupId(null);setPersonId(null);setPersonEmail("");}}}
+              onPick={entry=>{setPerson(entry.name);setPersonLookupId(entry.id);
+                setPersonId(entry.personId);setPersonEmail(entry.email);}}
               placeholder="Nome, cognome o nickname" />
           </Field>
           <Field label="Email intestatario">
@@ -170,15 +175,16 @@ export function AddRegistration({
         {suggestedPair&&<div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#a8583e]/25 bg-[#f8f3ea] p-3 text-sm">
           <span>Coppia riconosciuta: <strong>{suggestedPair.first}</strong> + <strong>{suggestedPair.second}</strong>. Verranno registrate due persone in un'unica iscrizione.</span>
           <button type="button" onClick={()=>{
-            setPerson(suggestedPair.first);setPersonId(null);
-            setPartner(suggestedPair.second);setPartnerId(null);
+            setPerson(suggestedPair.first);setPersonId(null);setPersonLookupId(null);
+            setPartner(suggestedPair.second);setPartnerId(null);setPartnerLookupId(null);
           }} className="min-h-10 rounded-lg bg-[#a8583e] px-3 font-semibold text-white">Dividi coppia</button>
         </div>}
         <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-2">
           <Field label="Partner">
-            <BillingNameAutocomplete value={partner} selectedId={partnerId}
-              onText={text=>{setPartner(text);if(partnerId){setPartnerId(null);setPartnerEmail("");}}}
-              onPick={entry=>{setPartner(entry.name);setPartnerId(entry.id);setPartnerEmail(entry.email);}}
+            <BillingNameAutocomplete value={partner} selectedId={partnerLookupId}
+              onText={text=>{setPartner(text);if(partnerLookupId){setPartnerLookupId(null);setPartnerId(null);setPartnerEmail("");}}}
+              onPick={entry=>{setPartner(entry.name);setPartnerLookupId(entry.id);
+                setPartnerId(entry.personId);setPartnerEmail(entry.email);}}
               placeholder="Nome o nickname" />
           </Field>
           <Field label="Email partner">
