@@ -98,6 +98,7 @@ export function peonyEmailSections(input: {
       emailParagraph(en ?
         "If your partner is not yet a member, share the association form with them. Each practitioner must register at least 48 hours before the event." :
         "Se il partner non è ancora associato, condividi il modulo. Ogni praticante deve associarsi almeno 48 ore prima dell'evento.") +
+      (periodText ? emailParagraph(periodText) : "") +
       emailButton(en ? "Association form" : "Modulo associativo", formUrl)));
   } else {
     const time = eventTimes(input.context);
