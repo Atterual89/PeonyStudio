@@ -23,6 +23,15 @@ describe("ricerca soci senza duplicati",()=>{
    const rows=buildPeonyMemberDirectory([form,{...form,id:"form3",first_name:"Giulia",last_name:"Bianchi"}],[]);
    expect(rows).toHaveLength(2);
  });
+ it("trova anche nickname e alias multipli di una scheda anagrafica",()=>{
+   const rows=buildPeonyMemberDirectory([],[
+     {id:"p1",first_name:"Maryna",last_name:"Rossi",nickname:"Maru",
+      email:"maryna@example.it",aliases:["BlueRope","Corda Luna"]},
+   ]);
+   expect(filterPeonyMemberDirectory(rows,"Maru")).toMatchObject([{kind:"person",id:"p1"}]);
+   expect(filterPeonyMemberDirectory(rows,"BlueRope")).toMatchObject([{kind:"person",id:"p1"}]);
+   expect(filterPeonyMemberDirectory(rows,"Corda Luna")).toMatchObject([{kind:"person",id:"p1"}]);
+ });
  it("ricerca per nome, cognome ed email",()=>{
    const rows=buildPeonyMemberDirectory([official,form],[]);
    expect(filterPeonyMemberDirectory(rows,"Vierzi")).toHaveLength(1);

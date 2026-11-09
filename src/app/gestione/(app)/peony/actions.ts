@@ -185,7 +185,22 @@ async function readCandidates(eventId: string) {
       .is("deleted_at",null).is("merged_into",null).range(0,9999),
   ]);
   if(peopleResponse.error)throw new Error("Anagrafica non disponibile.");
-  return {event,evidence,people:peopleResponse.data??[],candidates:buildPeonyMemberDirectory(evidence,peopleResponse.data??[])};
+  const people=peopleResponse.data??[];
+  const ids=people.map(p=>p.id);
+  // Alias utili alla ricerca, mai usati per confermare una tessera o un pagamento.
+  const aliasMap=new Map<string,string[]>();
+  for(let i=0;i<ids.length;i+=500){
+    const {data,error}=await getGestionaleDb().from("gw_person_aliases")
+      .select("person_id,alias").in("person_id",ids.slice(i,i+500))
+      .is("deleted_at",null).range(0,9999);
+    if(error){
+      console.warn("[gestionale] Alias Peony temporaneamente non disponibili");
+      break;
+    }
+    for(const a of data??[])aliasMap.set(a.person_id,[...(aliasMap.get(a.person_id)??[]),a.alias]);
+  }
+  const searchable=people.map(person=>({...person,aliases:aliasMap.get(person.id)??[]}));
+  return {event,evidence,people:searchable,candidates:buildPeonyMemberDirectory(evidence,searchable)};
 }
 
 /** Elenco soci, moduli e anagrafica con le fonti già deduplicate. */

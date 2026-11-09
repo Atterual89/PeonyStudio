@@ -7,13 +7,14 @@ export type DirectoryMemberRow = {
 };
 export type DirectoryPersonRow = {
   id: string; first_name: string | null; last_name: string | null;
-  nickname: string | null; email: string | null;
+  nickname: string | null; email: string | null; aliases?:string[];
 };
 export type MemberDirectoryCandidate = {
   kind: "member" | "person";
   id: string;
   name: string;
   email: string | null;
+  aliases?:string[];
   origin: "Libro soci" | "Modulo Google" | "Conferma manuale" | "Anagrafica" | "Libro soci + modulo";
   // L'identità è esplicita. In caso di omonimia non unire mai indirizzi diversi.
 };
@@ -103,7 +104,8 @@ export function buildPeonyMemberDirectory(
     // Il profilo canonico deve essere sempre selezionabile, anche se modulo
     // o libro soci hanno lo stesso nome/email. Non arricchire mai una prova
     // associativa modificando l'email dall'anagrafica senza conferma.
-    result.push({kind:"person",id:person.id,name:name??email!,email,origin:"Anagrafica"});
+    result.push({kind:"person",id:person.id,name:name??email!,email,
+      aliases:[person.nickname??"",...(person.aliases??[])].filter(Boolean),origin:"Anagrafica"});
   }
   // Evita le ripetizioni di una stessa identità esatta quando più annualità
   // compaiono con lo stesso nome ed email, senza fondere email incompatibili.
@@ -121,7 +123,8 @@ export function filterPeonyMemberDirectory(rows:readonly MemberDirectoryCandidat
   const words=query.normalize("NFD").replace(/[\u0300-\u036f]/g,"")
     .toLocaleLowerCase("it").trim().split(/\s+/).filter(Boolean);
   return rows.filter(row=>{
-    const text=`${row.name} ${row.email??""}`.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("it");
+    const text=`${row.name} ${row.email??""} ${(row.aliases??[]).join(" ")}`
+      .normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("it");
     return words.every(word=>text.includes(word));
   }).slice(0,20);
 }

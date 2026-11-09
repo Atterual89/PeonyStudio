@@ -57,6 +57,15 @@ describe("Ticket Tailor -> Anagrafica <- Kinbaku LuXuria",()=>{
   expect(page).toContain("Da collegare · {pendingPeony.length}");
   expect(page).toContain("loadPendingPeonyLinks().catch");
  });
+ it("Peony e la ricerca fatture di Alessandra cercano alias senza esporre altre schede",()=>{
+  const peony=read("src/app/gestione/(app)/peony/actions.ts");
+  const billing=read("src/app/gestione/(app)/anagrafica/billing-actions.ts");
+  expect(peony).toContain('from("gw_person_aliases")');
+  expect(billing).toContain('from("gw_person_aliases")');
+  expect(billing).toContain('const people=await billingRows(operatorId)');
+  expect(billing).toContain('.eq("owner_operator_id",operatorId)');
+  expect(billing).toContain("p.nickname");
+ });
  it("le quote associative non sono le rate dei workshop",()=>{
   expect(peony).toContain("peonyStatus");
   expect(kl).toContain("MembershipBadge");
