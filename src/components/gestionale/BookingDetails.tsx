@@ -25,6 +25,7 @@ import { PersonPicker } from "./PersonPicker";
 import { canMarkQuotaOk, canRevokeQuotaOk } from "./QuotaOk";
 import { QuotaOkCheckbox } from "./QuotaOkCheckbox";
 import { StatusDot } from "./StatusPicker";
+import { UnifiedPersonPanel } from "./UnifiedPersonPanel";
 import { Field, buttonClass, textareaClass } from "./ui";
 
 const BOOKING_SCOPE = "iscrizione";
@@ -93,27 +94,15 @@ function PersonBlock({
   const showEnteredAs = Boolean(enteredByAle) && !showMatchPanel && normalizeText(enteredByAle) !== normalizeText(names.main);
 
   return (
-    <div className="space-y-2 rounded-xl border border-[#211815]/10 bg-white p-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-xs font-semibold uppercase tracking-wide text-[#7a5212]">
-          {entry.isPrimary ? "1 · Intestatario" : "2 · Partner"}
-        </span>
-        {!entry.isPrimary&&onChangePartner&&<button type="button"
-          className="min-h-10 text-sm font-semibold text-[#a8583e] underline"
-          onClick={onChangePartner}>Cambia partner</button>}
-      </div>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="flex flex-wrap items-center gap-2 font-semibold">
-          <MembershipBadge badge={badge} compact />
-          <Link prefetch={false} href={`/gestione/p/${person.id}`} className="underline-offset-2 hover:underline">
-            {names.main}
-          </Link>
-          {names.alias ? <span className="ml-2 text-sm font-normal text-[#5f524c]">{names.alias}</span> : null}
-          {partnerOf ? <span className="ml-2 text-sm font-normal text-[#5f524c]">partner di {partnerOf}</span> : null}
-        </p>
-
-      </div>
-      <p className={`break-all text-sm ${person.email ? "text-[#5f524c]" : "font-medium text-[#9b2c2c]"}`}>{person.email ?? UI_LABELS.missingEmail}</p>
+    <UnifiedPersonPanel role={entry.isPrimary?"holder":"partner"}
+      badge={<MembershipBadge badge={badge} compact />}
+      name={<Link prefetch={false} href={`/gestione/p/${person.id}`} className="underline-offset-2 hover:underline">{names.main}</Link>}
+      alias={<>{names.alias ? <span>{names.alias}</span> : null}
+        {partnerOf ? <span className="ml-2">partner di {partnerOf}</span> : null}</>}
+      email={person.email}
+      headerAction={!entry.isPrimary&&onChangePartner?
+        <button type="button" className="min-h-10 text-sm font-semibold text-[#a8583e] underline"
+          onClick={onChangePartner}>Cambia partner</button>:null}>
       <EnteredEmailHint entry={entry} />
 
       {entry.possibleDuplicate && !showMatchPanel ? (
@@ -190,7 +179,7 @@ function PersonBlock({
           </span>
         ) : null}
       </p>
-    </div>
+    </UnifiedPersonPanel>
   );
 }
 
@@ -256,7 +245,7 @@ function BookingDetailsContent({
   }
 
   return (
-    <div className="space-y-3 border-t border-[#211815]/10 px-4 pb-5 pt-4">
+    <div className="space-y-3">
       <div className="space-y-3">
         <p className="flex flex-wrap items-center gap-2 text-sm text-[#5f524c]">
           Stato:

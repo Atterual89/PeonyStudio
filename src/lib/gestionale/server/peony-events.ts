@@ -2,7 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 
-import { deriveMembershipState, normalizeMembershipEmail, type MembershipEvidenceRow } from "@/lib/association/membership-state";
+import { deriveMembershipState, normalizeMembershipEmail, normalizeMembershipNameKey, type MembershipEvidenceRow } from "@/lib/association/membership-state";
 import { membershipPeriodFor } from "@/lib/association/membership-periods";
 import { partnerFromCheckout, peonyPartnerRequired, type CheckoutPartner } from "@/lib/gestionale/peony-partner";
 import { choosePartner } from "@/lib/gestionale/peony-booking-partner";
@@ -47,6 +47,9 @@ export type PeonyPartner = {
   source: "ticket_tailor" | "user" | "admin" | "gestionale";
   membership: PeonyMembership | null;
   linkedPersonId: string | null;
+  /** Email del profilo canonico; distinta dal recapito inserito sul biglietto. */
+  profileEmail?: string | null;
+  profileAlias?: string | null;
   memberRowId: string | null;
 };
 
@@ -57,7 +60,12 @@ export type PeonyAttendee = {
   name: string;
   /** Nome originale immutabile di Ticket Tailor, distinto dal profilo ufficiale. */
   enteredName?: string;
+  /** Recapito del biglietto, usato per le comunicazioni Ticket Tailor. */
   email: string | null;
+  /** Email nella scheda gw_people: non ricavare automaticamente dal compratore. */
+  profileEmail?: string | null;
+  profileAlias?: string | null;
+  createdAt?: string | null;
   ticketType: string | null;
   ticketRole: PeonyTicketRole;
   freeEvent: boolean;
@@ -252,6 +260,20 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
   // con conferma esplicita o un unico abbinamento dimostrabile.
   const allPeople=people.data??[];
   const allEvidence=memberships;
+  const labelFor=(person:(typeof allPeople)[number]|null|undefined,fallback:string)=>{
+    if(!person)return {name:fallback,alias:null as string|null};
+    const entered=[person.first_name,person.last_name].filter(Boolean).join(" ").trim()
+      ||person.nickname||fallback;
+    const key=person.membership_name_key;
+    const official=evidence.filter(row=>row.source==="official_members_book" &&
+      (row.membership_status==="verified"||row.membership_status==="expired") &&
+      (row.id===person.association_member_id ||
+        Boolean(key&&normalizeMembershipNameKey(row.first_name,row.last_name)===key)));
+    const verifiedName=official.length===1
+      ?[official[0].first_name,official[0].last_name].filter(Boolean).join(" ").trim():null;
+    const name=verifiedName||entered;
+    return {name,alias:verifiedName&&verifiedName!==entered?entered:null};
+  };
   const attendees = (tickets.data ?? [])
     .filter((ticket) => isActivePeonyTicket(ticket.status))
     .sort((a,b) => compareTicketChronology(
@@ -279,11 +301,14 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
         ticketName:chosen.name,ticketEmail:chosen.email,
       }):null;
       const partnerPerson=partnerProfile?personById.get(partnerProfile.personId):null;
+      const partnerDisplay=labelFor(partnerPerson,chosen?.name||"Partner");
       const partner: PeonyPartner | null = required && chosen ? {
-        name:partnerPerson?[partnerPerson.first_name,partnerPerson.last_name].filter(Boolean).join(" ").trim()||partnerPerson.nickname||chosen.name:chosen.name,
+        name:partnerDisplay.name,
+        profileAlias:partnerDisplay.alias,
         enteredName:chosen.name,
         email:partnerPerson?.email??chosen.email, source: chosen.source,
         linkedPersonId: partnerProfile?.personId??null,
+        profileEmail:partnerPerson?.email??null,
         memberRowId: chosen.memberRowId ?? null,
         membership: associationStatus(evidence,event,identityForLinkedPeonyAttendee(
           evidence,partnerPerson,partnerPerson?.membership_name_key||partnerPerson?.membership_email
@@ -299,6 +324,9 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
         ticketName,ticketEmail:ticket.holder_email,
       });
       const person=resolved?personById.get(resolved.personId):null;
+      const holderDisplay=labelFor(person,ticketName);
+      const purchasedAt=(orderId?purchasedAtByOrder.get(orderId):null)
+        ??ticketTailorCreatedAt(ticket.raw_payload);
       const directMember=savedHolder?.member_row_id?evidence.find(row=>row.id===savedHolder.member_row_id):null;
       const matchedHolder=person?{
         name:[person.first_name,person.last_name].filter(Boolean).join(" ").trim()||person.nickname||ticketName,
@@ -320,9 +348,12 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
         id: ticket.ticket_tailor_issued_ticket_id,
         ticketId: ticket.ticket_tailor_issued_ticket_id,
         orderId,
-        name:person?[person.first_name,person.last_name].filter(Boolean).join(" ").trim()||person.nickname||ticketName:ticketName,
+        name:holderDisplay.name,
+        profileAlias:holderDisplay.alias,
         enteredName:ticketName,
         email: ticket.holder_email?.trim() || null,
+        profileEmail:person?.email??null,
+        createdAt:purchasedAt===null||purchasedAt===undefined?null:new Date(purchasedAt).toISOString(),
         ticketType,
         ticketRole,
         freeEvent,

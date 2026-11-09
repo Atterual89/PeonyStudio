@@ -42,4 +42,25 @@ describe("Ticket Tailor e KL -> gw_people",()=>{
     memberEvidence:[proof],memberRowId:"proof-1",ticketEmail:"mario@test.it",ticketName:"Mario Rossi"}))
    .toBeNull();
  });
+ it("Peony riconosce la stessa scheda KL da tessera ufficiale univoca",()=>{
+  const official={id:"official-1",first_name:"Christian",last_name:"Martelli",email:null,
+    source:"official_members_book",membership_status:"verified"};
+  expect(resolveCentralPerson({people:[p("p1","Gesù","Christian",null,{membership_name_key:"christian martelli"})],
+    memberEvidence:[official],ticketName:"Christian Martelli",ticketEmail:"chri97@live.it"}))
+    .toEqual({personId:"p1",reason:"confirmed_ticket_member"});
+ });
+ it("non risolve da omonimi, email incompatibili o nickname senza prova",()=>{
+  const official={id:"official-1",first_name:"Christian",last_name:"Martelli",email:"official@example.com",
+    source:"official_members_book",membership_status:"verified"};
+  const person=p("p1","Gesù","Christian",null,{membership_name_key:"christian martelli"});
+  expect(resolveCentralPerson({people:[person],memberEvidence:[official],
+    ticketName:"Christian Martelli",ticketEmail:"other@example.com"})).toBeNull();
+  expect(resolveCentralPerson({people:[person],memberEvidence:[official],
+    ticketName:"Gesù Christian",ticketEmail:"official@example.com"})).toBeNull();
+  expect(resolveCentralPerson({people:[person,p("p2","Altro","Nome",null,{membership_name_key:"christian martelli"})],
+    memberEvidence:[official],ticketName:"Christian Martelli",ticketEmail:"official@example.com"})).toBeNull();
+  expect(resolveCentralPerson({people:[person],memberEvidence:[official,{...official,id:"official-2"}],
+    ticketName:"Christian Martelli",ticketEmail:"official@example.com"})).toBeNull();
+ });
+
 });

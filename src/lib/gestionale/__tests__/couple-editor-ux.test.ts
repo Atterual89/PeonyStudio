@@ -25,7 +25,8 @@ describe("Workshop · coppie",()=>{
  });
  it("admin vede cambia partner accanto al secondo partecipante",()=>{
   const row=file("src/components/gestionale/BookingDetails.tsx");
-  expect(row).toContain('"2 · Partner"');
+  expect(row).toContain('role={entry.isPrimary?"holder":"partner"}');
+  expect(file("src/components/gestionale/UnifiedPersonPanel.tsx")).toContain('"2 · Partner"');
   expect(row).toContain("onChangePartner");
   expect(row).toContain("Cambia partner");
  });
