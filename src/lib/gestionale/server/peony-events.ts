@@ -47,6 +47,8 @@ export type PeonyPartner = {
   source: "ticket_tailor" | "user" | "admin" | "gestionale";
   membership: PeonyMembership | null;
   linkedPersonId: string | null;
+  /** Email del profilo canonico; distinta dal recapito inserito sul biglietto. */
+  profileEmail?: string | null;
   memberRowId: string | null;
 };
 
@@ -57,7 +59,11 @@ export type PeonyAttendee = {
   name: string;
   /** Nome originale immutabile di Ticket Tailor, distinto dal profilo ufficiale. */
   enteredName?: string;
+  /** Recapito del biglietto, usato per le comunicazioni Ticket Tailor. */
   email: string | null;
+  /** Email nella scheda gw_people: non ricavare automaticamente dal compratore. */
+  profileEmail?: string | null;
+  createdAt?: string | null;
   ticketType: string | null;
   ticketRole: PeonyTicketRole;
   freeEvent: boolean;
@@ -284,6 +290,7 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
         enteredName:chosen.name,
         email:partnerPerson?.email??chosen.email, source: chosen.source,
         linkedPersonId: partnerProfile?.personId??null,
+        profileEmail:partnerPerson?.email??null,
         memberRowId: chosen.memberRowId ?? null,
         membership: associationStatus(evidence,event,identityForLinkedPeonyAttendee(
           evidence,partnerPerson,partnerPerson?.membership_name_key||partnerPerson?.membership_email
@@ -323,6 +330,11 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
         name:person?[person.first_name,person.last_name].filter(Boolean).join(" ").trim()||person.nickname||ticketName:ticketName,
         enteredName:ticketName,
         email: ticket.holder_email?.trim() || null,
+        profileEmail:person?.email??null,
+        createdAt:(ticket.ticket_tailor_order_id?purchasedAtByOrder.get(ticket.ticket_tailor_order_id):null)
+          ||ticketTailorCreatedAt(ticket.raw_payload)
+          ?new Date((ticket.ticket_tailor_order_id?purchasedAtByOrder.get(ticket.ticket_tailor_order_id):null)
+            ||ticketTailorCreatedAt(ticket.raw_payload)!).toISOString():null,
         ticketType,
         ticketRole,
         freeEvent,
