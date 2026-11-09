@@ -66,8 +66,10 @@ export function EmailWorkflow({ kind, recipients, workshopId, today, fields, val
   const invalidFields = !fields.title.trim() || !fields.dateLabel.trim() ||
     !fields.location.trim() || !fields.intercom.trim() || !fields.membershipDeadline.trim() ||
     !fields.mapsUrl || !fields.membershipFormUrl;
+  const ticketTailorDescription = Boolean(fields.extraNotes?.startsWith("From Ticket Tailor:"));
   const detailsIncomplete = (kind==="workshop_details" || kind==="workshop_details_reminder") && (
-    !fields.schedule?.length || !fields.program?.length || !fields.ropes?.trim() || !fields.clothing?.trim()
+    !fields.schedule?.length || (!ticketTailorDescription &&
+      (!fields.program?.length || !fields.ropes?.trim() || !fields.clothing?.trim()))
   );
   const canPrepare = chosen.length>0 && !mixed && !invalidFields && !detailsIncomplete;
   const subject = kind === "membership_request" ? "Association registration – "+fields.title :
