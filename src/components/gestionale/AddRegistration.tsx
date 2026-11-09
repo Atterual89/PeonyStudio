@@ -83,10 +83,6 @@ export function AddRegistration({
   }
 
   function save() {
-    if (suggestedPair) {
-      setMessage({tone:"error",text:"Sono presenti due nomi: verifica la coppia e seleziona «Dividi coppia» prima di salvare."});
-      return;
-    }
     if (!person.trim()) {
       setMessage({ tone: "error", text: "Nome: scrivi il nome, il nickname o l'email." });
       return;
@@ -125,7 +121,8 @@ export function AddRegistration({
         payment: withPayment ? payment : null,
       });
       if (result.ok) {
-        const names = [person.trim(), partner.trim() || partnerEmail.trim()].filter(Boolean).join(" + ");
+        const names = [suggestedPair?.first??person.trim(),
+          suggestedPair?.second??partner.trim()||partnerEmail.trim()].filter(Boolean).join(" + ");
         reset();
         setMessage({ tone: "success", text: `Fatto: ${names} iscritto/a.` });
       } else {
@@ -171,7 +168,7 @@ export function AddRegistration({
           </Field>
         </div>
         {suggestedPair&&<div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#a8583e]/25 bg-[#f8f3ea] p-3 text-sm">
-          <span>Coppia riconosciuta: <strong>{suggestedPair.first}</strong> + <strong>{suggestedPair.second}</strong></span>
+          <span>Coppia riconosciuta: <strong>{suggestedPair.first}</strong> + <strong>{suggestedPair.second}</strong>. Verranno registrate due persone in un'unica iscrizione.</span>
           <button type="button" onClick={()=>{
             setPerson(suggestedPair.first);setPersonId(null);
             setPartner(suggestedPair.second);setPartnerId(null);
