@@ -393,7 +393,10 @@ export function parseRoster(text: string, options: { standardFeeCents: number | 
     const numbered = NUMBERING.test(line);
     // Una prima riga senza numerazione né importi di norma è un titolo.
     // Eccezione: "Aizen e Franco" è un'iscrizione di coppia autonoma.
-    const simplePair = Boolean(suggestCoupleSplit(line));
+    const pairNames = suggestCoupleSplit(line);
+    // "Level 2+ November" e' un titolo, non una coppia. Un numero
+    // isolato nella prima parte segnala un titolo/lista di livelli.
+    const simplePair = Boolean(pairNames && !/\b\d+\b/.test(pairNames.first));
     if (!seenContent && !numbered && !AMOUNT_ANYWHERE.test(line) && !simplePair) {
       seenContent = true;
       return;
