@@ -2,14 +2,100 @@
 
 import { refreshGestione } from "@/lib/gestionale/server/refresh";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
+import { getPerson } from "@/lib/gestionale/server/data";
+import { membershipIdentityOf, clearMembershipCache } from "@/lib/gestionale/server/membership";
+import { saveManualValidation, revokeManualValidation, type ManualIdentity } from "@/lib/association/manual-validation";
+import { membershipPeriodFor } from "@/lib/association/membership-periods";
+import { confirmManualQuotaPersisted } from "@/lib/gestionale/server/manual-quota-proof";
+import { logMemberValidation } from "@/lib/gestionale/server/mutations";
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
-import { associationStatus, getPeonyEvent, isActivePeonyTicket, readAllMemberEvidence } from "@/lib/gestionale/server/peony-events";
+import { associationStatus, getPeonyEvent, isActivePeonyTicket, loadPeonyAttendees, readAllMemberEvidence } from "@/lib/gestionale/server/peony-events";
 import { cleanPartnerEmail, cleanPartnerName, isSameParticipant } from "@/lib/gestionale/peony-booking-partner";
 import { normalizeText } from "@/lib/gestionale/format";
 import { buildPeonyMemberDirectory, filterPeonyMemberDirectory } from "@/lib/gestionale/peony-member-candidates";
 import { isUuidLike } from "@/lib/gestionale/validation";
 import { todayInRome } from "@/lib/gestionale/workshops";
 import { PEONY_EMAIL_KINDS, type PeonyEmailKind } from "@/lib/gestionale/peony-email-html";
+
+/** Manual association quota for one Ticket Tailor attendee, directly from
+ * the expanded event card. This is the same manual_override record used by
+ * Kinbaku and Admin, not a new Peony-specific payment flag.
+ */
+export async function setPeonyQuotaOkAction(input:{
+  eventId:string;ticketId:string;person:"holder"|"partner";paid:boolean;
+}):Promise<PeonyActionResult>{
+  const operator=await requireAdmin();
+  if(!isUuidLike(input?.eventId)||typeof input?.ticketId!=="string"||
+    !input.ticketId||input.ticketId.length>200||
+    !["holder","partner"].includes(input.person)||typeof input.paid!=="boolean")
+    return {ok:false,error:"Dati non validi."};
+  const event=await getPeonyEvent(input.eventId);
+  if(!event?.startsOn)return {ok:false,error:"Evento non disponibile."};
+  const period=membershipPeriodFor(event.startsOn);
+  if(!period)return {ok:false,error:"Periodo associativo non valido."};
+  const attendees=await loadPeonyAttendees(event);
+  const attendee=attendees.attendees.find(row=>row.ticketId===input.ticketId);
+  if(!attendee)return {ok:false,error:"Biglietto non disponibile. Sincronizza Ticket Tailor."};
+  if(!attendee.associationRequired)return {ok:false,error:"Tessera non richiesta per questo biglietto."};
+
+  const isPartner=input.person==="partner";
+  if(isPartner&&(!attendee.partnerRequired||!attendee.partner))
+    return {ok:false,error:"Partner non disponibile."};
+  const status=isPartner?attendee.partner?.membership:attendee.association;
+  if(input.paid && status?.feePaid)
+    return {ok:false,error:"Quota già verificata."};
+  if(!input.paid && (!status?.feePaid||status.matchMethod!=="manual"))
+    return {ok:false,error:"Si può togliere soltanto una quota verificata manualmente."};
+
+  const db=getGestionaleDb();
+  let personId=isPartner?attendee.partner?.linkedPersonId:attendee.linkedPersonId;
+  let identity: ManualIdentity|null=null;
+  const linked=await db.from("gw_peony_booking_holders")
+    .select("person_id,member_row_id")
+    .eq("event_id",input.eventId).eq("ticket_id",input.ticketId).maybeSingle();
+  if(linked.error)return {ok:false,error:"Impossibile verificare l'abbinamento."};
+
+  if(!isPartner && linked.data?.person_id)personId=linked.data.person_id;
+  // A linked official member is more reliable than a person guessed merely
+  // from the buyer's Ticket Tailor email.
+  if(!isPartner && linked.data?.member_row_id && !linked.data.person_id){
+    personId=null;
+    const row=await db.from("association_members")
+      .select("email,first_name,last_name").eq("id",linked.data.member_row_id).maybeSingle();
+    if(row.error||!row.data)return {ok:false,error:"Socio collegato non disponibile."};
+    identity={email:row.data.email,firstName:row.data.first_name,lastName:row.data.last_name};
+  }else if(personId){
+    const saved=await getPerson(personId);
+    if(!saved||saved.merged_into)return {ok:false,error:"Anagrafica non disponibile."};
+    identity=await membershipIdentityOf(saved);
+  }else{
+    const info=isPartner?attendee.partner:attendee.holderMatch;
+    const email=info?.email??(isPartner?null:attendee.email);
+    const fullName=(info?.name??(isPartner?attendee.partner?.name:attendee.name)??"").trim();
+    const parts=fullName.split(/\s+/).filter(Boolean);
+    identity={email:email??null,firstName:parts[0]??null,
+      lastName:parts.length>1?parts.slice(1).join(" "):null};
+  }
+  if(!identity||(!identity.email?.includes("@")&&
+    !(identity.firstName&&identity.lastName)))
+    return {ok:false,error:"Completa prima l'email oppure nome e cognome nella scheda."};
+
+  if(input.paid){
+    const saved=await saveManualValidation(identity,{period});
+    if(!saved.ok)return {ok:false,error:"Quota non salvata."};
+    if(!await confirmManualQuotaPersisted(saved.id,identity,period))
+      return {ok:false,error:"La quota non risulta salvata per il periodo. Aggiorna e riprova."};
+  }else{
+    const revoked=await revokeManualValidation(identity,{period});
+    if(!revoked.ok||revoked.revoked===0)return {ok:false,error:"Impossibile annullare la quota manuale."};
+  }
+  if(personId)await logMemberValidation(operator.id,personId,
+    input.paid?"quota_ok":"annulla_quota_ok",
+    {periodo:period,evento:input.eventId,biglietto:input.ticketId,persona:input.person});
+  await clearMembershipCache();
+  refreshGestione();
+  return {ok:true};
+}
 
 export type PeonyActionResult = { ok: true } | { ok: false; error: string };
 

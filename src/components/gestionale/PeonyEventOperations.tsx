@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation";
 
 import type { PeonyAttendee, PeonyMembership } from "@/lib/gestionale/server/peony-events";
 import { PeonyPartnerFinder } from "@/components/gestionale/PeonyPartnerFinder";
+import { QuotaOkCheckbox } from "@/components/gestionale/QuotaOkCheckbox";
 import { AssociationStatusDot, AssociationDotLegend, type AssociationDotStatus } from "@/components/gestionale/AssociationStatusDot";
 import type { PeonyEmailSend } from "@/lib/gestionale/server/peony-email";
 import {
   PEONY_EMAIL_KINDS, buildPeonyEmailHtml,
   type PeonyEmailKind, type PeonyEmailTemplate,
 } from "@/lib/gestionale/peony-email-html";
-import { markPeonyEmailSent, savePeonyEmailTemplate } from "@/app/gestione/(app)/peony/actions";
+import { markPeonyEmailSent, savePeonyEmailTemplate, setPeonyQuotaOkAction } from "@/app/gestione/(app)/peony/actions";
 
 type Tab = "partecipanti" | "email";
 type TicketFilter = "all" | "practitioner" | "observer" | "unknown";
@@ -94,9 +95,17 @@ function PersonRow({ person, eventId }: { person: PeonyAttendee; eventId: string
           <div>
             <p className="text-xs font-semibold text-[#5f524c]">Intestatario · {person.name}</p>
             {person.email?<a href={"mailto:"+person.email} className="block break-all text-sm text-[#a8583e] underline">{person.email}</a>:null}
+            {person.associationRequired&&
+              <QuotaOkCheckbox
+                checked={Boolean(person.association?.feePaid)}
+                editable={!person.association?.feePaid||person.association.matchMethod==="manual"}
+                onToggle={paid=>setPeonyQuotaOkAction({
+                  eventId,ticketId:person.ticketId,person:"holder",paid,
+                })}
+              />}
             {person.associationRequired
               ? <MembershipFacts info={person.association} ownerLabel={person.name}/>
-              : <p className="text-xs text-[#5f524c]">Tessera associativa non richiesta per questo evento.</p>}
+              : null}
             {person.holderMatch ? (
               <p className="mt-1 break-words text-xs text-[#5f524c]">
                 Associato a: {person.holderMatch.name}
@@ -110,6 +119,12 @@ function PersonRow({ person, eventId }: { person: PeonyAttendee; eventId: string
             <div className="space-y-1 border-t border-[#211815]/10 pt-2">
               <p className="text-xs font-semibold text-[#5f524c]">Partner: {partnerLabel}</p>
               {person.partner?.email?<p className="break-all text-xs text-[#5f524c]">{person.partner.email}</p>:null}
+              {person.partner&&
+                <QuotaOkCheckbox checked={Boolean(person.partner.membership?.feePaid)}
+                  editable={!person.partner.membership?.feePaid||person.partner.membership.matchMethod==="manual"}
+                  onToggle={paid=>setPeonyQuotaOkAction({
+                    eventId,ticketId:person.ticketId,person:"partner",paid,
+                  })}/>}
               {person.partner?<MembershipFacts info={person.partner.membership} ownerLabel={`Partner: ${partnerLabel}`}/>:null}
               <PeonyPartnerFinder eventId={eventId} ticketId={person.ticketId} hasPartner={Boolean(person.partner)}/>
             </div>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 
 import { setPartnerAction, updateBookingNotesAction, applyEnteredEmailAction } from "@/app/gestione/(app)/w/actions";
+import {markQuotaOkAction,revokeQuotaOkAction} from "@/app/gestione/(app)/p/membership-actions";
 import { membershipPeriodFor } from "@/lib/association/membership-periods";
 import { personNames } from "@/lib/gestionale/bookings";
 import { formatDate, normalizeText } from "@/lib/gestionale/format";
@@ -20,9 +21,10 @@ import { MemberLinker } from "./MemberLinker";
 import { MembershipBadge } from "./MembershipBadge";
 import { PersonInlineEditor } from "./PersonInlineEditor";
 import { PersonPicker } from "./PersonPicker";
-import { MarkQuotaOk, RevokeQuotaOk, canRevokeQuotaOk } from "./QuotaOk";
+import { canMarkQuotaOk, canRevokeQuotaOk } from "./QuotaOk";
+import { QuotaOkCheckbox } from "./QuotaOkCheckbox";
 import { StatusDot } from "./StatusPicker";
-import { Field, RowMenu, buttonClass, textareaClass } from "./ui";
+import { Field, buttonClass, textareaClass } from "./ui";
 
 const BOOKING_SCOPE = "iscrizione";
 
@@ -82,14 +84,12 @@ function PersonBlock({
 }) {
   const [editing, setEditing] = useState(false);
   const [linking, setLinking] = useState(false);
-  const [revoking, setRevoking] = useState(false);
   const { person, membership: badge } = entry;
   const names = personNames(entry);
   const notLinked = badge.kind === "non_collegata";
   const showMatchPanel = notLinked && !person.email;
   const enteredByAle = booking.createdBy?.role === "organizzatrice" && entry.enteredAs ? entry.enteredAs : null;
   const showEnteredAs = Boolean(enteredByAle) && !showMatchPanel && normalizeText(enteredByAle) !== normalizeText(names.main);
-  const target = { personId: person.id, name: names.main, referenceDate: workshopStartsOn, workshopId };
 
   return (
     <div className="space-y-2 rounded-xl border border-[#211815]/10 bg-white p-3">
@@ -110,14 +110,7 @@ function PersonBlock({
           {names.alias ? <span className="ml-2 text-sm font-normal text-[#5f524c]">{names.alias}</span> : null}
           {partnerOf ? <span className="ml-2 text-sm font-normal text-[#5f524c]">partner di {partnerOf}</span> : null}
         </p>
-        <span className="flex items-center gap-1">
-          {canRevokeQuotaOk(badge) ? (
-            <RowMenu
-              label="Altre azioni sulla tessera"
-              items={[{ label: UI_LABELS.revokeValidation, danger: true, onClick: () => setRevoking(true) }]}
-            />
-          ) : null}
-        </span>
+
       </div>
       <p className={`break-all text-sm ${person.email ? "text-[#5f524c]" : "font-medium text-[#9b2c2c]"}`}>{person.email ?? UI_LABELS.missingEmail}</p>
       <EnteredEmailHint entry={entry} />
@@ -132,15 +125,21 @@ function PersonBlock({
         </p>
       ) : null}
 
-      {revoking ? <RevokeQuotaOk {...target} onClose={() => setRevoking(false)} /> : null}
 
       {editing ? (
         <PersonInlineEditor person={person} member={entry.member} onDone={() => setEditing(false)} />
       ) : (
         <div className="space-y-2">
           {!notLinked ? (
-            <MarkQuotaOk {...target} badge={badge}
-              canMark={Boolean(entry.fullName || person.email || entry.member?.email)} />
+            <QuotaOkCheckbox
+              checked={badge.kind==="in_regola"}
+              editable={badge.kind==="in_regola"
+                ? canRevokeQuotaOk(badge)
+                : canMarkQuotaOk(badge)&&Boolean(entry.fullName||person.email||entry.member?.email)}
+              onToggle={paid=>paid
+                ? markQuotaOkAction({personId:person.id,workshopId})
+                : revokeQuotaOkAction({personId:person.id,workshopId})}
+            />
           ) : null}
           {badge.kind === "quota_mancante" && entry.member?.expires_at &&
             entry.member.expires_at < workshopStartsOn ? (
