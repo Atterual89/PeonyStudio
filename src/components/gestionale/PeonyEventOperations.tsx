@@ -32,8 +32,7 @@ function peonyStatus(info:PeonyMembership|null,required:boolean):AssociationDotS
   if(info?.status==="valid")return "verified";
   if(!required)return "not_required";
   if(!info)return "unknown";
-  return info.status==="valid"?"verified":
-    info.status==="payment_missing"?"payment_missing":"missing_form";
+  return info.status==="payment_missing"?"payment_missing":"missing_form";
 }
 
 
