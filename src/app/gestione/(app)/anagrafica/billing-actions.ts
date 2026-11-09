@@ -7,7 +7,8 @@ import { normalizeText } from "@/lib/gestionale/format";
 import { mappedBillingRows, readBillingFile, suggestBillingColumns } from "@/lib/gestionale/billing-file";
 import { isUuidLike } from "@/lib/gestionale/validation";
 
-export type BillingEntry = { id: string; name: string; email: string; nickname?:string|null; fields?: Record<string,string> };
+export type BillingEntry = { id:string;name:string;email:string;nickname?:string|null;
+  personId:string|null;source:"ale"|"linked"; };
 export type BillingReview = {
   id: string; name: string; email: string; reason: string;
   candidates: { id: string; name: string }[];
@@ -71,6 +72,10 @@ export async function searchBillingDirectoryAction(input:{query:string}) {
   try {
     const tokens=query.split(/\s+/).filter(Boolean);
     const operatorId=operator.id;
+    const {data:staged,error:stagedError}=await getGestionaleDb()
+      .from("gw_ale_contacts").select("id,display_name,email,person_id")
+      .eq("owner_operator_id",operatorId).range(0,1999);
+    if(stagedError)throw new Error("Impossibile cercare tra i contatti di Alessandra.");
     const people=await billingRows(operatorId);
     // Cerca solo tra persone già presenti nell'anagrafica fatture di Ale:
     // l'alias non dà accesso a schede esterne ai suoi corsi.
@@ -84,12 +89,28 @@ export async function searchBillingDirectoryAction(input:{query:string}) {
       for(const row of data??[])
         aliasesByPerson.set(row.person_id,[...(aliasesByPerson.get(row.person_id)??[]),row.alias]);
     }
-    const results=people.filter(p=>{
+    const matches=people.filter(p=>{
       const search=normalizeText([p.name,p.email,p.nickname,...(aliasesByPerson.get(p.id)??[])].filter(Boolean).join(" "));
       return tokens.every(t=>search.includes(t));
-    })
-      .sort((a,b)=>a.name.localeCompare(b.name,"it")).slice(0,20)
-      .map(({id,name,email,nickname})=>({id,name,email,nickname}));
+    });
+    // I contatti fiscali importati sono visibili anche se il matching admin
+    // con gw_people non e' stato ancora confermato.
+    const foundStaged=(staged??[]).filter(p=>{
+      const search=normalizeText([p.display_name,p.email].filter(Boolean).join(" "));
+      return tokens.every(t=>search.includes(t));
+    });
+    const fromStaged:BillingEntry[]=foundStaged.map(p=>{
+      const profile=matches.find(other=>other.id===p.person_id &&
+        normalizeText(other.name)===normalizeText(p.display_name));
+      return {id:"ale:"+p.id,name:p.display_name,email:p.email||"",
+        personId:profile?.id??null,source:"ale"};
+    });
+    const linkedStaged=new Set(foundStaged.map(p=>p.person_id).filter(Boolean));
+    const fromLinked:BillingEntry[]=matches.filter(p=>!linkedStaged.has(p.id))
+      .map(p=>({id:"person:"+p.id,name:p.name,email:p.email,nickname:p.nickname,
+        personId:p.id,source:"linked"}));
+    const results=[...fromStaged,...fromLinked]
+      .sort((a,b)=>a.name.localeCompare(b.name,"it")).slice(0,20);
     return {ok:true as const,data:results};
   } catch(error){return {ok:false as const,error:publicError(error)};}
 }
