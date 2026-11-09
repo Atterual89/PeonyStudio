@@ -41,6 +41,7 @@ const FIELDS: { key: keyof WorkshopEmailData; label: string; multiline?: boolean
   {key:"prerequisitesModels",label:"Prerequisiti model (un punto per riga)",list:true},
   {key:"ropes",label:"Corde da portare",multiline:true},
   {key:"clothing",label:"Abbigliamento",multiline:true},
+  {key:"partnerPolicy",label:"Regole per i partner",multiline:true},
   {key:"extraNotes",label:"Note extra",multiline:true},
   {key:"accessInfo",label:"Come arrivare (una riga per voce)",list:true},
   {key:"lunchInfo",label:"Pranzo e servizi (una riga per voce)",list:true},
@@ -52,7 +53,7 @@ const FIELDS: { key: keyof WorkshopEmailData; label: string; multiline?: boolean
 const SECTIONS = [
   {label:"Date, orari e presentazione",keys:["title","dateLabel","intro","schedule","arrival"]},
   {label:"Programma e prerequisiti",keys:["program","prerequisitesRiggers","prerequisitesModels"]},
-  {label:"Cosa portare",keys:["ropes","clothing"]},
+  {label:"Cosa portare e partner",keys:["ropes","clothing","partnerPolicy"]},
   {label:"Associazione e contatti",keys:["membershipFeeEuro","membershipDeadline","membershipFormUrl","location","intercom","mapsUrl","signature"]},
   {label:"Logistica e regole",keys:["accessInfo","lunchInfo","venueRules","photoPolicy","emergencyContact"]},
   {label:"Note extra",keys:["extraNotes"]},
