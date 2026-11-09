@@ -46,6 +46,7 @@ export default async function PeonyEventPage({ params,searchParams }: {
         ticketsLastSyncedAt={roster.ticketsLastSyncedAt}
         associationLastSyncedAt={roster.associationLastSyncedAt}
         templates={email.templates}
+        emailContext={email.context}
         sends={email.sends}
       />
     </section>
