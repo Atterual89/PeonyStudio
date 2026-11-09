@@ -206,7 +206,7 @@ export function PeonyEventOperations({
   const reminderIntro = sendMode === "reminder" ?
     (peonyEmailLanguage(eventTitle,emailContext)==="en" ?
       "This is a reminder regarding the information requested for your booking. Please reply if you have already completed the necessary steps.\n\n" :
-      "Questo è un promemoria relativo alla tua prenotazione. Se hai già completato i passaggi richiesti, rispondi a questa email per una verifica.\n\n") : "";
+      "Questo è un promemoria relativo alla tua iscrizione. Se hai già completato i passaggi richiesti, rispondi a questa email per una verifica.\n\n") : "";
   const html = useMemo(() => buildPeonyEmailHtml({
     kind, eventTitle, dateLabel, template: { ...template, subject: emailSubject, body: reminderIntro+template.body },
     context: emailContext, audience,
@@ -348,12 +348,13 @@ export function PeonyEventOperations({
               ))}
             </select>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" aria-pressed={sendMode==="initial"} onClick={()=>changeSendMode("initial")}
-              className={sendMode==="initial"?button:"h-10 rounded-xl border border-[#211815]/20 px-3 text-sm"}>Prima email</button>
-            <button type="button" aria-pressed={sendMode==="reminder"} onClick={()=>changeSendMode("reminder")}
-              className={sendMode==="reminder"?button:"h-10 rounded-xl border border-[#211815]/20 px-3 text-sm"}>Sollecito</button>
-          </div>
+          <label className="block text-sm font-semibold">Tipo invio
+            <select value={sendMode} aria-label="Tipo invio" onChange={e=>changeSendMode(e.target.value as "initial"|"reminder")}
+              className="mt-1 h-10 w-full rounded-xl border border-[#211815]/15 bg-white px-3 text-sm">
+              <option value="initial">Prima email</option>
+              <option value="reminder">Sollecito</option>
+            </select>
+          </label>
           {sendMode==="reminder" ?
             <p className="text-xs text-[#5f524c]">Mostra solo chi ha già ricevuto questa comunicazione. Seleziona esplicitamente a chi inviare il sollecito.</p> :
             <p className="text-xs text-[#5f524c]">Chi ha già ricevuto questa comunicazione viene escluso dalla selezione.</p>}
