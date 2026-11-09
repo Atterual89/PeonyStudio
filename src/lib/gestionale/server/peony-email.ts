@@ -7,7 +7,7 @@ import {
 import { peonyEmailLanguage, type PeonyEmailEventContext } from "@/lib/gestionale/peony-email-context";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
-import type { PeonyEvent } from "@/lib/gestionale/server/peony-events";
+import { loadPeonyEventEmailPayload, type PeonyEvent } from "@/lib/gestionale/server/peony-events";
 import { formatDateRange } from "@/lib/gestionale/format";
 
 export type { PeonyEmailTemplate, PeonyEmailKind } from "@/lib/gestionale/peony-email-html";
@@ -40,13 +40,12 @@ export async function loadPeonyEmailState(event: PeonyEvent): Promise<{
     getGestionaleDb().from("gw_peony_email_sends")
       .select("id,ticket_id,subject,kind,sent_on")
       .eq("event_id", event.id).order("sent_on", { ascending: false }).limit(1000),
-    getGestionaleDb().from("events")
-      .select("raw_payload,booking_url").eq("id",event.id).maybeSingle(),
+    loadPeonyEventEmailPayload(event.id),
   ]);
   if (templateResult.error) throw new Error("Email evento: " + templateResult.error.message);
   if (sendsResult.error) throw new Error("Storico email: " + sendsResult.error.message);
-  if (eventResult.error) throw new Error("Dati Ticket Tailor: " + eventResult.error.message);
-  const raw = eventResult.data?.raw_payload;
+
+  const raw = eventResult?.raw_payload;
   const normalized = raw && typeof raw === "object" && !Array.isArray(raw) &&
     "normalized" in raw && raw.normalized && typeof raw.normalized === "object" &&
     !Array.isArray(raw.normalized) ? raw.normalized as Record<string, unknown> : {};
@@ -57,7 +56,7 @@ export async function loadPeonyEmailState(event: PeonyEvent): Promise<{
     startTime: timeField(normalized.startTime),
     endTime: timeField(normalized.endTime),
     description: stringField(normalized.description),
-    bookingUrl: stringField(eventResult.data?.booking_url) ??
+    bookingUrl: stringField(eventResult?.booking_url) ??
       stringField(normalized.bookingUrl),
   };
   const date = event.startsOn ? formatDateRange(event.startsOn, event.endsOn) : "data da definire";
