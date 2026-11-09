@@ -101,3 +101,48 @@ export async function loadPeonyPersonHistory(
   }
   return history.sort((a,b)=>b.startsOn.localeCompare(a.startsOn)||a.ticketId.localeCompare(b.ticketId));
 }
+
+export type PendingPeonyLink={
+  eventId:string;ticketId:string;role:"intestatario"|"partner";
+  title:string;name:string;href:string;
+};
+
+/** Abbinamenti espliciti a righe associative ancora privi di gw_people.
+ * La coda richiede una decisione umana; mai un merge automatico.
+ */
+export async function loadPendingPeonyLinks():Promise<PendingPeonyLink[]>{
+  await requireAdmin();
+  const db=getGestionaleDb();
+  const [holders,partners]=await Promise.all([
+    db.from("gw_peony_booking_holders").select("event_id,ticket_id,member_row_id")
+      .is("person_id",null).not("member_row_id","is",null).range(0,9999),
+    db.from("gw_peony_booking_partners").select("event_id,ticket_id,member_row_id,partner_name")
+      .is("person_id",null).not("member_row_id","is",null).range(0,9999),
+  ]);
+  if(holders.error||partners.error)throw new Error("Abbinamenti Peony da controllare non disponibili.");
+  const all=[
+    ...(holders.data??[]).map(h=>({...h,role:"intestatario" as const,partner_name:null})),
+    ...(partners.data??[]).map(p=>({...p,role:"partner" as const})),
+  ];
+  if(!all.length)return [];
+  const eventIds=[...new Set(all.map(link=>link.event_id))];
+  const ticketIds=[...new Set(all.map(link=>link.ticket_id))];
+  const [events,tickets]=await Promise.all([
+    db.from("events").select("id,title").in("id",eventIds).range(0,9999),
+    db.from("ticket_tailor_issued_tickets")
+      .select("ticket_tailor_issued_ticket_id,holder_first_name,holder_last_name")
+      .in("ticket_tailor_issued_ticket_id",ticketIds).range(0,9999),
+  ]);
+  if(events.error||tickets.error)throw new Error("Elenco abbinamenti Peony non disponibile.");
+  const eventById=new Map((events.data??[]).map(e=>[e.id,e.title]));
+  const ticketById=new Map((tickets.data??[]).map(t=>[
+    t.ticket_tailor_issued_ticket_id,
+    [t.holder_first_name,t.holder_last_name].filter(Boolean).join(" ").trim(),
+  ]));
+  return all.map(link=>({
+    eventId:link.event_id,ticketId:link.ticket_id,role:link.role,
+    title:eventById.get(link.event_id)??"Evento Peony",
+    name:link.partner_name||ticketById.get(link.ticket_id)||"Partecipante",
+    href:`/gestione/peony/${link.event_id}?ticket=${encodeURIComponent(link.ticket_id)}`,
+  })).sort((a,b)=>a.title.localeCompare(b.title,"it")||a.name.localeCompare(b.name,"it"));
+}
