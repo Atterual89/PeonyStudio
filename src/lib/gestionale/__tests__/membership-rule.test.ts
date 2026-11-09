@@ -23,9 +23,20 @@ describe("registrazione Google e quota indipendenti", () => {
   it("un modulo Google prova solo la registrazione", () => {
     expect(status([form()])).toEqual({kind:"quota_mancante",paymentsFrom:"2025-09-01"});
   });
-  it("l'export storico non dà né registrazione né quota, anche se contiene 'verified'", () => {
-    expect(status([row("official_members_book")])).toMatchObject({kind:"modulo_mancante",quotaPaid:false});
-    expect(status([form(), row("official_members_book")])).toMatchObject({kind:"quota_mancante"});
+  it("la tessera ufficiale vigente verifica la persona senza inventare un pagamento manuale", () => {
+    expect(status([row("official_members_book")])).toMatchObject({kind:"in_regola",expiresAt:"2026-12-31"});
+    expect(status([form(), row("official_members_book")])).toMatchObject({kind:"in_regola"});
+    expect(deriveForWorkshop([row("official_members_book")],{email:"viola@example.test"}, "2026-11-10"))
+      .toMatchObject({formPresent:false,currentYearPaid:false,verifiedInOfficialBook:true});
+    expect(status([row("official_members_book")],"2027-02-19"))
+      .toMatchObject({kind:"modulo_mancante",quotaPaid:false});
+    expect(status([row("official_members_book",{membership_status:"expired"})]))
+      .toMatchObject({kind:"modulo_mancante",quotaPaid:false});
+  });
+  it("non conferma automaticamente l'omonima quando il modulo ha un'altra email", () => {
+    const book=row("official_members_book",{email:null});
+    const formRow=form({email:"altra@example.test"});
+    expect(status([book,formRow])).toMatchObject({kind:"modulo_mancante",quotaPaid:false});
   });
   it("quota manuale senza modulo salvata, ma modulo ancora assente", () => {
     const s = deriveForWorkshop([manual()], {email:"viola@example.test"}, "2026-11-10");

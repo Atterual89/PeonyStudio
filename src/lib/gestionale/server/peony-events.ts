@@ -32,6 +32,7 @@ export type PeonyMembership = {
   feePaid: boolean;
   expiresAt: string | null;
   matchMethod: "email" | "name" | "manual" | "payment_email" | null;
+  verifiedInOfficialBook: boolean;
   /** Le verifiche riflettono i dati gia' sincronizzati; non sono interrogazioni Google live. */
 };
 
@@ -150,6 +151,7 @@ export function associationStatus(
   const state = deriveMembershipState(evidence, identity, {
     paymentsFrom: period.paymentsFrom,
     paymentsUntil: period.validUntil,
+    referenceDate: event.startsOn ?? undefined,
   });
   return {
     status: state.status,
@@ -157,6 +159,7 @@ export function associationStatus(
     feePaid: state.currentYearPaid,
     expiresAt: state.membershipExpiresAt,
     matchMethod: state.paymentMatchMethod,
+    verifiedInOfficialBook: state.verifiedInOfficialBook,
   };
 }
 
@@ -175,7 +178,7 @@ export const readAllMemberEvidence = cache(async (): Promise<Array<MembershipEvi
   for (let offset = 0; offset < 10000; offset += 500) {
     const { data, error } = await db.from("association_members")
       .select("id,first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at,notes_admin,updated_at")
-      .in("source", ["google_sheet", "manual_override"])
+      .in("source", ["google_sheet", "manual_override", "official_members_book"])
       .order("id", { ascending: true }).range(offset, offset + 499);
     if (error) throw new Error(`Associazione: ${error.message}`);
     rows.push(...(data ?? []));
