@@ -142,7 +142,7 @@ function SendHistory({bookings,sends}:{bookings:BookingView[];sends:EmailSendRow
       {items.map(item=><li key={item.kind+"-"+item.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
         <div><strong>{names.get(item.personId)||"Persona non presente nell'elenco attuale"}</strong>
           <span className="block text-[#5f524c]">{item.kind==="richiesta"?"Richiesta associazione":item.kind==="sollecito"?"Sollecito associazione "+item.number:
-            item.kind==="partner"?"Richiesta partner":item.kind==="partner_reminder"?"Sollecito partner "+item.number:"Dettagli workshop"} · {item.sentOn}</span></div>
+            item.kind==="partner"?"Richiesta partner":item.kind==="partner_reminder"?"Sollecito partner "+item.number:item.kind==="workshop_details"&&item.number>0?"Sollecito dettagli workshop "+item.number:"Dettagli workshop"} · {item.sentOn}</span></div>
         {confirmId===item.id ? <div className="w-full rounded-lg bg-[#f2ede3] p-2">
           <p className="mb-2 text-sm font-medium">Segnare questo messaggio come non inviato?</p>
           <div className="flex flex-wrap gap-2">
@@ -163,7 +163,7 @@ function SendHistory({bookings,sends}:{bookings:BookingView[];sends:EmailSendRow
 export function EmailTab({workshop,bookings,saved,defaults,ticketTailorFields,sends,today,previousConfigs}:Props) {
   const [fields,setFields]=useState<WorkshopEmailData>(()=>initialData(workshop,defaults,saved,ticketTailorFields));
   const candidates=emailRecipients(bookings,sends);
-  const groups=(["membership_request","partner","membership_reminder","partner_reminder","workshop_details"] as EmailWorkflowKind[])
+  const groups=(["membership_request","partner","membership_reminder","partner_reminder","workshop_details","workshop_details_reminder"] as EmailWorkflowKind[])
     .map(kind=>({kind,recipients:candidates.filter(r=>r.type===kind)}));
   const first=groups.find(g=>g.recipients.some(r=>r.email))?.kind;
   const [openKind,setOpenKind]=useState<EmailWorkflowKind|null>(first||null);
