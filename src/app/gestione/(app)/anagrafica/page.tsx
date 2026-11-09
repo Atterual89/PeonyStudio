@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { requireOperator } from "@/lib/gestionale/server/auth";
+import { requireOrganizer } from "@/lib/gestionale/server/auth";
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
 import { SharedDirectory } from "@/components/gestionale/SharedDirectory";
+import { BillingDirectoryManager } from "@/components/gestionale/BillingDirectoryManager";
 
 export default async function AnagraficaPage() {
-  await requireOperator();
+  await requireOrganizer();
   const db = getGestionaleDb();
 
   const { data: bookings, error: bookingsError } = await db.from("gw_bookings")
@@ -49,8 +50,10 @@ export default async function AnagraficaPage() {
 
   return <section className="max-w-4xl space-y-3">
     <Link prefetch={false} href="/gestione" className="text-sm underline">← Workshop</Link>
-    <h1 className="font-serif text-xl">Anagrafica partecipanti</h1>
-    <p className="text-sm text-[#5f524c]">Una sola scheda per persona, condivisa con Peony. Sono mostrati i partecipanti ai tuoi corsi; i dati associativi e i pagamenti non sono visibili qui.</p>
+    <h1 className="font-serif text-xl">Anagrafica condivisa</h1>
+    <p className="text-sm text-[#5f524c]">Le persone importate e quelle dei workshop condividono la stessa scheda con Peony. Dati fiscali separati da associazione e quote.</p>
+    <BillingDirectoryManager />
+    <h2 className="font-semibold">Persone già nei workshop</h2>
     <SharedDirectory people={directory} />
   </section>;
 }

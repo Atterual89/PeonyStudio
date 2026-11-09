@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
+import { BillingNameAutocomplete } from "./BillingNameAutocomplete";
 import { useState, useTransition } from "react";
 
 import { addRegistrationAction } from "@/app/gestione/(app)/w/registration-actions";
@@ -36,6 +37,8 @@ export function AddRegistration({
   const [more, setMore] = useState(false);
   const [person, setPerson] = useState("");
   const [partner, setPartner] = useState("");
+  const [personId,setPersonId]=useState<string|null>(null);
+  const [partnerId,setPartnerId]=useState<string|null>(null);
   // 4d (B2): email facoltative (Ale vede solo quelle che scrive lei).
   const [personEmail, setPersonEmail] = useState("");
   const [partnerEmail, setPartnerEmail] = useState("");
@@ -52,6 +55,8 @@ export function AddRegistration({
   function reset() {
     setPerson("");
     setPartner("");
+    setPersonId(null);
+    setPartnerId(null);
     setPersonEmail("");
     setPartnerEmail("");
     setStatus("prenotato");
@@ -106,6 +111,8 @@ export function AddRegistration({
         partner,
         personEmail,
         partnerEmail,
+        personId,
+        partnerId,
         status,
         fee: customFee === null || feeCents === standardFeeCents ? null : feeText,
         notes,
@@ -147,16 +154,10 @@ export function AddRegistration({
       <div className="space-y-2">
         <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-2">
           <Field label="Intestatario *" hint="Nome, cognome o nickname">
-            <input
-              className={inputClass}
-              value={person}
-              onChange={(e) => setPerson(e.target.value)}
-              autoComplete="off"
-              autoCapitalize="words"
-              aria-required="true"
-              autoFocus
-              placeholder="Nome o nickname"
-            />
+            <BillingNameAutocomplete value={person} selectedId={personId}
+              onText={text=>{setPerson(text);if(personId){setPersonId(null);setPersonEmail("");}}}
+              onPick={entry=>{setPerson(entry.name);setPersonId(entry.id);setPersonEmail(entry.email);}}
+              placeholder="Nome, cognome o nickname" />
           </Field>
           <Field label="Email intestatario">
             <input className={inputClass} type="email" inputMode="email" autoComplete="off"
@@ -165,8 +166,10 @@ export function AddRegistration({
         </div>
         <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-2">
           <Field label="Partner">
-            <input className={inputClass} value={partner} onChange={(e) => setPartner(e.target.value)}
-              autoComplete="off" autoCapitalize="words" placeholder="Nome o nickname" />
+            <BillingNameAutocomplete value={partner} selectedId={partnerId}
+              onText={text=>{setPartner(text);if(partnerId){setPartnerId(null);setPartnerEmail("");}}}
+              onPick={entry=>{setPartner(entry.name);setPartnerId(entry.id);setPartnerEmail(entry.email);}}
+              placeholder="Nome o nickname" />
           </Field>
           <Field label="Email partner">
             <input className={inputClass} type="email" inputMode="email" autoComplete="off"
