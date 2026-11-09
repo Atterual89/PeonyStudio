@@ -149,7 +149,7 @@ export async function savePeonyEmailSettings(
     } else if(known.has(key as typeof PEONY_DETAIL_FIELDS[number]["key"])){
       if(typeof value!=="string" || value.length>5500)
         return {ok:false,error:"Testo troppo lungo o non valido."};
-      if(key==="optionalActivityUrl" && value.trim() && !/^https:\/\/[^\\s]+$/i.test(value.trim()))
+      if(key==="optionalActivityUrl" && value.trim() && !/^https:\/\/\S+$/i.test(value.trim()))
         return {ok:false,error:"Il link attività deve iniziare con https://."};
       details[key]=value.trim();
     } else return {ok:false,error:"Campo email non riconosciuto."};
