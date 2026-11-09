@@ -66,7 +66,6 @@ function MembershipFacts({ info, ownerLabel }: { info: PeonyMembership | null; o
 
 function PersonRow({ person, eventId }: { person: PeonyAttendee; eventId: string }) {
   const [expanded,setExpanded]=useState(false);
-  const ticketType=person.ticketType?.trim();
   const roleLabel=person.freeEvent?"Ingresso libero":person.ticketRole==="observer"?"Observer":person.ticketRole==="practitioner"?"Praticante":"Tipo da identificare";
   const partnerLabel=person.partner?.name||person.partner?.email||"Partner da indicare";
   return (
@@ -85,11 +84,8 @@ function PersonRow({ person, eventId }: { person: PeonyAttendee; eventId: string
             ) : person.partnerRequired ? <span className="font-normal"> + {partnerLabel}</span> : null}
           </span>
           <span className="block text-xs text-[#5f524c]">
-            {roleLabel}{ticketType && !person.freeEvent ? ` · ${ticketType}` : null}
+            {roleLabel}
           </span>
-          {person.partnerRequired&&!person.partner?(
-            <span className="block text-xs text-[#9b4b1e]">Partner da indicare</span>
-          ):null}
         </span>
         <span aria-hidden="true" className="shrink-0 text-lg text-[#a8583e]">{expanded?"−":"+"}</span>
       </button>
