@@ -11,7 +11,8 @@ export function workshopDetailsEmail(input: WorkshopEmailData): string {
   const ticketTailorText = input.extraNotes?.startsWith("From Ticket Tailor:") ?
     input.extraNotes.slice("From Ticket Tailor:".length).trim() : "";
   const information = (ticketTailorText ? emailParagraph(ticketTailorText) : "") +
-    (input.program?.length ? emailList(input.program) : "");
+    (input.program?.length ? emailList(input.program) : "") +
+    (input.partnerPolicy ? emailParagraph("Partners: " + input.partnerPolicy) : "");
   const equipment = (input.ropes ? emailParagraph("Ropes: " + input.ropes) : "") +
     (input.clothing ? emailParagraph("Attire: " + input.clothing) : "");
   const prerequisites =
@@ -21,9 +22,11 @@ export function workshopDetailsEmail(input: WorkshopEmailData): string {
   const associationDeadline=input.membershipDeadline.trim().startsWith("at least") ? "" :
     " Deadline: " + input.membershipDeadline + ".";
 
+  const glanceTimes=(input.schedule??[]).filter(line=>/doors? open|start|end/i.test(line)).slice(0,3);
   const sections=[
     emailBox("Important at a glance",
       emailParagraph("Dates: " + input.dateLabel) +
+      emailList(glanceTimes) +
       (input.arrival ? emailParagraph(input.arrival) : "")),
     emailSection("Event Schedule",emailList(input.schedule ?? [])),
     emailSection("Workshop Information",information),
