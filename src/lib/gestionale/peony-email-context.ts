@@ -37,7 +37,7 @@ export function formatPeonyEmailDate(
   context:PeonyEmailEventContext, fallback:string, language:PeonyEmailLanguage,
 ):string {
   const start=context.startsOn;
-  if(!start || !/^\d{4}-\d{2}-\d{2}$/.test(start))return fallback;
+  if(!start || !/^\d{4}-\d{2}-\d{2}$/.test(start))return language==="en"?"Date to be confirmed":fallback;
   const end=context.endsOn && /^\d{4}-\d{2}-\d{2}$/.test(context.endsOn) ?
     context.endsOn : start;
   const locale=language==="en"?"en-GB":"it-IT";
