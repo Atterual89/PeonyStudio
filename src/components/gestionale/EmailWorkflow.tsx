@@ -8,18 +8,19 @@ import { markEmailSentAction } from "@/app/gestione/(app)/w/email-actions";
 import type { EmailRecipient } from "@/lib/gestionale/email/recipients";
 import { membershipRequestEmail } from "@/lib/gestionale/email/membership-request";
 import { partnerUnknownEmail } from "@/lib/gestionale/email/partner-unknown";
-import { membershipReminderEmail, partnerReminderEmail } from "@/lib/gestionale/email/reminder";
+import { membershipReminderEmail, partnerReminderEmail, workshopDetailsReminderEmail } from "@/lib/gestionale/email/reminder";
 import { workshopDetailsEmail } from "@/lib/gestionale/email/workshop-details";
 import type { WorkshopEmailData } from "@/lib/gestionale/email/types";
 import { buttonClass, cardClass, inputClass, Notice } from "./ui";
 
-export type EmailWorkflowKind = "membership_request" | "membership_reminder" | "partner" | "partner_reminder" | "workshop_details";
+export type EmailWorkflowKind = "membership_request" | "membership_reminder" | "partner" | "partner_reminder" | "workshop_details" | "workshop_details_reminder";
 const TITLES: Record<EmailWorkflowKind,string> = {
   membership_request: "Richiesta di associazione",
   partner: "Partner da conoscere",
   membership_reminder: "Sollecito associazione",
   partner_reminder: "Sollecito partner",
   workshop_details: "Dettagli del workshop",
+  workshop_details_reminder: "Sollecito dettagli del workshop",
 };
 
 type Props = {
@@ -40,6 +41,7 @@ function primaryVariant(row: EmailRecipient): string {
 }
 
 function proposedSelection(kind: EmailWorkflowKind, recipients: EmailRecipient[]): string[] {
+  if (kind.includes("reminder")) return [];
   if (!kind.startsWith("membership")) return recipients.filter((r)=>Boolean(r.email)).map((r)=>r.personId);
   const first = recipients.find((r)=>r.email);
   return first ? recipients.filter((r)=>r.email && primaryVariant(r)===primaryVariant(first)).map((r)=>r.personId) : [];
@@ -64,7 +66,7 @@ export function EmailWorkflow({ kind, recipients, workshopId, today, fields, val
   const invalidFields = !fields.title.trim() || !fields.dateLabel.trim() ||
     !fields.location.trim() || !fields.intercom.trim() || !fields.membershipDeadline.trim() ||
     !fields.mapsUrl || !fields.membershipFormUrl;
-  const detailsIncomplete = kind==="workshop_details" && (
+  const detailsIncomplete = (kind==="workshop_details" || kind==="workshop_details_reminder") && (
     !fields.schedule?.length || !fields.program?.length || !fields.ropes?.trim() || !fields.clothing?.trim()
   );
   const canPrepare = chosen.length>0 && !mixed && !invalidFields && !detailsIncomplete;
@@ -72,6 +74,7 @@ export function EmailWorkflow({ kind, recipients, workshopId, today, fields, val
     kind === "membership_reminder" ? "Reminder – association registration – "+fields.title :
     kind === "partner" ? "Your workshop partner – "+fields.title :
     kind === "partner_reminder" ? "Reminder – workshop partner – "+fields.title :
+    kind === "workshop_details_reminder" ? "Reminder – practical information – "+fields.title :
     "Practical information – "+fields.title;
 
   // Render from the current selection on every render: never reuse another recipient's HTML.
@@ -85,6 +88,7 @@ export function EmailWorkflow({ kind, recipients, workshopId, today, fields, val
     const data = { ...fields, membershipExpiresOn: validUntil, nextMembershipExpiresOn: renewalUntil };
     if (kind==="partner") return partnerUnknownEmail(data);
     if (kind==="partner_reminder") return partnerReminderEmail(data);
+    if (kind==="workshop_details_reminder") return workshopDetailsReminderEmail(fields);
     return workshopDetailsEmail(fields);
   })();
 
@@ -143,7 +147,8 @@ export function EmailWorkflow({ kind, recipients, workshopId, today, fields, val
           })
         : await markEmailSentAction({
             workshopId,personIds:chosen.map((r)=>r.personId),
-            kind:kind==="partner" ? "partner" : kind==="partner_reminder" ? "partner_reminder" : "workshop_details",sentOn,
+            kind:kind==="partner" ? "partner" : kind==="partner_reminder" ? "partner_reminder" : "workshop_details",
+            mode:kind==="workshop_details_reminder" ? "reminder" : "initial",sentOn,
           });
       setConfirming(false);
       if(result.ok) {
