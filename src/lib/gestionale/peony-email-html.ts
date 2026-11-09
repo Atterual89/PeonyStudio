@@ -1,4 +1,5 @@
 import { emailAssets, escapeHtml } from "@/lib/gestionale/email/layout";
+import { peonyInformativeSections, type PeonyEmailDetailFields } from "@/lib/gestionale/peony-email-details";
 import {
   peonyEmailLanguage, peonyEmailSections,
   type PeonyEmailAudience, type PeonyEmailEventContext, type PeonyEmailLanguage,
@@ -64,6 +65,7 @@ export function buildPeonyEmailHtml(input: {
   context?: PeonyEmailEventContext;
   audience?: PeonyEmailAudience;
   language?: PeonyEmailLanguage;
+  detailFields?: PeonyEmailDetailFields;
 }): string {
   const language = input.language ?? peonyEmailLanguage(input.eventTitle, input.context);
   const en = language === "en";
@@ -72,10 +74,15 @@ export function buildPeonyEmailHtml(input: {
     input.kind === "partner" ? (en ? "Partner information" : "Dati partner") :
     input.audience === "observer" ? "Observer" :
     (en ? "Practical information" : "Informazioni evento");
-  const sections = peonyEmailSections({
-    kind: input.kind, eventTitle: input.eventTitle, context: input.context,
-    audience: input.audience, language,
-  });
+  const sections = input.kind === "details" ?
+    peonyInformativeSections({
+      eventTitle:input.eventTitle,dateLabel:input.dateLabel,
+      context:input.context,fields:input.detailFields,
+      audience:input.audience,language,
+    }) : peonyEmailSections({
+      kind: input.kind, eventTitle: input.eventTitle, context: input.context,
+      audience: input.audience, language,
+    });
   return '<!doctype html><html lang="' + language + '"><head><meta charset="utf-8">' +
     '<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light">' +
     '<title>' + escapeHtml(resolvePeonyTemplateText(input.template.subject,input.eventTitle,input.dateLabel)) + '</title></head>' +
@@ -89,7 +96,8 @@ export function buildPeonyEmailHtml(input: {
     '<div style="width:120px;height:3px;background:#8f2635;margin:0 auto 12px;"></div>' +
     '<div style="font-size:14px;font-weight:bold;color:#6d2630;">' + escapeHtml(input.dateLabel) + '</div></td></tr>' +
     '<tr><td style="padding:30px 38px 10px;">' +
-    '<h1 style="font:600 25px Georgia,serif;color:#741f2d;margin:0 0 20px;">' + escapeHtml(heading) + '</h1>' +
+    (input.kind === "details" ? "" :
+      '<h1 style="font:600 25px Georgia,serif;color:#741f2d;margin:0 0 20px;">' + escapeHtml(heading) + '</h1>') +
     richParagraphs(resolvePeonyTemplateText(input.template.body,input.eventTitle,input.dateLabel)) + '</td></tr>' +
     sections +
     '<tr><td style="padding:30px 38px 36px;font-size:15px;line-height:1.7;">' +
