@@ -34,9 +34,8 @@ export async function getAssociationMailState() {
     : {data:[],error:null};
   if (allocations.error) return {ok:false as const,error:"Impossibile caricare gli abbinamenti delle quote."};
 
-  // Una quota dell'anno corrente può essere già nel libro ufficiale, ma il
-  // versamento Gmail/Qonto resta da riconciliare. Mostra il conflitto prima del
-  // clic su Conferma, senza assegnarlo né spostarlo al 2027 automaticamente.
+  // Una quota può essere già confermata da un'altra email: segnala il
+  // conflitto prima del clic, senza assegnare la stessa quota due volte.
   const suggestionsByPayment=new Map<string,{id:string;name:string}>();
   for(const payment of payments.data??[]){
     const matches=(suggestions.data??[]).filter(
@@ -55,16 +54,16 @@ export async function getAssociationMailState() {
   const evidence=suggestedIds.length&&!suggestedPeople.error
     ? await readAllMemberEvidence().catch(()=>[])
     : [];
-  const officialRows=evidence.filter(row=>row.source==="official_members_book");
+  const verifiedPayments=evidence.filter(row=>row.source==="manual_override");
 
   return {ok:true as const, state:state.data, payments:(payments.data??[]).map(p=>{
     const proposed=suggestionsByPayment.get(p.id)??null;
     const person=proposed?peopleById.get(proposed.id):null;
     const period=membershipPeriodFor(p.paid_at.slice(0,10));
     const alreadyPaidPeriod=person&&period&&deriveMembershipState(
-      officialRows,{email:person.email,firstName:person.first_name,lastName:person.last_name},
+      verifiedPayments,{email:person.email,firstName:person.first_name,lastName:person.last_name},
       {paymentsFrom:period.paymentsFrom,paymentsUntil:period.validUntil}
-    ).currentYearPaid?period.paymentsFrom:null;
+    ).paymentMatchMethod==="payment_email"?period.paymentsFrom:null;
     return ({
     ...p, suggested:proposed, alreadyPaidPeriod,
     availableSlots:suggestedQuotaCount({
@@ -153,15 +152,14 @@ export async function confirmAssociationPaymentAction(paymentId: string,target:P
   if(capacity<1)return {ok:false as const,error:"Importo non compatibile con una quota."};
   const evidence=await readAllMemberEvidence();
   const window={paymentsFrom:period.paymentsFrom,paymentsUntil:period.validUntil};
-  // Il libro ufficiale resta autorevole: non associare due volte la stessa
-  // quota già registrata da TeamArtist.
-  const official=deriveMembershipState(evidence.filter(row=>row.source!=="manual_override"),identity,window);
+  // La prova da email prevale sulla validazione manuale, ma un secondo
+  // pagamento confermato via email per lo stesso periodo non va duplicato.
   const state=deriveMembershipState(evidence,identity,window);
-  if(official.currentYearPaid||(state.currentYearPaid&&state.paymentMatchMethod!=="manual"))
+  if(state.currentYearPaid&&state.paymentMatchMethod!=="manual")
     return {ok:false as const,error:
       period.paymentsFrom==="2025-09-01"
         ?"Quota 2025/26 già verificata: non è stato salvato nulla. Se il pagamento riguarda il 2027, seleziona 2027 nella scheda e riprova."
-        :`Quota ${period.paymentsFrom.slice(0,4)} già verificata: non è stato salvato nulla. Controlla il libro soci.`
+        :`Quota ${period.paymentsFrom.slice(0,4)} già verificata via email: non è stato salvato nulla.`
     };
   // Una verifica esclusivamente manuale NON blocca un pagamento documentato:
   // la funzione SQL sostituisce la sua prova conservando l'abbinamento e lo storico.
