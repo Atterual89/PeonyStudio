@@ -15,6 +15,8 @@ const sameEmail=(a:string|null|undefined,b:string|null|undefined)=>{
 };
 const normalizedName=(first:string|null|undefined,last:string|null|undefined)=>
   normalizeMembershipNameKey(first,last);
+const normalizedAlias=(value:string|null|undefined)=>(value??"").trim().toLocaleLowerCase("it")
+  .normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ");
 
 /** Non utilizza email di pagamento condivise, nomi simili o nickname non verificati
  * come prova sufficiente per unire due anagrafiche.
@@ -53,9 +55,14 @@ export function resolveCentralPerson(input:{
   // Email univoca E stesso nome ufficiale o nickname esatto: non associare un
   // biglietto acquistato da terzi solo perche' condivide l'email del compratore.
   if(!ticketEmail||!ticketName)return null;
-  const candidates=people.filter(person=>sameEmail(person.email,ticketEmail)&&(
-    normalizedName(person.first_name,person.last_name)===normalizedName(ticketName,null)||
-    normalizedName(person.nickname,null)===normalizedName(ticketName,null)
-  ));
+  const ticketNameKey=normalizedName(ticketName,null);
+  const ticketAlias=normalizedAlias(ticketName);
+  const candidates=people.filter(person=>{
+    if(!sameEmail(person.email,ticketEmail))return false;
+    const personNameKey=normalizedName(person.first_name,person.last_name);
+    const personNickname=normalizedAlias(person.nickname);
+    return Boolean(ticketNameKey&&personNameKey&&ticketNameKey===personNameKey)||
+      Boolean(ticketAlias&&personNickname&&ticketAlias===personNickname);
+  });
   return candidates.length===1?{personId:candidates[0].id,reason:"ticket_identity"}:null;
 }

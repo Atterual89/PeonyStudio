@@ -304,9 +304,6 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
       }:directMember?{
         name:[directMember.first_name,directMember.last_name].filter(Boolean).join(" ").trim()||"Socio",
         email:directMember.email,origin:"Registro associativo",
-      }:person?{
-        name:[person.first_name,person.last_name].filter(Boolean).join(" ").trim()||person.nickname||"Anagrafica",
-        email:person.email??null,origin:"Anagrafica",
       }:null;
       const identity = identityForLinkedPeonyAttendee(
         evidence, person,person?.membership_name_key||person?.membership_email

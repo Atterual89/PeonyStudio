@@ -25,6 +25,13 @@ describe("Ticket Tailor e KL -> gw_people",()=>{
   expect(resolveCentralPerson({people:[p("a","Mario","Rossi","payer@test.it"),p("b","Mario","Rossi","payer@test.it")],
     memberEvidence:[],ticketEmail:"payer@test.it",ticketName:"Mario Rossi"})).toBeNull();
  });
+ it("un nickname a una sola parola non fa coincidere due nomi diversi solo per l'email",()=>{
+  expect(resolveCentralPerson({people:[p("a","Mario","Rossi","mario@test.it",{nickname:"Mario"})],
+    memberEvidence:[],ticketEmail:"mario@test.it",ticketName:"Giulia"})).toBeNull();
+  expect(resolveCentralPerson({people:[p("a","Mario","Rossi","mario@test.it",{nickname:"CordaRossa"})],
+    memberEvidence:[],ticketEmail:"mario@test.it",ticketName:"CordaRossa"}))
+    .toEqual({personId:"a",reason:"ticket_identity"});
+ });
  it("il nome completo e l'email unici individuano la stessa scheda",()=>{
   expect(resolveCentralPerson({people:[p("a","Mario","Rossi","mario@test.it")],
     memberEvidence:[],ticketEmail:"mario@test.it",ticketName:"Mario Rossi"}))
