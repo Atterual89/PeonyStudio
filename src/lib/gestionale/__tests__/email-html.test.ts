@@ -64,7 +64,7 @@ describe("four HTML message types", () => {
   });
   it("workshop details omits empty optional sections", () => {
     const html = workshopDetailsEmail({ ...base, prerequisitesModels: [], extraNotes: "" });
-    expect(html).toContain("What we will work on");
+    expect(html).toContain("Workshop Information");
     expect(html).toContain("12 jute ropes");
     expect(html).not.toContain("Additional information");
     expect(html).toContain("https://peonystudio.net/email/peony-entrance.jpg");
