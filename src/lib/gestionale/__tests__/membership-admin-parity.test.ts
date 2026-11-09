@@ -17,7 +17,7 @@ describe("stesse regole per admin e gestionale",()=>{
  it("il libro ufficiale verifica la tessera solo finche' e' vigente",()=>{
   const official=[row("official_members_book","2025-09-01")];
   expect(deriveMembershipState(official,{email:"dafne@example.test"})).toMatchObject({
-    status:"valid",currentYearPaid:false,formPresent:false,verifiedInOfficialBook:true,
+    status:"valid",currentYearPaid:false,formPresent:true,verifiedInOfficialBook:true,
   });
   expect(deriveMembershipState(official,{email:"dafne@example.test"},{referenceDate:"2027-02-19"}))
     .toMatchObject({status:"payment_missing",formPresent:true,verifiedInOfficialBook:false});

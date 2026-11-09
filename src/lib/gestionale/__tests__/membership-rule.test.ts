@@ -27,7 +27,7 @@ describe("registrazione Google e quota indipendenti", () => {
     expect(status([row("official_members_book")])).toMatchObject({kind:"in_regola",expiresAt:"2026-12-31"});
     expect(status([form(), row("official_members_book")])).toMatchObject({kind:"in_regola"});
     expect(deriveForWorkshop([row("official_members_book")],{email:"viola@example.test"}, "2026-11-10"))
-      .toMatchObject({formPresent:false,currentYearPaid:false,verifiedInOfficialBook:true});
+      .toMatchObject({formPresent:true,currentYearPaid:false,verifiedInOfficialBook:true});
     expect(status([row("official_members_book")],"2027-02-19"))
       .toMatchObject({kind:"quota_mancante"});
     expect(status([row("official_members_book",{membership_status:"expired"})]))
