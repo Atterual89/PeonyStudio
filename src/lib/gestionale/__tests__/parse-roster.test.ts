@@ -146,6 +146,21 @@ describe("regole aggiuntive della Fase 3", () => {
     expect(parse("1. Aizen e Franco cancellata")[0].baseStatus).toBe("cancellato");
   });
 
+  it("separatore e, slash o più: sempre due partecipanti in una sola iscrizione",()=>{
+    const rows=parse("Aizen e Franco\nPavel/Maru\nTizio+Caio");
+    expect(rows.map(row=>row.people)).toEqual([
+      ["Aizen","Franco"],["Pavel","Maru"],["Tizio","Caio"],
+    ]);
+    expect(rows).toHaveLength(3);
+    const [paid]=parse("1. Pavel/Maru 160€ paypal");
+    expect(paid.people).toEqual(["Pavel","Maru"]);
+    expect(paid.payments).toHaveLength(1);
+    const [fee]=parse("1. Anna+Paolo 450€/ 160€ paypal");
+    expect(fee.people).toEqual(["Anna","Paolo"]);
+    expect(fee.feeCents).toBe(45000);
+    expect(fee.payments[0].amountCents).toBe(16000);
+  });
+
   it("+200€ non è un partner", () => {
     const [row] = parse("1. Lino +200€ cash");
     expect(row.people).toEqual(["Lino"]);
