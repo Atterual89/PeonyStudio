@@ -73,7 +73,7 @@ function PeopleLines({ booking }: { booking: BookingView }) {
     <span className="block space-y-1">
       {booking.people.map((entry) => (
         <span key={entry.participantId} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-          <MembershipBadge badge={entry.membership} />
+          <MembershipBadge badge={entry.membership} compact />
           <span className="font-medium">{personNames(entry).main}</span>
           {personNames(entry).alias ? <span className="text-xs text-[#5f524c]">{personNames(entry).alias}</span> : null}
           {entry.person.email ? null : <span className="font-medium text-[#9b2c2c]">{UI_LABELS.missingEmail.toLowerCase()}</span>}
