@@ -17,7 +17,7 @@ const REGISTRATION_COLUMNS = [
   "id, version, status, present, notes, invoice_status, agreed_fee_cents, fee_custom, created_at",
   // Solo il ruolo di chi l'ha creata ("Inserito da Peony/Ale"), mai il nome.
   "gw_operators!gw_bookings_created_by_fkey(role)",
-  "gw_booking_participants(id, is_primary, entered_as, entered_email, removed_at)",
+  "gw_booking_participants(id, is_primary, entered_as, entered_email, match_status, auto_created_person, removed_at)",
   `gw_payments(${PAYMENT_COLUMNS})`,
 ].join(", ");
 
@@ -64,7 +64,7 @@ type RegistrationRecord = {
   fee_custom: boolean;
   created_at: string;
   gw_operators?: { role: OperatorRole } | { role: OperatorRole }[] | null;
-  gw_booking_participants: { id: string; is_primary: boolean; entered_as: string | null; entered_email: string | null; removed_at: string | null }[];
+  gw_booking_participants: { id: string; is_primary: boolean; entered_as: string | null; entered_email: string | null; match_status: "automatico"|"da_abbinare"|"confermato"; auto_created_person: boolean; removed_at: string | null }[];
   gw_payments: PaymentRecord[];
 };
 
@@ -186,6 +186,8 @@ export async function getRegistrations(workshopId: string): Promise<Registration
         enteredAs: p.entered_as,
         enteredEmail: p.entered_email ?? null,
         alreadyAs: hints.get(p.id) ?? null,
+        matchStatus: p.match_status ?? "da_abbinare",
+        autoCreated: Boolean(p.auto_created_person),
       })),
     payments: sortPayments(row.gw_payments.map(toPayment)),
   }));
