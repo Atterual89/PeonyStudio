@@ -211,6 +211,12 @@ export function PeonyEventOperations({
     kind, eventTitle, dateLabel, template: { ...template, subject: emailSubject, body: reminderIntro+template.body },
     context: emailContext, audience,
   }), [kind, eventTitle, dateLabel, template, emailContext, audience, emailSubject, reminderIntro]);
+  const sendCounts = useMemo(() => {
+    const counts = new Map<string,number>();
+    for (const record of sends.filter(send=>send.kind===kind))
+      counts.set(record.ticketId,(counts.get(record.ticketId)??0)+1);
+    return counts;
+  },[kind,sends]);
   const hasObserverTickets = attendees.some(person => person.ticketRole === "observer");
   const templateLanguage = peonyEmailLanguage(eventTitle,emailContext);
   const eligible = attendees.filter((person) =>
@@ -429,7 +435,7 @@ export function PeonyEventOperations({
                     <span className="min-w-0 flex-1">
                       {person.name}<span className="block break-words text-xs text-[#5f524c]">{person.email || "Senza email"}</span>
                       {latestSend.has(person.ticketId) ? (
-                        <span className="block text-xs text-[#326941]">Inviata: {latestSend.get(person.ticketId)?.sentOn}</span>
+                        <span className="block text-xs text-[#326941]">Inviata: {latestSend.get(person.ticketId)?.sentOn}{(sendCounts.get(person.ticketId)??0)>1 ? " · Solleciti: "+((sendCounts.get(person.ticketId)??1)-1) : ""}</span>
                       ) : null}
                     </span>
                   </label>
