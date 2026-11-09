@@ -159,7 +159,7 @@ export function RegistryPersonActions({
             {p.email&&<span className="block break-all text-xs text-[#5f524c]">{p.email}</span>}
             {p.hasMemberLink&&<span className="block text-xs text-[#946321]">Già collegata a un socio: verificare prima di sostituire</span>}
           </span>
-          <Link href={`/gestione/p/${p.id}`} className="text-xs text-[#a8583e] underline">Apri</Link>
+          <Link prefetch={false} href={`/gestione/p/${p.id}`} className="text-xs text-[#a8583e] underline">Apri</Link>
         </label>)}
       </div>}
       {results?.length===0&&<p className="text-xs text-[#5f524c]">Nessuna scheda trovata con questa ricerca.</p>}
@@ -184,7 +184,7 @@ export function RegistryPersonActions({
         </div>}
       </div>
       {created&&<p role="status" className="text-sm text-[#326941]">
-        {created.warning??"Scheda collegata."} <Link href={`/gestione/p/${created.id}`} className="underline">Apri scheda</Link>
+        {created.warning??"Scheda collegata."} <Link prefetch={false} href={`/gestione/p/${created.id}`} className="underline">Apri scheda</Link>
       </p>}
       {error&&<p role="alert" className="text-sm text-[#9b2c2c]">{error}</p>}
       <button type="button" className="text-xs text-[#5f524c] underline"

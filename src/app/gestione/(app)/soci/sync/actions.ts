@@ -90,7 +90,7 @@ async function loadPreview() {
   }
   const previousForms = result.count ?? 0;
   if (previousForms >= 30 && forms.validRows < previousForms * 0.75) {
-    throw new SociSyncError("Il foglio Google contiene molte meno domande del registro salvato. Sincronizzazione bloccata per sicurezza, senza cancellazioni.");
+    throw new SociSyncError(`Dati Google incompleti: ${forms.validRows} risposte valide lette, ${previousForms} registrazioni già salvate. Controlla i fogli italiano e inglese e gli intervalli di lettura. Sincronizzazione sospesa per sicurezza: nessuna cancellazione.`);
   }
   return { forms };
 }

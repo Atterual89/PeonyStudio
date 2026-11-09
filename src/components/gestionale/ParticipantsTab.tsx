@@ -28,7 +28,15 @@ import { RefreshMembershipButton } from "./QuotaOk";
 import { Chip, RowMenu, cardClass } from "./ui";
 import { useIsDesktop } from "./useIsDesktop";
 
-type SortKey = "nome" | "socio" | "stato";
+type SortKey = "data" | "nome" | "socio" | "stato";
+
+function registrationMoment(createdAt?: string | null): string {
+  if(!createdAt)return "Data non disponibile";
+  const date=new Date(createdAt);
+  return Number.isNaN(date.getTime())?"Data non disponibile":new Intl.DateTimeFormat("it-IT",{
+    day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit",timeZone:"Europe/Rome",
+  }).format(date);
+}
 
 function isContactGroup(filter: BookingFilter): filter is ContactGroup {
   return filter === "da_contattare" || filter === "richiesta_inviata" || filter === "da_verificare";
@@ -38,6 +46,8 @@ const STATUS_ORDER = Object.keys(BOOKING_STATUS_LABELS);
 
 function sortValue(booking: BookingView, key: SortKey): string | number {
   switch (key) {
+    case "data":
+      return booking.createdAt ?? "9999-12-31";
     case "nome":
       return bookingTitle(booking).toLowerCase();
     case "socio":
@@ -121,7 +131,7 @@ export function ParticipantsTab({
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [sort, setSort] = useState<{ key: SortKey; asc: boolean }>({ key: "nome", asc: true });
+  const [sort, setSort] = useState<{ key: SortKey; asc: boolean }>({ key: "data", asc: true });
   // D26: nei gruppi delle richieste contano le iscrizioni confermate; a richiesta anche gli interessati.
   const [includeInterested, setIncludeInterested] = useState(false);
   const scope = { includeInterested };
@@ -245,6 +255,7 @@ export function ParticipantsTab({
                       <span className="flex flex-wrap items-center gap-2">
                         <span className="font-semibold">{bookingTitle(booking)}</span>
                         <StatusTag booking={booking} />
+                        <span className="text-xs text-[#5f524c]">{registrationMoment(booking.createdAt)}</span>
                       </span>
                       <PeopleLines booking={booking} />
                     </span>
@@ -270,6 +281,7 @@ export function ParticipantsTab({
             <thead className="border-b border-[#211815]/10 bg-[#f2ede3]/60 text-[#5f524c]">
               <tr>
                 <SortHeader label="Iscrizione" sortKey="nome" {...headerProps} />
+                 <SortHeader label="Data" sortKey="data" {...headerProps} />
                 <SortHeader label="Persone e soci" sortKey="socio" {...headerProps} />
                 <SortHeader label="Stato" sortKey="stato" {...headerProps} />
                 {showPresence ? <th className="px-3 py-2 text-left font-semibold">Presente</th> : null}
@@ -287,6 +299,7 @@ export function ParticipantsTab({
                       aria-expanded={open}
                     >
                       <td className="px-3 py-2 font-semibold">{bookingTitle(booking)}</td>
+                       <td className="px-3 py-2 whitespace-nowrap text-xs text-[#5f524c]">{registrationMoment(booking.createdAt)}</td>
                       <td className="px-3 py-2">
                         <PeopleLines booking={booking} />
                       </td>

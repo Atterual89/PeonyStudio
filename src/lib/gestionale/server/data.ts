@@ -292,6 +292,7 @@ export async function getWorkshopBookings(workshop: WorkshopView): Promise<Booki
       bookingId: booking.id,
       version: booking.version,
       status: booking.status,
+      createdAt: booking.created_at,
       present: booking.present,
       notes: booking.notes,
       agreedFeeCents: booking.agreed_fee_cents === null ? null : Number(booking.agreed_fee_cents),

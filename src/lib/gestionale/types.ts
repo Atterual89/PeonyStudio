@@ -176,6 +176,8 @@ export type BookingView = {
   bookingId: string;
   version: number;
   status: BookingStatus;
+  /** Data di inserimento della prenotazione, per ordinamento cronologico. */
+  createdAt?: string | null;
   /** D27: spunta "Presente", una per iscrizione (una coppia = 1). */
   present: boolean;
   notes: string | null;
