@@ -60,7 +60,8 @@ const SECTIONS = [
 ] as const;
 
 function initialData(workshop: WorkshopView, defaults: EmailDefaults, saved: EmailSavedFields, ticketTailorFields: Partial<WorkshopEmailData>): WorkshopEmailData {
-  return { ...workshopEmailDefaults(workshop), ...defaults.fields, ...ticketTailorFields, ...saved.fields } as WorkshopEmailData;
+  return { ...workshopEmailDefaults(workshop), ...defaults.fields, ...ticketTailorFields, ...saved.fields,
+    ticketTailor:ticketTailorFields.ticketTailor } as WorkshopEmailData;
 }
 
 function EditWorkshopDetails({workshop,defaults,saved,ticketTailorFields,onSave,previousConfigs}:{workshop:WorkshopView;defaults:EmailDefaults;saved:EmailSavedFields;ticketTailorFields:Partial<WorkshopEmailData>;onSave:(data:WorkshopEmailData)=>void;previousConfigs:Props["previousConfigs"]}) {
@@ -78,6 +79,7 @@ function EditWorkshopDetails({workshop,defaults,saved,ticketTailorFields,onSave,
   function save() {
     startTransition(async()=>{
       const fields:Partial<WorkshopEmailData>={...data};
+      delete fields.ticketTailor; // TT remains live, not part of saved overrides.
       // TT-sourced values remain live; only explicitly edited overrides are stored.
       if (ticketTailorFields.schedule && JSON.stringify(fields.schedule)===JSON.stringify(ticketTailorFields.schedule))
         delete fields.schedule;
@@ -89,15 +91,14 @@ function EditWorkshopDetails({workshop,defaults,saved,ticketTailorFields,onSave,
       } else setMessage({tone:"error",text:result.error});
     });
   }
-  const fromTicketTailor=Boolean(data.extraNotes?.startsWith("From Ticket Tailor:"));
+  const fromTicketTailor=Boolean(data.ticketTailor?.description || data.extraNotes?.startsWith("From Ticket Tailor:"));
   const missing=[!data.schedule?.length?"Orari":null,
-    !fromTicketTailor&&!data.program?.length?"Programma":null,
-    !fromTicketTailor&&!data.ropes?.trim()?"Corde":null,
-    !fromTicketTailor&&!data.clothing?.trim()?"Abbigliamento":null].filter(Boolean);
+    !fromTicketTailor&&!data.program?.length?"Descrizione workshop":null].filter(Boolean);
   return <details className={cardClass+" p-3"}>
-    <summary className="min-h-10 cursor-pointer font-semibold">Dettagli del workshop · {missing.length ? "Da completare: "+missing.join(", ") : "Completi ✓"}</summary>
-    <p className="mt-2 text-sm text-[#5f524c]">Compila una volta i dettagli condivisi dalle email. Programma e prerequisiti non vengono inventati o copiati automaticamente da altri workshop.</p>
-    {fromTicketTailor ? <p className="mt-2 text-sm text-[#5f524c]">Descrizione recuperata da Ticket Tailor. Verifica che includa programma, materiali e prerequisiti prima di inviare.</p> : null}
+    <summary className="min-h-10 cursor-pointer font-semibold">Dettagli del workshop · {fromTicketTailor ? "Recuperati da Ticket Tailor ✓" : missing.length ? "Dati non disponibili: "+missing.join(", ") : "Completi ✓"}</summary>
+    <p className="mt-2 text-sm text-[#5f524c]">Programma, materiali, requisiti e orari vengono letti dall\u0027evento Ticket Tailor collegato. Gli eventuali campi sottostanti servono solo per integrazioni o correzioni specifiche.</p>
+    {data.ticketTailor?.description ? <details className="mt-2 rounded-lg bg-[#f2ede3] p-3 text-sm"><summary className="cursor-pointer font-medium">Fonte Ticket Tailor · programma e materiali originali</summary><p className="mt-2 whitespace-pre-wrap text-xs">{data.ticketTailor.description}</p></details> :
+      <p className="mt-2 text-sm text-[#9b4b1e]">Descrizione non disponibile nella scheda Ticket Tailor collegata. Puoi integrare il testo manualmente.</p>}
     <p className="mt-2 text-sm"><Link prefetch={false} href="/gestione/altro/impostazioni-email" className="text-[#8f2635] underline">Modifica impostazioni generali: associazione, indirizzo, regole, firma</Link></p>
     {previousConfigs.length ? <div className="mt-3 rounded-lg bg-[#f2ede3] p-3">
       <label className="block text-sm font-medium">Copia testi da un workshop precedente
