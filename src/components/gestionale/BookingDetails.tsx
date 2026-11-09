@@ -130,15 +130,13 @@ function PersonBlock({
         <PersonInlineEditor person={person} member={entry.member} onDone={() => setEditing(false)} />
       ) : (
         <div className="space-y-2">
-          {(
-            <QuotaOkCheckbox
+          <QuotaOkCheckbox
               checked={badge.kind==="in_regola" || Boolean("quotaPaid" in badge && badge.quotaPaid)}
               editable={canRevokeQuotaOk(badge) || (canMarkQuotaOk(badge)&&Boolean(entry.fullName||person.email||entry.member?.email))}
               onToggle={paid=>paid
                 ? markQuotaOkAction({personId:person.id,workshopId})
                 : revokeQuotaOkAction({personId:person.id,workshopId})}
             />
-          ) : null}
           {badge.kind === "quota_mancante" && entry.member?.expires_at &&
             entry.member.expires_at < workshopStartsOn ? (
               <p className="text-xs text-[#7a5212]">
@@ -146,8 +144,7 @@ function PersonBlock({
                 La quota per questo workshop non risulta ancora verificata.
               </p>
           ) : null}
-          {true ? (
-            linking ? (
+          {linking ? (
               <div className="space-y-2">
                 <MemberLinker
                   person={{
@@ -167,8 +164,7 @@ function PersonBlock({
                 onClick={() => setLinking(true)}>
                 {memberKeyOfPerson(person) ? "Cambia abbinamento" : "Cerca nel libro soci"}
               </button>
-            )
-          ) : null}
+            )}
         </div>
       )}
 
