@@ -56,7 +56,8 @@ describe("roster e sincronizzazione",()=>{
   it("mostra il ruolo e filtra gli observer senza entrare nella verifica quote",()=>{
     expect(ui).toContain("Praticanti ({practitioners})");
     expect(ui).toContain("Observer ({observers})");
-    expect(ui).toContain("Tessera associativa non richiesta");
+    expect(ui).toContain("<QuotaOkCheckbox");
+    expect(ui).not.toContain("Tessera associativa non richiesta per questo evento.");
     expect(ui).toContain("Tipo da identificare");
   });
   it("non perde il tipo già sincronizzato per un ordine incompleto",()=>{
