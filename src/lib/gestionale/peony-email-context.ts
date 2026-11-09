@@ -122,7 +122,7 @@ export function peonyEmailSections(input: {
           "Come observer puoi osservare e socializzare, ma non legare né essere legata/o. Non è richiesta l'iscrizione all'associazione.") +
         emailParagraph(en ?
           "Your ticket was booked through Ticket Tailor. No payment is required at the door and no rope voucher is included." :
-          "La prenotazione e il pagamento sono avvenuti tramite Ticket Tailor. Non è richiesto un altro pagamento all'ingresso e non è previsto il buono corde.")));
+          "La iscrizione e il pagamento sono avvenuti tramite Ticket Tailor. Non è richiesto un altro pagamento all'ingresso e non è previsto il buono corde.")));
     } else if (jam) {
       parts.push(emailBox("Rope Jam",
         emailParagraph("Se è la tua prima visita, tieni pronto il QR code del biglietto all'ingresso.") +
