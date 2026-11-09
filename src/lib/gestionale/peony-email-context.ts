@@ -32,6 +32,26 @@ const italianForm = "https://forms.gle/NQTquvXUkcqeFSZbA";
 const englishForm = "https://forms.gle/bgc9cx2c79rYayXj8";
 const vademecum = "https://peonystudio.net/vademecum-rope-jam";
 
+/** Render the event date in the chosen email language (not the admin UI locale). */
+export function formatPeonyEmailDate(
+  context:PeonyEmailEventContext, fallback:string, language:PeonyEmailLanguage,
+):string {
+  const start=context.startsOn;
+  if(!start || !/^\d{4}-\d{2}-\d{2}$/.test(start))return fallback;
+  const end=context.endsOn && /^\d{4}-\d{2}-\d{2}$/.test(context.endsOn) ?
+    context.endsOn : start;
+  const locale=language==="en"?"en-GB":"it-IT";
+  const long=(day:string)=>new Intl.DateTimeFormat(locale,{
+    day:"numeric",month:"long",year:"numeric",timeZone:"UTC",
+  }).format(new Date(day+"T12:00:00Z"));
+  if(end===start)return long(start);
+  if(start.slice(0,7)===end.slice(0,7)){
+    const first=Number(start.slice(8,10));
+    return first+"–"+long(end);
+  }
+  return long(start)+" – "+long(end);
+}
+
 export function peonyAssociationFormUrl(language: PeonyEmailLanguage): string {
   return language === "en" ? englishForm : italianForm;
 }
