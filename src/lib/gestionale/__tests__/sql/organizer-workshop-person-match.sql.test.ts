@@ -48,13 +48,20 @@ describe("Ale: selezione manuale della persona del workshop",()=>{
      [ale,participant,maryna]);
    expect(twice?.code).toBe("GW409");
  });
- it("match manuale non cambia nickname inserito o identità della scheda esistente",async()=>{
-   const before=await t.value<string>("select entered_as v from gw_booking_participants where id=$1",[participant]);
-   await t.value("select gw_organizer_link_workshop_person($1,$2,$3) v",[ale,participant,maryna]);
-   expect(await t.value<string>("select person_id v from gw_booking_participants where id=$1",[participant])).toBe(maryna);
-   expect(await t.value<string>("select entered_as v from gw_booking_participants where id=$1",[participant])).toBe(before);
-   expect(await t.value<string>("select match_status::text v from gw_booking_participants where id=$1",[participant])).toBe("confermato");
+ it("un nickname singolo si collega manualmente conservando il testo e la scheda",async()=>{
+   const single=await t.value<string>(
+     "select gw_create_booking_entered($1,$2,$3::jsonb,'prenotato',null,null) v",
+     [ale,workshop,JSON.stringify(["Alias manuale"])]);
+   const singlePart=await t.value<string>("select id v from gw_booking_participants where booking_id=$1",[single]);
+   const before=await t.value<string>("select entered_as v from gw_booking_participants where id=$1",[singlePart]);
+   await t.value("select gw_organizer_link_workshop_person($1,$2,$3) v",[ale,singlePart,maryna]);
+   expect(await t.value<string>("select person_id v from gw_booking_participants where id=$1",[singlePart])).toBe(maryna);
+   expect(await t.value<string>("select entered_as v from gw_booking_participants where id=$1",[singlePart])).toBe(before);
+   expect(await t.value<string>("select match_status::text v from gw_booking_participants where id=$1",[singlePart])).toBe("confermato");
    expect(await t.value<string>("select nickname v from gw_people where id=$1",[maryna])).toBe("Maru");
+ });
+ it("non collega Aizen e Franco o Pavel/Maru come una persona singola",async()=>{
+   expect((await t.error("select gw_organizer_link_workshop_person($1,$2,$3)",[ale,participant,maryna]))?.code).toBe("GW409");
  });
  it("solo Ale può collegare o dividere: admin e client anon vietati",async()=>{
    expect((await t.error("select gw_organizer_link_workshop_person($1,$2,$3)",[admin,participant,maryna]))?.code).toBe("GW403");
