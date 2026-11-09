@@ -169,7 +169,7 @@ export function OrganizerCompoundSplitter({participantId,enteredAs}:{
       onClick={open} aria-expanded={opened}>{opened?"Chiudi divisione":"Dividi in due persone"}</button>
     {opened&&<div className="space-y-3 rounded-lg border border-[#a8583e]/20 bg-[#f8f3ec] p-3">
       {context&&!context.canSplit?<p className="text-sm text-[#9b2c2c]">
-        La divisione è disponibile solo per prenotazioni con una persona provvisoria non ancora collegata.
+        La divisione è disponibile solo per iscrizioni con una persona provvisoria non ancora collegata.
       </p>:null}
       {context?.canSplit&&<>
         <p className="text-sm text-[#5f524c]">L'iscrizione rimane unica: prezzo, acconti e note restano invariati.</p>
