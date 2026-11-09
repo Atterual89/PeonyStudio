@@ -122,7 +122,7 @@ export function AddRegistration({
       });
       if (result.ok) {
         const names = [suggestedPair?.first??person.trim(),
-          suggestedPair?.second??partner.trim()||partnerEmail.trim()].filter(Boolean).join(" + ");
+          suggestedPair?.second ?? (partner.trim() || partnerEmail.trim())].filter(Boolean).join(" + ");
         reset();
         setMessage({ tone: "success", text: `Fatto: ${names} iscritto/a.` });
       } else {
