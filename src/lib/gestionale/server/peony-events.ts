@@ -8,7 +8,7 @@ import { partnerFromCheckout, peonyPartnerRequired, type CheckoutPartner } from 
 import { choosePartner } from "@/lib/gestionale/peony-booking-partner";
 import { buildPeonyMemberDirectory } from "@/lib/gestionale/peony-member-candidates";
 import { timestampToRomeDate } from "@/lib/gestionale/workshops";
-import { isActivePeonyTicket, isPeonyTicketEvent, isMembershipFreePeonyEvent } from "@/lib/gestionale/peony-ticket-rules";
+import { isActivePeonyTicket, isPeonyTicketEvent, isMembershipFreePeonyEvent, peonyAssociationRequired } from "@/lib/gestionale/peony-ticket-rules";
 import { peonyTicketRole, ticketTypeNameForIssuedTicket, ticketTypeNamesFromEventPayload, type PeonyTicketRole } from "@/lib/gestionale/peony-ticket-type";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
@@ -252,6 +252,7 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
       const ticketType=ticketTypeNameForIssuedTicket(ticket.raw_payload,ticketNames,ticket.ticket_type_name);
       const ticketRole=peonyTicketRole(ticketType);
       const required = peonyPartnerRequired(event.title, ticketType);
+      const membershipRequired=peonyAssociationRequired(event.title,ticketRole);
       const partner: PeonyPartner | null = required && chosen ? {
         name: chosen.name, email: chosen.email, source: chosen.source,
         linkedPersonId: chosen.personId ?? null,
@@ -284,9 +285,8 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
         ticketRole,
         freeEvent,
         notes: participantByTicket.get(ticket.ticket_tailor_issued_ticket_id)?.notes_admin ?? null,
-        association: freeEvent||ticketRole!=="practitioner"
-          ? null : associationStatus(evidence, event, identity),
-        associationRequired: !freeEvent&&ticketRole==="practitioner",
+        association: membershipRequired ? associationStatus(evidence, event, identity) : null,
+        associationRequired: membershipRequired,
         partnerRequired: required,
         partner,
         holderMatch:matchedHolder,
