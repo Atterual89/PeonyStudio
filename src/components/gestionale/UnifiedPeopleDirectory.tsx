@@ -64,13 +64,13 @@ export function UnifiedPeopleDirectory({contacts,initialQuery=""}:{contacts:Unif
       value={query} onChange={e=>{setQuery(e.target.value);setShowAll(false);}}
       placeholder="Cerca nome, cognome, nickname o email"
       className="min-h-10 w-full rounded-xl border border-[#211815]/20 bg-white p-3 text-sm"/>
-    <div className="flex flex-wrap gap-2" aria-label="Viste anagrafica">
+    <div className="flex flex-wrap gap-2" role="tablist" aria-label="Viste anagrafica">
       {([
         {id:"people",name:"Anagrafiche",count:counts.people},
         {id:"review",name:"Da sistemare",count:counts.review},
         {id:"registry",name:"Solo registro soci",count:counts.registry},
       ] as const).map(item=><button type="button" key={item.id} onClick={()=>{setView(item.id);setShowAll(false);}}
-        aria-pressed={view===item.id}
+        role="tab" aria-selected={view===item.id}
         className={`min-h-10 rounded-xl px-3 text-sm font-semibold ${view===item.id?"bg-[#a8583e] text-white":"border border-[#211815]/15 bg-white text-[#5f524c]"}`}>
         {item.name} ({item.count})
       </button>)}

@@ -88,7 +88,7 @@ function PersonRow({ person, eventId }: { person: PeonyAttendee; eventId: string
       secondary={<>{roleLabel}{ticketAlias?` · Biglietto: ${ticketAlias}`:""}</>}>
       <div className="space-y-2">
         {person.email?<a href={"mailto:"+person.email} className="block break-all text-sm text-[#a8583e] underline">{person.email}</a>:null}
-        {person.associationRequired&&person.association?.matchMethod!=="payment_email"&&!person.association?.verifiedInOfficialBook&&
+        {person.associationRequired&&person.association?.matchMethod !== "payment_email"&&!person.association?.verifiedInOfficialBook&&
           <QuotaOkCheckbox
             checked={Boolean(person.association?.feePaid)}
             editable={!person.association?.feePaid||person.association.matchMethod==="manual"}
@@ -104,7 +104,7 @@ function PersonRow({ person, eventId }: { person: PeonyAttendee; eventId: string
       {person.partnerRequired&&<div className="space-y-2 border-t border-[#211815]/10 pt-2">
         <p className="text-xs font-semibold text-[#5f524c]">Partner: {partnerLabel}</p>
         {person.partner?.email?<p className="break-all text-xs text-[#5f524c]">{person.partner.email}</p>:null}
-        {person.partner&&person.associationRequired&&person.partner.membership?.matchMethod!=="payment_email"&&!person.partner.membership?.verifiedInOfficialBook&&
+        {person.partner&&person.associationRequired&&person.partner.membership?.matchMethod !== "payment_email"&&!person.partner.membership?.verifiedInOfficialBook&&
           <QuotaOkCheckbox checked={Boolean(person.partner.membership?.feePaid)}
             editable={!person.partner.membership?.feePaid||person.partner.membership.matchMethod==="manual"}
             onToggle={paid=>setPeonyQuotaOkAction({eventId,ticketId:person.ticketId,person:"partner",paid})}/>}
@@ -115,7 +115,7 @@ function PersonRow({ person, eventId }: { person: PeonyAttendee; eventId: string
       </div>}
       {person.notes?<p className="text-sm"><strong>Nota:</strong> {person.notes}</p>:null}
       <details className="text-xs text-[#5f524c]">
-        <summary className="w-fit cursor-pointer py-1 text-[#a8583e]">Dettagli Ticket Tailor</summary>
+        <summary className="w-fit cursor-pointer py-1 text-[#a8583e]">Dati biglietto</summary>
         <p>Nome nel biglietto: {person.enteredName??person.name}</p>
         <p>Ordine: {person.orderId||"non disponibile"}</p>
         {person.ticketType&&<p>Tipo: {person.ticketType}</p>}

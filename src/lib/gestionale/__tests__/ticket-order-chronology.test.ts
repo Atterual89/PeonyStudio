@@ -28,7 +28,8 @@ describe("ordine cronologico dei partecipanti", () => {
     const data=readFileSync("src/lib/gestionale/server/data.ts","utf8");
     const ale=readFileSync("src/lib/gestionale/server/registrations.ts","utf8");
     expect(admin).toContain('{ key: "data", asc: true }');
-    expect(admin).toContain('label="Data" sortKey="data"');
+    expect(admin).toContain('value="data-asc"');
+    expect(admin).toContain('<UnifiedParticipantCard');
     expect(data).toContain("createdAt: booking.created_at");
     expect(data).toContain('.order("created_at", { ascending: true })');
     expect(ale).toContain('.order("created_at", { ascending: true })');
