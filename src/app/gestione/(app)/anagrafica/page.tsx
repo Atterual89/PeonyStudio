@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireOrganizer } from "@/lib/gestionale/server/auth";
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
 import { SharedDirectory } from "@/components/gestionale/SharedDirectory";
-import { BillingDirectoryManager } from "@/components/gestionale/BillingDirectoryManager";
+import { AleContactsManager } from "@/components/gestionale/AleContactsManager";
 
 export default async function AnagraficaPage() {
   await requireOrganizer();
@@ -50,10 +50,13 @@ export default async function AnagraficaPage() {
 
   return <section className="max-w-4xl space-y-3">
     <Link prefetch={false} href="/gestione" className="text-sm underline">← Workshop</Link>
-    <h1 className="font-serif text-xl">Anagrafica condivisa</h1>
-    <p className="text-sm text-[#5f524c]">Le persone importate e quelle dei workshop condividono la stessa scheda con Peony. Dati fiscali separati da associazione e quote.</p>
-    <BillingDirectoryManager />
-    <h2 className="font-semibold">Persone già nei workshop</h2>
-    <SharedDirectory people={directory} />
+    <h1 className="font-serif text-xl">Anagrafica Alessandra</h1>
+    <p className="text-sm text-[#5f524c]">Gestisci i contatti dei clienti e i dati per le fatture. Gli admin confermeranno gli abbinamenti con l'anagrafica comune; modulo e quote non vengono modificati.</p>
+    <AleContactsManager />
+    <details className="rounded-xl border border-[#211815]/15 bg-white/70 p-3">
+      <summary className="cursor-pointer py-1 font-semibold">Persone già inserite nei workshop ({directory.length})</summary>
+      <p className="mt-2 text-xs text-[#5f524c]">Queste sono le persone usate dalle iscrizioni ai corsi. Puoi aggiornare i recapiti senza confermare un'associazione o una quota.</p>
+      <div className="mt-3"><SharedDirectory people={directory}/></div>
+    </details>
   </section>;
 }
