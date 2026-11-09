@@ -20,7 +20,7 @@ describe("nickname scritto da Ale diverso dal nome anagrafico",()=>{
     expect(actions).toContain("Questa socia è già collegata a un'altra anagrafica");
     expect(actions).toContain("const column=key.kind");
     expect(actions).toContain('.is("merged_into",null).limit(3)');
-    expect(actions).toContain("if((data??[]).length!==1)");
+    expect(actions).toContain("if(owners.length!==1)");
   });
   it("una quota manuale già associata a un profilo nominale mostra la scheda esistente",()=>{
     expect(actions).toContain('if(owners.length===0 && key.kind==="manual" && !member.email)');
