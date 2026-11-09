@@ -367,11 +367,13 @@ describe("loader di Ale: nessun dato di gw_people né del libro soci", () => {
 
     const keys = [...allKeys(registrations)];
     expect(keys.filter((key) => FORBIDDEN_KEYS.includes(key))).toEqual([]);
+    // Il solo stato tecnico dell'abbinamento è visibile ad Ale; non le
+    // restituiamo gli ID o le schede del registro soci.
     expect(registrations[0].people).toEqual([
-      { participantId: "pa", isPrimary: true, enteredAs: "Claudia", enteredEmail: "claudia@scritta-da-ale.test", alreadyAs: null },
-      { participantId: "pb", isPrimary: false, enteredAs: "Francesco", enteredEmail: null, alreadyAs: null },
+      { participantId: "pa", isPrimary: true, enteredAs: "Claudia", enteredEmail: "claudia@scritta-da-ale.test", alreadyAs: null, matchStatus:"da_abbinare",autoCreated:false },
+      { participantId: "pb", isPrimary: false, enteredAs: "Francesco", enteredEmail: null, alreadyAs: null, matchStatus:"da_abbinare",autoCreated:false },
     ]);
-    expect(registrations[1].people).toEqual([{ participantId: "pd", isPrimary: true, enteredAs: "Ginestra", enteredEmail: null, alreadyAs: null }]);
+    expect(registrations[1].people).toEqual([{ participantId: "pd", isPrimary: true, enteredAs: "Ginestra", enteredEmail: null, alreadyAs: null, matchStatus:"da_abbinare",autoCreated:false }]);
     expect(JSON.stringify(registrations)).not.toMatch(/intrusa@example\.test|Segreto/);
     expect(registrations[0].agreedFeeCents).toBe(45000);
 

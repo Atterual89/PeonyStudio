@@ -237,7 +237,7 @@ export type Registration = {
    * alreadyAs (4e, #28): il server ha abbinato la persona a un'altra iscrizione
    * di questo workshop, scritta da Ale così ("Sembra già iscritta come «X»").
    */
-  people: { participantId: string; isPrimary: boolean; enteredAs: string | null; enteredEmail: string | null; alreadyAs: string | null }[];
+  people: { participantId: string; isPrimary: boolean; enteredAs: string | null; enteredEmail: string | null; alreadyAs: string | null; matchStatus?: MatchStatus; autoCreated?: boolean }[];
   payments: Payment[];
 };
 

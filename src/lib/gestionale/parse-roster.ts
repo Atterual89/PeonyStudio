@@ -3,6 +3,7 @@
 // da chiarire. Il salvataggio è gw_import_roster (tutto o niente).
 
 import { normalizeText, parseEuroToCents } from "./format";
+import { suggestCoupleSplit } from "./couple-input";
 import { autoStatus, paidCents } from "./payments";
 import type { BookingStatus, InvoiceStatus, PaymentMethod, PaymentType, Registration } from "./types";
 
@@ -335,6 +336,14 @@ function parseLine(line: string) {
   }
 
   const names = people.map((words) => words.join(" ").trim()).filter(Boolean);
+  // / non è un carattere del nickname composto: Pavel/Maru indica due
+  // persone della stessa iscrizione, esattamente come "e" e "+".
+  // In questa fase leggiamo solo il blocco dei nomi; nessuna quota o importo
+  // con '/' viene interpretato come un separatore di persone.
+  if(names.length===1){
+    const pair=suggestCoupleSplit(names[0]);
+    if(pair)names.splice(0,1,pair.first,pair.second);
+  }
   notes.push(...emails.slice(names.length));
   return {
     people: names,
@@ -384,7 +393,10 @@ export function parseRoster(text: string, options: { standardFeeCents: number | 
     const numbered = NUMBERING.test(line);
     // Una prima riga senza numerazione né importi di norma è un titolo.
     // Eccezione: "Aizen e Franco" è un'iscrizione di coppia autonoma.
-    const simplePair = /^[\p{L}][\p{L}'’.-]*\s+e\s+[\p{L}][\p{L}'’.-]*$/iu.test(line);
+    const pairNames = suggestCoupleSplit(line);
+    // "Level 2+ November" e' un titolo, non una coppia. Un numero
+    // isolato nella prima parte segnala un titolo/lista di livelli.
+    const simplePair = Boolean(pairNames && !/\b\d+\b/.test(pairNames.first));
     if (!seenContent && !numbered && !AMOUNT_ANYWHERE.test(line) && !simplePair) {
       seenContent = true;
       return;
