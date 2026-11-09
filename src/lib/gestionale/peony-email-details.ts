@@ -44,7 +44,7 @@ export const PEONY_DETAIL_FIELDS: { key: Exclude<keyof PeonyEmailDetailFields,"i
   {key:"partnerPolicy",label:"Regole per i partner",multiline:true},
   {key:"optionalActivityTitle",label:"Attività collegata (es. Friday Rope Jam)"},
   {key:"optionalActivityInfo",label:"Descrizione attività collegata",multiline:true},
-  {key:"optionalActivityUrl",label:"Link prenotazione attività collegata"},
+  {key:"optionalActivityUrl",label:"Link iscrizione attività collegata"},
   {key:"extraNotes",label:"Altre informazioni utili",multiline:true},
 ];
 
