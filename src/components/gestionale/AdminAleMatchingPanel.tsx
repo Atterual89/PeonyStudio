@@ -72,15 +72,15 @@ export function AdminAleMatchingPanel({rows,candidates}:{rows:AleMatchRow[];cand
     </p>
     {message&&<p role="status" className="rounded-lg bg-[#eef6ee] p-3 text-sm text-[#326941]">{message}</p>}
     {error&&<p role="alert" className="rounded-lg bg-[#fff1f0] p-3 text-sm text-[#9b2c2c]">{error}</p>}
-    <div className="flex flex-wrap items-center gap-2">
-      {([
-        ["pending","Da abbinare",pending],
-        ["linked","Abbinati",rows.length-pending],
-        ["all","Tutti",rows.length],
-      ] as const).map(([id,label,count])=><button key={id} type="button" aria-pressed={filter===id}
-        className={`min-h-10 rounded-lg border px-3 text-sm ${filter===id?"border-[#a8583e] bg-[#a8583e]/10 font-semibold":"border-[#211815]/15 bg-white"}`}
-        onClick={()=>setFilter(id)}>{label} ({count})</button>)}
-    </div>
+    <label className="block text-sm">Stato abbinamenti
+      <select aria-label="Filtra gli abbinamenti" value={filter}
+        onChange={e=>setFilter(e.target.value as "pending"|"linked"|"all")}
+        className={control+" ml-2"}>
+        <option value="pending">Da abbinare ({pending})</option>
+        <option value="linked">Abbinati ({rows.length-pending})</option>
+        <option value="all">Tutti ({rows.length})</option>
+      </select>
+    </label>
     <input type="search" className={control+" w-full"} aria-label="Cerca i contatti di Alessandra"
       placeholder="Cerca contatto importato" value={query} onChange={e=>setQuery(e.target.value)}/>
     <ul className="space-y-2">
