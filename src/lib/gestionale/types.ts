@@ -119,7 +119,7 @@ export const PERSON_FIELD_LABELS: Record<keyof PersonFields, string> = {
   email: "Email",
   instagram: "Instagram",
   phone: "Telefono",
-  teamartist_id: "ID TeamArtist",
+  teamartist_id: "Identificativo storico",
   notes: "Note",
 };
 
@@ -135,9 +135,9 @@ export const PERSON_FIELD_LABELS: Record<keyof PersonFields, string> = {
 export type MembershipBadge =
   | { kind: "in_regola"; expiresAt: string | null; match: "email" | "name" | "manual" | "payment_email" | null }
   | { kind: "quota_mancante"; paymentsFrom: string | null }
-  | { kind: "modulo_mancante" }
+  | { kind: "modulo_mancante"; quotaPaid?: boolean; quotaMatch?: "manual" | "payment_email" | "email" | "name" | null }
   /** 017: nessun collegamento esplicito al libro soci e nessuna riga trovata dall'abbinamento admin. */
-  | { kind: "non_collegata" };
+  | { kind: "non_collegata"; quotaPaid?: boolean; quotaMatch?: "manual" | "payment_email" | "email" | "name" | null };
 
 /** Una persona dentro una prenotazione. */
 export type BookingPersonView = {

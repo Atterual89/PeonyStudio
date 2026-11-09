@@ -175,6 +175,7 @@ export const readAllMemberEvidence = cache(async (): Promise<Array<MembershipEvi
   for (let offset = 0; offset < 10000; offset += 500) {
     const { data, error } = await db.from("association_members")
       .select("id,first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at,notes_admin,updated_at")
+      .in("source", ["google_sheet", "manual_override"])
       .order("id", { ascending: true }).range(offset, offset + 499);
     if (error) throw new Error(`Associazione: ${error.message}`);
     rows.push(...(data ?? []));
@@ -285,7 +286,7 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
         ticketRole,
         freeEvent,
         notes: participantByTicket.get(ticket.ticket_tailor_issued_ticket_id)?.notes_admin ?? null,
-        association: membershipRequired ? associationStatus(evidence, event, identity) : null,
+        association: associationStatus(evidence, event, identity),
         associationRequired: membershipRequired,
         partnerRequired: required,
         partner,

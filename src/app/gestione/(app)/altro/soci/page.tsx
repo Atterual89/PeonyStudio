@@ -7,7 +7,6 @@ import { CompleteAllFromMembers } from "@/components/gestionale/CompleteAllFromM
 import { RefreshMembershipButton } from "@/components/gestionale/QuotaOk";
 import { SyncSociButton } from "@/components/gestionale/SyncSociButton";
 import { AssociationMailSyncControl } from "@/components/gestionale/AssociationMailSyncControl";
-import { SociBookUpload } from "@/components/gestionale/SociBookUpload";
 import { Notice } from "@/components/gestionale/ui";
 import { getAssociationMailState } from "@/app/gestione/(app)/quote-email/actions";
 import { membershipPeriodFor } from "@/lib/association/membership-periods";
@@ -69,10 +68,9 @@ export default async function SociPage({searchParams}:{searchParams:Promise<{quo
    <summary className="cursor-pointer text-sm font-semibold text-[#5f524c]">Aggiornamenti e strumenti avanzati</summary>
    <div className="mt-3 space-y-4 text-sm">
     <div>
-     <p className="mb-2 text-xs text-[#5f524c]">Aggiorna soltanto le domande dai moduli Google, non il libro ufficiale.</p>
+     <p className="mb-2 text-xs text-[#5f524c]">Aggiorna le registrazioni dai moduli Google. Le quote si verificano tramite email o manualmente.</p>
      <SyncSociButton/>
     </div>
-    <SociBookUpload/>
     <div className="flex flex-wrap gap-2">
      <RefreshMembershipButton/>
      {completable&&completable.length>0?<CompleteAllFromMembers count={completable.length}/>:null}

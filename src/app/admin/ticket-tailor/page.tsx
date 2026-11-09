@@ -57,7 +57,7 @@ type MemberCandidate = {
 };
 
 type ActionState = {
-  key: "ticket-tailor" | "profiles" | "memberships" | "members-book-upload";
+  key: "ticket-tailor" | "profiles" | "memberships";
   ok: boolean;
   message: string;
 };
@@ -70,7 +70,6 @@ export default function TicketTailorAdminHome() {
   const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [actionState, setActionState] = useState<ActionState | null>(null);
   const [detail, setDetail] = useState<ParticipantDetail | null>(null);
-  const [membersBookFile, setMembersBookFile] = useState<File | null>(null);
 
   const summary = useMemo(() => {
     const participants = events.flatMap((event) => event.participants);
@@ -170,10 +169,6 @@ export default function TicketTailorAdminHome() {
         label: "Form ITA/ENG",
         path: "/api/admin/association-members/sync-apply",
       },
-      {
-        label: "Libro Soci",
-        path: "/api/admin/association-members/book-sync-apply",
-      },
     ];
 
     try {
@@ -211,82 +206,12 @@ export default function TicketTailorAdminHome() {
       setActionState({
         key: "memberships",
         ok: true,
-        message: `Tesseramenti aggiornati. ${summaries.join(" · ")}`,
+        message: `Registrazioni aggiornate. ${summaries.join(" · ")}`,
       });
       await loadDashboard();
     } catch (error) {
       setActionState({
         key: "memberships",
-        ok: false,
-        message: error instanceof Error ? error.message : "Errore sconosciuto.",
-      });
-    } finally {
-      setRunningAction(null);
-    }
-  }
-
-  async function uploadMembersBook() {
-    if (!secret.trim()) {
-      setActionState({
-        key: "members-book-upload",
-        ok: false,
-        message: "Inserisci il codice admin.",
-      });
-      return;
-    }
-
-    if (!membersBookFile) {
-      setActionState({
-        key: "members-book-upload",
-        ok: false,
-        message: "Seleziona il file Libro Soci in formato .xlsx.",
-      });
-      return;
-    }
-
-    setRunningAction("members-book-upload");
-    setActionState(null);
-
-    try {
-      const formData = new FormData();
-      formData.append("file", membersBookFile);
-
-      const response = await fetch(
-        "/api/admin/association-members/book-upload",
-        {
-          method: "POST",
-          headers: { "x-admin-sync-secret": secret.trim() },
-          body: formData,
-        },
-      );
-      const payload = await readJsonResponse(response);
-
-      if (!response.ok || payload.ok === false) {
-        throw new Error(
-          readMessage(payload, "Errore caricamento Libro Soci."),
-        );
-      }
-
-      const formSync = readSyncSummary(payload.formSync);
-      const bookSync = readSyncSummary(payload.bookSync);
-      const importedRows = readNumber(payload.importedRows);
-      const backupTitle =
-        typeof payload.backupTitle === "string" ? payload.backupTitle : "creato";
-
-      setMembersBookFile(null);
-      setActionState({
-        key: "members-book-upload",
-        ok: true,
-        message:
-          `Libro Soci aggiornato: ${importedRows} soci importati. Backup: ${backupTitle}. ` +
-          `Form ITA/ENG: +${formSync.created}, aggiornati ${formSync.updated}, rimossi ${formSync.removed}. ` +
-          `Libro Soci: +${bookSync.created}, aggiornati ${bookSync.updated}, rimossi ${bookSync.removed}.`,
-      });
-
-      await loadDashboard();
-    } catch (error) {
-      setActionState({
-        key: "members-book-upload",
         ok: false,
         message: error instanceof Error ? error.message : "Errore sconosciuto.",
       });
@@ -388,40 +313,12 @@ export default function TicketTailorAdminHome() {
               onClick={runProfileSync}
             />
             <ActionButton
-              title="Aggiorna tesseramenti"
-              text="Google Form + libro soci"
+              title="Aggiorna registrazioni"
+              text="Moduli Google"
               loading={runningAction === "memberships"}
               disabled={Boolean(runningAction)}
               onClick={runMembershipSync}
             />
-          </div>
-
-          <div className="mt-4 grid gap-3 rounded-[10px] border border-[#211815]/10 bg-[#f4efe8]/55 p-4 lg:grid-cols-[1fr_auto] lg:items-end">
-            <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5f524c]">
-              Carica Libro Soci
-              <input
-                type="file"
-                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                onChange={(event) =>
-                  setMembersBookFile(event.target.files?.[0] ?? null)
-                }
-                disabled={Boolean(runningAction)}
-                className="mt-2 block w-full rounded-[9px] border border-[#211815]/15 bg-white px-3 py-2.5 text-sm normal-case tracking-normal file:mr-3 file:rounded-full file:border-0 file:bg-[#211815] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#f4efe8]"
-              />
-              <span className="mt-2 block text-[11px] font-normal normal-case tracking-normal text-[#766961]">
-                Crea un backup del tab attuale, importa il nuovo .xlsx e aggiorna automaticamente i tesseramenti.
-              </span>
-            </label>
-            <button
-              type="button"
-              onClick={uploadMembersBook}
-              disabled={!membersBookFile || Boolean(runningAction)}
-              className="rounded-full bg-[#8b5e4a] px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              {runningAction === "members-book-upload"
-                ? "Caricamento..."
-                : "Importa e aggiorna"}
-            </button>
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -1128,7 +1025,7 @@ function PartnerExpandedRow({
           {lookupCompleted &&
           !lookupFailed &&
           candidates.length > 0 &&
-          candidates.every((candidate) => candidate.membership_status !== "valid") ? (
+          candidates.every((candidate) => candidate.membership_status !== "valid" && candidate.membership_match_method !== "payment_email") ? (
             <div className="mt-3 rounded-[8px] border border-[#b69755]/25 bg-[#b69755]/8 p-3">
               <p className="text-xs leading-5 text-[#5f524c]">
                 Il socio è stato trovato ma la quota non risulta in regola. Se hai verificato
@@ -1407,21 +1304,6 @@ async function readJsonResponse(response: Response) {
 
 function readNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
-}
-
-function readSyncSummary(value: unknown) {
-  const record =
-    typeof value === "object" && value !== null
-      ? (value as Record<string, unknown>)
-      : {};
-
-  return {
-    created: readNumber(record.created),
-    updated: readNumber(record.updated),
-    unchanged: readNumber(record.unchanged),
-    removed: readNumber(record.removed),
-    invalidRows: readNumber(record.invalidRows),
-  };
 }
 
 function readMessage(payload: Record<string, unknown>, fallback: string) {

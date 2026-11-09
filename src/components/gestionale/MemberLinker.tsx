@@ -5,7 +5,7 @@ import {useRouter} from "next/navigation";
 import {useRef,useState,useTransition,type FormEvent} from "react";
 
 import {
-  attachMemberFormEmailAction,linkMemberAction,memberSearchAction,
+  linkMemberAction,memberSearchAction,
   type RegistryPersonHit,
 } from "@/app/gestione/(app)/w/actions";
 import {memberOutcomeLabel} from "@/lib/gestionale/membership-rule";
@@ -39,12 +39,8 @@ export function MemberLinker({
   const [pending,startTransition]=useTransition();
   const flash=useFlash(person.id);
   const trimmed=query.trim();
-  const canUseFormEmail=(member:MemberSummary)=>
-    Boolean(person.hasNameLink&&!person.email&&member.source==="modulo"&&member.email);
   const blocked=(member:MemberSummary)=>
-    member.id===person.currentMemberId ||
-    Boolean(member.alreadyLinked) ||
-    Boolean(person.currentMemberId && !canUseFormEmail(member));
+    member.id===person.currentMemberId || Boolean(member.alreadyLinked);
   const name=(member:MemberSummary)=>
     [member.first_name,member.last_name].filter(Boolean).join(" ")||member.email||"Socio";
 
@@ -90,21 +86,13 @@ export function MemberLinker({
     flash.clear();
     startTransition(async()=>{
       try{
-      if(canUseFormEmail(selected)){
-        const result=await attachMemberFormEmailAction({
-          personId:person.id,version:person.version,memberId:selected.id,
-        });
-        flash.result(result,"Email del modulo collegata. Il libro soci resta invariato; la quota 2027 va verificata separatamente.");
-        if(result.ok){setSelected(null);setMembers(null);setPeople([]);router.refresh();}
-      }else{
-        const result=await linkMemberAction({
-          personId:person.id,version:person.version,memberId:selected.id,referenceDate,
-        });
-        if(result.ok&&result.data.warning){
-          flash.show("warning",`Collegamento salvato. ${result.data.warning}`);
-        }else flash.result(result,`Collegata a ${name(selected)}.`);
-        if(result.ok){setSelected(null);setMembers(null);router.refresh();}
-      }
+      const result=await linkMemberAction({
+        personId:person.id,version:person.version,memberId:selected.id,referenceDate,
+      });
+      if(result.ok&&result.data.warning){
+        flash.show("warning",`Collegamento salvato. ${result.data.warning}`);
+      }else flash.result(result,`Collegata a ${name(selected)}.`);
+      if(result.ok){setSelected(null);setMembers(null);router.refresh();}
       }catch {flash.show("error","Collegamento non riuscito. Ricarica la scheda e riprova.");}
     });
   }
@@ -128,7 +116,7 @@ export function MemberLinker({
       {searchError?<Notice tone="error">{searchError}</Notice>:null}
       {members&&trimmed.length>=2?(
         <>
-          <p className="text-xs text-[#5f524c]">Risultati del libro soci Team Artist e dei moduli Google. Controlla l'identità prima di collegare.</p>
+          <p className="text-xs text-[#5f524c]">Registrazioni Google: controlla l'identità prima di collegare.</p>
           {members.length===0?<p className="text-sm text-[#5f524c]">Nessun socio trovato nei registri con questi termini.</p>:(
             <ul className="overflow-hidden rounded-xl border border-[#211815]/15 bg-white">
               {members.map(member=>(
@@ -140,7 +128,7 @@ export function MemberLinker({
                     <span className="font-semibold">{name(member)}</span>
                     <span className="break-all text-xs text-[#5f524c]">
                       {[
-                        member.source==="modulo"?"Modulo Google":member.source==="libro"?"Libro soci Team Artist":"Conferma manuale",
+                        member.source==="modulo"?"Modulo Google":"Quota manuale",
                         member.email??"Email non presente",
                         member.outcome?memberOutcomeLabel(member.outcome,Boolean(member.in_book)):null,
                       ].filter(Boolean).join(" · ")}
@@ -148,7 +136,7 @@ export function MemberLinker({
                     {member.matchedAlias?<span className="text-xs text-[#5f524c]">Trovata anche come: {member.matchedAlias}</span>:null}
                     {member.id===person.currentMemberId?(
                       <span className="text-xs font-semibold text-[#326941]">Già collegata a questa scheda</span>
-                    ):member.alreadyLinked&&!canUseFormEmail(member)?(
+                    ):member.alreadyLinked?(
                       <span className="text-xs text-[#7a5212]">Già collegata in anagrafica: controlla la scheda esistente</span>
                     ):null}
                   </button>
@@ -179,12 +167,8 @@ export function MemberLinker({
       ):null}
       {selected&&!blocked(selected)?(
         <div className="space-y-2">
-          {canUseFormEmail(selected)?(
-            <p className="text-xs text-[#5f524c]">La selezione aggiunge solo l'email del modulo Google a questa scheda.
-              Il collegamento al libro soci Team Artist resta invariato. Non conferma il pagamento della quota 2027.</p>
-          ):null}
           <button type="button" onClick={confirm} disabled={pending} className={`${buttonClass.primary} w-full`}>
-            {pending?"Salvataggio…":canUseFormEmail(selected)?`Conferma email di ${name(selected)}`:`Conferma: collega a ${name(selected)}`}
+            {pending?"Salvataggio…":person.currentMemberId?`Cambia abbinamento: ${name(selected)}`:`Collega a ${name(selected)}`}
           </button>
         </div>
       ):null}

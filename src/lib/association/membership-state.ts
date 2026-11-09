@@ -43,148 +43,34 @@ export type DeriveMembershipOptions = {
 
 export function deriveMembershipState(
   rows: MembershipEvidenceRow[],
-  identity: {
-    email?: string | null;
-    firstName?: string | null;
-    lastName?: string | null;
-  },
+  identity: { email?: string | null; firstName?: string | null; lastName?: string | null },
   options: DeriveMembershipOptions = {},
 ): DerivedMembershipState {
-  const paymentWindow = {
-    from: options.paymentsFrom ?? CURRENT_MEMBERSHIP_START,
-    until: options.paymentsUntil ?? null,
-  };
-  // La pagina Admin legacy usa il comportamento storico senza opzioni.
-  // Il gestionale imposta invece una finestra associativa esplicita.
-  const periodScoped = options.paymentsUntil != null;
-  const isCurrentYearPayment = (row: MembershipEvidenceRow) => isPaymentInWindow(row, paymentWindow);
+  const paymentWindow = { from: options.paymentsFrom ?? CURRENT_MEMBERSHIP_START, until: options.paymentsUntil ?? null };
   const targetEmail = normalizeEmail(identity.email);
-  const explicitNameKey = normalizeNameKey(
-    identity.firstName,
-    identity.lastName,
-  );
-
-  const matchingOverrides = rows.filter((row) => {
-    if (row.source !== "manual_override" || !isCurrentYearPayment(row)) {
-      return false;
-    }
-
-    const emailMatches =
-      Boolean(targetEmail) && normalizeEmail(row.email) === targetEmail;
-    const rowEmail = normalizeEmail(row.email);
-    const nameMatches =
-      (!periodScoped || !targetEmail || !rowEmail) &&
-      Boolean(explicitNameKey) &&
-      normalizeNameKey(row.first_name, row.last_name) === explicitNameKey;
-
-    return emailMatches || nameMatches;
-  });
-
-  // Un pagamento Gmail/PayPal/Qonto assegnato e confermato è la prova più
-  // solida rispetto al semplice controllo manuale dello stesso periodo.
-  const emailProof = matchingOverrides.find(row =>
-    row.notes_admin?.startsWith("Quota confermata da email ("));
-  const manualOverride = emailProof ?? matchingOverrides[0];
-  if (manualOverride) {
-    return {
-      status: "valid",
-      formPresent: true,
-      currentYearPaid: true,
-      membershipStartsAt: manualOverride.membership_starts_at,
-      membershipExpiresAt: manualOverride.membership_expires_at,
-      paymentMatchMethod: emailProof ? "payment_email" : "manual",
-    };
-  }
-
-  const formRows = rows.filter((row) => {
-    if (row.source !== "google_sheet") return false;
-
-    const emailMatches =
-      Boolean(targetEmail) && normalizeEmail(row.email) === targetEmail;
-    const nameMatches =
-      Boolean(explicitNameKey) &&
-      normalizeNameKey(row.first_name, row.last_name) === explicitNameKey;
-
-    return emailMatches || nameMatches;
-  });
-
-  const directEmailPayment = targetEmail
-    ? rows.find(
-        (row) =>
-          row.source === "official_members_book" &&
-          normalizeEmail(row.email) === targetEmail &&
-          isCurrentYearPayment(row),
-      )
-    : undefined;
-
-  if (directEmailPayment) {
-    return {
-      status: "valid",
-      formPresent: formRows.length > 0,
-      currentYearPaid: true,
-      membershipStartsAt: directEmailPayment.membership_starts_at,
-      membershipExpiresAt: directEmailPayment.membership_expires_at,
-      paymentMatchMethod: "email",
-    };
-  }
-
-  const candidateNameKeys = Array.from(
-    new Set(
-      [
-        explicitNameKey,
-        ...formRows.map((row) =>
-          normalizeNameKey(row.first_name, row.last_name),
-        ),
-      ].filter(Boolean),
-    ),
-  );
-
-  for (const nameKey of candidateNameKeys) {
-    const officialMatches = rows.filter(
-      (row) =>
-        row.source === "official_members_book" &&
-        normalizeNameKey(row.first_name, row.last_name) === nameKey &&
-        (!periodScoped || isCurrentYearPayment(row)) &&
-        // Con due email diverse non basta la corrispondenza del nome.
-        (!periodScoped || !targetEmail || !normalizeEmail(row.email) || normalizeEmail(row.email) === targetEmail),
-    );
-
-    // Accept a name match only if it resolves to one unique official record.
-    if (officialMatches.length !== 1) continue;
-
-    const officialRow = officialMatches[0];
-    if (!isCurrentYearPayment(officialRow)) continue;
-
-    // The official members book is authoritative for legacy members whose
-    // historical form response is no longer present in the current form tabs.
-    return {
-      status: "valid",
-      formPresent: true,
-      currentYearPaid: true,
-      membershipStartsAt: officialRow.membership_starts_at,
-      membershipExpiresAt: officialRow.membership_expires_at,
-      paymentMatchMethod: "name",
-    };
-  }
-
-  if (formRows.length === 0) {
-    return {
-      status: "missing_form",
-      formPresent: false,
-      currentYearPaid: false,
-      membershipStartsAt: null,
-      membershipExpiresAt: null,
-      paymentMatchMethod: null,
-    };
-  }
-
+  const targetName = normalizeNameKey(identity.firstName, identity.lastName);
+  const samePerson = (row: MembershipEvidenceRow) => {
+    const email = normalizeEmail(row.email);
+    if (targetEmail && email === targetEmail) return true;
+    return Boolean(targetName) && normalizeNameKey(row.first_name, row.last_name) === targetName &&
+      (!targetEmail || !email || email === targetEmail);
+  };
+  // La registrazione è attestata soltanto dal modulo Google.
+  const formPresent = rows.some(row => row.source === "google_sheet" && samePerson(row));
+  // La quota è confermata esclusivamente da un pagamento email abbinato
+  // oppure da un inserimento manuale salvato nel gestionale.
+  const payments = rows.filter(row => row.source === "manual_override" &&
+    isPaymentInWindow(row, paymentWindow) && samePerson(row));
+  const payment = payments.find(row => row.notes_admin?.startsWith("Quota confermata da email (")) ?? payments[0];
+  const paid = Boolean(payment);
   return {
-    status: "payment_missing",
-    formPresent: true,
-    currentYearPaid: false,
-    membershipStartsAt: null,
-    membershipExpiresAt: null,
-    paymentMatchMethod: null,
+    status: !formPresent ? "missing_form" : paid ? "valid" : "payment_missing",
+    formPresent,
+    currentYearPaid: paid,
+    membershipStartsAt: payment?.membership_starts_at ?? null,
+    membershipExpiresAt: payment?.membership_expires_at ?? null,
+    paymentMatchMethod: !payment ? null :
+      payment.notes_admin?.startsWith("Quota confermata da email (") ? "payment_email" : "manual",
   };
 }
 

@@ -12,13 +12,13 @@ describe("workshop admin con Google non configurato", () => {
     expect(source).toContain("return fetchSavedEvidence()");
     expect(source).toContain('source: "snapshot"');
     expect(source).toContain("getMembershipEvidenceStatus");
-    expect(source).toContain('["google_sheet", "official_members_book"]');
+    expect(source).toContain('.eq("source", "google_sheet")');
     expect(source).toContain('.eq("source","manual_override")');
     expect(source).toContain('readCurrentManualValidations');
   });
-  it("avvisa che TeamArtist va verificato e non rivela i dati ad Ale", () => {
+  it("avvisa che le verifiche da copia vanno aggiornate", () => {
     const source = readFileSync(join(process.cwd(), "src/app/gestione/(app)/w/[id]/page.tsx"), "utf8");
     expect(source).toContain('isAdmin && membershipEvidence?.source === "snapshot"');
-    expect(source).toContain("controllare la registrazione e la quota su TeamArtist");
+    expect(source).toContain("aggiorna le registrazioni Google e le quote email");
   });
 });

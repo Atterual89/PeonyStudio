@@ -14,7 +14,7 @@ export type SociReviewRow = {
   submittedAt: string | null;
   personId: string | null;
   paid: boolean;
-  paidSource: "manual" | "email" | "book" | null;
+  paidSource: "manual" | "email" | null;
 };
 
 export type SociReviewData = {
@@ -46,7 +46,7 @@ export async function loadSociReviewData(referenceDate: string = todayInRome()):
     for (let offset = 0; offset < 10000; offset += 500) {
       const { data, error } = await db.from("association_members")
         .select("id,first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at,notes_admin,updated_at")
-        .in("source", ["google_sheet", "official_members_book", "manual_override"])
+        .in("source", ["google_sheet", "manual_override"])
         .order("id", { ascending: true })
         .range(offset, offset + 499);
       if (error) throw new Error(`Registro soci non leggibile: ${error.message}`);
@@ -104,8 +104,8 @@ export async function loadSociReviewData(referenceDate: string = todayInRome()):
       email: row.email,
       submittedAt: row.membership_starts_at,
       personId: idsByEmail.get(normalizeMembershipEmail(row.email)) ?? null,
-      paid: state.status === "valid",
-      paidSource: state.status !== "valid" ? null : state.paymentMatchMethod === "manual" ? "manual" : state.paymentMatchMethod === "payment_email" ? "email" : "book",
+      paid: state.currentYearPaid,
+      paidSource: !state.currentYearPaid ? null : state.paymentMatchMethod === "manual" ? "manual" : "email",
     };
   });
   const pending = reviewRows.filter((row) => !row.paid);

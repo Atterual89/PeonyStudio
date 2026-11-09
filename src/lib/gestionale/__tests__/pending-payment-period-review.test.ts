@@ -7,10 +7,10 @@ const actions=readFileSync("src/app/gestione/(app)/quote-email/actions.ts","utf8
 const review=readFileSync("src/components/gestionale/PaymentEmailReview.tsx","utf8");
 const memberSearch=readFileSync("src/lib/gestionale/server/membership.ts","utf8");
 
-describe("riconciliazione Qonto dopo una quota ufficiale già verificata",()=>{
+describe("riconciliazione Qonto e periodi indipendenti",()=>{
   it("la quota 2025/26 resta verificata e il 2027 non viene verificato per errore",()=>{
-    const evidence=[{
-      source:"official_members_book",first_name:"Maryna",last_name:"Zolotarenko",email:null,
+    const evidence=[{source:"google_sheet",first_name:"Maryna",last_name:"Zolotarenko",email:"maru.zolotarenko@gmail.com",membership_status:"pending",membership_starts_at:"2025-09-01",membership_expires_at:"2026-12-31"}, {
+      source:"manual_override",first_name:"Maryna",last_name:"Zolotarenko",email:"maru.zolotarenko@gmail.com",
       membership_status:"verified",membership_starts_at:"2025-09-01",membership_expires_at:"2026-12-31",
     }];
     const identity={firstName:"Maryna",lastName:"Zolotarenko",email:"maru.zolotarenko@gmail.com"};
@@ -27,7 +27,6 @@ describe("riconciliazione Qonto dopo una quota ufficiale già verificata",()=>{
     expect(review).toContain("non è possibile assegnarlo due volte");
   });
   it("il collegamento alla persona resta distinto dalla quota e non cancella prove",()=>{
-    expect(memberSearch).toContain('const official = group.find(row => row.source === "official_members_book")');
     expect(memberSearch).toContain("groupMemberEvidence(rows)");
     expect(actions).toContain("gw_confirm_association_payment");
   });

@@ -7,26 +7,20 @@ import {
   normalizeMembershipNameKey,
   type MembershipEvidenceRow,
 } from "@/lib/association/membership-state";
-import { readOfficialMembersBookFromGoogleSheet } from "@/lib/google/members-book";
 import { readAssociationMembersFromGoogleSheet } from "@/lib/google/sheets";
 import { normalizeText } from "@/lib/gestionale/format";
-import { memberLookupScore, previouslyVerifiedBookMember } from "@/lib/gestionale/member-lookup";
+import { memberLookupScore } from "@/lib/gestionale/member-lookup";
 import { groupMemberEvidence } from "@/lib/gestionale/member-evidence-groups";
 import { memberKeyOfPerson, memberKeyOfRow, parseMemberKey, type MemberKey } from "@/lib/gestionale/member-key";
 import { resolveMemberName, singleNameOrder, type SingleNameOrder } from "@/lib/gestionale/member-name";
-import { deriveForWorkshop, membershipBadge, paymentWindowFor } from "@/lib/gestionale/membership-rule";
+import { deriveForWorkshop, membershipBadge } from "@/lib/gestionale/membership-rule";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
 import type { MemberCandidate } from "@/lib/gestionale/exact-matches";
 import type { MemberSummary, MembershipBadge, Person } from "@/lib/gestionale/types";
 
-// D11 (016): stato socio con le STESSE fonti e la STESSA logica della pagina
-// admin (src/app/api/admin/association-members/lookup): Google Sheet live per
-// modulo (google_sheet) e libro soci (official_members_book) + righe
-// manual_override della tabella `association_members` (SOLA LETTURA), poi
-// deriveMembershipState. D18: tutto riservato agli admin (requireAdmin).
-// Delle righe si tengono SOLO nome, cognome, email, fonte, stato e date: mai
-// codice fiscale, data di nascita o tessera (non arrivano né al browser né ad Ale).
+// Registrazioni da moduli Google; quota da email di pagamento confermata o inserimento manuale.
+// L’archivio storico non attribuisce automaticamente moduli o quote.
 
 /** Riga delle fonti admin; `tableId` solo per le righe manual_override della tabella. */
 type EvidenceRow = MembershipEvidenceRow & { tableId: string | null };
@@ -58,8 +52,8 @@ function pick(row: MembershipEvidenceRow, tableId: string | null): EvidenceRow {
 /**
  * Copia salvata delle fonti: utile anche quando Vercel non puo' accedere
  * all'account di servizio Google. Non si dichiara mai che sia in tempo reale.
- * TeamArtist/registro ufficiale e' la prova di pagamento e iscrizione, il
- * semplice modulo Google non equivale a quota verificata.
+ * Soltanto il modulo Google conferma la registrazione; la quota richiede
+ * una conferma email o una validazione manuale per l'annualita' corretta.
  */
 async function fetchSavedEvidence(): Promise<Evidence> {
   const rows: Array<{
@@ -78,7 +72,7 @@ async function fetchSavedEvidence(): Promise<Evidence> {
     const { data, error } = await getGestionaleDb()
       .from("association_members")
       .select("id,first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at,updated_at")
-      .in("source", ["google_sheet", "official_members_book"])
+      .eq("source", "google_sheet")
       .order("id", { ascending: true })
       .range(offset, offset + 499);
     if (error) throw new Error(`Gestionale (copia libro soci): ${error.message}`);
@@ -86,7 +80,6 @@ async function fetchSavedEvidence(): Promise<Evidence> {
     if ((data ?? []).length < 500) break;
   }
   const timestamp = rows
-    .filter((row) => row.source === "google_sheet" || row.source === "official_members_book")
     .map((row) => row.updated_at)
     .filter((value): value is string => typeof value === "string")
     .sort().at(-1) ?? null;
@@ -106,16 +99,12 @@ async function fetchEvidence(): Promise<Evidence> {
     "GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY",
     "GOOGLE_SHEET_ID",
     "GOOGLE_SHEET_RANGE",
-    "GOOGLE_MEMBERS_BOOK_RANGE",
   ].every((name) => Boolean(process.env[name]?.trim()));
   if (!canReadGoogle) {
     return fetchSavedEvidence();
   }
   try {
-    const [formSource, bookSource] = await Promise.all([
-      readAssociationMembersFromGoogleSheet(),
-      readOfficialMembersBookFromGoogleSheet(),
-    ]);
+    const formSource = await readAssociationMembersFromGoogleSheet();
 
     // Modulo con nome e cognome in un'unica colonna: l'ordine lo dice l'intestazione.
     const formFirst = formSource.detectedColumns?.first_name;
@@ -126,10 +115,7 @@ async function fetchEvidence(): Promise<Evidence> {
         : null;
 
     return {
-      rows: [
-        ...formSource.rows.map((row) => pick(row, null)),
-        ...bookSource.rows.map((row) => pick(row, null)),
-      ],
+      rows: formSource.rows.map((row) => pick(row, null)),
       formNameOrder,
       source: "live",
       snapshotUpdatedAt: null,
@@ -200,7 +186,7 @@ export async function clearMembershipCache(): Promise<void> {
 
 type Identity = { email: string | null; firstName: string | null; lastName: string | null };
 
-const SOURCE_RANK: Record<string, number> = { manual_override: 0, official_members_book: 1, google_sheet: 2 };
+const SOURCE_RANK: Record<string, number> = { google_sheet: 0, manual_override: 1 };
 
 /** Righe del socio indicato dalla chiave, la più autorevole per prima (manuale, libro soci, modulo). */
 function rowsOfKey(key: MemberKey, rows: readonly EvidenceRow[]): EvidenceRow[] {
@@ -278,7 +264,7 @@ function toSummary(
     email: best.email ?? sameMember.find((row) => row.email)?.email ?? null,
     // Scadenza come la mostra la pagina admin (anno associativo corrente).
     expires_at: stateFor(identity, rows).membershipExpiresAt,
-    source: best.source === "manual_override" ? "manuale" : best.source === "official_members_book" ? "libro" : "modulo",
+    source: best.source === "manual_override" ? "manuale" : "modulo",
   };
 }
 
@@ -298,14 +284,7 @@ export async function getMembershipBadges(
         workshopStartsOn,
         state: stateFor(identityOfPerson(person, rows), rows, workshopStartsOn.slice(0, 10)),
         linked: Boolean(memberKeyOfPerson(person)),
-        knownHistoricalMember: (() => {
-          const key=memberKeyOfPerson(person);
-          const parsed=key?parseMemberKey(key):null;
-          return parsed ? previouslyVerifiedBookMember(
-            rowsOfKey(parsed,rows),
-            paymentWindowFor(workshopStartsOn).period?.paymentsFrom??null,
-          ) : false;
-        })(),
+        knownHistoricalMember: false,
       }),
     );
   }
@@ -369,13 +348,6 @@ function groupMemberRows(rows: readonly EvidenceRow[]): EvidenceRow[][] {
 function groupKey(group: readonly EvidenceRow[]): string | null {
   const withEmail = group.find((row) => !row.tableId && normalizeMembershipEmail(row.email).includes("@"));
   if (withEmail) return `e:${normalizeMembershipEmail(withEmail.email)}`;
-  const official = group.find(row => row.source === "official_members_book");
-  // Nelle annualità diverse la prova manuale cambia id; il socio resta uno.
-  // Se presente, il libro ufficiale senza email è il riferimento stabile.
-  if (official) {
-    const name = normalizeMembershipNameKey(official.first_name, official.last_name);
-    if (name) return `n:${name}`;
-  }
   const manual = group.find((row) => row.tableId);
   return manual ? `m:${manual.tableId}` : memberKeyOfRow(group[0]);
 }
@@ -494,10 +466,9 @@ export async function searchMembers(
         workshopStartsOn:referenceDate,
         state:stateFor(identity,rows,referenceDate.slice(0,10)),
         linked:true,
-        knownHistoricalMember:previouslyVerifiedBookMember(
-          group,paymentWindowFor(referenceDate).period?.paymentsFrom??null),
+        knownHistoricalMember:false,
       });
-      summary.in_book=group.some(row=>row.source==="official_members_book");
+      summary.in_book=false;
     }
     matches.push({rank,summary});
   }
@@ -517,8 +488,7 @@ export async function getMemberBadge(memberKey: string, workshopStartsOn: string
     workshopStartsOn,
     state:stateFor(identity,rows,workshopStartsOn.slice(0,10)),
     linked:Boolean(best),
-    knownHistoricalMember:best?previouslyVerifiedBookMember(
-      rowsOfKey(key!,rows),paymentWindowFor(workshopStartsOn).period?.paymentsFrom??null):false,
+    knownHistoricalMember:false,
   });
 }
 

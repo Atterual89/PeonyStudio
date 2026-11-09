@@ -99,7 +99,7 @@ describe("stato associativo per data del workshop", () => {
     membershipBadge({ workshopStartsOn: startsOn, state: deriveForWorkshop(rows, identity, startsOn), linked });
 
   it("valida fino al 31/12/2026: workshop di novembre 2026 in regola, di febbraio 2027 no", () => {
-    const rows = [evidence({}), evidence({ source: "google_sheet" })];
+    const rows = [evidence({source:"manual_override"}), evidence({ source: "google_sheet" })];
     expect(badge(rows, "2026-11-14")).toMatchObject({ kind: "in_regola", expiresAt: "2026-12-31" });
     expect(membershipLabel(badge(rows, "2027-02-06"))).toBe("Quota non registrata dal 1 gen 2027");
   });
@@ -114,6 +114,7 @@ describe("stato associativo per data del workshop", () => {
     const rows = [
       evidence({ membership_status: "missing", membership_starts_at: null, membership_expires_at: null }),
       evidence({ source: "manual_override", membership_starts_at: "2025-09-01" }),
+      evidence({ source: "google_sheet" }),
     ];
     expect(badge(rows, "2026-11-14")).toEqual({ kind: "in_regola", expiresAt: "2026-12-31", match: "manual" });
   });

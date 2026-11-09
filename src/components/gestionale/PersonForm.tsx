@@ -66,7 +66,7 @@ export function PersonForm({ person, member, aliases }: { person: Person; member
         {input("nickname")}
         <PersonAliases personId={person.id} aliases={aliases} />
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">{fields.filter((field) => field !== "notes" && field !== "nickname").map(input)}</div>
+      <div className="grid gap-3 sm:grid-cols-2">{fields.filter((field) => field !== "notes" && field !== "nickname" && field !== "teamartist_id").map(input)}</div>
       <MemberHints member={member} values={values} onUse={(field, value) => setValues({ ...values, [field]: value })} />
       <Field label={PERSON_FIELD_LABELS.notes}>
         <textarea

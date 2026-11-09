@@ -9,6 +9,7 @@ import { membershipPeriodFor } from "@/lib/association/membership-periods";
 import { personNames } from "@/lib/gestionale/bookings";
 import { formatDate, normalizeText } from "@/lib/gestionale/format";
 import { memberKeyOfPerson } from "@/lib/gestionale/member-key";
+import { hasEmailPaymentProof } from "@/lib/gestionale/membership-rule";
 import { PARTY_LABELS, UI_LABELS } from "@/lib/gestionale/labels";
 import type { PersonChoice } from "@/lib/gestionale/person-choice";
 import type { BookingPersonView, BookingView } from "@/lib/gestionale/types";
@@ -130,17 +131,13 @@ function PersonBlock({
         <PersonInlineEditor person={person} member={entry.member} onDone={() => setEditing(false)} />
       ) : (
         <div className="space-y-2">
-          {!notLinked ? (
-            <QuotaOkCheckbox
-              checked={badge.kind==="in_regola"}
-              editable={badge.kind==="in_regola"
-                ? canRevokeQuotaOk(badge)
-                : canMarkQuotaOk(badge)&&Boolean(entry.fullName||person.email||entry.member?.email)}
+          {!hasEmailPaymentProof(badge) && <QuotaOkCheckbox
+              checked={badge.kind==="in_regola" || Boolean("quotaPaid" in badge && badge.quotaPaid)}
+              editable={canRevokeQuotaOk(badge) || (canMarkQuotaOk(badge)&&Boolean(entry.fullName||person.email||entry.member?.email))}
               onToggle={paid=>paid
                 ? markQuotaOkAction({personId:person.id,workshopId})
                 : revokeQuotaOkAction({personId:person.id,workshopId})}
-            />
-          ) : null}
+            />}
           {badge.kind === "quota_mancante" && entry.member?.expires_at &&
             entry.member.expires_at < workshopStartsOn ? (
               <p className="text-xs text-[#7a5212]">
@@ -148,8 +145,7 @@ function PersonBlock({
                 La quota per questo workshop non risulta ancora verificata.
               </p>
           ) : null}
-          {notLinked || badge.kind !== "in_regola" ? (
-            linking ? (
+          {linking ? (
               <div className="space-y-2">
                 <MemberLinker
                   person={{
@@ -167,10 +163,9 @@ function PersonBlock({
             ) : (
               <button type="button" className={notLinked ? buttonClass.primary : buttonClass.secondary}
                 onClick={() => setLinking(true)}>
-                {notLinked ? "Cerca nel libro soci" : "Cerca nei registri soci e nei moduli"}
+                {memberKeyOfPerson(person) ? "Cambia abbinamento" : "Cerca nel libro soci"}
               </button>
-            )
-          ) : null}
+            )}
         </div>
       )}
 

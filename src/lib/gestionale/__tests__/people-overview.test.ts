@@ -10,7 +10,7 @@ function person(id:string,name:string,email:string):Person{
 }
 function form(id:string,name:string,email:string,paid=false):SociReviewRow{
   return {key:id,formMemberId:id,name,email,submittedAt:null,personId:null,
-    paid,paidSource:paid?"book":null};
+    paid,paidSource:paid?"manual":null};
 }
 const today="2026-11-07";
 const peony=[{

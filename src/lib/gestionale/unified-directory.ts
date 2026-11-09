@@ -1,4 +1,4 @@
-import { normalizeMembershipEmail, normalizeMembershipNameKey } from "@/lib/association/membership-state";
+import { deriveMembershipState, normalizeMembershipEmail, normalizeMembershipNameKey } from "@/lib/association/membership-state";
 import { membershipPeriodFor } from "@/lib/association/membership-periods";
 import { groupMemberEvidence } from "@/lib/gestionale/member-evidence-groups";
 import type { Person } from "@/lib/gestionale/types";
@@ -47,19 +47,22 @@ const sources=(rows:readonly RegistryEvidence[])=>{
   const provenEmail=rows.some(r=>r.source==="manual_override"&&
     r.membership_status==="verified"&&r.notes_admin?.startsWith("Quota confermata da email ("));
   if(provenEmail)labels.push("Pagamento email confermato");
-  if(rows.some(r=>r.source==="official_members_book"))labels.push("Libro soci");
   if(rows.some(r=>r.source==="google_sheet"))labels.push("Modulo Google");
   if(!provenEmail&&rows.some(r=>r.source==="manual_override"))labels.push("Verifica manuale");
   return labels.join(" · ");
 };
-function association(rows:readonly RegistryEvidence[],date:string):UnifiedContact["association"]{
+function association(rows:readonly RegistryEvidence[],date:string):UnifiedContact["association"] {
   if(!rows.length)return "non_presente";
   const period=membershipPeriodFor(date);
-  if(period&&rows.some(r=>r.source!=="google_sheet"&&r.membership_status==="verified"&&
-    Boolean(r.membership_starts_at&&r.membership_starts_at>=period.paymentsFrom&&r.membership_starts_at<=period.validUntil)))
-      return "verificata";
-  return rows.some(r=>r.source==="official_members_book"||r.source==="manual_override")
-    ?"da_verificare":"solo_modulo";
+  const person=rows.find(row=>row.source==="google_sheet")??rows[0];
+  const state=deriveMembershipState([...rows],{
+    email:person.email,firstName:person.first_name,lastName:person.last_name,
+  },{
+    paymentsFrom:period?.paymentsFrom,paymentsUntil:period?.validUntil,
+  });
+  if(state.status==="valid")return "verificata";
+  if(state.formPresent)return "solo_modulo";
+  return state.currentYearPaid?"da_verificare":"non_presente";
 }
 /**
  * Group same-name sources by compatible email. An official entry without email
@@ -84,7 +87,7 @@ const compatible=(person:PersonRef,group:Group)=>{
   return !pn || !group.nameKey || pn===group.nameKey;
 };
 const preferred=(group:Group)=>{
-  const rank:Record<string,number>={official_members_book:0,manual_override:1,google_sheet:2};
+  const rank:Record<string,number>={google_sheet:0,manual_override:1};
   return [...group.rows].sort((a,b)=>(rank[a.source??""]??9)-(rank[b.source??""]??9))[0];
 };
 const active=(people:readonly PersonRef[])=>people.filter(p=>!p.merged_into);

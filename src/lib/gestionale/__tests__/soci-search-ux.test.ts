@@ -33,9 +33,10 @@ describe("Ricerca completa anagrafica e associazioni",()=>{
     expect(actions).toContain("...personFieldsOf(person),email:member.email");
     expect(lookup).toContain("email:person.email??selected[0].email");
   });
-  it("è possibile aprire la ricerca anche da modulo mancante o quota mancante",()=>{
-    expect(booking).toContain('badge.kind !== "in_regola"');
-    expect(booking).toContain("Cerca nei registri soci e nei moduli");
-    expect(ui).toContain("Il collegamento al libro soci Team Artist resta invariato.");
+  it("la ricerca e il cambio abbinamento sono disponibili anche con quota OK",()=>{
+    expect(booking).toContain("Cambia abbinamento");
+    expect(booking).toContain("Cerca nel libro soci");
+    expect(ui).toContain("linkMemberAction");
+    expect(ui).toContain("Cambia abbinamento:");
   });
 });

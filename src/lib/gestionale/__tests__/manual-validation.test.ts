@@ -189,7 +189,7 @@ describe("deriveMembershipState ignora una validazione annullata", () => {
     const { deriveMembershipState } = await import("@/lib/association/membership-state");
     const row = { first_name: "Marta", last_name: "Manuale", email: null, source: "manual_override", membership_starts_at: "2025-09-01", membership_expires_at: "2026-12-31" };
     const identity = { firstName: "Marta", lastName: "Manuale" };
-    expect(deriveMembershipState([{ ...row, membership_status: "verified" }], identity).status).toBe("valid");
+    expect(deriveMembershipState([{ ...row, membership_status: "verified" }], identity)).toMatchObject({status:"missing_form",currentYearPaid:true});
     expect(deriveMembershipState([{ ...row, membership_status: "revoked" }], identity).status).toBe("missing_form");
   });
 });

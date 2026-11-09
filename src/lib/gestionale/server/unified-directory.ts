@@ -57,7 +57,7 @@ export async function loadUnifiedDirectory(today:string){
   for(let offset=0;offset<10000;offset+=500){
     const {data,error}=await db.from("association_members")
       .select("id,first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at,notes_admin")
-      .in("source",["official_members_book","google_sheet","manual_override"])
+      .in("source",["google_sheet","manual_override"])
       .order("id",{ascending:true}).range(offset,offset+499);
     if(error)throw new Error("Impossibile caricare il registro associativo.");
     evidence.push(...(data??[]));
