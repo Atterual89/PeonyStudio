@@ -4,6 +4,7 @@ import { refreshGestione } from "@/lib/gestionale/server/refresh";
 
 import { parseEuroToCents } from "@/lib/gestionale/format";
 import { EMAIL_PATTERN } from "@/lib/gestionale/parse-roster";
+import { suggestCoupleSplit } from "@/lib/gestionale/couple-input";
 import { requireOrganizer } from "@/lib/gestionale/server/auth";
 import { explainConflict } from "@/lib/gestionale/server/conflicts";
 import { getWorkshopView } from "@/lib/gestionale/server/data";
@@ -139,8 +140,18 @@ export async function addRegistrationAction(input: {
   payment?: PaymentFields | null;
 }): Promise<ActionResult> {
   const operator = await requireOrganizer();
-  const person = asText(input?.person, 200).trim();
-  const partner = asText(input?.partner, 200).trim();
+  const enteredPerson = asText(input?.person, 200).trim();
+  const enteredPartner = asText(input?.partner, 200).trim();
+  // Nelle iscrizioni KL le forme "Aizen e Franco", "Pavel/Maru" e
+  // "Aizen+Franco" indicano sempre due partecipanti della stessa quota.
+  // Nessuna identita' viene abbinata automaticamente al profilo centrale.
+  const pair = suggestCoupleSplit(enteredPerson);
+  if(pair && (enteredPartner || input.personId))
+    return {ok:false,error:"Nel campo intestatario sono presenti due persone. Separa prima la coppia."};
+  if(suggestCoupleSplit(enteredPartner))
+    return {ok:false,error:"Il campo partner deve contenere una sola persona."};
+  const person = pair?.first ?? enteredPerson;
+  const partner = pair?.second ?? enteredPartner;
   const fee = input?.fee === null ? null : readCents(input?.fee, { allowEmpty: false });
   if (!isUuidLike(input?.workshopId) || !isBookingStatus(input.status) || fee === undefined) return INVALID;
   if (!person) return { ok: false, error: "Nome: scrivi il nome, il nickname o l'email." };
