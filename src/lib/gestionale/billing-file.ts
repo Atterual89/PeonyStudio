@@ -2,7 +2,7 @@
 import "server-only";
 
 export type BillingSheet = { headers: string[]; rows: string[][] };
-const MAX_SIZE = 5 * 1024 * 1024;
+const MAX_SIZE = 3 * 1024 * 1024;
 const MAX_ROWS = 1000;
 const MAX_COLS = 100;
 
@@ -71,7 +71,7 @@ export async function readBillingFile(file: File): Promise<BillingSheet> {
   if (ext === "xlsx") {
     const ExcelJS = (await import("exceljs")).default;
     const book = new ExcelJS.Workbook();
-    await book.xlsx.load(Buffer.from(await file.arrayBuffer()));
+    await book.xlsx.load(Buffer.from(await file.arrayBuffer()) as unknown as Parameters<typeof book.xlsx.load>[0]);
     const sheet = book.worksheets.find(w=>w.rowCount > 1);
     if (!sheet) throw new Error("Nessun foglio con dati.");
     const cols = Math.min(sheet.columnCount, MAX_COLS+1);

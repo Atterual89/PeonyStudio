@@ -67,7 +67,7 @@ export function BillingDirectoryManager() {
   return <div className="space-y-4">
     <section className="space-y-3 rounded-xl border border-[#211815]/15 bg-white p-3">
       <h2 className="font-semibold">Importa anagrafica per fatture</h2>
-      <p className="text-xs text-[#5f524c]">Excel .xlsx o CSV, massimo 5 MB / 1000 righe. Il file non viene conservato: rimangono soltanto i dati delle persone.</p>
+      <p className="text-xs text-[#5f524c]">Excel .xlsx o CSV, massimo 3 MB / 1000 righe. Il file non viene conservato: rimangono soltanto i dati delle persone.</p>
       <input type="file" accept=".xlsx,.csv,.tsv" className="block w-full text-sm" onChange={e=>{
         setFile(e.target.files?.[0]||null);setPreview(null);setMessage("");
       }}/>
