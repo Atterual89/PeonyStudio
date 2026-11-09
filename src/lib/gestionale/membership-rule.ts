@@ -50,9 +50,9 @@ export function membershipBadge(input: {
     case "missing_form":
       // Un socio accertato in una annualità precedente non è "modulo assente":
       // la quota del nuovo periodo non è ancora registrata.
-      if(input.linked && input.knownHistoricalMember)
-        return {kind:"quota_mancante",paymentsFrom:membershipPeriodFor(date)?.paymentsFrom??null};
-      return input.linked ? { kind: "modulo_mancante" } : { kind: "non_collegata" };
+      return input.linked
+        ? { kind: "modulo_mancante", quotaPaid: input.state.currentYearPaid, quotaMatch: input.state.paymentMatchMethod }
+        : { kind: "non_collegata", quotaPaid: input.state.currentYearPaid, quotaMatch: input.state.paymentMatchMethod };
   }
 }
 
@@ -84,7 +84,7 @@ export function memberOutcomeLabel(badge: MembershipBadge, inBook: boolean): str
     case "in_regola":
       return badge.expiresAt ? `In regola fino al ${formatShortDate(badge.expiresAt)}` : "In regola";
     case "quota_mancante":
-      return inBook ? "Nel libro soci, quota non registrata" : "Solo modulo, quota non registrata";
+      return "Quota non registrata";
     default:
       return "Modulo non trovato";
   }

@@ -26,5 +26,5 @@ export async function confirmManualQuotaPersisted(
     paymentsFrom:period.paymentsFrom,
     paymentsUntil:period.validUntil,
   });
-  return state.status==="valid"&&state.currentYearPaid&&state.paymentMatchMethod==="manual";
+  return state.currentYearPaid&&state.paymentMatchMethod==="manual";
 }
