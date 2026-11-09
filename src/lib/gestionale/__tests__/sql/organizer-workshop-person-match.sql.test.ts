@@ -7,6 +7,9 @@ const migration=readFileSync(join(process.cwd(),"supabase/migrations/040_gw_orga
 let t:TestDb,ale:string,admin:string,workshop:string,booking:string,participant:string,maryna:string;
 beforeEach(async()=>{
   t=await createTestDb(MIGRATIONS,{supabaseDefaults:true});
+  // Colonna introdotta dalle migrazioni anagrafiche successive alla 027,
+  // presenti già nello schema di produzione.
+  await t.db.exec("alter table public.gw_people add column if not exists membership_name_key text;");
   await t.db.exec(migration);
   ale=await t.operator("Alessandra");
   admin=await t.operator("Admin");
