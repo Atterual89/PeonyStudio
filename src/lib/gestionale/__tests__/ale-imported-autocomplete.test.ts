@@ -60,9 +60,9 @@ describe("autocomplete iscrizioni KL dall'anagrafica Alessandra",()=>{
   it("UI separa ID del contatto dall'ID persona centrale",()=>{
     const add=readFileSync(join(process.cwd(),"src/components/gestionale/AddRegistration.tsx"),"utf8");
     expect(add).toContain("setPersonLookupId(entry.id)");
-    expect(add).toContain("setPersonId(entry.personId)");
+    expect(add).toContain("setPersonId(entry.personId??null)");
     expect(add).toContain("setPartnerLookupId(entry.id)");
-    expect(add).toContain("setPartnerId(entry.personId)");
+    expect(add).toContain("setPartnerId(entry.personId??null)");
     const picker=readFileSync(join(process.cwd(),"src/components/gestionale/BillingNameAutocomplete.tsx"),"utf8");
     expect(picker).toContain("Anagrafica Alessandra");
   });
