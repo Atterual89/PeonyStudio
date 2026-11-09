@@ -130,12 +130,10 @@ function PersonBlock({
         <PersonInlineEditor person={person} member={entry.member} onDone={() => setEditing(false)} />
       ) : (
         <div className="space-y-2">
-          {!notLinked ? (
+          {(
             <QuotaOkCheckbox
-              checked={badge.kind==="in_regola"}
-              editable={badge.kind==="in_regola"
-                ? canRevokeQuotaOk(badge)
-                : canMarkQuotaOk(badge)&&Boolean(entry.fullName||person.email||entry.member?.email)}
+              checked={badge.kind==="in_regola" || Boolean("quotaPaid" in badge && badge.quotaPaid)}
+              editable={canRevokeQuotaOk(badge) || (canMarkQuotaOk(badge)&&Boolean(entry.fullName||person.email||entry.member?.email))}
               onToggle={paid=>paid
                 ? markQuotaOkAction({personId:person.id,workshopId})
                 : revokeQuotaOkAction({personId:person.id,workshopId})}
@@ -148,7 +146,7 @@ function PersonBlock({
                 La quota per questo workshop non risulta ancora verificata.
               </p>
           ) : null}
-          {notLinked || badge.kind !== "in_regola" ? (
+          {true ? (
             linking ? (
               <div className="space-y-2">
                 <MemberLinker
@@ -167,7 +165,7 @@ function PersonBlock({
             ) : (
               <button type="button" className={notLinked ? buttonClass.primary : buttonClass.secondary}
                 onClick={() => setLinking(true)}>
-                {notLinked ? "Cerca nel libro soci" : "Cerca nei registri soci e nei moduli"}
+                {memberKeyOfPerson(person) ? "Cambia abbinamento" : "Cerca nel libro soci"}
               </button>
             )
           ) : null}

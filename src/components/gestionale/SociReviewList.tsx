@@ -52,7 +52,7 @@ export function SociReviewList({ rows }: { rows: SociReviewRow[] }) {
       {error ? <p role="alert" className="rounded-lg bg-[#f3e8d4] p-2 text-sm text-[#733a18]">{error}</p> : null}
       <ul className="divide-y divide-[#211815]/10 rounded-xl border border-[#211815]/10 bg-white/80">
         {visible.map((row) => {
-          const lockedByBook = row.paid && row.paidSource === "book";
+          const protectedEmail = row.paid && row.paidSource === "email";
           return (
             <li key={row.key} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 p-3 text-sm">
               <span className="min-w-0 flex-1">
@@ -62,11 +62,11 @@ export function SociReviewList({ rows }: { rows: SociReviewRow[] }) {
               </span>
               <label className="flex min-h-10 items-center gap-2 text-xs font-semibold">
                 <input type="checkbox" checked={row.paid}
-                  disabled={busy || lockedByBook}
+                  disabled={busy || protectedEmail}
                   onChange={(event) => updateQuota(row, event.target.checked)}
                   aria-label={`Quota pagata: ${row.name}`}
                   className="h-5 w-5 accent-[#a8583e]" />
-                <span>{busyId === row.formMemberId ? "Salvataggio…" : lockedByBook ? "Pagata (Team Artist)" : "Quota pagata"}</span>
+                <span>{busyId === row.formMemberId ? "Salvataggio…" : "Quota OK"}</span>
               </label>
             </li>
           );
@@ -79,7 +79,6 @@ export function SociReviewList({ rows }: { rows: SociReviewRow[] }) {
           Mostra tutte ({found.length})
         </button>
       ) : null}
-      <p className="text-xs text-[#5f524c]">Il flag registra la quota nel gestionale, anche senza una scheda partecipante. Le quote già presenti nell'export Team Artist non si modificano qui.</p>
     </div>
   );
 }

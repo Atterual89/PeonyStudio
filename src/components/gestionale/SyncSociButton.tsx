@@ -29,7 +29,7 @@ export function SyncSociButton() {
         }
         const totalChanges = response.forms.creates + response.forms.updates;
         if (totalChanges === 0) {
-          setResult({ ok: true, message: "Domande Google già aggiornate. TeamArtist non è interrogato direttamente." });
+          setResult({ ok: true, message: "Registrazioni Google già aggiornate." });
           return;
         }
         setPreview(response);
@@ -85,7 +85,7 @@ export function SyncSociButton() {
             {stat("Domande Google", preview.forms)}
           </div>
           <p className="mt-2 text-xs text-[#5f524c]">
-            Sincronizza soltanto i moduli Google (italiano e inglese). Non conferma pagamenti e non modifica il libro TeamArtist, caricabile a parte.
+            Sincronizza le registrazioni Google (italiano e inglese). Le quote si verificano separatamente.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button type="button" onClick={apply} disabled={busy}

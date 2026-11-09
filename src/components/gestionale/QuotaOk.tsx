@@ -18,6 +18,7 @@ import { formatPeriod } from "@/lib/gestionale/membership-rule";
 import type { MembershipBadge } from "@/lib/gestionale/types";
 
 import { useFlash } from "./Flash";
+import { QuotaOkCheckbox } from "./QuotaOkCheckbox";
 import { RowMenu, buttonClass } from "./ui";
 
 type Target = {
@@ -31,11 +32,13 @@ type Target = {
 
 /** Collegata (badge diverso da "Non collegata") e non in regola. */
 export function canMarkQuotaOk(badge: MembershipBadge): boolean {
-  return badge.kind === "quota_mancante" || badge.kind === "modulo_mancante";
+  return badge.kind === "quota_mancante" ||
+    ((badge.kind === "modulo_mancante" || badge.kind === "non_collegata") && !badge.quotaPaid);
 }
 
 export function canRevokeQuotaOk(badge: MembershipBadge): boolean {
-  return badge.kind === "in_regola" && badge.match === "manual";
+  return (badge.kind === "in_regola" && badge.match === "manual") ||
+    ((badge.kind === "modulo_mancante" || badge.kind === "non_collegata") && Boolean(badge.quotaPaid) && badge.quotaMatch === "manual");
 }
 
 function ConfirmBox({
@@ -138,17 +141,17 @@ export function RevokeQuotaOk({ personId, name, referenceDate, workshopId, onClo
   );
 }
 
-/** Scheda persona: "Segna quota ok", oppure il menu "…" con "Annulla validazione manuale". */
+/** Casella immediata per la quota anche nella scheda persona. */
 export function QuotaOkControls(props: Target & { badge: MembershipBadge; canMark: boolean }) {
-  const [revoking, setRevoking] = useState(false);
-  if (canRevokeQuotaOk(props.badge)) {
-    return revoking ? (
-      <RevokeQuotaOk {...props} onClose={() => setRevoking(false)} />
-    ) : (
-      <RowMenu label="Altre azioni sulla tessera" items={[{ label: UI_LABELS.revokeValidation, danger: true, onClick: () => setRevoking(true) }]} />
-    );
-  }
-  return <MarkQuotaOk {...props} />;
+  const checked = props.badge.kind === "in_regola" ||
+    Boolean("quotaPaid" in props.badge && props.badge.quotaPaid);
+  return <QuotaOkCheckbox
+    checked={checked}
+    editable={checked ? canRevokeQuotaOk(props.badge) : canMarkQuotaOk(props.badge) && props.canMark}
+    onToggle={paid => paid
+      ? markQuotaOkAction({personId:props.personId,workshopId:props.workshopId??null,periodFrom:props.workshopId?null:props.referenceDate})
+      : revokeQuotaOkAction({personId:props.personId,workshopId:props.workshopId??null,periodFrom:props.workshopId?null:props.referenceDate})}
+  />;
 }
 
 /** Pulsante piccolo: svuota la cache dei soci (Google Sheet e validazioni manuali). */

@@ -279,7 +279,7 @@ export function PeonyEventOperations({
             <summary className="w-fit cursor-pointer py-1 text-[#a8583e]">Ultimi aggiornamenti</summary>
             <p>Biglietti: {formattedSync(ticketsLastSyncedAt)}</p>
             <p>Associazione: {formattedSync(associationLastSyncedAt)}</p>
-            <p>Le verifiche associative derivano dai dati salvati; controlla TeamArtist per le conferme recenti.</p>
+            <p>Registrazione dai moduli Google; quota da email o conferma manuale.</p>
           </details>
           <AssociationDotLegend/>
           {!freeOnly&&<div className="flex flex-wrap items-center gap-2 text-sm">

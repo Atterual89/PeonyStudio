@@ -97,7 +97,7 @@ export default async function WorkshopDetailPage({
                   dateStyle: "medium", timeZone: "Europe/Rome",
                 }).format(new Date(membershipEvidence.snapshotUpdatedAt))})`
               : ""}.
-            Verifiche non aggiornate in tempo reale: controllare la registrazione e la quota su TeamArtist.
+            Verifiche da dati salvati: aggiorna le registrazioni Google e le quote email.
           </Notice>
         </div>
       ) : null}

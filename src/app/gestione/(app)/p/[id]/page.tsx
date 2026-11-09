@@ -157,37 +157,32 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
           <FlashMessage scope={person.id} />
         </div>
         {member ? (
-          // I suggerimenti "usa questo" stanno già nel modulo della scheda sopra.
-          <>
-            <MemberCard person={person} member={member} badge={badges.get(person.id) ?? null} showDifferences={false} />
-            <div className="mt-2">
-              <MemberUnlink
-                person={{ id:person.id,version:person.version }}
-                memberName={[member.first_name, member.last_name].filter(Boolean).join(" ") || member.email || "questo socio"}
-              />
-            </div>
-          </>
+          <MemberCard person={person} member={member} badge={badges.get(person.id) ?? null} showDifferences={false} />
         ) : memberKeyOfPerson(person) ? (
-          <>
-            <Notice tone="warning">Il socio collegato non è più nel libro soci: da verificare.</Notice>
-            <div className="mt-2">
-              <MemberUnlink person={{ id: person.id, version: person.version }} memberName="questo socio" />
-            </div>
-          </>
+          <Notice tone="warning">Abbinamento storico non trovato tra le registrazioni Google. Cerca il modulo corretto.</Notice>
         ) : (
-          <>
-            <p className="mb-3 text-[#5f524c]">Non collegata.</p>
+          <p className="mb-3 text-[#5f524c]">Non collegata.</p>
+        )}
+        <details open={!memberKeyOfPerson(person)} className="rounded-lg border border-[#211815]/10 p-2">
+          <summary className="cursor-pointer text-sm font-semibold text-[#a8583e]">
+            {memberKeyOfPerson(person) ? "Cambia abbinamento o cerca nel libro soci" : "Cerca nel libro soci"}
+          </summary>
+          <div className="mt-2">
             <MemberLinker
               person={{
                 id:person.id,version:person.version,
                 currentMemberId:memberKeyOfPerson(person),
                 hasNameLink:Boolean(person.membership_name_key),email:person.email,
               }}
-              initialQuery={[person.first_name, person.last_name].filter(Boolean).join(" ") || person.nickname || ""}
+              initialQuery={[person.first_name,person.last_name].filter(Boolean).join(" ") || person.nickname || ""}
               referenceDate={todayInRome()}
             />
-          </>
-        )}
+          </div>
+        </details>
+        {memberKeyOfPerson(person) ? (
+          <MemberUnlink person={{id:person.id,version:person.version}}
+            memberName={member ? [member.first_name,member.last_name].filter(Boolean).join(" ") || member.email || "questo socio" : "questo socio"} />
+        ) : null}
         </FlashProvider>
       </Section>
 

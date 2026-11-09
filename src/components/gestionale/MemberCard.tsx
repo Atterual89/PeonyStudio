@@ -14,8 +14,8 @@ import { buttonClass } from "./ui";
 
 /**
  * Socio collegato (D11): "Collegata a <Nome> <Cognome>", Nome, Cognome,
- * Email, stato tessera. "Completa con i dati del libro soci" riempie solo i
- * campi vuoti (con storico); per i campi pieni e diversi "Nel libro soci: X —
+ * Email, stato tessera. "Completa con i dati del modulo Google" riempie solo i
+ * campi vuoti (con storico); per i campi pieni e diversi "Nel modulo Google: X —
  * usa questo" (`showDifferences`: dove non c'è già il modulo con i suggerimenti).
  * Nessuna scrittura senza un tocco.
  */
@@ -30,7 +30,7 @@ export function MemberCard({
   member: MemberSummary;
   badge: Badge | null;
   showDifferences?: boolean;
-  /** Blocco persona del tab Partecipanti (4d): solo le differenze "Nel libro soci: X — usa questo". */
+  /** Blocco persona del tab Partecipanti (4d): solo le differenze "Nel modulo Google: X — usa questo". */
   compact?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
@@ -45,7 +45,7 @@ export function MemberCard({
     flash.clear();
     startTransition(async () => {
       const result = await completeFromMemberAction({ personId: person.id });
-      flash.result(result, result.ok && result.data.filled ? "Dati completati dal libro soci." : "Niente da completare.");
+      flash.result(result, result.ok && result.data.filled ? "Dati completati dal modulo Google." : "Niente da completare.");
     });
   }
 
@@ -62,7 +62,7 @@ export function MemberCard({
         {differences.map(({ field, value }) => (
           <li key={field} className="flex flex-wrap items-center gap-x-2">
             <span>
-              {PERSON_FIELD_LABELS[field]} — nel libro soci: <strong>{value}</strong>
+              {PERSON_FIELD_LABELS[field]} — nel modulo Google: <strong>{value}</strong>
             </span>
             <button type="button" className="min-h-10 font-semibold underline" disabled={pending} onClick={() => applyValue(field)}>
               usa questo
@@ -76,7 +76,7 @@ export function MemberCard({
     return differenceList || unsplit ? (
       <div className="space-y-1">
         {differenceList}
-        {unsplit ? <p className="text-sm text-[#7a5212]">Nel libro soci nome e cognome sono in un solo campo («{unsplit}»): completali a mano.</p> : null}
+        {unsplit ? <p className="text-sm text-[#7a5212]">Nel modulo Google nome e cognome sono in un solo campo («{unsplit}»): completali a mano.</p> : null}
       </div>
     ) : null;
   }
@@ -116,12 +116,12 @@ export function MemberCard({
       {differenceList}
 
       {unsplit ? (
-        <p className="text-[#7a5212]">Nel libro soci nome e cognome sono in un solo campo («{unsplit}»): completali a mano.</p>
+        <p className="text-[#7a5212]">Nel modulo Google nome e cognome sono in un solo campo («{unsplit}»): completali a mano.</p>
       ) : null}
 
       {Object.keys(fill).length > 0 ? (
         <button type="button" className={buttonClass.secondary} disabled={pending} onClick={complete}>
-          {pending ? "Salvataggio…" : "Completa con i dati del libro soci"}
+          {pending ? "Salvataggio…" : "Completa con i dati del modulo Google"}
         </button>
       ) : null}
     </div>

@@ -10,15 +10,14 @@ export function QuotaCheckbox({
   formMemberId: string;
   name: string;
   paid: boolean;
-  paidSource: "manual" | "email" | "book" | null;
+  paidSource: "manual" | "email" | null;
   periodDate?: string;
 }) {
   const router = useRouter();
   const [busy, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const official = paid && paidSource === "book";
   const provenByEmail = paid && paidSource === "email";
-  const protectedProof = official || provenByEmail;
+  const protectedProof = provenByEmail;
   const periodYear = periodDate ? Number(periodDate.slice(0, 4)) : null;
   return (
     <span className="inline-flex max-w-full flex-col items-end gap-1">
@@ -40,7 +39,7 @@ export function QuotaCheckbox({
           }}
           className="h-5 w-5 shrink-0 accent-[#a8583e]" />
         <span className={protectedProof ? "text-[#326941]" : "text-[#5f524c]"}>
-          {busy ? "Salvataggio…" : official ? "Pagata (Team Artist)" : provenByEmail ? "Pagata (email)" : periodYear ? `Quota ${periodYear}` : "Quota pagata"}
+          {busy ? "Salvataggio…" : "Quota OK"}
         </span>
       </label>
       {error ? <span role="alert" className="max-w-64 text-right text-xs text-[#9b2c2c]">{error}</span> : null}
