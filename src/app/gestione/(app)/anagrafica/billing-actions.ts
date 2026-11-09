@@ -7,7 +7,7 @@ import { normalizeText } from "@/lib/gestionale/format";
 import { mappedBillingRows, readBillingFile, suggestBillingColumns } from "@/lib/gestionale/billing-file";
 import { isUuidLike } from "@/lib/gestionale/validation";
 
-export type BillingEntry = { id: string; name: string; email: string; fields?: Record<string,string> };
+export type BillingEntry = { id: string; name: string; email: string; nickname?:string|null; fields?: Record<string,string> };
 export type BillingReview = {
   id: string; name: string; email: string; reason: string;
   candidates: { id: string; name: string }[];
@@ -24,7 +24,7 @@ function publicError(error: unknown) {
 function operatorRow(row: { gw_people: unknown }) {
   const nested = row.gw_people;
   return (Array.isArray(nested) ? nested[0] : nested) as {
-    first_name: string|null; last_name:string|null; deleted_at:string|null; merged_into:string|null
+    first_name: string|null; last_name:string|null; nickname?:string|null; deleted_at:string|null; merged_into:string|null
   }|null;
 }
 
@@ -64,7 +64,7 @@ export async function importBillingFileAction(form: FormData) {
 async function billingRows(operatorId:string) {
   const db=getGestionaleDb();
   const {data,error}=await db.from("gw_billing_profiles")
-    .select("person_id,fields,gw_people!inner(first_name,last_name,deleted_at,merged_into)")
+    .select("person_id,fields,gw_people!inner(first_name,last_name,nickname,deleted_at,merged_into)")
     .eq("owner_operator_id",operatorId).order("updated_at",{ascending:false}).limit(10000);
   if(error)throw new Error("Non riesco a leggere l'anagrafica importata.");
   return (data??[]).flatMap(row=>{
@@ -72,7 +72,7 @@ async function billingRows(operatorId:string) {
     if(!person||person.deleted_at||person.merged_into)return[];
     const name=[person.first_name,person.last_name].filter(Boolean).join(" ").trim();
     const fields=row.fields as Record<string,string>;
-    return name?[{id:row.person_id,name,email:String(fields?.__billing_email||""),fields}]:[];
+    return name?[{id:row.person_id,name,email:String(fields?.__billing_email||""),nickname:person.nickname??null,fields}]:[];
   });
 }
 
@@ -84,9 +84,24 @@ export async function searchBillingDirectoryAction(input:{query:string}) {
     const tokens=query.split(/\s+/).filter(Boolean);
     const operatorId=operator.id;
     const people=await billingRows(operatorId);
-    const results=people.filter(p=>tokens.every(t=>normalizeText(p.name+" "+p.email).includes(t)))
+    // Cerca solo tra persone già presenti nell'anagrafica fatture di Ale:
+    // l'alias non dà accesso a schede esterne ai suoi corsi.
+    const ids=[...new Set(people.map(p=>p.id))];
+    const aliasesByPerson=new Map<string,string[]>();
+    for(let i=0;i<ids.length;i+=500){
+      const {data,error}=await getGestionaleDb().from("gw_person_aliases")
+        .select("person_id,alias").in("person_id",ids.slice(i,i+500))
+        .is("deleted_at",null).range(0,9999);
+      if(error)break;
+      for(const row of data??[])
+        aliasesByPerson.set(row.person_id,[...(aliasesByPerson.get(row.person_id)??[]),row.alias]);
+    }
+    const results=people.filter(p=>{
+      const search=normalizeText([p.name,p.email,p.nickname,...(aliasesByPerson.get(p.id)??[])].filter(Boolean).join(" "));
+      return tokens.every(t=>search.includes(t));
+    })
       .sort((a,b)=>a.name.localeCompare(b.name,"it")).slice(0,20)
-      .map(({id,name,email})=>({id,name,email}));
+      .map(({id,name,email,nickname})=>({id,name,email,nickname}));
     return {ok:true as const,data:results};
   } catch(error){return {ok:false as const,error:publicError(error)};}
 }

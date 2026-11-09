@@ -7,13 +7,14 @@ export type DirectoryMemberRow = {
 };
 export type DirectoryPersonRow = {
   id: string; first_name: string | null; last_name: string | null;
-  nickname: string | null; email: string | null;
+  nickname: string | null; email: string | null; aliases?:string[];
 };
 export type MemberDirectoryCandidate = {
   kind: "member" | "person";
   id: string;
   name: string;
   email: string | null;
+  aliases?:string[];
   origin: "Libro soci" | "Modulo Google" | "Conferma manuale" | "Anagrafica" | "Libro soci + modulo";
   // L'identità è esplicita. In caso di omonimia non unire mai indirizzi diversi.
 };
@@ -100,31 +101,30 @@ export function buildPeonyMemberDirectory(
       email&&row.email&&normalizeMembershipEmail(email)===normalizeMembershipEmail(row.email));
     // Se il libro ha nome univoco ma non l'email, arricchisci soltanto
     // quando non esistono persone omonime con email in conflitto.
-    if(exact.length===1)continue;
-    const nameOnly=candidates.filter(row=>!row.email);
-    const hasConflict=candidates.some(row=>row.email&&email&&normalizeMembershipEmail(row.email)!==normalizeMembershipEmail(email));
-    if(email&&nameOnly.length===1&&!hasConflict){
-      nameOnly[0].email=email;continue;
-    }
-    if(!email&&candidates.length===1)continue;
-    result.push({kind:"person",id:person.id,name:name??email!,email,origin:"Anagrafica"});
+    // Il profilo canonico deve essere sempre selezionabile, anche se modulo
+    // o libro soci hanno lo stesso nome/email. Non arricchire mai una prova
+    // associativa modificando l'email dall'anagrafica senza conferma.
+    result.push({kind:"person",id:person.id,name:name??email!,email,
+      aliases:[person.nickname??"",...(person.aliases??[])].filter(Boolean),origin:"Anagrafica"});
   }
   // Evita le ripetizioni di una stessa identità esatta quando più annualità
   // compaiono con lo stesso nome ed email, senza fondere email incompatibili.
   const unique=new Set<string>();
   return result.filter(row=>{
-    const key=row.email?`${normalizeMembershipNameKey(row.name,null)}|${normalizeMembershipEmail(row.email)}`:
+    const key=row.kind==="person"?`person|${row.id}`:
+      row.email?`member|${normalizeMembershipNameKey(row.name,null)}|${normalizeMembershipEmail(row.email)}`:
       `no-email|${row.kind}|${row.id}`;
     if(unique.has(key))return false;
     unique.add(key);return true;
-  }).sort((a,b)=>a.name.localeCompare(b.name,"it")||String(a.email).localeCompare(String(b.email)));
+  }).sort((a,b)=>a.name.localeCompare(b.name,"it")||(a.kind==="person"?-1:1) - (b.kind==="person"?-1:1)||String(a.email).localeCompare(String(b.email)));
 }
 
 export function filterPeonyMemberDirectory(rows:readonly MemberDirectoryCandidate[],query:string){
   const words=query.normalize("NFD").replace(/[\u0300-\u036f]/g,"")
     .toLocaleLowerCase("it").trim().split(/\s+/).filter(Boolean);
   return rows.filter(row=>{
-    const text=`${row.name} ${row.email??""}`.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("it");
+    const text=`${row.name} ${row.email??""} ${(row.aliases??[]).join(" ")}`
+      .normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("it");
     return words.every(word=>text.includes(word));
   }).slice(0,20);
 }

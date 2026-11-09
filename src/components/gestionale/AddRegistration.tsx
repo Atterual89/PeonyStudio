@@ -7,6 +7,7 @@ import { useState, useTransition } from "react";
 import { addRegistrationAction } from "@/app/gestione/(app)/w/registration-actions";
 import { centsToInput, parseEuroToCents } from "@/lib/gestionale/format";
 import { EMAIL_PATTERN } from "@/lib/gestionale/parse-roster";
+import { suggestCoupleSplit } from "@/lib/gestionale/couple-input";
 import { deducedPaymentType } from "@/lib/gestionale/payments";
 import type { BookingStatus, PaymentMethod } from "@/lib/gestionale/types";
 
@@ -67,6 +68,7 @@ export function AddRegistration({
     setMore(false);
   }
 
+  const suggestedPair=!personId&&!partner.trim()?suggestCoupleSplit(person):null;
   const feeText = customFee === null ? centsToInput(standardFeeCents) : customFee;
   const feeCents = parseEuroToCents(feeText);
   const autoType = (cents: number | null) => deducedPaymentType(0, cents, feeCents);
@@ -81,6 +83,10 @@ export function AddRegistration({
   }
 
   function save() {
+    if (suggestedPair) {
+      setMessage({tone:"error",text:"Sono presenti due nomi: verifica la coppia e seleziona «Dividi coppia» prima di salvare."});
+      return;
+    }
     if (!person.trim()) {
       setMessage({ tone: "error", text: "Nome: scrivi il nome, il nickname o l'email." });
       return;
@@ -164,6 +170,13 @@ export function AddRegistration({
               value={personEmail} onChange={(e) => setPersonEmail(e.target.value)} placeholder="Email" />
           </Field>
         </div>
+        {suggestedPair&&<div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#a8583e]/25 bg-[#f8f3ea] p-3 text-sm">
+          <span>Coppia riconosciuta: <strong>{suggestedPair.first}</strong> + <strong>{suggestedPair.second}</strong></span>
+          <button type="button" onClick={()=>{
+            setPerson(suggestedPair.first);setPersonId(null);
+            setPartner(suggestedPair.second);setPartnerId(null);
+          }} className="min-h-10 rounded-lg bg-[#a8583e] px-3 font-semibold text-white">Dividi coppia</button>
+        </div>}
         <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-2">
           <Field label="Partner">
             <BillingNameAutocomplete value={partner} selectedId={partnerId}

@@ -12,6 +12,7 @@ import { getGestionaleDb } from "@/lib/gestionale/server/db";
 import { associationStatus, getPeonyEvent, isActivePeonyTicket, loadPeonyAttendees, readAllMemberEvidence } from "@/lib/gestionale/server/peony-events";
 import { cleanPartnerEmail, cleanPartnerName, isSameParticipant } from "@/lib/gestionale/peony-booking-partner";
 import { normalizeText } from "@/lib/gestionale/format";
+import { resolveCentralPerson } from "@/lib/gestionale/central-person-resolution";
 import { buildPeonyMemberDirectory, filterPeonyMemberDirectory } from "@/lib/gestionale/peony-member-candidates";
 import { isUuidLike } from "@/lib/gestionale/validation";
 import { todayInRome } from "@/lib/gestionale/workshops";
@@ -180,11 +181,26 @@ async function readCandidates(eventId: string) {
   if(!event)return null;
   const [evidence,peopleResponse]=await Promise.all([
     readAllMemberEvidence(),
-    getGestionaleDb().from("gw_people").select("id,first_name,last_name,nickname,email")
+    getGestionaleDb().from("gw_people").select("id,first_name,last_name,nickname,email,membership_name_key,membership_email,association_member_id")
       .is("deleted_at",null).is("merged_into",null).range(0,9999),
   ]);
   if(peopleResponse.error)throw new Error("Anagrafica non disponibile.");
-  return {event,evidence,candidates:buildPeonyMemberDirectory(evidence,peopleResponse.data??[])};
+  const people=peopleResponse.data??[];
+  const ids=people.map(p=>p.id);
+  // Alias utili alla ricerca, mai usati per confermare una tessera o un pagamento.
+  const aliasMap=new Map<string,string[]>();
+  for(let i=0;i<ids.length;i+=500){
+    const {data,error}=await getGestionaleDb().from("gw_person_aliases")
+      .select("person_id,alias").in("person_id",ids.slice(i,i+500))
+      .is("deleted_at",null).range(0,9999);
+    if(error){
+      console.warn("[gestionale] Alias Peony temporaneamente non disponibili");
+      break;
+    }
+    for(const a of data??[])aliasMap.set(a.person_id,[...(aliasMap.get(a.person_id)??[]),a.alias]);
+  }
+  const searchable=people.map(person=>({...person,aliases:aliasMap.get(person.id)??[]}));
+  return {event,evidence,people:searchable,candidates:buildPeonyMemberDirectory(evidence,searchable)};
 }
 
 /** Elenco soci, moduli e anagrafica con le fonti già deduplicate. */
@@ -246,6 +262,8 @@ export async function savePeonyPartnerAction(
     partnerName=candidate.name;
     partnerEmail=candidate.email;
     memberRowId=candidate.id;
+    const resolved=resolveCentralPerson({people:directory!.people,memberEvidence:directory!.evidence,memberRowId});
+    personId=resolved?.personId??null;
   }else if(selected?.kind==="person"){
     const {data:row,error}=await db.from("gw_people")
       .select("id,first_name,last_name,nickname,email")
@@ -326,6 +344,8 @@ export async function savePeonyHolderAction(
     const candidate=directory?.candidates.find(c=>c.kind==="member"&&c.id===selected.id);
     if(!candidate)return {ok:false,error:"Socio non trovato. Ripeti la ricerca."};
     memberId=candidate.id;name=candidate.name;email=candidate.email;
+    const resolved=resolveCentralPerson({people:directory!.people,memberEvidence:directory!.evidence,memberRowId:memberId});
+    personId=resolved?.personId??null;
   }else{
     const {data:person,error}=await db.from("gw_people")
       .select("id,first_name,last_name,nickname,email")

@@ -59,12 +59,14 @@ describe("D14 — events e ticket_tailor_* in sola lettura", () => {
     expect(eventReaders).toEqual([
       "src/lib/gestionale/server/events.ts",
       "src/lib/gestionale/server/peony-events.ts",
+      "src/lib/gestionale/server/peony-person-history.ts",
     ]);
     const ticketReaders = SOURCES.filter(({ code }) => /\.from\(\s*["']ticket_tailor_/.test(code))
       .map((f) => f.path).sort();
     expect(ticketReaders).toEqual([
       "src/app/gestione/(app)/peony/actions.ts",
       "src/lib/gestionale/server/peony-events.ts",
+      "src/lib/gestionale/server/peony-person-history.ts",
     ]);
   });
 

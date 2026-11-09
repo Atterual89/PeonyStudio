@@ -44,7 +44,9 @@ export function BillingNameAutocomplete({
             onPick(p);setResults([]);setFocused(false);
           }} className="block w-full px-3 py-2 text-left hover:bg-[#f2ede3]">
             <span className="block font-semibold">{p.name}</span>
-            <span className="block truncate text-xs text-[#5f524c]">{p.email||"Anagrafica fatture"}</span>
+            <span className="block truncate text-xs text-[#5f524c]">
+              {[p.nickname?"Nickname: "+p.nickname:null,p.email||"Anagrafica fatture"].filter(Boolean).join(" · ")}
+            </span>
           </button>
         </li>)}
       </ul>}

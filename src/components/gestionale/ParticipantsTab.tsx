@@ -1,7 +1,7 @@
 "use client";
 
-import { ArrowDownUp, ChevronDown, Mail } from "lucide-react";
-import { Fragment, useMemo, useState } from "react";
+import { Mail } from "lucide-react";
+import { useMemo, useState } from "react";
 
 import {
   BOOKING_FILTERS,
@@ -24,8 +24,8 @@ import { MembershipBadge } from "./MembershipBadge";
 import { AssociationDotLegend } from "./AssociationStatusDot";
 import { PresentToggle } from "./PresentToggle";
 import { QuickAdd } from "./QuickAdd";
-import { Chip, RowMenu, cardClass } from "./ui";
-import { useIsDesktop } from "./useIsDesktop";
+import { Chip, RowMenu } from "./ui";
+import { UnifiedParticipantCard } from "./UnifiedParticipantCard";
 
 type SortKey = "data" | "nome" | "socio" | "stato";
 
@@ -54,27 +54,6 @@ function sortValue(booking: BookingView, key: SortKey): string | number {
     case "stato":
       return STATUS_ORDER.indexOf(booking.status);
   }
-}
-
-function SortHeader({
-  label,
-  sortKey,
-  current,
-  onSort,
-}: {
-  label: string;
-  sortKey: SortKey;
-  current: SortKey;
-  onSort: (key: SortKey) => void;
-}) {
-  return (
-    <th className="px-3 py-2 text-left">
-      <button type="button" onClick={() => onSort(sortKey)} className="inline-flex min-h-10 items-center gap-1 font-semibold">
-        {label}
-        <ArrowDownUp className={`h-4 w-4 ${current === sortKey ? "text-[#a8583e]" : "text-[#5f524c]/50"}`} aria-hidden="true" />
-      </button>
-    </th>
-  );
 }
 
 /** Persone dell'iscrizione, ognuna con badge socio ed eventuale "email mancante". */
@@ -134,7 +113,6 @@ export function ParticipantsTab({
   // D26: nei gruppi delle richieste contano le iscrizioni confermate; a richiesta anche gli interessati.
   const [includeInterested, setIncludeInterested] = useState(false);
   const scope = { includeInterested };
-  const isDesktop = useIsDesktop();
 
   const summary = membershipSummary(bookings);
 
@@ -167,11 +145,6 @@ export function ParticipantsTab({
   const deleteConfirm = (booking: BookingView) => (
     <DeleteBookingConfirm booking={booking} name={bookingTitle(booking)} onClose={() => setDeletingId(null)} />
   );
-
-  const headerProps = {
-    current: sort.key,
-    onSort: (key: SortKey) => setSort((current) => ({ key, asc: current.key === key ? !current.asc : true })),
-  };
 
   return (
     <div>
@@ -233,108 +206,46 @@ export function ParticipantsTab({
         </div>
       ) : null}
 
+      <div className="mt-3 flex items-center justify-end gap-2 text-sm">
+        <label htmlFor="kl-attendee-sort" className="text-[#5f524c]">Ordina</label>
+        <select id="kl-attendee-sort" aria-label="Ordina iscrizioni"
+          value={sort.key+"-"+(sort.asc?"asc":"desc")}
+          onChange={event=>{const [key,direction]=event.target.value.split("-");setSort({key:key as SortKey,asc:direction==="asc"});}}
+          className="min-h-10 rounded-lg border border-[#211815]/15 bg-white px-2">
+          <option value="data-asc">Data inserimento · meno recenti</option>
+          <option value="data-desc">Data inserimento · più recenti</option>
+          <option value="nome-asc">Nome A–Z</option>
+          <option value="nome-desc">Nome Z–A</option>
+          <option value="socio-asc">Associazione · da verificare</option>
+          <option value="stato-asc">Stato iscrizione</option>
+        </select>
+      </div>
+
       {visible.length === 0 ? (
         <p className="mt-3 text-sm text-[#5f524c]">{query.trim() ? "Nessun risultato per questa ricerca." : "Nessuna iscrizione in questo elenco."}</p>
-      ) : !isDesktop ? (
-        /* Mobile e tablet: una riga per iscrizione, si apre sul posto. */
+      ) : (
         <ul className="mt-4 space-y-2">
-          {visible.map((booking) => {
-            const open = openId === booking.bookingId;
-            return (
-              <li key={booking.bookingId} className={cardClass}>
-                <div className="flex items-start">
-                  <button
-                    type="button"
-                    onClick={() => toggle(booking.bookingId)}
-                    aria-expanded={open}
-                    className="flex min-w-0 flex-1 items-start justify-between gap-3 p-3 pr-1 text-left"
-                  >
-                    <span className="min-w-0 space-y-2">
-                      <span className="flex flex-wrap items-center gap-2">
-                        <span className="font-semibold">{bookingTitle(booking)}</span>
-                        <StatusTag booking={booking} />
-                        <span className="text-xs text-[#5f524c]">{registrationMoment(booking.createdAt)}</span>
-                      </span>
-                      <PeopleLines booking={booking} />
-                    </span>
-                    <ChevronDown className={`mt-1 h-5 w-5 shrink-0 text-[#5f524c] transition ${open ? "rotate-180" : ""}`} aria-hidden="true" />
-                  </button>
-                  <div className="p-2">{rowMenu(booking)}</div>
-                </div>
-                {showPresence && canMarkPresent(booking.status) ? (
-                  <div className="border-t border-[#211815]/5 px-3">
-                    <PresentToggle booking={booking} name={bookingTitle(booking)} />
-                  </div>
-                ) : null}
-                {deletingId === booking.bookingId ? <div className="px-3 pb-3">{deleteConfirm(booking)}</div> : null}
-                {open ? <BookingDetails booking={booking} workshopId={workshopId} workshopStartsOn={workshopStartsOn} today={today} /> : null}
-              </li>
-            );
+          {visible.map(booking=>{
+            const open=openId===booking.bookingId;
+            return <li key={booking.bookingId}>
+              <UnifiedParticipantCard
+                expanded={open} onToggle={()=>toggle(booking.bookingId)}
+                primary={<PeopleLines booking={booking}/>}
+                secondary={<span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span>{registrationMoment(booking.createdAt)}</span>
+                  <StatusTag booking={booking}/>
+                </span>}
+                actions={rowMenu(booking)}
+                footer={showPresence&&canMarkPresent(booking.status)?
+                  <PresentToggle booking={booking} name={bookingTitle(booking)} compact/>:null}>
+                {deletingId===booking.bookingId?deleteConfirm(booking):null}
+                <BookingDetails booking={booking} workshopId={workshopId}
+                  workshopStartsOn={workshopStartsOn} today={today}/>
+              </UnifiedParticipantCard>
+              {!open&&deletingId===booking.bookingId?<div className="mt-1 rounded-xl bg-white p-3">{deleteConfirm(booking)}</div>:null}
+            </li>;
           })}
         </ul>
-      ) : (
-        /* Desktop: tabella ordinabile. */
-        <div className={`${cardClass} mt-4 overflow-hidden`}>
-          <table className="w-full text-sm">
-            <thead className="border-b border-[#211815]/10 bg-[#f2ede3]/60 text-[#5f524c]">
-              <tr>
-                <SortHeader label="Iscrizione" sortKey="nome" {...headerProps} />
-                 <SortHeader label="Data" sortKey="data" {...headerProps} />
-                <SortHeader label="Persone e soci" sortKey="socio" {...headerProps} />
-                <SortHeader label="Stato" sortKey="stato" {...headerProps} />
-                {showPresence ? <th className="px-3 py-2 text-left font-semibold">Presente</th> : null}
-                <th className="w-12" />
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((booking) => {
-                const open = openId === booking.bookingId;
-                return (
-                  <Fragment key={booking.bookingId}>
-                    <tr
-                      onClick={() => toggle(booking.bookingId)}
-                      className={`cursor-pointer border-b border-[#211815]/5 align-top hover:bg-white ${open ? "bg-white" : ""}`}
-                      aria-expanded={open}
-                    >
-                      <td className="px-3 py-2 font-semibold">{bookingTitle(booking)}</td>
-                       <td className="px-3 py-2 whitespace-nowrap text-xs text-[#5f524c]">{registrationMoment(booking.createdAt)}</td>
-                      <td className="px-3 py-2">
-                        <PeopleLines booking={booking} />
-                      </td>
-                      <td className="px-3 py-2">
-                        <StatusTag booking={booking} />
-                      </td>
-                      {showPresence ? (
-                        <td className="px-3 py-0" onClick={(e) => e.stopPropagation()}>
-                          {canMarkPresent(booking.status) ? <PresentToggle booking={booking} name={bookingTitle(booking)} compact /> : null}
-                        </td>
-                      ) : null}
-                      <td className="px-1 py-1" onClick={(e) => e.stopPropagation()}>
-                        {rowMenu(booking)}
-                      </td>
-                    </tr>
-                    {deletingId === booking.bookingId ? (
-                      <tr>
-                        <td colSpan={showPresence ? 5 : 4} className="bg-white px-3 py-2">
-                          <div className="max-w-2xl">{deleteConfirm(booking)}</div>
-                        </td>
-                      </tr>
-                    ) : null}
-                    {open ? (
-                      <tr>
-                        <td colSpan={showPresence ? 5 : 4} className="bg-white">
-                          <div className="max-w-2xl">
-                            <BookingDetails booking={booking} workshopId={workshopId} workshopStartsOn={workshopStartsOn} today={today} />
-                          </div>
-                        </td>
-                      </tr>
-                    ) : null}
-                  </Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
       )}
 
       <QuickAdd workshopId={workshopId} />
