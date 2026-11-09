@@ -3,10 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { savePeonyHolderAction, savePeonyPartnerAction, searchPeonyPartnerAction, type PeonyPartnerCandidate } from "@/app/gestione/(app)/peony/actions";
-
-const LABELS: Record<NonNullable<PeonyPartnerCandidate["membership"]>,string> = {
-  valid:"Verificata", payment_missing:"Quota da verificare", missing_form:"Modulo assente",
-};
+import { AssociationStatusDot } from "./AssociationStatusDot";
 
 export function PeonyPartnerFinder({
   eventId,ticketId,hasPartner,role="partner",
@@ -82,12 +79,15 @@ export function PeonyPartnerFinder({
                   <input type="radio" name={`partner-${ticketId}`} checked={selected?.id===row.id&&selected.kind===row.kind}
                     onChange={()=>setSelected(row)} className="accent-[#a8583e]"/>
                   <span className="min-w-0 flex-1">
-                    <span className="block font-semibold">{row.name}</span>
+                    <span className="flex items-center gap-2 font-semibold">
+                      <AssociationStatusDot status={row.membership==="valid"?"verified":
+                        row.membership==="payment_missing"?"payment_missing":
+                        row.membership==="missing_form"?"missing_form":"unknown"}/>
+                      <span>{row.name}</span>
+                    </span>
                     <span className="block break-all text-xs text-[#5f524c]">{row.email??"Email non disponibile"} · {row.origin}</span>
                   </span>
-                  <span className={`text-right text-xs ${row.membership==="valid"?"text-[#326941]":"text-[#9b4b1e]"}`}>
-                    {row.membership?LABELS[row.membership]:"Da verificare"}
-                  </span>
+
                 </label>
               ))}
             </fieldset>
