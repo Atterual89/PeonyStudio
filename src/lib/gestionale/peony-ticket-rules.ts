@@ -18,3 +18,14 @@ export function isActivePeonyTicket(status: string | null): boolean {
     normalized.includes(blocked),
   );
 }
+
+/** Aperi-Bottom Free e' aperto anche a non soci. La categoria dell'evento
+ * prevale sul tipo di biglietto ai soli fini dell'obbligo di tessera.
+ * Non altera i record associativi e non identifica gli ospiti come observer
+ * su Ticket Tailor: applica soltanto la stessa esenzione.
+ */
+export function isMembershipFreePeonyEvent(title:string|null|undefined):boolean{
+  const normalized=(title??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .toLowerCase().replace(/[-_]+/g," ").replace(/\s+/g," ").trim();
+  return /\baperi\s*bottom\b/.test(normalized)&&/\bfree\b/.test(normalized);
+}
