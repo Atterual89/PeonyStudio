@@ -393,7 +393,7 @@ export function parseRoster(text: string, options: { standardFeeCents: number | 
     const numbered = NUMBERING.test(line);
     // Una prima riga senza numerazione né importi di norma è un titolo.
     // Eccezione: "Aizen e Franco" è un'iscrizione di coppia autonoma.
-    const simplePair = /^[\p{L}][\p{L}'’.-]*\s+e\s+[\p{L}][\p{L}'’.-]*$/iu.test(line);
+    const simplePair = Boolean(suggestCoupleSplit(line));
     if (!seenContent && !numbered && !AMOUNT_ANYWHERE.test(line) && !simplePair) {
       seenContent = true;
       return;
