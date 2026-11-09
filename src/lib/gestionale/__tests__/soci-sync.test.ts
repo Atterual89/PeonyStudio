@@ -27,11 +27,11 @@ describe("sync soci nel gestionale PIN", () => {
     expect(actions).not.toContain('  "GOOGLE_MEMBERS_BOOK_RANGE",');
   });
 
-  it("non tratta TeamArtist come connesso automaticamente", () => {
+  it("presenta solo registrazioni Google e verifica quote separata", () => {
     const ui = source("src/components/gestionale/SyncSociButton.tsx");
     expect(ui).toContain("Sincronizza soci");
     expect(ui).toContain("Conferma aggiornamento");
-    expect(ui).toContain("TeamArtist non è interrogato direttamente");
+    expect(ui).toContain("Registrazioni Google già aggiornate.");
     expect(ui).not.toContain('stat("Libro soci"');
     const home = source("src/app/gestione/(app)/page.tsx");
     expect(home).toContain("<SyncTicketTailorButton />");
@@ -94,7 +94,7 @@ describe("Ticket Tailor a blocchi e accesso rapido al libro soci", () => {
     expect(bookPage).toContain('id="allineamento-anagrafiche"');
     expect(bookPage).not.toContain('id="allineamento-anagrafiche" open');
     expect(bookPage).toContain("MemberLinkReview");
-    expect(bookPage).toContain("SociBookUpload");
+    expect(bookPage).not.toContain("SociBookUpload");
     expect(bookPage).toContain("RefreshMembershipButton");
   });
 });
