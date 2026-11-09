@@ -18,6 +18,7 @@ type Props = {
   bookings: BookingView[];
   saved: EmailSavedFields;
   defaults: EmailDefaults;
+  ticketTailorFields: Partial<WorkshopEmailData>;
   sends: EmailSendRow[];
   today: string;
   previousConfigs: { workshopId: string; name: string; fields: Partial<WorkshopEmailData> }[];
@@ -57,13 +58,13 @@ const SECTIONS = [
   {label:"Note extra",keys:["extraNotes"]},
 ] as const;
 
-function initialData(workshop: WorkshopView, defaults: EmailDefaults, saved: EmailSavedFields): WorkshopEmailData {
-  return { ...workshopEmailDefaults(workshop), ...defaults.fields, ...saved.fields } as WorkshopEmailData;
+function initialData(workshop: WorkshopView, defaults: EmailDefaults, saved: EmailSavedFields, ticketTailorFields: Partial<WorkshopEmailData>): WorkshopEmailData {
+  return { ...workshopEmailDefaults(workshop), ...defaults.fields, ...ticketTailorFields, ...saved.fields } as WorkshopEmailData;
 }
 
-function EditWorkshopDetails({workshop,defaults,saved,onSave,previousConfigs}:{workshop:WorkshopView;defaults:EmailDefaults;saved:EmailSavedFields;onSave:(data:WorkshopEmailData)=>void;previousConfigs:Props["previousConfigs"]}) {
+function EditWorkshopDetails({workshop,defaults,saved,ticketTailorFields,onSave,previousConfigs}:{workshop:WorkshopView;defaults:EmailDefaults;saved:EmailSavedFields;ticketTailorFields:Partial<WorkshopEmailData>;onSave:(data:WorkshopEmailData)=>void;previousConfigs:Props["previousConfigs"]}) {
   const router=useRouter();
-  const [data,setData]=useState<WorkshopEmailData>(()=>initialData(workshop,defaults,saved));
+  const [data,setData]=useState<WorkshopEmailData>(()=>initialData(workshop,defaults,saved,ticketTailorFields));
   const [version,setVersion]=useState(saved.version);
   const [sourceId,setSourceId]=useState("");
   const [pending,startTransition]=useTransition();
@@ -159,8 +160,8 @@ function SendHistory({bookings,sends}:{bookings:BookingView[];sends:EmailSendRow
   </details>;
 }
 
-export function EmailTab({workshop,bookings,saved,defaults,sends,today,previousConfigs}:Props) {
-  const [fields,setFields]=useState<WorkshopEmailData>(()=>initialData(workshop,defaults,saved));
+export function EmailTab({workshop,bookings,saved,defaults,ticketTailorFields,sends,today,previousConfigs}:Props) {
+  const [fields,setFields]=useState<WorkshopEmailData>(()=>initialData(workshop,defaults,saved,ticketTailorFields));
   const candidates=emailRecipients(bookings,sends);
   const groups=(["membership_request","partner","membership_reminder","partner_reminder","workshop_details"] as EmailWorkflowKind[])
     .map(kind=>({kind,recipients:candidates.filter(r=>r.type===kind)}));
@@ -168,7 +169,7 @@ export function EmailTab({workshop,bookings,saved,defaults,sends,today,previousC
   const [openKind,setOpenKind]=useState<EmailWorkflowKind|null>(first||null);
   const dates=emailMembershipDates(workshop.startsOn);
   return <div className="max-w-2xl space-y-3">
-    <EditWorkshopDetails workshop={workshop} defaults={defaults} saved={saved} onSave={setFields} previousConfigs={previousConfigs} />
+    <EditWorkshopDetails workshop={workshop} defaults={defaults} saved={saved} ticketTailorFields={ticketTailorFields} onSave={setFields} previousConfigs={previousConfigs} />
     <div><h2 className="text-lg font-semibold">Quale email vuoi mandare?</h2>
       <p className="mt-1 text-sm text-[#5f524c]">Sono proposte soltanto le persone idonee. Copia l'HTML in Gmail; segna l'invio soltanto dopo averlo davvero effettuato.</p></div>
     {groups.map(group=><EmailWorkflow key={group.kind} kind={group.kind} recipients={group.recipients} workshopId={workshop.id}
