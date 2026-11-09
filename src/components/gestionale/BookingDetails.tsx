@@ -140,7 +140,7 @@ function PersonBlock({
                 ? markQuotaOkAction({personId:person.id,workshopId})
                 : revokeQuotaOkAction({personId:person.id,workshopId})}
             />
-          ) : null>
+          ) : null}
           {badge.kind === "quota_mancante" && entry.member?.expires_at &&
             entry.member.expires_at < workshopStartsOn ? (
               <p className="text-xs text-[#7a5212]">
