@@ -12,12 +12,12 @@ const input="min-h-10 w-full rounded-lg border border-[#211815]/20 bg-white px-3
 const outline="min-h-10 rounded-lg border border-[#a8583e] px-3 text-sm font-semibold text-[#a8583e] disabled:opacity-50";
 const primary="min-h-10 rounded-lg bg-[#a8583e] px-3 text-sm font-semibold text-white disabled:opacity-50";
 
-function CandidateList({items,selected,onSelect}:{items:OrganizerMatchCandidate[];selected:string|null;
-  onSelect:(id:string)=>void}){
+function CandidateList({items,selected,onSelect,radioName}:{items:OrganizerMatchCandidate[];selected:string|null;
+  onSelect:(id:string)=>void;radioName:string}){
   return <div className="max-h-60 space-y-1 overflow-y-auto">
     {items.map(p=><label key={p.id}
       className={`flex min-h-10 gap-2 rounded-lg border p-2 text-sm ${p.enrolled?"opacity-50":"cursor-pointer"}`}>
-      <input type="radio" name="organizer-match-person" checked={selected===p.id}
+      <input type="radio" name={radioName} checked={selected===p.id}
         disabled={p.enrolled} onChange={()=>onSelect(p.id)} className="mt-1 accent-[#a8583e]"/>
       <span className="min-w-0 flex-1">
         <span className="block font-semibold">{p.name}</span>
@@ -98,7 +98,7 @@ export function OrganizerPersonMatcher({participantId,enteredAs}:{
         <button type="submit" className={outline} disabled={pending||query.trim().length<3}>
           {pending?"Ricerca…":"Cerca"}</button>
       </form>
-      {results!==null&&<CandidateList items={results} selected={selected}
+      {results!==null&&<CandidateList items={results} selected={selected} radioName={"person-"+participantId}
         onSelect={id=>{setSelected(id);setConfirm(false);}}/>}
       {chosen&&<div className="space-y-2 rounded-lg border border-[#211815]/10 bg-white p-2">
         <p className="text-sm"><strong>{enteredAs}</strong> → {chosen.name}
@@ -189,7 +189,7 @@ export function OrganizerCompoundSplitter({participantId,enteredAs}:{
           </label>
           <button type="submit" className={outline} disabled={pending||query.trim().length<3}>Cerca</button>
         </form>
-        {results!==null&&<CandidateList items={results} selected={partnerId}
+        {results!==null&&<CandidateList items={results} selected={partnerId} radioName={"partner-"+participantId}
           onSelect={id=>{setPartnerId(id);setCreateProvisional(false);setConfirm(false);}}/>}
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={createProvisional}
