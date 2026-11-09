@@ -386,6 +386,17 @@ export function PeonyEventOperations({
               ))}
             </select>
           </div>
+          <label className="block text-sm font-semibold">Lingua delle email
+            <select value={languageChoice} aria-label="Lingua email"
+              onChange={e=>changeLanguage(e.target.value as "auto"|PeonyEmailLanguage)}
+              className="mt-1 h-10 w-full rounded-xl border border-[#211815]/15 bg-white px-3 text-sm">
+              <option value="auto">Automatica ({peonyEmailLanguage(eventTitle,emailContext)==="en"?"English":"Italiano"})</option>
+              <option value="it">Italiano</option>
+              <option value="en">English</option>
+            </select>
+          </label>
+          {isWorkshop&&resolvedLanguage!=="en" ?
+            <p className="text-xs text-[#9b4b1e]">Per workshop internazionali usa English. Controlla anche il testo introduttivo.</p> : null}
           <label className="block text-sm font-semibold">Tipo invio
             <select value={sendMode} aria-label="Tipo invio" onChange={e=>changeSendMode(e.target.value as "initial"|"reminder")}
               className="mt-1 h-10 w-full rounded-xl border border-[#211815]/15 bg-white px-3 text-sm">
@@ -413,6 +424,49 @@ export function PeonyEventOperations({
           </p>
           {kind === "details" && !emailContext.startTime ?
             <p className="text-xs text-[#9b4b1e]">Orario non disponibile nei dati sincronizzati di Ticket Tailor: controlla prima di inviare.</p> : null}
+          {kind==="details" ? <details className={card}>
+            <summary className="cursor-pointer text-sm font-semibold">
+              {isWorkshop?"Programma e dettagli del workshop":"Orari e dettagli dell'evento"}
+            </summary>
+            <p className="mt-2 text-xs text-[#5f524c]">
+              Titolo e date arrivano da Ticket Tailor. Compila solo le informazioni non disponibili in forma strutturata.
+              Per i workshop di più giorni gli orari giornalieri non si deducono dall'orario dell'evento.
+            </p>
+            <div className="mt-3 rounded-lg bg-[#f2ede3] p-3 text-sm">
+              <strong>Fonte Ticket Tailor</strong>
+              <p>{eventTitle} · {dateLabel}</p>
+              {emailContext.startTime?<p>Inizio evento: {emailContext.startTime}</p>:null}
+              {emailContext.endTime?<p>Fine evento: {emailContext.endTime}</p>:null}
+              {emailContext.description?<details className="mt-2"><summary className="cursor-pointer underline">Leggi descrizione originale</summary>
+                <p className="mt-2 whitespace-pre-wrap text-xs">{emailContext.description}</p>
+              </details>:<p>Descrizione non presente nei dati sincronizzati.</p>}
+            </div>
+            {isWorkshop?<label className="mt-3 flex items-start gap-2 text-sm">
+              <input type="checkbox" className="mt-1" checked={detailFields.includeTicketTailorDescription!==false}
+                onChange={e=>setDetailFields(prev=>({...prev,includeTicketTailorDescription:e.target.checked}))}/>
+              Includi la descrizione Ticket Tailor in Workshop Information
+            </label>:null}
+            <div className="mt-3 grid gap-3">
+              {PEONY_DETAIL_FIELDS.filter(field=>isWorkshop ? field.key!=="lastEntry" :
+                ["doorsOpen","dailyStart","dailyEnd","lastEntry","extraNotes"].includes(field.key)).map(field=>
+                <label key={field.key} className="block text-sm font-semibold">{field.label}
+                  {field.multiline ? <textarea rows={3} value={String(detailFields[field.key]??"")}
+                    onChange={e=>setDetailFields(prev=>({...prev,[field.key]:e.target.value}))}
+                    className="mt-1 w-full rounded-lg border border-[#211815]/15 bg-white p-3 text-sm"/> :
+                    <input type="text" value={String(detailFields[field.key]??"")}
+                      onChange={e=>setDetailFields(prev=>({...prev,[field.key]:e.target.value}))}
+                      className="mt-1 h-10 w-full rounded-lg border border-[#211815]/15 bg-white p-2 text-sm"/>}
+                </label>)}
+            </div>
+            {missingSchedule?<p className="mt-2 text-sm text-[#9b4b1e]">
+              Per copiare l'email completa occorre indicare apertura porte, inizio e fine della giornata.
+            </p>:null}
+            <button type="button" className={button} disabled={busy}
+              onClick={()=>run(()=>savePeonyEmailSettings(eventId,languageChoice==="auto"?null:languageChoice,detailFields),
+                "Lingua e dettagli salvati.")}>Salva lingua e dettagli</button>
+          </details> : <button type="button" className="h-10 rounded-xl border border-[#211815]/20 px-3 text-sm"
+              onClick={()=>run(()=>savePeonyEmailSettings(eventId,languageChoice==="auto"?null:languageChoice,detailFields),
+                "Lingua salvata.")}>Salva lingua</button>}
           <div className={card}>
             <label htmlFor="peony-subject" className="block text-sm font-semibold">Oggetto</label>
             <input id="peony-subject" value={template.subject} maxLength={300}
@@ -433,7 +487,7 @@ export function PeonyEventOperations({
               <button type="button" className={button} disabled={busy || !template.subject.trim()}
                 onClick={() => run(() => savePeonyEmailTemplate(eventId, kind, template.subject, template.body), "Testo salvato per questa comunicazione.")}>Salva</button>
               <button type="button" className="h-10 rounded-xl border border-[#211815]/20 px-3 text-sm" onClick={() => copy(emailSubject, "Oggetto copiato.")}>Copia oggetto</button>
-              <button type="button" className="h-10 rounded-xl border border-[#a8583e] px-3 text-sm font-semibold text-[#a8583e]"
+              <button type="button" disabled={!canCopyDetails} className="h-10 rounded-xl border border-[#a8583e] px-3 text-sm font-semibold text-[#a8583e] disabled:opacity-50"
                 onClick={async () => {
                   try { await copyRichHtml(html); setMessage("Email HTML copiata: puoi incollarla in Gmail."); setFailure(null); }
                   catch { setFailure("Impossibile copiare l'HTML formattato. Verifica gli appunti del browser."); }
@@ -478,7 +532,7 @@ export function PeonyEventOperations({
               <button type="button" className={button} disabled={!distinctEmails.length}
                 onClick={() => copy(distinctEmails.join(", "), "Indirizzi copiati per il Ccn di Gmail.")}>Copia indirizzi Ccn</button>
               {!confirmingSend ? (
-                <button type="button" disabled={busy || !selected.length || !template.subject.trim()}
+                <button type="button" disabled={busy || !selected.length || !template.subject.trim() || !canCopyDetails}
                   onClick={() => setConfirmingSend(true)}
                   className="h-10 rounded-xl border border-[#a8583e] px-3 text-sm font-semibold text-[#a8583e] disabled:opacity-50">
                   Registra invio
