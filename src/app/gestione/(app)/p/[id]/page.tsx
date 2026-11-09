@@ -9,7 +9,7 @@ import { PersonForm } from "@/components/gestionale/PersonForm";
 import { QuotaOkControls, RefreshMembershipButton } from "@/components/gestionale/QuotaOk";
 import { AssociationMailSyncControl } from "@/components/gestionale/AssociationMailSyncControl";
 import { Notice, Section, buttonClass, cardClass } from "@/components/gestionale/ui";
-import { displayName, formatDateRange, fullName } from "@/lib/gestionale/format";
+import { displayName, formatDate, formatDateRange, fullName } from "@/lib/gestionale/format";
 import { DUPLICATE_REASON_LABELS, findPossibleDuplicates, peopleSharingEmail } from "@/lib/gestionale/people";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { getPerson, getPersonHistory, loadPeople } from "@/lib/gestionale/server/data";
@@ -232,6 +232,13 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         )}
       </Section>
 
+      <details className="mt-4 rounded-xl border border-[#211815]/10 bg-white/60 p-3 text-sm">
+        <summary className="cursor-pointer font-semibold text-[#5f524c]">Dettagli e storico modifiche</summary>
+        <p className="mt-2 text-[#5f524c]">Creata il {formatDate(person.created_at)} · aggiornata il {formatDate(person.updated_at)}</p>
+        <Link prefetch={false} href={`/gestione/altro/storico?persona=${person.id}`} className="mt-2 inline-block text-[#a8583e] underline">
+          Apri storico completo
+        </Link>
+      </details>
       <DeletePersonSection person={{ id: person.id, version: person.version, name: displayName(person) }} />
     </section>
   );
