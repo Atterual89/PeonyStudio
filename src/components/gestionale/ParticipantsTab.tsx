@@ -21,6 +21,7 @@ import { BookingDetails } from "./BookingDetails";
 import { DeleteBookingConfirm } from "./Deletion";
 import { ExactMatches } from "./ExactMatches";
 import { MembershipBadge } from "./MembershipBadge";
+import { AssociationDotLegend } from "./AssociationStatusDot";
 import { PresentToggle } from "./PresentToggle";
 import { QuickAdd } from "./QuickAdd";
 import { RefreshMembershipButton } from "./QuotaOk";
@@ -73,7 +74,7 @@ function PeopleLines({ booking }: { booking: BookingView }) {
     <span className="block space-y-1">
       {booking.people.map((entry) => (
         <span key={entry.participantId} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-          <MembershipBadge badge={entry.membership} />
+          <MembershipBadge badge={entry.membership} compact />
           <span className="font-medium">{personNames(entry).main}</span>
           {personNames(entry).alias ? <span className="text-xs text-[#5f524c]">{personNames(entry).alias}</span> : null}
           {entry.person.email ? null : <span className="font-medium text-[#9b2c2c]">{UI_LABELS.missingEmail.toLowerCase()}</span>}
@@ -174,6 +175,7 @@ export function ParticipantsTab({
         <span className="text-[#5f524c]">su {summary.persone} {summary.persone === 1 ? "persona" : "persone"}</span>
       </p>
       <div className="mt-2">
+        <AssociationDotLegend/>
         <RefreshMembershipButton />
       </div>
       <ExactMatches workshopId={workshopId} notLinked={notLinked} />

@@ -50,14 +50,14 @@ describe("roster e sincronizzazione",()=>{
   it("legge la categoria anche prima di rieseguire la sincronizzazione",()=>{
     expect(roster).toContain('select("raw_payload").eq("id",event.id)');
     expect(roster).toContain("ticketTypeNameForIssuedTicket(ticket.raw_payload,ticketNames,ticket.ticket_type_name)");
-    expect(roster).toContain('associationRequired: ticketRole==="practitioner"');
-    expect(roster).toContain('association: ticketRole!=="practitioner"');
+    expect(roster).toContain('associationRequired: membershipRequired');
+    expect(roster).toContain('association: membershipRequired ? associationStatus');
   });
   it("mostra il ruolo e filtra gli observer senza entrare nella verifica quote",()=>{
     expect(ui).toContain("Praticanti ({practitioners})");
     expect(ui).toContain("Observer ({observers})");
     expect(ui).toContain("Tessera associativa non richiesta");
-    expect(ui).toContain("Tipo biglietto da sincronizzare");
+    expect(ui).toContain("Tipo da identificare");
   });
   it("non perde il tipo già sincronizzato per un ordine incompleto",()=>{
     expect(sync).toContain("ticketTypeNamesFromEventPayload(event.raw_payload)");

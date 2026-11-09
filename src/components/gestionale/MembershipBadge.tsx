@@ -1,3 +1,4 @@
+import { AssociationStatusDot } from "./AssociationStatusDot";
 import { membershipLabel } from "@/lib/gestionale/membership-rule";
 import type { MembershipBadge as Badge } from "@/lib/gestionale/types";
 
@@ -8,7 +9,12 @@ const STYLES: Record<Badge["kind"], string> = {
   non_collegata: "bg-[#211815]/5 text-[#5f524c] border-[#211815]/15",
 };
 
-export function MembershipBadge({ badge }: { badge: Badge }) {
+export function MembershipBadge({ badge, compact=false }: { badge: Badge; compact?:boolean }) {
+  if(compact){
+    const status=badge.kind==="in_regola"?"verified":badge.kind==="quota_mancante"?"payment_missing":
+      badge.kind==="modulo_mancante"?"missing_form":"unlinked";
+    return <AssociationStatusDot status={status}/>;
+  }
   return (
     <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${STYLES[badge.kind]}`}>
       {membershipLabel(badge)}
