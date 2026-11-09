@@ -17,6 +17,8 @@ import { buildPeonyMemberDirectory, filterPeonyMemberDirectory } from "@/lib/ges
 import { isUuidLike } from "@/lib/gestionale/validation";
 import { todayInRome } from "@/lib/gestionale/workshops";
 import { PEONY_EMAIL_KINDS, type PeonyEmailKind } from "@/lib/gestionale/peony-email-html";
+import { PEONY_DETAIL_FIELDS, type PeonyEmailDetailFields } from "@/lib/gestionale/peony-email-details";
+import type { PeonyEmailLanguage } from "@/lib/gestionale/peony-email-context";
 
 /** Manual association quota for one Ticket Tailor attendee, directly from
  * the expanded event card. This is the same manual_override record used by
@@ -124,6 +126,42 @@ export async function savePeonyEmailTemplate(
   if (error) return { ok: false, error: "Impossibile salvare il modello email." };
   refreshGestione();
   return { ok: true };
+}
+
+/** Language and event-specific logistics remain independent of the email introduction. */
+export async function savePeonyEmailSettings(
+  eventId: string,
+  languageOverride: PeonyEmailLanguage | null,
+  input: PeonyEmailDetailFields,
+): Promise<PeonyActionResult> {
+  const operator=await requireAdmin();
+  if (!isUuidLike(eventId) || !(await getPeonyEvent(eventId)) ||
+      (languageOverride!==null && languageOverride!=="it" && languageOverride!=="en") ||
+      !input || typeof input!=="object" || Array.isArray(input))
+    return {ok:false,error:"Impostazioni non valide."};
+
+  const details:Record<string,string|boolean>={};
+  const known=new Set(PEONY_DETAIL_FIELDS.map(field=>field.key));
+  for(const [key,value] of Object.entries(input)){
+    if (key==="includeTicketTailorDescription"){
+      if (typeof value!=="boolean")return {ok:false,error:"Opzione descrizione non valida."};
+      details[key]=value;
+    } else if(known.has(key as typeof PEONY_DETAIL_FIELDS[number]["key"])){
+      if(typeof value!=="string" || value.length>5500)
+        return {ok:false,error:"Testo troppo lungo o non valido."};
+      if(key==="optionalActivityUrl" && value.trim() && !/^https:\/\/[^\\s]+$/i.test(value.trim()))
+        return {ok:false,error:"Il link attività deve iniziare con https://."};
+      details[key]=value.trim();
+    } else return {ok:false,error:"Campo email non riconosciuto."};
+  }
+  if(JSON.stringify(details).length>25000) return {ok:false,error:"Dettagli troppo lunghi."};
+  const {error}=await getGestionaleDb().from("gw_peony_email_settings").upsert({
+    event_id:eventId,language_override:languageOverride,detail_fields:details,
+    updated_by:operator.id,updated_at:new Date().toISOString(),
+  },{onConflict:"event_id"});
+  if(error)return {ok:false,error:"Impossibile salvare lingua e dettagli email. Verifica la migrazione 042."};
+  refreshGestione();
+  return {ok:true};
 }
 
 export async function markPeonyEmailSent(
