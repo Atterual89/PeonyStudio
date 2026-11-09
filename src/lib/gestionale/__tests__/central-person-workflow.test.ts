@@ -16,6 +16,8 @@ describe("Ticket Tailor -> Anagrafica <- Kinbaku LuXuria",()=>{
   expect(peony).toContain("<PeonyPartnerFinder");
   expect(peony).toContain("<QuotaOkCheckbox");
   expect(kl).toContain("<BookingDetails");
+  expect(peony).toContain("<UnifiedPersonPanel");
+  expect(read("src/components/gestionale/BookingDetails.tsx")).toContain("<UnifiedPersonPanel");
   expect(kl).toContain("<PresentToggle");
   expect(kl).toContain("rowMenu(booking)");
  });
@@ -23,7 +25,9 @@ describe("Ticket Tailor -> Anagrafica <- Kinbaku LuXuria",()=>{
   expect(resolver).toContain("resolveCentralPerson");
   expect(resolver).toContain("enteredName:ticketName");
   expect(resolver).toContain("enteredName:chosen.name");
-  expect(resolver).toContain("name:partnerPerson?");
+  expect(resolver).toContain("name:partnerDisplay.name");
+  expect(resolver).toContain("profileAlias:holderDisplay.alias");
+  expect(resolver).toContain("profileEmail:person?.email??null");
   expect(resolver).toContain("linkedPersonId:resolved?.personId??null");
   expect(peony).toContain("Nome nel biglietto:");
  });
