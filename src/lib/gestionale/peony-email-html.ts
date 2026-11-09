@@ -12,37 +12,40 @@ export const PEONY_EMAIL_KINDS: { id: PeonyEmailKind; label: string }[] = [
   { id: "details", label: "Informazioni evento" },
 ];
 
+/** Store placeholders so saved templates continue to reflect changes in Ticket Tailor. */
+export function resolvePeonyTemplateText(text: string, eventTitle: string, dateLabel: string): string {
+  return text.replace(/\{\{\s*event_title\s*\}\}/gi, eventTitle)
+    .replace(/\{\{\s*event_date\s*\}\}/gi, dateLabel);
+}
+
 /** The editable text is the introduction only; shared instructions come from modules. */
 export function defaultPeonyEmailTemplate(
   kind: PeonyEmailKind,
-  title: string,
-  dateLabel: string,
+  _title: string,
+  _dateLabel: string,
   language: PeonyEmailLanguage = "it",
 ): PeonyEmailTemplate {
   const en = language === "en";
   if (kind === "membership") return en ? {
-    subject: "Peony Studio | Association registration – " + title,
-    body: "Dear,\n\nYou are receiving this email because you have booked a place for " +
-      title + " (" + dateLabel + "). Please complete the association registration if you are not yet a member.\n\nIf you have already registered and paid, please reply so we can verify your membership.",
+    subject: "Peony Studio | Association registration – {{event_title}}",
+    body: "Dear,\n\nYou are receiving this email because you have booked a place for {{event_title}} ({{event_date}}). Please complete the association registration if you are not yet a member.\n\nIf you have already registered and paid, please reply so we can verify your membership.",
   } : {
-    subject: "Peony Studio | Iscrizione all'associazione – " + title,
-    body: "Ciao,\n\nhai prenotato un posto per " + title + " (" + dateLabel + "). Se non sei ancora associata/o, ti chiediamo di completare la registrazione.\n\nSe hai già compilato il modulo e pagato la quota, rispondi a questa email per una verifica.",
+    subject: "Peony Studio | Iscrizione all'associazione – {{event_title}}",
+    body: "Ciao,\n\nhai prenotato un posto per {{event_title}} ({{event_date}}). Se non sei ancora associata/o, ti chiediamo di completare la registrazione.\n\nSe hai già compilato il modulo e pagato la quota, rispondi a questa email per una verifica.",
   };
   if (kind === "partner") return en ? {
-    subject: "Peony Studio | Partner information required – " + title,
-    body: "Dear,\n\nYou are registered for " + title + " (" + dateLabel + "), but we still need to identify the person with whom you will practise.\n\nIf your partner is already a member, let us know their name. Otherwise, they can register using the form below.",
+    subject: "Peony Studio | Partner information required – {{event_title}}",
+    body: "Dear,\n\nYou are registered for {{event_title}} ({{event_date}}), but we still need to identify the person with whom you will practise.\n\nIf your partner is already a member, let us know their name. Otherwise, they can register using the form below.",
   } : {
-    subject: "Peony Studio | Dati partner richiesti – " + title,
-    body: "Ciao,\n\nper " + title + " (" + dateLabel + ") dobbiamo ancora identificare la persona con cui parteciperai.\n\nSe è già associata, indicaci il suo nome. Altrimenti può iscriversi dal modulo qui sotto.",
+    subject: "Peony Studio | Dati partner richiesti – {{event_title}}",
+    body: "Ciao,\n\nper {{event_title}} ({{event_date}}) dobbiamo ancora identificare la persona con cui parteciperai.\n\nSe è già associata, indicaci il suo nome. Altrimenti può iscriversi dal modulo qui sotto.",
   };
   return en ? {
-    subject: "Peony Studio | Practical information – " + title,
-    body: "Dear,\n\nWe're looking forward to welcoming you to " + title +
-      " (" + dateLabel + "). Below you'll find the event details and practical information.\n\nPlease read this email until the end.",
+    subject: "Peony Studio | Practical information – {{event_title}}",
+    body: "Dear,\n\nWe're looking forward to welcoming you to {{event_title}} ({{event_date}}). Below you'll find the event details and practical information.\n\nPlease read this email until the end.",
   } : {
-    subject: "Peony Studio | Informazioni – " + title,
-    body: "Ciao,\n\ngrazie per l'iscrizione a " + title +
-      " (" + dateLabel + "). Qui sotto trovi le informazioni sull'evento e le indicazioni per raggiungerci.",
+    subject: "Peony Studio | Informazioni – {{event_title}}",
+    body: "Ciao,\n\ngrazie per l'iscrizione a {{event_title}} ({{event_date}}). Qui sotto trovi le informazioni sull'evento e le indicazioni per raggiungerci.",
   };
 }
 
@@ -75,7 +78,7 @@ export function buildPeonyEmailHtml(input: {
   });
   return '<!doctype html><html lang="' + language + '"><head><meta charset="utf-8">' +
     '<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light">' +
-    '<title>' + escapeHtml(input.template.subject) + '</title></head>' +
+    '<title>' + escapeHtml(resolvePeonyTemplateText(input.template.subject,input.eventTitle,input.dateLabel)) + '</title></head>' +
     '<body style="margin:0;padding:0;background:#e9e0d3;font-family:Arial,Helvetica,sans-serif;color:#302822;">' +
     '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;background:#e9e0d3"><tr><td align="center" style="padding:16px 8px">' +
     '<table role="presentation" width="680" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:680px;background:#f8f1e6;border:1px solid #b7a998;">' +
@@ -87,7 +90,7 @@ export function buildPeonyEmailHtml(input: {
     '<div style="font-size:14px;font-weight:bold;color:#6d2630;">' + escapeHtml(input.dateLabel) + '</div></td></tr>' +
     '<tr><td style="padding:30px 38px 10px;">' +
     '<h1 style="font:600 25px Georgia,serif;color:#741f2d;margin:0 0 20px;">' + escapeHtml(heading) + '</h1>' +
-    richParagraphs(input.template.body) + '</td></tr>' +
+    richParagraphs(resolvePeonyTemplateText(input.template.body,input.eventTitle,input.dateLabel)) + '</td></tr>' +
     sections +
     '<tr><td style="padding:30px 38px 36px;font-size:15px;line-height:1.7;">' +
     (en ? "For any questions, just reply to this email." : "Per qualsiasi domanda puoi rispondere a questa email.") +
