@@ -7,6 +7,7 @@ import { membershipPeriodFor } from "@/lib/association/membership-periods";
 import { partnerFromCheckout, peonyPartnerRequired, type CheckoutPartner } from "@/lib/gestionale/peony-partner";
 import { choosePartner } from "@/lib/gestionale/peony-booking-partner";
 import { buildPeonyMemberDirectory } from "@/lib/gestionale/peony-member-candidates";
+import { identityForLinkedPeonyAttendee } from "@/lib/gestionale/peony-linked-identity";
 import { timestampToRomeDate } from "@/lib/gestionale/workshops";
 import { isActivePeonyTicket, isPeonyTicketEvent, isMembershipFreePeonyEvent, peonyAssociationRequired } from "@/lib/gestionale/peony-ticket-rules";
 import { peonyTicketRole, ticketTypeNameForIssuedTicket, ticketTypeNamesFromEventPayload, type PeonyTicketRole } from "@/lib/gestionale/peony-ticket-type";
@@ -199,7 +200,7 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
       .eq("ticket_tailor_event_id", event.ticketTailorEventId)
       .not("ticket_tailor_issued_ticket_id", "is", null).range(0, 9999),
     readAllMemberEvidence(),
-    db.from("gw_people").select("id,first_name,last_name,nickname,email")
+    db.from("gw_people").select("id,first_name,last_name,nickname,email,membership_name_key,membership_email,association_member_id")
       .is("deleted_at", null).is("merged_into", null).range(0, 9999),
     db.from("user_event_enrollments")
       .select("ticket_tailor_order_id,partner_source,partner_email,partner_name")
@@ -261,24 +262,30 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
         name: chosen.name, email: chosen.email, source: chosen.source,
         linkedPersonId: chosen.personId ?? null,
         memberRowId: chosen.memberRowId ?? null,
-        membership: associationStatus(evidence, event, partnerIdentity(chosen.name, chosen.email)),
+        membership: associationStatus(evidence, event, identityForLinkedPeonyAttendee(
+          evidence, chosen.personId ? personById.get(chosen.personId) : null,
+          chosen.memberRowId, partnerIdentity(chosen.name, chosen.email),
+        )),
       } : null;
       const savedHolder=holderByTicket.get(ticket.ticket_tailor_issued_ticket_id);
       const member=savedHolder?.member_row_id?memberById.get(savedHolder.member_row_id):null;
       const person=savedHolder?.person_id?personById.get(savedHolder.person_id):null;
+      const directMember=savedHolder?.member_row_id?evidence.find(row=>row.id===savedHolder.member_row_id):null;
       const matchedHolder=member?{
         name:member.name,email:member.email,origin:member.origin,
+      }:directMember?{
+        name:[directMember.first_name,directMember.last_name].filter(Boolean).join(" ").trim()||"Socio",
+        email:directMember.email,origin:"Registro associativo",
       }:person?{
         name:[person.first_name,person.last_name].filter(Boolean).join(" ").trim()||person.nickname||"Anagrafica",
         email:person.email??null,origin:"Anagrafica",
       }:null;
-      const identity = matchedHolder ? {
-        email:matchedHolder.email,firstName:matchedHolder.name,lastName:null,
-      }:{
-        email: ticket.holder_email,
-        firstName: ticket.holder_first_name,
-        lastName: ticket.holder_last_name,
-      };
+      const identity = identityForLinkedPeonyAttendee(
+        evidence, person, savedHolder?.member_row_id,
+        matchedHolder ? {email:matchedHolder.email,firstName:matchedHolder.name,lastName:null} : {
+          email:ticket.holder_email,firstName:ticket.holder_first_name,lastName:ticket.holder_last_name,
+        },
+      );
       return {
         id: ticket.ticket_tailor_issued_ticket_id,
         ticketId: ticket.ticket_tailor_issued_ticket_id,
