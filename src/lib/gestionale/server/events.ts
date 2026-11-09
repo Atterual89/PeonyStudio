@@ -6,6 +6,8 @@ import type { LuxuriaEvent } from "@/lib/gestionale/types";
 import { isUuidLike } from "@/lib/gestionale/validation";
 import { isLuxuriaTitle, timestampToRomeDate } from "@/lib/gestionale/workshops";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { ticketTailorWorkshopFields } from "@/lib/gestionale/email/ticket-tailor-workshop";
+import type { WorkshopEmailData } from "@/lib/gestionale/email/types";
 
 // Eventi Ticket Tailor: tabella esistente `events` del sito, SOLA LETTURA (D14).
 // Il gestionale non scrive mai su `events` né sulle tabelle `ticket_tailor_*`.
@@ -33,4 +35,18 @@ export const loadLuxuriaEvents = cache(async (): Promise<LuxuriaEvent[]> => {
 export async function getLuxuriaEvent(id: string): Promise<LuxuriaEvent | null> {
   if (!isUuidLike(id)) return null;
   return (await loadLuxuriaEvents()).find((event) => event.id === id) ?? null;
+}
+
+/** Read only the workshop's linked TT event; raw official fields are the source of truth. */
+export async function loadLinkedWorkshopEmailFields(eventId:string):Promise<Partial<WorkshopEmailData>> {
+  if (!isUuidLike(eventId)) return {};
+  const {data,error}=await createSupabaseAdminClient().from("events")
+    .select("source,raw_payload,booking_url,starts_at,ends_at")
+    .eq("id",eventId).maybeSingle();
+  if(error)throw new Error("Dati evento Ticket Tailor: "+error.message);
+  if(!data || data.source!=="ticket_tailor")return {};
+  return ticketTailorWorkshopFields({
+    rawPayload:data.raw_payload,bookingUrl:data.booking_url,
+    startsAt:data.starts_at,endsAt:data.ends_at,
+  });
 }

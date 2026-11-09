@@ -11,10 +11,12 @@ import { QuotaOkCheckbox } from "@/components/gestionale/QuotaOkCheckbox";
 import { AssociationStatusDot, AssociationDotLegend, type AssociationDotStatus } from "@/components/gestionale/AssociationStatusDot";
 import type { PeonyEmailSend } from "@/lib/gestionale/server/peony-email";
 import {
-  PEONY_EMAIL_KINDS, buildPeonyEmailHtml,
+  PEONY_EMAIL_KINDS, buildPeonyEmailHtml, defaultPeonyEmailTemplate, resolvePeonyTemplateText,
   type PeonyEmailKind, type PeonyEmailTemplate,
 } from "@/lib/gestionale/peony-email-html";
-import { markPeonyEmailSent, savePeonyEmailTemplate, setPeonyQuotaOkAction } from "@/app/gestione/(app)/peony/actions";
+import { formatPeonyEmailDate, isWorkshopEvent, peonyEmailLanguage, type PeonyEmailAudience, type PeonyEmailEventContext, type PeonyEmailLanguage } from "@/lib/gestionale/peony-email-context";
+import { PEONY_DETAIL_FIELDS, type PeonyEmailDetailFields } from "@/lib/gestionale/peony-email-details";
+import { markPeonyEmailSent, savePeonyEmailSettings, savePeonyEmailTemplate, setPeonyQuotaOkAction } from "@/app/gestione/(app)/peony/actions";
 
 type Tab = "partecipanti" | "email";
 type TicketFilter = "all" | "practitioner" | "observer" | "unknown";
@@ -158,18 +160,18 @@ async function copyRichHtml(html: string): Promise<void> {
   }
 }
 
-function defaultRecipients(kind: PeonyEmailKind, attendees: PeonyAttendee[]): string[] {
+function defaultRecipients(kind: PeonyEmailKind, attendees: PeonyAttendee[], audience: PeonyEmailAudience = "practitioner", sends: PeonyEmailSend[] = []): string[] {
   return attendees.filter((person) => {
-    if (!person.email) return false;
+    if (!person.email || sends.some(send => send.kind === kind && send.ticketId === person.ticketId)) return false;
     if (kind === "membership") return person.associationRequired && person.association?.status !== "valid";
-    if (kind === "partner") return person.partnerRequired && (!person.partner || person.partner.membership?.status !== "valid");
-    return true;
+    if (kind === "partner") return person.partnerRequired && !person.partner;
+    return audience === "observer" ? person.ticketRole === "observer" : person.ticketRole !== "observer";
   }).map((person) => person.ticketId);
 }
 
 export function PeonyEventOperations({
   eventId, eventTitle, dateLabel, attendees,
-  ticketsLastSyncedAt, associationLastSyncedAt, templates: initialTemplates, sends,initialTicketId,
+  ticketsLastSyncedAt, associationLastSyncedAt, templates: initialTemplates, sends,initialTicketId, emailContext, initialLanguageOverride, initialDetailFields,
 }: {
   eventId: string;
   eventTitle: string;
@@ -178,14 +180,25 @@ export function PeonyEventOperations({
   ticketsLastSyncedAt: string | null;
   associationLastSyncedAt: string | null;
   templates: Record<PeonyEmailKind, PeonyEmailTemplate>;
+  emailContext: PeonyEmailEventContext;
+  initialLanguageOverride: PeonyEmailLanguage|null;
+  initialDetailFields: PeonyEmailDetailFields;
   sends: PeonyEmailSend[];
   initialTicketId?:string|null;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("partecipanti");
   const [kind, setKind] = useState<PeonyEmailKind>("membership");
+  const [audience, setAudience] = useState<PeonyEmailAudience>("practitioner");
+  const [sendMode,setSendMode] = useState<"initial"|"reminder">("initial");
   const [templates, setTemplates] = useState(initialTemplates);
-  const [checked, setChecked] = useState<string[]>(() => defaultRecipients("membership", attendees));
+  const [languageChoice,setLanguageChoice] = useState<"auto"|PeonyEmailLanguage>(initialLanguageOverride??"auto");
+  const [detailFields,setDetailFields] = useState<PeonyEmailDetailFields>(initialDetailFields);
+  const resolvedLanguage:PeonyEmailLanguage=languageChoice==="auto"?
+    peonyEmailLanguage(eventTitle,emailContext):languageChoice;
+  const isWorkshop=isWorkshopEvent(eventTitle,emailContext);
+  const emailDateLabel=formatPeonyEmailDate(emailContext,dateLabel,resolvedLanguage);
+  const [checked, setChecked] = useState<string[]>(() => defaultRecipients("membership", attendees, "practitioner", sends));
   const [busy, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
@@ -195,9 +208,45 @@ export function PeonyEventOperations({
   const [confirmingSend, setConfirmingSend] = useState(false);
 
   const template = templates[kind];
-  const html = useMemo(() => buildPeonyEmailHtml({ kind, eventTitle, dateLabel, template }),
-    [kind, eventTitle, dateLabel, template]);
-  const eligible = attendees.filter((person) => Boolean(person.email));
+  const baseSubject = resolvePeonyTemplateText(template.subject,eventTitle,emailDateLabel);
+  const audienceSubject = kind === "details" && audience === "observer" ? baseSubject + " | Observer" : baseSubject;
+  const emailSubject = sendMode === "reminder" ?
+    (resolvedLanguage==="en" ? "Reminder | " : "Sollecito | ") + audienceSubject : audienceSubject;
+  const reminderIntro = sendMode === "reminder" ?
+    (resolvedLanguage==="en" ?
+      "This is a reminder regarding the information requested for your booking. Please reply if you have already completed the necessary steps.\n\n" :
+      "Questo è un promemoria relativo alla tua iscrizione. Se hai già completato i passaggi richiesti, rispondi a questa email per una verifica.\n\n") : "";
+  const observerDefault = kind==="details" && audience==="observer" &&
+    template.body===defaultPeonyEmailTemplate("details",eventTitle,emailDateLabel,resolvedLanguage).body;
+  const intro=observerDefault ?
+    (resolvedLanguage==="en"?
+      "Dear,\n\nYou booked an observer ticket for {{event_title}} ({{event_date}}). Below are the practical details for your visit.":
+      "Ciao!\n\nRicevi questa email perché hai prenotato un posto come observer per {{event_title}} ({{event_date}}). Qui sotto trovi le informazioni utili per la serata.") :
+    template.body;
+  const html = useMemo(() => buildPeonyEmailHtml({
+    kind, eventTitle, dateLabel:emailDateLabel, template: { ...template, subject: emailSubject, body: reminderIntro+intro },
+    context: emailContext, audience,language:resolvedLanguage,detailFields,
+  }), [kind, eventTitle, emailDateLabel, template, emailContext, audience, emailSubject, reminderIntro, intro, resolvedLanguage,detailFields]);
+  const sendCounts = useMemo(() => {
+    const counts = new Map<string,number>();
+    for (const record of sends.filter(send=>send.kind===kind))
+      counts.set(record.ticketId,(counts.get(record.ticketId)??0)+1);
+    return counts;
+  },[kind,sends]);
+  const hasObserverTickets = attendees.some(person => person.ticketRole === "observer");
+  const templateLanguage = resolvedLanguage;
+  const missingSchedule=isWorkshop && kind==="details" &&
+    (!detailFields.doorsOpen?.trim() || !detailFields.dailyStart?.trim() || !detailFields.dailyEnd?.trim());
+  const canCopyDetails = !missingSchedule;
+  const eligible = attendees.filter((person) =>
+    Boolean(person.email) &&
+    (sendMode === "reminder" ?
+      sends.some(send=>send.kind===kind && send.ticketId===person.ticketId) :
+      !sends.some(send=>send.kind===kind && send.ticketId===person.ticketId)) && (
+    kind==="membership" ? person.associationRequired && person.association?.status!=="valid" :
+    kind==="partner" ? person.partnerRequired && !person.partner :
+    audience==="observer" ? person.ticketRole==="observer" : person.ticketRole!=="observer"
+  ));
   const selected = eligible.filter((person) => checked.includes(person.ticketId));
   const distinctEmails = [...new Set(selected.map((person) => person.email!.trim().toLowerCase()))];
   const latestSend = useMemo(() => {
@@ -229,6 +278,7 @@ export function PeonyEventOperations({
         const result = await operation();
         if (!result.ok) { setFailure(result.error || "Operazione non riuscita."); return; }
         setMessage(success);
+        setChecked([]);
         router.refresh();
       } catch { setFailure("Errore di collegamento. Riprova."); }
     });
@@ -241,8 +291,34 @@ export function PeonyEventOperations({
 
   function switchKind(next: PeonyEmailKind) {
     setKind(next);
-    setChecked(defaultRecipients(next, attendees));
+    setSendMode("initial");
+    setChecked(defaultRecipients(next, attendees, audience, sends));
     setMessage(null); setFailure(null); setConfirmingSend(false);
+  }
+  function changeAudience(next: PeonyEmailAudience) {
+    setAudience(next);
+    setChecked(sendMode==="initial" ? defaultRecipients("details", attendees, next, sends) : []);
+    setMessage(null); setFailure(null); setConfirmingSend(false);
+  }
+  function changeSendMode(next:"initial"|"reminder") {
+    setSendMode(next);
+    // No implicit selection for reminders: the operator must choose recipients.
+    setChecked(next==="initial" ? defaultRecipients(kind,attendees,audience,sends) : []);
+    setMessage(null);setFailure(null);setConfirmingSend(false);
+  }
+  function changeLanguage(next:"auto"|PeonyEmailLanguage) {
+    const old=resolvedLanguage;
+    const nextLanguage=next==="auto"?peonyEmailLanguage(eventTitle,emailContext):next;
+    setTemplates(prev=>{
+      const updated={...prev};
+      for(const currentKind of PEONY_EMAIL_KINDS.map(item=>item.id)){
+        const oldDefault=defaultPeonyEmailTemplate(currentKind,eventTitle,emailDateLabel,old);
+        if(prev[currentKind].subject===oldDefault.subject && prev[currentKind].body===oldDefault.body)
+          updated[currentKind]=defaultPeonyEmailTemplate(currentKind,eventTitle,emailDateLabel,nextLanguage);
+      }
+      return updated;
+    });
+    setLanguageChoice(next);setMessage(null);setFailure(null);
   }
   function setTemplateField(key: "subject" | "body", value: string) {
     setTemplates((prev) => ({ ...prev, [kind]: { ...prev[kind], [key]: value } }));
@@ -311,19 +387,108 @@ export function PeonyEventOperations({
               ))}
             </select>
           </div>
+          <label className="block text-sm font-semibold">Lingua delle email
+            <select value={languageChoice} aria-label="Lingua email"
+              onChange={e=>changeLanguage(e.target.value as "auto"|PeonyEmailLanguage)}
+              className="mt-1 h-10 w-full rounded-xl border border-[#211815]/15 bg-white px-3 text-sm">
+              <option value="auto">Automatica ({peonyEmailLanguage(eventTitle,emailContext)==="en"?"English":"Italiano"})</option>
+              <option value="it">Italiano</option>
+              <option value="en">English</option>
+            </select>
+          </label>
+          {isWorkshop&&resolvedLanguage!=="en" ?
+            <p className="text-xs text-[#9b4b1e]">Per workshop internazionali usa English. Controlla anche il testo introduttivo.</p> : null}
+          <label className="block text-sm font-semibold">Tipo invio
+            <select value={sendMode} aria-label="Tipo invio" onChange={e=>changeSendMode(e.target.value as "initial"|"reminder")}
+              className="mt-1 h-10 w-full rounded-xl border border-[#211815]/15 bg-white px-3 text-sm">
+              <option value="initial">Prima email</option>
+              <option value="reminder">Sollecito</option>
+            </select>
+          </label>
+          {sendMode==="reminder" ?
+            <p className="text-xs text-[#5f524c]">Mostra solo chi ha già ricevuto questa comunicazione. Seleziona esplicitamente a chi inviare il sollecito.</p> :
+            <p className="text-xs text-[#5f524c]">Chi ha già ricevuto questa comunicazione viene escluso dalla selezione.</p>}
+          {kind === "details" && hasObserverTickets ? (
+            <label className="block text-sm">
+              <span className="font-semibold">Destinatari</span>
+              <select aria-label="Pubblico email" value={audience}
+                onChange={e => changeAudience(e.target.value as PeonyEmailAudience)}
+                className="mt-1 h-10 w-full rounded-xl border border-[#211815]/15 bg-white px-2 text-sm">
+                <option value="practitioner">Praticanti</option>
+                <option value="observer">Observer</option>
+              </select>
+            </label>
+          ) : null}
+          <p className="text-xs text-[#5f524c]">
+            Ticket Tailor: titolo, data, orario e descrizione dell'evento, quando disponibili.
+            Le regole dello studio sono condivise tra i template.
+          </p>
+          {kind === "details" && !emailContext.startTime ?
+            <p className="text-xs text-[#9b4b1e]">Orario non disponibile nei dati sincronizzati di Ticket Tailor: controlla prima di inviare.</p> : null}
+          {kind==="details" ? <details className={card}>
+            <summary className="cursor-pointer text-sm font-semibold">
+              {isWorkshop?"Programma e dettagli del workshop":"Orari e dettagli dell'evento"}
+            </summary>
+            <p className="mt-2 text-xs text-[#5f524c]">
+              Titolo e date arrivano da Ticket Tailor. Compila solo le informazioni non disponibili in forma strutturata.
+              Per i workshop di più giorni gli orari giornalieri non si deducono dall'orario dell'evento.
+            </p>
+            <div className="mt-3 rounded-lg bg-[#f2ede3] p-3 text-sm">
+              <strong>Fonte Ticket Tailor</strong>
+              <p>{eventTitle} · {dateLabel}</p>
+              {emailContext.startTime?<p>Inizio evento: {emailContext.startTime}</p>:null}
+              {emailContext.endTime?<p>Fine evento: {emailContext.endTime}</p>:null}
+              {emailContext.description?<details className="mt-2"><summary className="cursor-pointer underline">Leggi descrizione originale</summary>
+                <p className="mt-2 whitespace-pre-wrap text-xs">{emailContext.description}</p>
+              </details>:<p>Descrizione non presente nei dati sincronizzati.</p>}
+            </div>
+            {isWorkshop?<label className="mt-3 flex items-start gap-2 text-sm">
+              <input type="checkbox" className="mt-1" checked={detailFields.includeTicketTailorDescription!==false}
+                onChange={e=>setDetailFields(prev=>({...prev,includeTicketTailorDescription:e.target.checked}))}/>
+              Includi la descrizione Ticket Tailor in Workshop Information
+            </label>:null}
+            <div className="mt-3 grid gap-3">
+              {PEONY_DETAIL_FIELDS.filter(field=>isWorkshop ? field.key!=="lastEntry" :
+                ["doorsOpen","dailyStart","dailyEnd","lastEntry","extraNotes"].includes(field.key)).map(field=>
+                <label key={field.key} className="block text-sm font-semibold">{field.label}
+                  {field.multiline ? <textarea rows={3} value={String(detailFields[field.key]??"")}
+                    onChange={e=>setDetailFields(prev=>({...prev,[field.key]:e.target.value}))}
+                    className="mt-1 w-full rounded-lg border border-[#211815]/15 bg-white p-3 text-sm"/> :
+                    <input type="text" value={String(detailFields[field.key]??"")}
+                      onChange={e=>setDetailFields(prev=>({...prev,[field.key]:e.target.value}))}
+                      className="mt-1 h-10 w-full rounded-lg border border-[#211815]/15 bg-white p-2 text-sm"/>}
+                </label>)}
+            </div>
+            {missingSchedule?<p className="mt-2 text-sm text-[#9b4b1e]">
+              Per copiare l'email completa occorre indicare apertura porte, inizio e fine della giornata.
+            </p>:null}
+            <button type="button" className={button} disabled={busy}
+              onClick={()=>run(()=>savePeonyEmailSettings(eventId,languageChoice==="auto"?null:languageChoice,detailFields),
+                "Lingua e dettagli salvati.")}>Salva lingua e dettagli</button>
+          </details> : <button type="button" className="h-10 rounded-xl border border-[#211815]/20 px-3 text-sm"
+              onClick={()=>run(()=>savePeonyEmailSettings(eventId,languageChoice==="auto"?null:languageChoice,detailFields),
+                "Lingua salvata.")}>Salva lingua</button>}
           <div className={card}>
             <label htmlFor="peony-subject" className="block text-sm font-semibold">Oggetto</label>
             <input id="peony-subject" value={template.subject} maxLength={300}
               onChange={e => setTemplateField("subject",e.target.value)}
               className="mt-1 h-10 w-full rounded-lg border border-[#211815]/15 bg-white p-2 text-sm" />
-            <label htmlFor="peony-body" className="mt-3 block text-sm font-semibold">Contenuto</label>
+            <p className="mt-1 break-words text-xs text-[#5f524c]">Oggetto finale: {emailSubject}</p>
+            <p className="mt-1 text-xs text-[#5f524c]">Puoi usare {"{{event_title}}"} e {"{{event_date}}"}: saranno sostituiti con i dati Ticket Tailor.</p>
+            <label htmlFor="peony-body" className="mt-3 block text-sm font-semibold">Introduzione / note aggiuntive</label>
             <textarea id="peony-body" rows={7} value={template.body} maxLength={30000}
               onChange={e => setTemplateField("body",e.target.value)}
               className="mt-1 w-full rounded-lg border border-[#211815]/15 bg-white p-3 text-sm" />
+            {template.body.includes("[Inserisci qui gli orari effettivi") ? <p className="mt-2 text-xs text-[#9b4b1e]">Questo testo contiene un segnaposto del vecchio modello. Rimuovilo oppure ripristina il modello base.</p> : null}
             <div className="mt-3 flex flex-wrap gap-2">
+              <button type="button" className="h-10 rounded-xl border border-[#211815]/20 px-3 text-sm" onClick={() => {
+                const regenerated=defaultPeonyEmailTemplate(kind,eventTitle,emailDateLabel,templateLanguage);
+                setTemplates(prev => ({...prev,[kind]: regenerated}));
+              }}>Ripristina base</button>
               <button type="button" className={button} disabled={busy || !template.subject.trim()}
                 onClick={() => run(() => savePeonyEmailTemplate(eventId, kind, template.subject, template.body), "Testo salvato per questa comunicazione.")}>Salva</button>
-              <button type="button" className="h-10 rounded-xl border border-[#a8583e] px-3 text-sm font-semibold text-[#a8583e]"
+              <button type="button" className="h-10 rounded-xl border border-[#211815]/20 px-3 text-sm" onClick={() => copy(emailSubject, "Oggetto copiato.")}>Copia oggetto</button>
+              <button type="button" disabled={!canCopyDetails} className="h-10 rounded-xl border border-[#a8583e] px-3 text-sm font-semibold text-[#a8583e] disabled:opacity-50"
                 onClick={async () => {
                   try { await copyRichHtml(html); setMessage("Email HTML copiata: puoi incollarla in Gmail."); setFailure(null); }
                   catch { setFailure("Impossibile copiare l'HTML formattato. Verifica gli appunti del browser."); }
@@ -340,7 +505,7 @@ export function PeonyEventOperations({
             </details>
           </div>
           <div className={card}>
-            <h3 className="text-sm font-semibold">Destinatari · {distinctEmails.length}</h3>
+            <h3 className="text-sm font-semibold">Destinatari {sendMode==="reminder"?"del sollecito":"del primo invio"} · {distinctEmails.length}</h3>
             <details className="mt-2">
               <summary className="w-fit cursor-pointer py-1 text-sm text-[#a8583e]">Modifica selezione ({selected.length}/{eligible.length})</summary>
               <label className="mt-2 flex items-center gap-2 text-sm">
@@ -351,13 +516,13 @@ export function PeonyEventOperations({
               <div className="mt-2 max-h-64 space-y-2 overflow-y-auto">
                 {attendees.map(person => (
                   <label key={person.ticketId} className="flex items-start gap-2 border-b border-[#211815]/10 pb-2 text-sm">
-                    <input type="checkbox" disabled={!person.email} checked={checked.includes(person.ticketId)}
+                    <input type="checkbox" disabled={!eligible.some(entry=>entry.ticketId===person.ticketId)} checked={checked.includes(person.ticketId)}
                       onChange={e => setChecked(prev => e.target.checked ? [...prev,person.ticketId] : prev.filter(id => id !== person.ticketId))}
                       className="mt-1" />
                     <span className="min-w-0 flex-1">
                       {person.name}<span className="block break-words text-xs text-[#5f524c]">{person.email || "Senza email"}</span>
                       {latestSend.has(person.ticketId) ? (
-                        <span className="block text-xs text-[#326941]">Inviata: {latestSend.get(person.ticketId)?.sentOn}</span>
+                        <span className="block text-xs text-[#326941]">Inviata: {latestSend.get(person.ticketId)?.sentOn}{(sendCounts.get(person.ticketId)??0)>1 ? " · Solleciti: "+((sendCounts.get(person.ticketId)??1)-1) : ""}</span>
                       ) : null}
                     </span>
                   </label>
@@ -368,7 +533,7 @@ export function PeonyEventOperations({
               <button type="button" className={button} disabled={!distinctEmails.length}
                 onClick={() => copy(distinctEmails.join(", "), "Indirizzi copiati per il Ccn di Gmail.")}>Copia indirizzi Ccn</button>
               {!confirmingSend ? (
-                <button type="button" disabled={busy || !selected.length || !template.subject.trim()}
+                <button type="button" disabled={busy || !selected.length || !template.subject.trim() || !canCopyDetails}
                   onClick={() => setConfirmingSend(true)}
                   className="h-10 rounded-xl border border-[#a8583e] px-3 text-sm font-semibold text-[#a8583e] disabled:opacity-50">
                   Registra invio
@@ -382,7 +547,7 @@ export function PeonyEventOperations({
                 <div className="mt-2 flex gap-2">
                   <button className={button} disabled={busy} onClick={() => {
                     setConfirmingSend(false);
-                    run(() => markPeonyEmailSent(eventId, selected.map(p => p.ticketId), kind, template.subject), "Invio registrato nello storico.");
+                    run(() => markPeonyEmailSent(eventId, selected.map(p => p.ticketId), kind, emailSubject, sendMode), "Invio registrato nello storico.");
                   }}>Conferma</button>
                   <button className="h-10 rounded-xl border border-[#211815]/15 px-3 text-sm" onClick={() => setConfirmingSend(false)}>Annulla</button>
                 </div>

@@ -1,3 +1,5 @@
+import type { TicketTailorWorkshopSource } from "./ticket-tailor-workshop";
+
 export type WorkshopEmailData = {
   title: string;
   dateLabel: string;
@@ -13,6 +15,9 @@ export type WorkshopEmailData = {
   prerequisitesModels?: string[];
   ropes?: string;
   clothing?: string;
+  partnerPolicy?: string;
+  /** Synced TT event details: always read-only, never saved as an editor override. */
+  ticketTailor?: TicketTailorWorkshopSource;
   schedule?: string[];
   arrival?: string;
   extraNotes?: string;
@@ -32,7 +37,7 @@ export type WorkshopEmailData = {
 /** D30: content specific to a single workshop vs shared defaults. */
 export const WORKSHOP_EMAIL_KEYS = [
   "title","dateLabel","membershipDeadline","intro","schedule","arrival",
-  "program","prerequisitesRiggers","prerequisitesModels","ropes","clothing","extraNotes",
+  "program","prerequisitesRiggers","prerequisitesModels","ropes","clothing","partnerPolicy","extraNotes",
 ] as const satisfies readonly (keyof WorkshopEmailData)[];
 export const GLOBAL_EMAIL_KEYS = [
   "location","intercom","mapsUrl","membershipFormUrl","membershipFeeEuro","signature",

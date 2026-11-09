@@ -3,6 +3,7 @@ import "server-only";
 import { getGestionaleDb } from "./db";
 import type { WorkshopEmailData } from "../email/types";
 import type { WorkshopView } from "../types";
+import { loadLinkedWorkshopEmailFields } from "./events";
 
 export type EmailSendRow = {
   id: string;
@@ -23,6 +24,7 @@ export async function loadEmailState(workshop: WorkshopView): Promise<{
   workshopFields: EmailSavedFields;
   defaults: EmailDefaults;
   sends: EmailSendRow[];
+  ticketTailorFields: Partial<WorkshopEmailData>;
 }> {
   const db = getGestionaleDb();
   const [texts, settings, sends] = await Promise.all([
@@ -33,9 +35,12 @@ export async function loadEmailState(workshop: WorkshopView): Promise<{
   if (texts.error) fail(texts.error);
   if (settings.error) fail(settings.error);
   if (sends.error) fail(sends.error);
+  const ticketTailorFields: Partial<WorkshopEmailData> = workshop.event_id ?
+    await loadLinkedWorkshopEmailFields(workshop.event_id) : {};
   return {
     workshopFields: { version: texts.data?.version ?? 0, fields: (texts.data?.fields ?? {}) as Partial<WorkshopEmailData> },
     defaults: { version: settings.data?.version ?? 0, fields: (settings.data?.fields ?? {}) as Partial<WorkshopEmailData> },
+    ticketTailorFields,
     sends: (sends.data ?? []).map((s): EmailSendRow => ({
       id: s.id, personId: s.person_id, kind: s.kind, number: s.number, sentOn: s.sent_on,
     })),

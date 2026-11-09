@@ -409,3 +409,15 @@ export async function loadUpcomingPeonyPeople(today: string): Promise<UpcomingPe
   }
   return results;
 }
+
+
+/** Read-only TT payload for email rendering; only the event loader touches events. */
+export async function loadPeonyEventEmailPayload(eventId: string): Promise<{
+  raw_payload: unknown; booking_url: string | null;
+} | null> {
+  if (!isUuidLike(eventId)) return null;
+  const {data,error}=await getGestionaleDb().from("events")
+    .select("raw_payload,booking_url").eq("id",eventId).maybeSingle();
+  if(error)throw new Error("Dati Ticket Tailor: "+error.message);
+  return data??null;
+}

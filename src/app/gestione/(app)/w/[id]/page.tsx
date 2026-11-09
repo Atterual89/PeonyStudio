@@ -137,7 +137,7 @@ export default async function WorkshopDetailPage({
           />
         ) : null}
         {/* D27: solo nome, email e stato arrivano al browser. */}
-        {active === "email" && bookings && emailState ? <EmailTab workshop={workshop} bookings={bookings} saved={emailState.workshopFields} defaults={emailState.defaults} sends={emailState.sends} today={today} previousConfigs={previousConfigs} /> : null}
+        {active === "email" && bookings && emailState ? <EmailTab workshop={workshop} bookings={bookings} saved={emailState.workshopFields} defaults={emailState.defaults} ticketTailorFields={emailState.ticketTailorFields} sends={emailState.sends} today={today} previousConfigs={previousConfigs} /> : null}
         {active === "conti" ? <AccountsSection workshop={workshop} isAdmin={isAdmin} /> : null}
         {active === "info" ? (
           <InfoTab workshop={workshop} isAdmin={isAdmin} hasBookings={statuses.length > 0} />

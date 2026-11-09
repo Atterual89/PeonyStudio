@@ -8,18 +8,19 @@ import { markEmailSentAction } from "@/app/gestione/(app)/w/email-actions";
 import type { EmailRecipient } from "@/lib/gestionale/email/recipients";
 import { membershipRequestEmail } from "@/lib/gestionale/email/membership-request";
 import { partnerUnknownEmail } from "@/lib/gestionale/email/partner-unknown";
-import { membershipReminderEmail, partnerReminderEmail } from "@/lib/gestionale/email/reminder";
+import { membershipReminderEmail, partnerReminderEmail, workshopDetailsReminderEmail } from "@/lib/gestionale/email/reminder";
 import { workshopDetailsEmail } from "@/lib/gestionale/email/workshop-details";
 import type { WorkshopEmailData } from "@/lib/gestionale/email/types";
 import { buttonClass, cardClass, inputClass, Notice } from "./ui";
 
-export type EmailWorkflowKind = "membership_request" | "membership_reminder" | "partner" | "partner_reminder" | "workshop_details";
+export type EmailWorkflowKind = "membership_request" | "membership_reminder" | "partner" | "partner_reminder" | "workshop_details" | "workshop_details_reminder";
 const TITLES: Record<EmailWorkflowKind,string> = {
   membership_request: "Richiesta di associazione",
   partner: "Partner da conoscere",
   membership_reminder: "Sollecito associazione",
   partner_reminder: "Sollecito partner",
   workshop_details: "Dettagli del workshop",
+  workshop_details_reminder: "Sollecito dettagli del workshop",
 };
 
 type Props = {
@@ -40,6 +41,7 @@ function primaryVariant(row: EmailRecipient): string {
 }
 
 function proposedSelection(kind: EmailWorkflowKind, recipients: EmailRecipient[]): string[] {
+  if (kind.includes("reminder")) return [];
   if (!kind.startsWith("membership")) return recipients.filter((r)=>Boolean(r.email)).map((r)=>r.personId);
   const first = recipients.find((r)=>r.email);
   return first ? recipients.filter((r)=>r.email && primaryVariant(r)===primaryVariant(first)).map((r)=>r.personId) : [];
@@ -64,14 +66,18 @@ export function EmailWorkflow({ kind, recipients, workshopId, today, fields, val
   const invalidFields = !fields.title.trim() || !fields.dateLabel.trim() ||
     !fields.location.trim() || !fields.intercom.trim() || !fields.membershipDeadline.trim() ||
     !fields.mapsUrl || !fields.membershipFormUrl;
-  const detailsIncomplete = kind==="workshop_details" && (
-    !fields.schedule?.length || !fields.program?.length || !fields.ropes?.trim() || !fields.clothing?.trim()
-  );
+  const isWorkshopInfo = kind==="workshop_details" || kind==="workshop_details_reminder";
+  const ticketTailorDescription = Boolean(fields.ticketTailor?.description || fields.extraNotes?.startsWith("From Ticket Tailor:"));
+  // Do not block sending when TT already supplies the programme and required materials.
+  // It is not correct to require three separately transcribed manual fields.
+  const detailsIncomplete = isWorkshopInfo && !ticketTailorDescription &&
+    (!fields.schedule?.length || (!fields.program?.length && !fields.extraNotes?.trim()));
   const canPrepare = chosen.length>0 && !mixed && !invalidFields && !detailsIncomplete;
   const subject = kind === "membership_request" ? "Association registration – "+fields.title :
     kind === "membership_reminder" ? "Reminder – association registration – "+fields.title :
     kind === "partner" ? "Your workshop partner – "+fields.title :
     kind === "partner_reminder" ? "Reminder – workshop partner – "+fields.title :
+    kind === "workshop_details_reminder" ? "Reminder – practical information – "+fields.title :
     "Practical information – "+fields.title;
 
   // Render from the current selection on every render: never reuse another recipient's HTML.
@@ -85,6 +91,7 @@ export function EmailWorkflow({ kind, recipients, workshopId, today, fields, val
     const data = { ...fields, membershipExpiresOn: validUntil, nextMembershipExpiresOn: renewalUntil };
     if (kind==="partner") return partnerUnknownEmail(data);
     if (kind==="partner_reminder") return partnerReminderEmail(data);
+    if (kind==="workshop_details_reminder") return workshopDetailsReminderEmail(fields);
     return workshopDetailsEmail(fields);
   })();
 
@@ -143,7 +150,8 @@ export function EmailWorkflow({ kind, recipients, workshopId, today, fields, val
           })
         : await markEmailSentAction({
             workshopId,personIds:chosen.map((r)=>r.personId),
-            kind:kind==="partner" ? "partner" : kind==="partner_reminder" ? "partner_reminder" : "workshop_details",sentOn,
+            kind:kind==="partner" ? "partner" : kind==="partner_reminder" ? "partner_reminder" : "workshop_details",
+            mode:kind==="workshop_details_reminder" ? "reminder" : "initial",sentOn,
           });
       setConfirming(false);
       if(result.ok) {
@@ -184,7 +192,14 @@ export function EmailWorkflow({ kind, recipients, workshopId, today, fields, val
       </div>
       <div className="border-t border-[#211815]/10 pt-3">
         <p className="font-semibold">2. Prepara l'email HTML</p>
-        {invalidFields || detailsIncomplete ? <Notice tone="warning">Completa prima i dettagli del workshop {detailsIncomplete ? "(programma, orari e cosa portare)" : "(dati obbligatori)"} nel riquadro in alto.</Notice> : null}
+        {invalidFields || detailsIncomplete ? <Notice tone="warning">
+          {detailsIncomplete ? "Non risultano dati sufficienti da Ticket Tailor: verifica il collegamento evento oppure integra descrizione e orari nel riquadro in alto." :
+            "Mancano impostazioni generali obbligatorie dell'email: verifica la sezione dettagli."}
+        </Notice> : null}
+        {isWorkshopInfo && ticketTailorDescription ?
+          <p className="mt-2 text-xs text-[#426149]">Programma e indicazioni recuperati dall'evento Ticket Tailor. Controlla l'anteprima prima di inviare.</p> : null}
+        {isWorkshopInfo && ticketTailorDescription && !fields.schedule?.length ?
+          <Notice tone="warning">Ticket Tailor non indica un orario utilizzabile: verifica il programma prima di inviare.</Notice> : null}
         <div className="mt-2 grid gap-2 sm:grid-cols-3">
           <button type="button" disabled={!canPrepare} className={buttonClass.secondary} onClick={()=>void copyText(emails.join(", "),"bcc")}>Copia Ccn ({emails.length})</button>
           <button type="button" disabled={!canPrepare} className={buttonClass.secondary} onClick={()=>void copyText(subject,"subject")}>Copia oggetto</button>
