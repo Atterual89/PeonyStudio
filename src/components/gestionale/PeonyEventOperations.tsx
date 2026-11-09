@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { PeonyAttendee, PeonyMembership } from "@/lib/gestionale/server/peony-events";
 import { PeonyPartnerFinder } from "@/components/gestionale/PeonyPartnerFinder";
 import { UnifiedParticipantCard } from "@/components/gestionale/UnifiedParticipantCard";
+import { UnifiedPersonPanel } from "@/components/gestionale/UnifiedPersonPanel";
 import { QuotaOkCheckbox } from "@/components/gestionale/QuotaOkCheckbox";
 import { AssociationStatusDot, AssociationDotLegend, type AssociationDotStatus } from "@/components/gestionale/AssociationStatusDot";
 import type { PeonyEmailSend } from "@/lib/gestionale/server/peony-email";
@@ -51,12 +52,10 @@ function MembershipFacts({ info, ownerLabel }: { info: PeonyMembership | null; o
     info.matchMethod === "manual" ? "manuale" : "non disponibile";
   return (
     <div className="space-y-1 text-sm">
-      {info.status==="valid"&&info.expiresAt ? (
-        <p className="text-[#5f524c]">Tessera fino al {formatMembershipDate(info.expiresAt)}</p>
-      ) : null}
       <details className="text-xs text-[#5f524c]">
         <summary className="w-fit cursor-pointer break-words py-1 text-[#a8583e]">Dettagli associazione · {ownerLabel}</summary>
         <div className="space-y-0.5 pt-1">
+          {info.status==="valid"&&info.expiresAt?<p>Tessera fino al {formatMembershipDate(info.expiresAt)}</p>:null}
           {info.verifiedInOfficialBook ? <p>Libro soci ufficiale: tessera verificata</p> : <>
             <p>Modulo: {info.formPresent ? "trovato" : "assente"}</p>
             <p>Quota: {info.feePaid ? "verificata" : "non verificata"}</p>
@@ -73,54 +72,75 @@ function PersonRow({ person, eventId,initialExpanded=false }: { person: PeonyAtt
   const roleLabel=person.freeEvent?"Ingresso libero":person.ticketRole==="observer"?"Observer":person.ticketRole==="practitioner"?"Praticante":"Tipo da identificare";
   const partnerLabel=person.partner?.name||person.partner?.email||"Partner da indicare";
   const ticketAlias=person.enteredName&&person.enteredName.trim()!==person.name.trim()?person.enteredName:null;
+  const primaryEmail=person.linkedPersonId?person.profileEmail:person.email;
+  const partnerEmail=person.partner?.linkedPersonId?person.partner.profileEmail:person.partner?.email;
+  const date=person.createdAt?new Intl.DateTimeFormat("it-IT",{
+    day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit",timeZone:"Europe/Rome",
+  }).format(new Date(person.createdAt)):null;
   return <li>
     <UnifiedParticipantCard
       expanded={expanded} onToggle={()=>setExpanded(v=>!v)}
       primary={<span className="inline-flex flex-wrap items-center gap-2">
         <AssociationStatusDot status={peonyStatus(person.association,person.associationRequired)}/>
         <span>{person.name}</span>
+        {ticketAlias?<span className="text-xs font-normal text-[#5f524c]">{ticketAlias}</span>:null}
         {person.partnerRequired&&<span className="inline-flex items-center gap-1.5 font-normal">
           <span>+</span>
           {person.partner&&<AssociationStatusDot status={peonyStatus(person.partner.membership,person.associationRequired)}/>}
           <span>{partnerLabel}</span>
         </span>}
       </span>}
-      secondary={<>{roleLabel}{ticketAlias?` · Biglietto: ${ticketAlias}`:""}</>}>
+      secondary={<span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        {date?<span>{date}</span>:null}
+        <span>{roleLabel}</span>
+      </span>}>
       <div className="space-y-2">
-        {person.email?<a href={"mailto:"+person.email} className="block break-all text-sm text-[#a8583e] underline">{person.email}</a>:null}
-        {person.associationRequired&&person.association?.matchMethod !== "payment_email"&&!person.association?.verifiedInOfficialBook&&
-          <QuotaOkCheckbox
-            checked={Boolean(person.association?.feePaid)}
-            editable={!person.association?.feePaid||person.association.matchMethod==="manual"}
-            onToggle={paid=>setPeonyQuotaOkAction({eventId,ticketId:person.ticketId,person:"holder",paid})}
-          />}
-        {person.associationRequired&&<MembershipFacts info={person.association} ownerLabel={person.name}/>}
-        {person.linkedPersonId?
-          <a href={"/gestione/p/"+person.linkedPersonId} className="inline-block text-sm font-semibold text-[#a8583e] underline">Apri anagrafica</a>:
-          <p className="text-xs text-[#9b4b1e]">Anagrafica non ancora collegata</p>}
-        <PeonyPartnerFinder role="holder" eventId={eventId} ticketId={person.ticketId}
-          hasPartner={Boolean(person.holderMatch||person.linkedPersonId)} />
+        <h3 className="text-base font-semibold">{person.partnerRequired?"Persone della coppia":"Partecipante"}</h3>
+        <UnifiedPersonPanel role="holder"
+          badge={<AssociationStatusDot status={peonyStatus(person.association,person.associationRequired)}/>}
+          name={person.linkedPersonId
+            ?<a href={"/gestione/p/"+person.linkedPersonId} className="underline-offset-2 hover:underline">{person.name}</a>
+            :person.name}
+          alias={ticketAlias}
+          email={primaryEmail} emailLabel={!person.linkedPersonId?"Biglietto:":undefined}>
+          {person.associationRequired&&person.association?.matchMethod !== "payment_email"&&!person.association?.verifiedInOfficialBook&&
+            <QuotaOkCheckbox
+              checked={Boolean(person.association?.feePaid)}
+              editable={!person.association?.feePaid||person.association.matchMethod==="manual"}
+              onToggle={paid=>setPeonyQuotaOkAction({eventId,ticketId:person.ticketId,person:"holder",paid})}
+            />}
+          {person.associationRequired&&<MembershipFacts info={person.association} ownerLabel={person.name}/>}
+          {!person.linkedPersonId?<p className="text-xs text-[#9b4b1e]">Anagrafica non ancora collegata</p>:null}
+          <PeonyPartnerFinder role="holder" eventId={eventId} ticketId={person.ticketId}
+            hasPartner={Boolean(person.linkedPersonId)} />
+        </UnifiedPersonPanel>
+        {person.partnerRequired&&(person.partner?
+          <UnifiedPersonPanel role="partner"
+            badge={<AssociationStatusDot status={peonyStatus(person.partner.membership,person.associationRequired)}/>}
+            name={person.partner.linkedPersonId
+              ?<a href={"/gestione/p/"+person.partner.linkedPersonId} className="underline-offset-2 hover:underline">{partnerLabel}</a>
+              :partnerLabel}
+            alias={person.partner.enteredName&&person.partner.enteredName!==partnerLabel?person.partner.enteredName:null}
+            email={partnerEmail} emailLabel={!person.partner.linkedPersonId?"Biglietto:":undefined}>
+            {person.associationRequired&&person.partner.membership?.matchMethod !== "payment_email"&&!person.partner.membership?.verifiedInOfficialBook&&
+              <QuotaOkCheckbox checked={Boolean(person.partner.membership?.feePaid)}
+                editable={!person.partner.membership?.feePaid||person.partner.membership.matchMethod==="manual"}
+                onToggle={paid=>setPeonyQuotaOkAction({eventId,ticketId:person.ticketId,person:"partner",paid})}/>}
+            {person.associationRequired&&<MembershipFacts info={person.partner.membership} ownerLabel={partnerLabel}/>}
+            <PeonyPartnerFinder eventId={eventId} ticketId={person.ticketId} hasPartner={true}/>
+          </UnifiedPersonPanel>:
+          <PeonyPartnerFinder eventId={eventId} ticketId={person.ticketId} hasPartner={false}/>
+        )}
+        {person.notes?<p className="text-sm"><strong>Nota:</strong> {person.notes}</p>:null}
+        <details className="text-xs text-[#5f524c]">
+          <summary className="w-fit cursor-pointer py-1 text-[#a8583e]">Dati biglietto</summary>
+          <p>Nome nel biglietto: {person.enteredName??person.name}</p>
+          <p>Email nel biglietto: {person.email??"non disponibile"}</p>
+          <p>Ordine: {person.orderId||"non disponibile"}</p>
+          {person.ticketType&&<p>Tipo: {person.ticketType}</p>}
+          {person.partner&&<p>Partner: {partnerLabel} · indicato {person.partner.source==="gestionale"?"nel gestionale":person.partner.source==="ticket_tailor"?"in Ticket Tailor":person.partner.source==="admin"?"in Admin":"dal partecipante"} come {person.partner.enteredName??person.partner.name}</p>}
+        </details>
       </div>
-      {person.partnerRequired&&<div className="space-y-2 border-t border-[#211815]/10 pt-2">
-        <p className="text-xs font-semibold text-[#5f524c]">Partner: {partnerLabel}</p>
-        {person.partner?.email?<p className="break-all text-xs text-[#5f524c]">{person.partner.email}</p>:null}
-        {person.partner&&person.associationRequired&&person.partner.membership?.matchMethod !== "payment_email"&&!person.partner.membership?.verifiedInOfficialBook&&
-          <QuotaOkCheckbox checked={Boolean(person.partner.membership?.feePaid)}
-            editable={!person.partner.membership?.feePaid||person.partner.membership.matchMethod==="manual"}
-            onToggle={paid=>setPeonyQuotaOkAction({eventId,ticketId:person.ticketId,person:"partner",paid})}/>}
-        {person.partner&&<MembershipFacts info={person.partner.membership} ownerLabel={partnerLabel}/>}
-        {person.partner?.linkedPersonId&&<a href={"/gestione/p/"+person.partner.linkedPersonId}
-          className="text-sm text-[#a8583e] underline">Apri anagrafica partner</a>}
-        <PeonyPartnerFinder eventId={eventId} ticketId={person.ticketId} hasPartner={Boolean(person.partner)}/>
-      </div>}
-      {person.notes?<p className="text-sm"><strong>Nota:</strong> {person.notes}</p>:null}
-      <details className="text-xs text-[#5f524c]">
-        <summary className="w-fit cursor-pointer py-1 text-[#a8583e]">Dati biglietto</summary>
-        <p>Nome nel biglietto: {person.enteredName??person.name}</p>
-        <p>Ordine: {person.orderId||"non disponibile"}</p>
-        {person.ticketType&&<p>Tipo: {person.ticketType}</p>}
-        {person.partner&&<p>Partner indicato {person.partner.source==="gestionale"?"nel gestionale":person.partner.source==="ticket_tailor"?"in Ticket Tailor":person.partner.source==="admin"?"in Admin":"dal partecipante"}: {person.partner.enteredName??person.partner.name}</p>}
-      </details>
     </UnifiedParticipantCard>
   </li>;
 }
