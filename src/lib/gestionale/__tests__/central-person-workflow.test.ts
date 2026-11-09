@@ -38,6 +38,17 @@ describe("Ticket Tailor -> Anagrafica <- Kinbaku LuXuria",()=>{
   expect(registry).toContain("<RegistryPersonActions");
   expect(registry).toContain("<MemberQuickLink");
  });
+ it("la scheda persona raccoglie lo storico KL e Peony con accesso diretto al biglietto",()=>{
+  const page=read("src/app/gestione/(app)/p/[id]/page.tsx");
+  const loader=read("src/lib/gestionale/server/peony-person-history.ts");
+  const route=read("src/app/gestione/(app)/peony/[id]/page.tsx");
+  expect(page).toContain("loadPeonyPersonHistory(person,people)");
+  expect(page).toContain("Partecipazioni Peony e Kinbaku LuXuria");
+  expect(loader).toContain("resolveCentralPerson");
+  expect(loader).toContain("?ticket=");
+  expect(route).toContain("initialTicketId={initialTicketId}");
+  expect(peony).toContain("initialExpanded={person.ticketId===initialTicketId}");
+ });
  it("le quote associative non sono le rate dei workshop",()=>{
   expect(peony).toContain("peonyStatus");
   expect(kl).toContain("MembershipBadge");

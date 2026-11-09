@@ -68,8 +68,8 @@ function MembershipFacts({ info, ownerLabel }: { info: PeonyMembership | null; o
   );
 }
 
-function PersonRow({ person, eventId }: { person: PeonyAttendee; eventId: string }) {
-  const [expanded,setExpanded]=useState(false);
+function PersonRow({ person, eventId,initialExpanded=false }: { person: PeonyAttendee; eventId: string;initialExpanded?:boolean }) {
+  const [expanded,setExpanded]=useState(initialExpanded);
   const roleLabel=person.freeEvent?"Ingresso libero":person.ticketRole==="observer"?"Observer":person.ticketRole==="practitioner"?"Praticante":"Tipo da identificare";
   const partnerLabel=person.partner?.name||person.partner?.email||"Partner da indicare";
   const ticketAlias=person.enteredName&&person.enteredName.trim()!==person.name.trim()?person.enteredName:null;
@@ -148,7 +148,7 @@ function defaultRecipients(kind: PeonyEmailKind, attendees: PeonyAttendee[]): st
 
 export function PeonyEventOperations({
   eventId, eventTitle, dateLabel, attendees,
-  ticketsLastSyncedAt, associationLastSyncedAt, templates: initialTemplates, sends,
+  ticketsLastSyncedAt, associationLastSyncedAt, templates: initialTemplates, sends,initialTicketId,
 }: {
   eventId: string;
   eventTitle: string;
@@ -158,6 +158,7 @@ export function PeonyEventOperations({
   associationLastSyncedAt: string | null;
   templates: Record<PeonyEmailKind, PeonyEmailTemplate>;
   sends: PeonyEmailSend[];
+  initialTicketId?:string|null;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("partecipanti");
@@ -167,7 +168,8 @@ export function PeonyEventOperations({
   const [busy, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(()=>initialTicketId?
+    attendees.find(a=>a.ticketId===initialTicketId)?.name??"":"");
   const [ticketFilter,setTicketFilter]=useState<TicketFilter>("all");
   const [confirmingSend, setConfirmingSend] = useState(false);
 
@@ -275,7 +277,7 @@ export function PeonyEventOperations({
             placeholder="Cerca nome o partner" aria-label="Cerca partecipanti e partner"
             className="h-10 w-full rounded-xl border border-[#211815]/15 bg-white px-3 text-sm" />
           {visible.length === 0 ? <p className={card}>Nessun partecipante nei dati sincronizzati.</p> : null}
-          <ul className="space-y-1.5">{visible.map(person => <PersonRow key={person.ticketId} person={person} eventId={eventId} />)}</ul>
+          <ul className="space-y-1.5">{visible.map(person => <PersonRow key={person.ticketId} person={person} eventId={eventId} initialExpanded={person.ticketId===initialTicketId} />)}</ul>
         </section>
       ) : (
         <section className="space-y-3">

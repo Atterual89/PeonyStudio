@@ -8,10 +8,13 @@ import { SyncTicketTailorButton } from "@/components/gestionale/SyncTicketTailor
 import { getPeonyEvent, loadPeonyAttendees } from "@/lib/gestionale/server/peony-events";
 import { loadPeonyEmailState } from "@/lib/gestionale/server/peony-email";
 
-export default async function PeonyEventPage({ params }: {
+export default async function PeonyEventPage({ params,searchParams }: {
   params: Promise<{ id: string }>;
+  searchParams?:Promise<{ticket?:string}>;
 }) {
   const { id } = await params;
+  const search=searchParams?await searchParams:{};
+  const initialTicketId=typeof search.ticket==="string"&&search.ticket.length<200?search.ticket:null;
   const event = await getPeonyEvent(id); // 404 per Ale, e per eventi LuXuria
   if (!event) notFound();
   const [roster, email] = await Promise.all([
@@ -36,6 +39,7 @@ export default async function PeonyEventPage({ params }: {
       </div>
       <PeonyEventOperations
         eventId={event.id}
+        initialTicketId={initialTicketId}
         eventTitle={event.title}
         dateLabel={event.startsOn ? new Intl.DateTimeFormat("it-IT", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(`${event.startsOn}T12:00:00Z`)) : "Data da definire"}
         attendees={roster.attendees}

@@ -12,6 +12,7 @@ import { displayName, formatDate, formatDateRange, fullName } from "@/lib/gestio
 import { DUPLICATE_REASON_LABELS, findPossibleDuplicates, peopleSharingEmail } from "@/lib/gestionale/people";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { getPerson, getPersonHistory, loadPeople } from "@/lib/gestionale/server/data";
+import { loadPeonyPersonHistory } from "@/lib/gestionale/server/peony-person-history";
 import { memberKeyOfPerson } from "@/lib/gestionale/member-key";
 import { getLinkedMemberSummary, getMembershipBadges } from "@/lib/gestionale/server/membership";
 import { todayInRome } from "@/lib/gestionale/workshops";
@@ -52,8 +53,9 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
     );
   }
 
-  const [history, member, badges, contacts, aliases] = await Promise.all([
+  const [history,peonyHistory,member,badges,contacts,aliases] = await Promise.all([
     getPersonHistory(person.id),
+    loadPeonyPersonHistory(person,people),
     getLinkedMemberSummary(person),
     // Stato tessera di oggi (periodo associativo in corso).
     getMembershipBadges([person], todayInRome()),
@@ -64,7 +66,8 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
   // come nel tab Partecipanti di ognuno.
   const periods = personPeriods(
     todayInRome(),
-    history.filter((row) => !row.removedAt).map((row) => row.startsOn),
+    [...history.filter((row) => !row.removedAt).map((row) => row.startsOn),
+      ...peonyHistory.map(row=>row.startsOn)],
   );
   const periodBadges = await Promise.all(
     periods.map(async (period) => ({
@@ -200,21 +203,29 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         </Section>
       ) : null}
 
-      <Section title="Storico workshop" count={history.length} defaultOpen>
-        {history.length === 0 ? (
+      <Section title="Partecipazioni Peony e Kinbaku LuXuria" count={history.length+peonyHistory.length} defaultOpen>
+        {history.length+peonyHistory.length === 0 ? (
           <p className="text-sm text-[#5f524c]">Nessuna iscrizione.</p>
         ) : (
           <ul className={`${cardClass} divide-y divide-[#211815]/5`}>
-            {history.map((row) => (
-              <li key={row.participantId}>
-                <Link prefetch={false} href={`/gestione/w/${row.workshopId}`} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+            {[...history.map(row=>({
+              id:row.participantId,href:`/gestione/w/${row.workshopId}`,title:row.workshopName,
+              startsOn:row.startsOn,endsOn:row.endsOn,
+              detail:row.removedAt?"Rimossa dall'iscrizione":BOOKING_STATUS_LABELS[row.status]+(!row.removedAt&&row.present?" · Presente":""),
+              source:"Kinbaku LuXuria",
+            })),...peonyHistory.map(row=>({
+              id:`peony:${row.ticketId}:${row.role}`,href:row.href,title:row.title,
+              startsOn:row.startsOn,endsOn:null,
+              detail:row.role==="partner"?"Partner":"Intestatario",source:"Peony · Ticket Tailor",
+            }))].sort((a,b)=>b.startsOn.localeCompare(a.startsOn)).map(row=>(
+              <li key={row.id}>
+                <Link prefetch={false} href={row.href} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
                   <span>
-                    <span className="block font-semibold">{row.workshopName}</span>
-                    <span className="text-sm text-[#5f524c]">{formatDateRange(row.startsOn, row.endsOn)}</span>
+                    <span className="block font-semibold">{row.title}</span>
+                    <span className="text-sm text-[#5f524c]">{formatDateRange(row.startsOn, row.endsOn)} · {row.source}</span>
                   </span>
                   <span className="text-sm">
-                    {row.removedAt ? "Rimossa dall'iscrizione" : BOOKING_STATUS_LABELS[row.status]}
-                    {!row.removedAt && row.present ? " · Presente" : null}
+                    {row.detail}
                   </span>
                 </Link>
               </li>
