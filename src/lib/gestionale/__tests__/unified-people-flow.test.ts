@@ -65,7 +65,7 @@ describe("anagrafica unica: ricerca e associazione del nickname",()=>{
     expect(inline).toContain("linkMemberAction");
     expect(inline).toContain("Conferma collegamento");
     expect(inline).toContain("La quota associativa non è stata modificata");
-    expect(book).toContain("Cerca e collega persone");
+    expect(book).toContain("Apri anagrafiche");
     expect(book).not.toContain("<MemberDirectorySearch");
   });
 

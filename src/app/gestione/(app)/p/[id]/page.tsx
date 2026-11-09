@@ -6,8 +6,7 @@ import { FlashMessage, FlashProvider } from "@/components/gestionale/Flash";
 import { MemberCard } from "@/components/gestionale/MemberCard";
 import { MemberLinker, MemberUnlink } from "@/components/gestionale/MemberLinker";
 import { PersonForm } from "@/components/gestionale/PersonForm";
-import { QuotaOkControls, RefreshMembershipButton } from "@/components/gestionale/QuotaOk";
-import { AssociationMailSyncControl } from "@/components/gestionale/AssociationMailSyncControl";
+import { QuotaOkControls } from "@/components/gestionale/QuotaOk";
 import { Notice, Section, buttonClass, cardClass } from "@/components/gestionale/ui";
 import { displayName, formatDate, formatDateRange, fullName } from "@/lib/gestionale/format";
 import { DUPLICATE_REASON_LABELS, findPossibleDuplicates, peopleSharingEmail } from "@/lib/gestionale/people";
@@ -18,7 +17,7 @@ import { getLinkedMemberSummary, getMembershipBadges } from "@/lib/gestionale/se
 import { todayInRome } from "@/lib/gestionale/workshops";
 import { membershipPeriodFor } from "@/lib/association/membership-periods";
 import { contactLabel } from "@/lib/gestionale/contacts";
-import { MEMBERSHIP_SHORT_LABELS, formatPeriod, periodLabel, personPeriods } from "@/lib/gestionale/membership-rule";
+import { formatPeriod, periodLabel, personPeriods } from "@/lib/gestionale/membership-rule";
 import { MembershipBadge } from "@/components/gestionale/MembershipBadge";
 import type { MembershipBadge as Badge } from "@/lib/gestionale/types";
 import { getPersonContacts } from "@/lib/gestionale/server/contacts";
@@ -87,13 +86,6 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         ← Persone
       </Link>
       <h1 className="mt-2 font-serif text-xl font-medium">{displayName(person)}</h1>
-      <p className="mt-1 text-sm text-[#5f524c]">
-        Creata il {formatDate(person.created_at)} · aggiornata il {formatDate(person.updated_at)} ·{" "}
-        {/* Fase 5: storico già filtrato su questa persona. */}
-        <Link prefetch={false} href={`/gestione/altro/storico?persona=${person.id}`} className="underline">
-          Storico
-        </Link>
-      </p>
 
       {sharedEmail.length > 0 ? (
         <div className="mt-4">
@@ -148,10 +140,6 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
 
       <Section title="Libro soci" defaultOpen>
         <FlashProvider>
-        {/* 4e (#15): es. "2025/26: In regola · 2027: Quota non registrata", ognuno col suo "Segna quota associativa pagata". */}
-        <p className="mb-2 text-sm text-[#5f524c]" aria-label="Stato tessera per periodo">
-          {periodBadges.map(({ period, badge }) => `${periodLabel(period)}: ${MEMBERSHIP_SHORT_LABELS[badge.kind]}`).join(" · ")}
-        </p>
         <ul className="mb-3 space-y-2">
           {periodBadges.map(({ period, badge }) => (
             <li key={period.paymentsFrom} className="flex flex-wrap items-center gap-2">
@@ -161,17 +149,13 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
             </li>
           ))}
         </ul>
-        <div className="mb-3 flex flex-wrap items-start gap-2">
-          <RefreshMembershipButton />
-          <AssociationMailSyncControl />
-        </div>
         <div className="mb-3">
           <FlashMessage scope={person.id} />
         </div>
         {member ? (
           <MemberCard person={person} member={member} badge={badges.get(person.id) ?? null} showDifferences={false} />
         ) : memberKeyOfPerson(person) ? (
-          <Notice tone="warning">Abbinamento storico non trovato tra le registrazioni Google. Cerca il modulo corretto.</Notice>
+          <Notice tone="warning">Collegamento da verificare: controlla i dati nella ricerca associativa.</Notice>
         ) : (
           <p className="mb-3 text-[#5f524c]">Non collegata.</p>
         )}
@@ -239,6 +223,13 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         )}
       </Section>
 
+      <details className="mt-4 rounded-xl border border-[#211815]/10 bg-white/60 p-3 text-sm">
+        <summary className="cursor-pointer font-semibold text-[#5f524c]">Dettagli e storico modifiche</summary>
+        <p className="mt-2 text-[#5f524c]">Creata il {formatDate(person.created_at)} · aggiornata il {formatDate(person.updated_at)}</p>
+        <Link prefetch={false} href={`/gestione/altro/storico?persona=${person.id}`} className="mt-2 inline-block text-[#a8583e] underline">
+          Apri storico completo
+        </Link>
+      </details>
       <DeletePersonSection person={{ id: person.id, version: person.version, name: displayName(person) }} />
     </section>
   );

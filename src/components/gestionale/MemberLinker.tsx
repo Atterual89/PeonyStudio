@@ -116,7 +116,7 @@ export function MemberLinker({
       {searchError?<Notice tone="error">{searchError}</Notice>:null}
       {members&&trimmed.length>=2?(
         <>
-          <p className="text-xs text-[#5f524c]">Registrazioni Google: controlla l'identità prima di collegare.</p>
+          <p className="text-xs text-[#5f524c]">Controlla che sia la persona corretta.</p>
           {members.length===0?<p className="text-sm text-[#5f524c]">Nessun socio trovato nei registri con questi termini.</p>:(
             <ul className="overflow-hidden rounded-xl border border-[#211815]/15 bg-white">
               {members.map(member=>(
@@ -128,7 +128,7 @@ export function MemberLinker({
                     <span className="font-semibold">{name(member)}</span>
                     <span className="break-all text-xs text-[#5f524c]">
                       {[
-                        member.source==="modulo"?"Modulo Google":"Quota manuale",
+                        member.source==="modulo"?"Modulo Google":member.source==="libro"?"Libro soci":"Quota manuale",
                         member.email??"Email non presente",
                         member.outcome?memberOutcomeLabel(member.outcome,Boolean(member.in_book)):null,
                       ].filter(Boolean).join(" · ")}

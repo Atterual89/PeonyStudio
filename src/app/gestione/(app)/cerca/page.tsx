@@ -1,14 +1,15 @@
-import { GlobalSearch } from "@/components/gestionale/GlobalSearch";
+import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 
-export default async function CercaPage() {
-  await requireAdmin();
-  return (
-    <section className="max-w-2xl">
-      <h1 className="font-serif text-xl font-medium">Cerca</h1>
-      <div className="mt-4">
-        <GlobalSearch />
-      </div>
-    </section>
-  );
+// Punto di ricerca unico: i vecchi link a /cerca rimangono validi, ma non
+// aprono una seconda schermata con risultati e azioni differenti.
+export default async function CercaPage({
+ searchParams,
+}:{
+ searchParams:Promise<{q?:string|string[]}>,
+}){
+ await requireAdmin();
+ const params=await searchParams;
+ const query=typeof params.q==="string"?params.q.trim().slice(0,100):"";
+ redirect(query?`/gestione/persone?q=${encodeURIComponent(query)}`:"/gestione/persone");
 }

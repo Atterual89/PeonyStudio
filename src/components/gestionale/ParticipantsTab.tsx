@@ -24,7 +24,6 @@ import { MembershipBadge } from "./MembershipBadge";
 import { AssociationDotLegend } from "./AssociationStatusDot";
 import { PresentToggle } from "./PresentToggle";
 import { QuickAdd } from "./QuickAdd";
-import { RefreshMembershipButton } from "./QuotaOk";
 import { Chip, RowMenu, cardClass } from "./ui";
 import { useIsDesktop } from "./useIsDesktop";
 
@@ -186,7 +185,6 @@ export function ParticipantsTab({
       </p>
       <div className="mt-2">
         <AssociationDotLegend/>
-        <RefreshMembershipButton />
       </div>
       <ExactMatches workshopId={workshopId} notLinked={notLinked} />
 
