@@ -41,6 +41,7 @@ describe("precedenza della quota confermata via email",()=>{
  it("il server non blocca il passaggio dalla verifica manuale alla prova email",()=>{
   const src=readFileSync(join(process.cwd(),"src/app/gestione/(app)/quote-email/actions.ts"),"utf8");
   expect(src).toContain('state.paymentMatchMethod!=="manual"');
-  expect(src).toContain('row.source!=="manual_override"');
+  expect(src).toContain('const state=deriveMembershipState(evidence,identity,window)');
+  expect(src).not.toContain('row.source!=="manual_override"');
  });
 });
