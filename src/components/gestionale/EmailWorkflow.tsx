@@ -66,11 +66,12 @@ export function EmailWorkflow({ kind, recipients, workshopId, today, fields, val
   const invalidFields = !fields.title.trim() || !fields.dateLabel.trim() ||
     !fields.location.trim() || !fields.intercom.trim() || !fields.membershipDeadline.trim() ||
     !fields.mapsUrl || !fields.membershipFormUrl;
-  const ticketTailorDescription = Boolean(fields.extraNotes?.startsWith("From Ticket Tailor:"));
-  const detailsIncomplete = (kind==="workshop_details" || kind==="workshop_details_reminder") && (
-    !fields.schedule?.length || (!ticketTailorDescription &&
-      (!fields.program?.length || !fields.ropes?.trim() || !fields.clothing?.trim()))
-  );
+  const isWorkshopInfo = kind==="workshop_details" || kind==="workshop_details_reminder";
+  const ticketTailorDescription = Boolean(fields.ticketTailor?.description || fields.extraNotes?.startsWith("From Ticket Tailor:"));
+  // Do not block sending when TT already supplies the programme and required materials.
+  // It is not correct to require three separately transcribed manual fields.
+  const detailsIncomplete = isWorkshopInfo && !ticketTailorDescription &&
+    (!fields.schedule?.length || (!fields.program?.length && !fields.extraNotes?.trim()));
   const canPrepare = chosen.length>0 && !mixed && !invalidFields && !detailsIncomplete;
   const subject = kind === "membership_request" ? "Association registration – "+fields.title :
     kind === "membership_reminder" ? "Reminder – association registration – "+fields.title :
@@ -191,7 +192,14 @@ export function EmailWorkflow({ kind, recipients, workshopId, today, fields, val
       </div>
       <div className="border-t border-[#211815]/10 pt-3">
         <p className="font-semibold">2. Prepara l'email HTML</p>
-        {invalidFields || detailsIncomplete ? <Notice tone="warning">Completa prima i dettagli del workshop {detailsIncomplete ? "(programma, orari e cosa portare)" : "(dati obbligatori)"} nel riquadro in alto.</Notice> : null}
+        {invalidFields || detailsIncomplete ? <Notice tone="warning">
+          {detailsIncomplete ? "Non risultano dati sufficienti da Ticket Tailor: verifica il collegamento evento oppure integra descrizione e orari nel riquadro in alto." :
+            "Mancano impostazioni generali obbligatorie dell'email: verifica la sezione dettagli."}
+        </Notice> : null}
+        {isWorkshopInfo && ticketTailorDescription ?
+          <p className="mt-2 text-xs text-[#426149]">Programma e indicazioni recuperati dall'evento Ticket Tailor. Controlla l'anteprima prima di inviare.</p> : null}
+        {isWorkshopInfo && ticketTailorDescription && !fields.schedule?.length ?
+          <Notice tone="warning">Ticket Tailor non indica un orario utilizzabile: verifica il programma prima di inviare.</Notice> : null}
         <div className="mt-2 grid gap-2 sm:grid-cols-3">
           <button type="button" disabled={!canPrepare} className={buttonClass.secondary} onClick={()=>void copyText(emails.join(", "),"bcc")}>Copia Ccn ({emails.length})</button>
           <button type="button" disabled={!canPrepare} className={buttonClass.secondary} onClick={()=>void copyText(subject,"subject")}>Copia oggetto</button>
