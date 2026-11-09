@@ -21,6 +21,7 @@ import { BookingDetails } from "./BookingDetails";
 import { DeleteBookingConfirm } from "./Deletion";
 import { ExactMatches } from "./ExactMatches";
 import { MembershipBadge } from "./MembershipBadge";
+import { AssociationDotLegend } from "./AssociationStatusDot";
 import { PresentToggle } from "./PresentToggle";
 import { QuickAdd } from "./QuickAdd";
 import { RefreshMembershipButton } from "./QuotaOk";
@@ -174,6 +175,7 @@ export function ParticipantsTab({
         <span className="text-[#5f524c]">su {summary.persone} {summary.persone === 1 ? "persona" : "persone"}</span>
       </p>
       <div className="mt-2">
+        <AssociationDotLegend/>
         <RefreshMembershipButton />
       </div>
       <ExactMatches workshopId={workshopId} notLinked={notLinked} />
