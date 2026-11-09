@@ -38,7 +38,7 @@ mantiene la prova di iscrizione, ma non il pagamento di una nuova annualità.
 2. Salvataggio ed esito devono restare visibili nella stessa schermata; un errore non cancella la ricerca già effettuata.
 3. Collegare una persona non conferma una quota; spuntare Quota OK non crea un modulo.
 4. Un omonimo, email condivisa o un profilo già collegato richiede verifica e confronto, non unione automatica.
-5. L'admin non deve vedere dati di fatturazione o funzioni economiche riservate all'organizzatrice; l'organizzatrice non può accedere ai registri associativi.
+5. I dati fiscali sono visibili solo nelle schede autorizzate. L'organizzatrice non può accedere ai registri associativi, mentre l'admin non può svolgere le operazioni economiche riservate al suo ruolo.
 6. Un aggiornamento Google parziale non deve cancellare registrazioni precedenti.
 7. Liste di partecipanti: ordinare per acquisto Ticket Tailor, oppure per data/ora di creazione manuale. Un secondo criterio è applicato solo in caso di parità.
 
