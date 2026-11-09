@@ -103,7 +103,7 @@ function PersonRow({ person, eventId }: { person: PeonyAttendee; eventId: string
                 {person.holderMatch.email ? ` · ${person.holderMatch.email}` : ""}
               </p>
             ):null}
-            {person.associationRequired?<PeonyPartnerFinder role="holder" eventId={eventId}
+            {(person.associationRequired||person.holderMatch)?<PeonyPartnerFinder role="holder" eventId={eventId}
               ticketId={person.ticketId} hasPartner={Boolean(person.holderMatch)} />:null}
           </div>
           {person.partnerRequired?(
