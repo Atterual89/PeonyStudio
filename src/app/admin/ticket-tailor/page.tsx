@@ -1025,7 +1025,7 @@ function PartnerExpandedRow({
           {lookupCompleted &&
           !lookupFailed &&
           candidates.length > 0 &&
-          candidates.every((candidate) => candidate.membership_status !== "valid") ? (
+          candidates.every((candidate) => candidate.membership_status !== "valid" && candidate.membership_match_method !== "payment_email") ? (
             <div className="mt-3 rounded-[8px] border border-[#b69755]/25 bg-[#b69755]/8 p-3">
               <p className="text-xs leading-5 text-[#5f524c]">
                 Il socio è stato trovato ma la quota non risulta in regola. Se hai verificato
