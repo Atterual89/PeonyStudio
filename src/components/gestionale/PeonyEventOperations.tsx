@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import type { PeonyAttendee, PeonyMembership } from "@/lib/gestionale/server/peony-events";
 import { PeonyPartnerFinder } from "@/components/gestionale/PeonyPartnerFinder";
+import { AssociationStatusDot, type AssociationDotStatus } from "@/components/gestionale/AssociationStatusDot";
 import type { PeonyEmailSend } from "@/lib/gestionale/server/peony-email";
 import {
   PEONY_EMAIL_KINDS, buildPeonyEmailHtml,
@@ -26,15 +27,11 @@ function formattedSync(value: string | null): string {
   }).format(date);
 }
 
-function MembershipBadge({ info }: { info: PeonyMembership | null }) {
-  if (!info) return <span className="text-xs font-semibold text-[#96641b]">Da verificare</span>;
-  const label = info.status === "valid" ? "Verificata" :
-    info.status === "payment_missing" ? "Quota da verificare" : "Modulo assente";
-  return (
-    <span className={`text-xs font-semibold ${info.status === "valid" ? "text-[#326941]" : "text-[#9b4b1e]"}`}>
-      {label}
-    </span>
-  );
+function peonyStatus(info:PeonyMembership|null,required:boolean):AssociationDotStatus{
+  if(!required)return "not_required";
+  if(!info)return "unknown";
+  return info.status==="valid"?"verified":
+    info.status==="payment_missing"?"payment_missing":"missing_form";
 }
 
 
@@ -70,33 +67,28 @@ function MembershipFacts({ info, ownerLabel }: { info: PeonyMembership | null; o
 function PersonRow({ person, eventId }: { person: PeonyAttendee; eventId: string }) {
   const [expanded,setExpanded]=useState(false);
   const ticketType=person.ticketType?.trim();
-  const roleLabel=person.ticketRole==="observer"?"Observer":person.ticketRole==="practitioner"?"Praticante":"Tipo da identificare";
+  const roleLabel=person.freeEvent?"Ingresso libero":person.ticketRole==="observer"?"Observer":person.ticketRole==="practitioner"?"Praticante":"Tipo da identificare";
   const partnerLabel=person.partner?.name||person.partner?.email||"Partner da indicare";
   return (
     <li className="rounded-xl border border-[#211815]/10 bg-white/80 px-3 py-2.5">
       <button type="button" aria-expanded={expanded} onClick={()=>setExpanded(v=>!v)}
         className="flex min-h-10 w-full items-center justify-between gap-3 text-left">
         <span className="min-w-0 flex-1 space-y-1">
-          <span className="block break-words text-sm font-semibold">
-            {person.name}
-            {person.partnerRequired ? <span className="font-normal"> + {partnerLabel}</span>:null}
+          <span className="flex items-center gap-2 text-sm font-semibold">
+            <AssociationStatusDot status={peonyStatus(person.association,person.associationRequired)}/>
+            <span className="min-w-0 break-words">{person.name}</span>
+            {person.partnerRequired && person.partner ? (
+              <span className="inline-flex min-w-0 items-center gap-1.5 font-normal">
+                + <AssociationStatusDot status={peonyStatus(person.partner.membership,true)}/>
+                <span className="break-words">{partnerLabel}</span>
+              </span>
+            ) : person.partnerRequired ? <span className="font-normal"> + {partnerLabel}</span> : null}
           </span>
           <span className="block text-xs text-[#5f524c]">
-            <strong className="font-semibold">{roleLabel}</strong>
-            {ticketType?` · ${ticketType}`:null}
+            {roleLabel}{ticketType && !person.freeEvent ? ` · ${ticketType}` : null}
           </span>
-          <span className="block text-xs text-[#5f524c]">
-            {person.ticketRole==="observer" ? "Tessera associativa non richiesta"
-              :person.ticketRole==="unknown" ? "Tipo biglietto da sincronizzare"
-              :<><strong className="font-medium">Associazione:</strong>{" "}<MembershipBadge info={person.association}/></>}
-          </span>
-          {person.partnerRequired?(
-            <span className="block text-xs text-[#5f524c]">
-              <strong className="font-medium">Partner:</strong>{" "}
-              {person.partner
-                ? <MembershipBadge info={person.partner.membership} />
-                : <span className="font-semibold text-[#9b4b1e]">Da indicare</span>}
-            </span>
+          {person.partnerRequired&&!person.partner?(
+            <span className="block text-xs text-[#9b4b1e]">Partner da indicare</span>
           ):null}
         </span>
         <span aria-hidden="true" className="shrink-0 text-lg text-[#a8583e]">{expanded?"−":"+"}</span>
@@ -106,7 +98,9 @@ function PersonRow({ person, eventId }: { person: PeonyAttendee; eventId: string
           <div>
             <p className="text-xs font-semibold text-[#5f524c]">Intestatario · {person.name}</p>
             {person.email?<a href={"mailto:"+person.email} className="block break-all text-sm text-[#a8583e] underline">{person.email}</a>:null}
-            {person.associationRequired?<MembershipFacts info={person.association} ownerLabel={person.name}/>:null}
+            {person.associationRequired
+              ? <MembershipFacts info={person.association} ownerLabel={person.name}/>
+              : <p className="text-xs text-[#5f524c]">Tessera associativa non richiesta per questo evento.</p>}
             {person.holderMatch ? (
               <p className="mt-1 break-words text-xs text-[#5f524c]">
                 Associato a: {person.holderMatch.name}
