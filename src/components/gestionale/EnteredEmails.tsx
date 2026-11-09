@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 
 import { updateEnteredParticipantAction } from "@/app/gestione/(app)/w/registration-actions";
 import { EMAIL_PATTERN, findEmail } from "@/lib/gestionale/parse-roster";
+import { suggestCoupleSplit } from "@/lib/gestionale/couple-input";
 import { OrganizerPersonMatcher, OrganizerCompoundSplitter } from "./OrganizerPersonMatcher";
 import type { Registration } from "@/lib/gestionale/types";
 
@@ -99,7 +100,12 @@ function ParticipantLine({entry,suggestedEmail}:{
       </div>
     </div>}
     {message&&<Notice tone={message.tone}>{message.text}</Notice>}
-    {!editing&&<OrganizerPersonMatcher participantId={entry.participantId} enteredAs={entry.enteredAs??""}/>}
+    {!editing&&!(entry.autoCreated&&entry.matchStatus==="da_abbinare"&&
+      suggestCoupleSplit(entry.enteredAs??""))&&
+      <OrganizerPersonMatcher participantId={entry.participantId} enteredAs={entry.enteredAs??""}/>}
+    {!editing&&entry.autoCreated&&entry.matchStatus==="da_abbinare"&&
+      suggestCoupleSplit(entry.enteredAs??"")&&
+      <p className="text-xs text-[#7a5212]">Prima dividi la coppia; poi abbina le due persone separatamente.</p>}
   </section>;
 }
 
