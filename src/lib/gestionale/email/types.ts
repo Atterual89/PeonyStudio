@@ -1,3 +1,5 @@
+import type { TicketTailorWorkshopSource } from "./ticket-tailor-workshop";
+
 export type WorkshopEmailData = {
   title: string;
   dateLabel: string;
@@ -14,6 +16,8 @@ export type WorkshopEmailData = {
   ropes?: string;
   clothing?: string;
   partnerPolicy?: string;
+  /** Synced TT event details: always read-only, never saved as an editor override. */
+  ticketTailor?: TicketTailorWorkshopSource;
   schedule?: string[];
   arrival?: string;
   extraNotes?: string;
