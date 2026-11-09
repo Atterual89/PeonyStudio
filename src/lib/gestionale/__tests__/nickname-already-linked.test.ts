@@ -22,6 +22,12 @@ describe("nickname scritto da Ale diverso dal nome anagrafico",()=>{
     expect(actions).toContain('.is("merged_into",null).limit(3)');
     expect(actions).toContain("if((data??[]).length!==1)");
   });
+  it("una quota manuale già associata a un profilo nominale mostra la scheda esistente",()=>{
+    expect(actions).toContain('if(owners.length===0 && key.kind==="manual" && !member.email)');
+    expect(actions).toContain('.eq("membership_name_key",nameKey)');
+    expect(actions).toContain("owners=nominalOwners??[]");
+    expect(actions).toContain('if(owners.length!==1)');
+  });
   it("non considera il nickname una condizione di identità",()=>{
     expect(picker).toContain("Il nickname non deve coincidere con il nome ufficiale");
     expect(review).toContain("I nomi usati per l'iscrizione possono essere diversi");

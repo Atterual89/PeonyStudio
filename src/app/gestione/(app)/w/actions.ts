@@ -5,6 +5,7 @@ import { refreshGestione } from "@/lib/gestionale/server/refresh";
 import { uniqueExactMatches, type ExactMatch } from "@/lib/gestionale/exact-matches";
 import { displayName, fullName, normalizeText } from "@/lib/gestionale/format";
 import { compatibleFormName } from "@/lib/gestionale/member-lookup";
+import { normalizeMembershipNameKey } from "@/lib/association/membership-state";
 import { ADMIN_BOOKING_STATUSES } from "@/lib/gestionale/labels";
 import { personFieldsFromFreeText, searchPeople } from "@/lib/gestionale/people";
 import { parsePersonChoice, type PersonChoice } from "@/lib/gestionale/person-choice";
@@ -259,14 +260,31 @@ export async function findLinkedMemberProfileAction(input:{
   const column=key.kind==="manual"?"association_member_id"
     :key.kind==="email"?"membership_email":"membership_name_key";
   const value=key.kind==="manual"?key.id:key.kind==="email"?key.email:key.nameKey;
-  const {data,error}=await getGestionaleDb().from("gw_people")
+  const db=getGestionaleDb();
+  const {data,error}=await db.from("gw_people")
     .select("id,first_name,last_name,nickname,email")
     .eq(column,value).is("deleted_at",null).is("merged_into",null).limit(3);
   if(error)return {ok:false,error:"Impossibile verificare il collegamento esistente."};
-  if((data??[]).length!==1)return {ok:false,error:
+  let owners=data??[];
+  // La ricerca raggruppa quota manuale e libro ufficiale della stessa persona.
+  // Può quindi offrire la chiave m:<quota> mentre la scheda esistente è già
+  // collegata in modo nominale (n:<nome cognome>). Recupera quella scheda,
+  // senza unire automaticamente persone o riscrivere collegamenti.
+  if(owners.length===0 && key.kind==="manual" && !member.email){
+    const nameKey=normalizeMembershipNameKey(member.first_name,member.last_name);
+    if(nameKey){
+      const {data:nominalOwners,error:nominalError}=await db.from("gw_people")
+        .select("id,first_name,last_name,nickname,email")
+        .eq("membership_name_key",nameKey)
+        .is("deleted_at",null).is("merged_into",null).limit(3);
+      if(nominalError)return {ok:false,error:"Impossibile verificare il collegamento nominale."};
+      owners=nominalOwners??[];
+    }
+  }
+  if(owners.length!==1)return {ok:false,error:
     "Il socio risulta collegato, ma non a una sola anagrafica identificabile. Controlla i collegamenti prima di unire le schede."
   };
-  const owner=data![0];
+  const owner=owners[0];
   const name=[owner.first_name,owner.last_name].filter(Boolean).join(" ").trim()
     ||owner.nickname||owner.email||"Persona esistente";
   return {ok:true,data:{id:owner.id,name,sameProfile:owner.id===input.currentPersonId}};
