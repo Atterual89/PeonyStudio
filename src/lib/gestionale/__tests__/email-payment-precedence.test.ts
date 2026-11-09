@@ -11,7 +11,8 @@ const evidence=(notes_admin:string|null):MembershipEvidenceRow=>({
 describe("precedenza della quota confermata via email",()=>{
  it("sceglie la prova email anche quando compare dopo la spunta manuale",()=>{
   const rows=[evidence("Validazione manuale da admin"),
-   evidence("Quota confermata da email (riferimento 123)")];
+   evidence("Quota confermata da email (riferimento 123)"),
+   {...evidence(null),source:"google_sheet"}];
   const state=deriveMembershipState(rows,{email:"elena@example.test"},{
    paymentsFrom:"2027-01-01",paymentsUntil:"2027-12-31",
   });
