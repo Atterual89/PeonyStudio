@@ -14,7 +14,7 @@ import {
   PEONY_EMAIL_KINDS, buildPeonyEmailHtml, defaultPeonyEmailTemplate, resolvePeonyTemplateText,
   type PeonyEmailKind, type PeonyEmailTemplate,
 } from "@/lib/gestionale/peony-email-html";
-import { isWorkshopEvent, peonyEmailLanguage, type PeonyEmailAudience, type PeonyEmailEventContext, type PeonyEmailLanguage } from "@/lib/gestionale/peony-email-context";
+import { formatPeonyEmailDate, isWorkshopEvent, peonyEmailLanguage, type PeonyEmailAudience, type PeonyEmailEventContext, type PeonyEmailLanguage } from "@/lib/gestionale/peony-email-context";
 import { PEONY_DETAIL_FIELDS, type PeonyEmailDetailFields } from "@/lib/gestionale/peony-email-details";
 import { markPeonyEmailSent, savePeonyEmailSettings, savePeonyEmailTemplate, setPeonyQuotaOkAction } from "@/app/gestione/(app)/peony/actions";
 
@@ -197,6 +197,7 @@ export function PeonyEventOperations({
   const resolvedLanguage:PeonyEmailLanguage=languageChoice==="auto"?
     peonyEmailLanguage(eventTitle,emailContext):languageChoice;
   const isWorkshop=isWorkshopEvent(eventTitle,emailContext);
+  const emailDateLabel=formatPeonyEmailDate(emailContext,dateLabel,resolvedLanguage);
   const [checked, setChecked] = useState<string[]>(() => defaultRecipients("membership", attendees, "practitioner", sends));
   const [busy, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
@@ -207,7 +208,7 @@ export function PeonyEventOperations({
   const [confirmingSend, setConfirmingSend] = useState(false);
 
   const template = templates[kind];
-  const baseSubject = resolvePeonyTemplateText(template.subject,eventTitle,dateLabel);
+  const baseSubject = resolvePeonyTemplateText(template.subject,eventTitle,emailDateLabel);
   const audienceSubject = kind === "details" && audience === "observer" ? baseSubject + " | Observer" : baseSubject;
   const emailSubject = sendMode === "reminder" ?
     (resolvedLanguage==="en" ? "Reminder | " : "Sollecito | ") + audienceSubject : audienceSubject;
@@ -216,16 +217,16 @@ export function PeonyEventOperations({
       "This is a reminder regarding the information requested for your booking. Please reply if you have already completed the necessary steps.\n\n" :
       "Questo è un promemoria relativo alla tua iscrizione. Se hai già completato i passaggi richiesti, rispondi a questa email per una verifica.\n\n") : "";
   const observerDefault = kind==="details" && audience==="observer" &&
-    template.body===defaultPeonyEmailTemplate("details",eventTitle,dateLabel,resolvedLanguage).body;
+    template.body===defaultPeonyEmailTemplate("details",eventTitle,emailDateLabel,resolvedLanguage).body;
   const intro=observerDefault ?
     (resolvedLanguage==="en"?
       "Dear,\n\nYou booked an observer ticket for {{event_title}} ({{event_date}}). Below are the practical details for your visit.":
       "Ciao!\n\nRicevi questa email perché hai prenotato un posto come observer per {{event_title}} ({{event_date}}). Qui sotto trovi le informazioni utili per la serata.") :
     template.body;
   const html = useMemo(() => buildPeonyEmailHtml({
-    kind, eventTitle, dateLabel, template: { ...template, subject: emailSubject, body: reminderIntro+intro },
+    kind, eventTitle, dateLabel:emailDateLabel, template: { ...template, subject: emailSubject, body: reminderIntro+intro },
     context: emailContext, audience,language:resolvedLanguage,detailFields,
-  }), [kind, eventTitle, dateLabel, template, emailContext, audience, emailSubject, reminderIntro, intro, resolvedLanguage,detailFields]);
+  }), [kind, eventTitle, emailDateLabel, template, emailContext, audience, emailSubject, reminderIntro, intro, resolvedLanguage,detailFields]);
   const sendCounts = useMemo(() => {
     const counts = new Map<string,number>();
     for (const record of sends.filter(send=>send.kind===kind))
@@ -311,9 +312,9 @@ export function PeonyEventOperations({
     setTemplates(prev=>{
       const updated={...prev};
       for(const currentKind of PEONY_EMAIL_KINDS.map(item=>item.id)){
-        const oldDefault=defaultPeonyEmailTemplate(currentKind,eventTitle,dateLabel,old);
+        const oldDefault=defaultPeonyEmailTemplate(currentKind,eventTitle,emailDateLabel,old);
         if(prev[currentKind].subject===oldDefault.subject && prev[currentKind].body===oldDefault.body)
-          updated[currentKind]=defaultPeonyEmailTemplate(currentKind,eventTitle,dateLabel,nextLanguage);
+          updated[currentKind]=defaultPeonyEmailTemplate(currentKind,eventTitle,emailDateLabel,nextLanguage);
       }
       return updated;
     });
@@ -481,7 +482,7 @@ export function PeonyEventOperations({
             {template.body.includes("[Inserisci qui gli orari effettivi") ? <p className="mt-2 text-xs text-[#9b4b1e]">Questo testo contiene un segnaposto del vecchio modello. Rimuovilo oppure ripristina il modello base.</p> : null}
             <div className="mt-3 flex flex-wrap gap-2">
               <button type="button" className="h-10 rounded-xl border border-[#211815]/20 px-3 text-sm" onClick={() => {
-                const regenerated=defaultPeonyEmailTemplate(kind,eventTitle,dateLabel,templateLanguage);
+                const regenerated=defaultPeonyEmailTemplate(kind,eventTitle,emailDateLabel,templateLanguage);
                 setTemplates(prev => ({...prev,[kind]: regenerated}));
               }}>Ripristina base</button>
               <button type="button" className={button} disabled={busy || !template.subject.trim()}
