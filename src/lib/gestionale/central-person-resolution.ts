@@ -6,8 +6,8 @@ export type CentralPerson = {
   first_name:string|null;last_name:string|null;nickname:string|null;email:string|null;
   association_member_id?:string|null;membership_email?:string|null;membership_name_key?:string|null;
 };
-export type MemberProof={id:string;first_name:string|null;last_name:string|null;email:string|null};
-export type ResolvedPerson={personId:string;reason:"explicit"|"confirmed_member"|"ticket_identity"};
+export type MemberProof={id:string;first_name:string|null;last_name:string|null;email:string|null;source?:string|null;membership_status?:string|null};
+export type ResolvedPerson={personId:string;reason:"explicit"|"confirmed_member"|"confirmed_ticket_member"|"ticket_identity"};
 
 const sameEmail=(a:string|null|undefined,b:string|null|undefined)=>{
   const first=normalizeMembershipEmail(a),second=normalizeMembershipEmail(b);
@@ -51,6 +51,29 @@ export function resolveCentralPerson(input:{
       return Boolean(key&&person.membership_name_key===key);
     });
     return matched.length===1?{personId:matched[0].id,reason:"confirmed_member"}:null;
+  }
+  // Se Ticket Tailor riporta il nome completo del socio ufficiale, la sua
+  // prova di identita' e il collegamento KL gia' confermato possono risolvere
+  // la stessa gw_people anche quando la scheda non ha ancora un'email.
+  // E' una risoluzione in lettura: non scrive alcun abbinamento automatico.
+  // Non basta il nome: servono email del biglietto, una sola tessera ufficiale,
+  // nessun indirizzo incompatibile e un solo profilo gia' legato a quella tessera.
+  if(ticketEmail && ticketName){
+    const ticketKey=normalizedName(ticketName,null);
+    const official=memberEvidence.filter(e=>e.source==="official_members_book" &&
+      e.membership_status==="verified" &&
+      normalizedName(e.first_name,e.last_name)===ticketKey);
+    if(ticketKey && official.length===1 &&
+      (!official[0].email || sameEmail(official[0].email,ticketEmail))){
+      const record=official[0];
+      const matches=people.filter(person=>
+        person.association_member_id===record.id ||
+        person.membership_name_key===ticketKey ||
+        Boolean(record.email && person.membership_email &&
+          sameEmail(person.membership_email,record.email)));
+      if(matches.length===1)return {personId:matches[0].id,reason:"confirmed_ticket_member"};
+      if(matches.length>1)return null;
+    }
   }
   // Email univoca E stesso nome ufficiale o nickname esatto: non associare un
   // biglietto acquistato da terzi solo perche' condivide l'email del compratore.
