@@ -6,10 +6,10 @@ import { requireAdmin } from "@/lib/gestionale/server/auth";
 export default async function CercaPage({
  searchParams,
 }:{
- searchParams?:Promise<{q?:string|string[]}>,
-}={}){
+ searchParams:Promise<{q?:string|string[]}>,
+}){
  await requireAdmin();
- const params=searchParams?await searchParams:{};
+ const params=await searchParams;
  const query=typeof params.q==="string"?params.q.trim().slice(0,100):"";
  redirect(query?`/gestione/persone?q=${encodeURIComponent(query)}`:"/gestione/persone");
 }

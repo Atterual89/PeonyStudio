@@ -238,7 +238,7 @@ describe("organizzatrice: pagine riservate → 404", () => {
     const unisci = (await import("@/app/gestione/(app)/p/[id]/unisci/[otherId]/page")).default;
 
     await rejectsNotFound(persone({ searchParams: Promise.resolve({}) }));
-    await rejectsNotFound(cerca());
+    await rejectsNotFound(cerca({ searchParams: Promise.resolve({}) }));
     await rejectsNotFound(scheda({ params: Promise.resolve({ id: UUID }) }));
     await rejectsNotFound(unisci({ params: Promise.resolve({ id: UUID, otherId: UUID }) }));
   });
