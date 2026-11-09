@@ -12,7 +12,7 @@ import { WORKSHOP_EMAIL_KEYS, GLOBAL_EMAIL_KEYS, type WorkshopEmailData } from "
 import type { ActionResult } from "@/lib/gestionale/types";
 
 const INVALID: ActionResult<never> = { ok: false, error: "Dati non validi. Ricarica la pagina e riprova." };
-const TEXT_FIELDS = ["title","dateLabel","location","intercom","mapsUrl","membershipFormUrl","membershipDeadline","intro","ropes","clothing","arrival","extraNotes","signature","emergencyContact","associationName","associationPresident","associationVicePresident","transferInstructions","lunchMapUrl"] as const;
+const TEXT_FIELDS = ["title","dateLabel","location","intercom","mapsUrl","membershipFormUrl","membershipDeadline","intro","ropes","clothing","partnerPolicy","arrival","extraNotes","signature","emergencyContact","associationName","associationPresident","associationVicePresident","transferInstructions","lunchMapUrl"] as const;
 const ARRAY_FIELDS = ["program","prerequisitesRiggers","prerequisitesModels","schedule","accessInfo","lunchInfo","venueRules","photoPolicy"] as const;
 const VALID_TYPES = ["partner","partner_reminder","workshop_details"] as const;
 
