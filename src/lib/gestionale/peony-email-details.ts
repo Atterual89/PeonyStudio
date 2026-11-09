@@ -128,7 +128,7 @@ function venueRules(en:boolean, jam:boolean):string {
     "L'acqua potabile è disponibile in cucina.",
   ];
   return emailSection(en?"Venue Rules & Etiquette":"Regole dello spazio & etichetta",
-    list(rules)+(jam?'<p style="margin-top:16px;">'+emailButton(en?"Read Rope Jam guidelines":"Leggi il vademecum Rope Jam",vademecum)+"</p>":""));
+    list(rules)+(jam?'<div style="margin-top:16px;">'+emailButton(en?"Read Rope Jam guidelines":"Leggi il vademecum Rope Jam",vademecum)+"</div>":""));
 }
 function lunchFacilities(en:boolean):string{
   const body=en?[
@@ -248,7 +248,7 @@ function jamSections(input:{
     line(en?"Last Entry:":"Ultimo ingresso:",fields.lastEntry)+
     line(en?"End:":"Fine evento:",end)+
     (fields.extraNotes?.trim()?paragraphs(fields.extraNotes):"")));
-  parts.push(place(en),...access(en,false),venueRules(en,true));
+  parts.push(place(en),...access(en,false),venueRules(en,isRopeJamEvent(input.eventTitle)));
   if(!exempt)parts.push(emailBox(en?"Association":"Associazione",
     paragraphs(en?
       "To practise at Peony Studio you must be a member of UR Expression APS. If you are already a member, no action is required. Otherwise, register at least 48 hours before the event. The membership fee is €15 per person.":
