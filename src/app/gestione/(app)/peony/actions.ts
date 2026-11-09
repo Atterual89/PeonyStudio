@@ -56,15 +56,18 @@ export async function setPeonyQuotaOkAction(input:{
   if(linked.error)return {ok:false,error:"Impossibile verificare l'abbinamento."};
 
   if(!isPartner && linked.data?.person_id)personId=linked.data.person_id;
-  if(personId){
-    const saved=await getPerson(personId);
-    if(!saved||saved.merged_into)return {ok:false,error:"Anagrafica non disponibile."};
-    identity=await membershipIdentityOf(saved);
-  }else if(!isPartner && linked.data?.member_row_id){
+  // A linked official member is more reliable than a person guessed merely
+  // from the buyer's Ticket Tailor email.
+  if(!isPartner && linked.data?.member_row_id && !linked.data.person_id){
+    personId=null;
     const row=await db.from("association_members")
       .select("email,first_name,last_name").eq("id",linked.data.member_row_id).maybeSingle();
     if(row.error||!row.data)return {ok:false,error:"Socio collegato non disponibile."};
     identity={email:row.data.email,firstName:row.data.first_name,lastName:row.data.last_name};
+  }else if(personId){
+    const saved=await getPerson(personId);
+    if(!saved||saved.merged_into)return {ok:false,error:"Anagrafica non disponibile."};
+    identity=await membershipIdentityOf(saved);
   }else{
     const info=isPartner?attendee.partner:attendee.holderMatch;
     const email=info?.email??(isPartner?null:attendee.email);
