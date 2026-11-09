@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 import type { PeonyAttendee, PeonyMembership } from "@/lib/gestionale/server/peony-events";
 import { PeonyPartnerFinder } from "@/components/gestionale/PeonyPartnerFinder";
-import { AssociationStatusDot, type AssociationDotStatus } from "@/components/gestionale/AssociationStatusDot";
+import { AssociationStatusDot, AssociationDotLegend, type AssociationDotStatus } from "@/components/gestionale/AssociationStatusDot";
 import type { PeonyEmailSend } from "@/lib/gestionale/server/peony-email";
 import {
   PEONY_EMAIL_KINDS, buildPeonyEmailHtml,
@@ -103,8 +103,8 @@ function PersonRow({ person, eventId }: { person: PeonyAttendee; eventId: string
                 {person.holderMatch.email ? ` · ${person.holderMatch.email}` : ""}
               </p>
             ):null}
-            <PeonyPartnerFinder role="holder" eventId={eventId}
-              ticketId={person.ticketId} hasPartner={Boolean(person.holderMatch)} />
+            {person.associationRequired?<PeonyPartnerFinder role="holder" eventId={eventId}
+              ticketId={person.ticketId} hasPartner={Boolean(person.holderMatch)} />:null}
           </div>
           {person.partnerRequired?(
             <div className="space-y-1 border-t border-[#211815]/10 pt-2">
@@ -190,8 +190,9 @@ export function PeonyEventOperations({
     }
     return items;
   }, [kind, sends]);
+  const freeOnly=attendees.length>0&&attendees.every(person=>person.freeEvent);
   const visible = attendees.filter((person) =>
-    (ticketFilter==="all"||person.ticketRole===ticketFilter) &&
+    (freeOnly||ticketFilter==="all"||person.ticketRole===ticketFilter) &&
     [person.name, person.email, person.ticketType, person.orderId, person.partner?.name, person.partner?.email]
       .some((value) => value?.toLowerCase().includes(search.trim().toLowerCase())),
   );
@@ -248,8 +249,9 @@ export function PeonyEventOperations({
         <section className="space-y-3">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             <span><strong>{attendees.length}</strong> iscritti</span>
-            <span>{practitioners} praticanti · {observers} observer</span>
-            {unknownTypes>0?<span className="font-semibold text-[#9b4b1e]">{unknownTypes} tipi da identificare</span>:null}
+            {freeOnly?<span>Tessera non richiesta · ingresso libero</span>
+              :<span>{practitioners} praticanti · {observers} observer</span>}
+            {!freeOnly&&unknownTypes>0?<span className="font-semibold text-[#9b4b1e]">{unknownTypes} tipi da identificare</span>:null}
             {formToCheck > 0 ? <span className="font-semibold text-[#9b4b1e]">{formToCheck} associazioni da verificare</span> : null}
             {partnerToCheck > 0 ? <span className="font-semibold text-[#9b4b1e]">{partnerToCheck} partner da verificare</span> : null}
           </div>
@@ -264,7 +266,8 @@ export function PeonyEventOperations({
             <p>Associazione: {formattedSync(associationLastSyncedAt)}</p>
             <p>Le verifiche associative derivano dai dati salvati; controlla TeamArtist per le conferme recenti.</p>
           </details>
-          <div className="flex flex-wrap items-center gap-2 text-sm">
+          <AssociationDotLegend/>
+          {!freeOnly&&<div className="flex flex-wrap items-center gap-2 text-sm">
             <label htmlFor="peony-ticket-role-filter" className="text-[#5f524c]">Biglietti</label>
             <select id="peony-ticket-role-filter" value={ticketFilter} onChange={event=>setTicketFilter(event.target.value as TicketFilter)}
               className="min-h-10 flex-1 rounded-xl border border-[#211815]/15 bg-white px-3">
@@ -273,7 +276,7 @@ export function PeonyEventOperations({
               <option value="observer">Observer ({observers})</option>
               {unknownTypes>0?<option value="unknown">Tipo mancante ({unknownTypes})</option>:null}
             </select>
-          </div>
+          </div>}
           <input type="search" value={search} onChange={(event) => setSearch(event.target.value)}
             placeholder="Cerca nome o partner" aria-label="Cerca partecipanti e partner"
             className="h-10 w-full rounded-xl border border-[#211815]/15 bg-white px-3 text-sm" />
