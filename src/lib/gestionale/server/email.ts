@@ -3,6 +3,7 @@ import "server-only";
 import { getGestionaleDb } from "./db";
 import type { WorkshopEmailData } from "../email/types";
 import type { WorkshopView } from "../types";
+import { loadLinkedWorkshopEmailFields } from "./events";
 
 export type EmailSendRow = {
   id: string;
@@ -34,30 +35,8 @@ export async function loadEmailState(workshop: WorkshopView): Promise<{
   if (texts.error) fail(texts.error);
   if (settings.error) fail(settings.error);
   if (sends.error) fail(sends.error);
-  const ticketTailorFields: Partial<WorkshopEmailData> = {};
-  // LuXuria participants are managed by Ale, but a linked Ticket Tailor event
-  // remains the source of public workshop description and start/end times.
-  // Never auto-match workshop names: use only the explicit event_id link.
-  if (workshop.event_id) {
-    const linked = await db.from("events")
-      .select("source,raw_payload").eq("id",workshop.event_id).maybeSingle();
-    if (linked.error) fail(linked.error);
-    const raw=linked.data?.source==="ticket_tailor" ? linked.data.raw_payload : null;
-    const normalized=raw && typeof raw==="object" && !Array.isArray(raw) &&
-      "normalized" in raw && raw.normalized && typeof raw.normalized==="object" &&
-      !Array.isArray(raw.normalized) ? raw.normalized as Record<string,unknown> : null;
-    if (normalized) {
-      const start=typeof normalized.startTime==="string" && /^\d{2}:\d{2}$/.test(normalized.startTime) &&
-        normalized.startTime!=="00:00" ? normalized.startTime : null;
-      const end=typeof normalized.endTime==="string" && /^\d{2}:\d{2}$/.test(normalized.endTime) &&
-        normalized.endTime!=="00:00" ? normalized.endTime : null;
-      if (start) ticketTailorFields.schedule=[
-        "Ticket Tailor — event start: " + start + (end ? "; event end: " + end : ""),
-      ];
-      if (typeof normalized.description==="string" && normalized.description.trim())
-        ticketTailorFields.extraNotes = "From Ticket Tailor: " + normalized.description.trim().slice(0,5500);
-    }
-  }
+  const ticketTailorFields: Partial<WorkshopEmailData> = workshop.event_id ?
+    await loadLinkedWorkshopEmailFields(workshop.event_id) : {};
   return {
     workshopFields: { version: texts.data?.version ?? 0, fields: (texts.data?.fields ?? {}) as Partial<WorkshopEmailData> },
     defaults: { version: settings.data?.version ?? 0, fields: (settings.data?.fields ?? {}) as Partial<WorkshopEmailData> },
