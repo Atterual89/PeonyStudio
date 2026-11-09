@@ -86,6 +86,20 @@ function dailyTimeFromDescription(html:string,normalizedText:string):string|null
   const value=match?.[1] ? ticketTailorHtmlText(match[1]).trim() : null;
   return value && /[0-2]?\d:[0-5]\d/.test(value) ? value : null;
 }
+function emailDateLabel(start:string,end:string):string {
+  const format=(date:string)=>new Intl.DateTimeFormat("en-GB",{
+    day:"numeric",month:"long",year:"numeric",timeZone:"UTC",
+  }).format(new Date(date+"T12:00:00Z"));
+  if(start===end)return format(start);
+  // Two consecutive days in the same month, as in the reference emails.
+  if(start.slice(0,7)===end.slice(0,7))
+    return Number(start.slice(8,10))+"–"+format(end);
+  return format(start)+" – "+format(end);
+}
+function cleanTitle(value:string):string{
+  return value.replace(/^\s*SOLD\s*-?\s*OUT\s*[-–:]\s*/i,"")
+    .replace(/\s*[-–]\s*workshop\s*$/i,"").trim();
+}
 function safeUrl(input:unknown):string|null {
   const value=str(input);
   if(!value)return null;
@@ -141,6 +155,7 @@ export function ticketTailorWorkshopFields(input:{
   if(finalDate && end && firstDate!==finalDate)
     schedule.push("Last day ("+shortDate(finalDate)+"): event ends at "+end);
   else if(end)schedule.push("Event end (Ticket Tailor): "+end);
+  const eventName=str(normalized?.title) ?? str(original?.name);
   const source:TicketTailorWorkshopSource={
     description,
     introductoryText: parse.intro,
@@ -149,6 +164,8 @@ export function ticketTailorWorkshopFields(input:{
   };
   // The source is read-only metadata; never persist it as a local workshop override.
   return {
+    ...(eventName ? {title:cleanTitle(eventName)}:{}),
+    ...(firstDate ? {dateLabel:emailDateLabel(firstDate,finalDate??firstDate)}:{}),
     ...(schedule.length ? {schedule}:{}),
     ticketTailor: source,
   };
