@@ -12,11 +12,9 @@ export function emailDateLabel(start: string, end: string | null): string {
   return end && end !== start ? englishDate(start) + " – " + englishDate(end) : englishDate(start);
 }
 
-export function emailDeadline(start: string): string {
-  // Events start at local 10:00 by default. Editor allows manual correction.
-  const date = new Date(start + "T12:00:00Z");
-  date.setUTCDate(date.getUTCDate() - 2);
-  return englishDate(date.toISOString().slice(0, 10)) + ", 10:00";
+export function emailDeadline(_start: string): string {
+  // Do not invent a local start hour: Ticket Tailor may have a different time.
+  return "at least 48 hours before the workshop starts";
 }
 
 export function workshopEmailDefaults(workshop: Pick<WorkshopView, "displayName" | "startsOn" | "endsOn">): WorkshopEmailData {
