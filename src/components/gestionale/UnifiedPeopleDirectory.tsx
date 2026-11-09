@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { normalizeText } from "@/lib/gestionale/format";
 import type { UnifiedContact } from "@/lib/gestionale/unified-directory";
 import { MemberQuickLink } from "./MemberQuickLink";
-import { AssociationStatusDot, type AssociationDotStatus } from "./AssociationStatusDot";
+import { AssociationStatusDot, AssociationDotLegend, type AssociationDotStatus } from "./AssociationStatusDot";
 
 const directoryDot:Record<UnifiedContact["association"],AssociationDotStatus>={
  verificata:"verified",
@@ -56,9 +56,8 @@ export function UnifiedPeopleDirectory({contacts,initialQuery=""}:{contacts:Unif
     <option value="to_review">Abbinamenti da controllare ({reviewCount})</option>
    </select>
   </div>
-  <p className="text-xs text-[#5f524c]">
-    {matching.length} persone · I pallini indicano lo stato della quota o del collegamento (tocca il nome per i dettagli).
-  </p>
+  <p className="text-xs text-[#5f524c]">{matching.length} persone</p>
+  <AssociationDotLegend/>
   <ul className="divide-y divide-[#211815]/10 overflow-hidden rounded-xl border border-[#211815]/10 bg-white">
    {shown.map(contact=><li key={contact.key} className="space-y-2 p-3">
     <div className="flex flex-wrap items-start justify-between gap-2">
