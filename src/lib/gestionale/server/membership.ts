@@ -146,6 +146,22 @@ const readCurrentManualValidations = cache(async (): Promise<EvidenceRow[]> => {
   return rows;
 });
 
+/** Tessere verificate del libro ufficiale: lettura corrente, separata da Google e dalle quote email. */
+const readCurrentOfficialBook = cache(async (): Promise<EvidenceRow[]> => {
+  await requireAdmin();
+  const rows: EvidenceRow[] = [];
+  for(let offset=0;offset<10000;offset+=500){
+    const {data,error}=await getGestionaleDb().from("association_members")
+      .select("id,first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at")
+      .eq("source","official_members_book").order("id",{ascending:true})
+      .range(offset,offset+499);
+    if(error)throw new Error("Gestionale (libro soci ufficiale): "+error.message);
+    rows.push(...(data??[]).map(row=>pick(row,null)));
+    if((data??[]).length<500)break;
+  }
+  return rows;
+});
+
 /** Per segnalare all'admin se le verifiche derivano da fonti live o da copia. */
 export async function getMembershipEvidenceStatus(): Promise<{
   source: "live" | "snapshot";
@@ -166,12 +182,13 @@ async function loadEvidenceWithOrder(): Promise<Evidence> {
       if (evidenceCache?.evidence === evidence) evidenceCache = null;
     });
   }
-  const [sources, manual]=await Promise.all([
+  const [sources, manual, official]=await Promise.all([
     evidenceCache.evidence,
     readCurrentManualValidations(),
+    readCurrentOfficialBook(),
   ]);
-  // Nessuna quota può risultare scaduta per colpa di una cache server obsoleta.
-  return {...sources, rows:[...sources.rows, ...manual]};
+  // Le prove del libro ufficiale sono valide solo nel periodo della tessera.
+  return {...sources, rows:[...sources.rows, ...manual, ...official]};
 }
 
 async function loadEvidence(): Promise<EvidenceRow[]> {
@@ -186,7 +203,7 @@ export async function clearMembershipCache(): Promise<void> {
 
 type Identity = { email: string | null; firstName: string | null; lastName: string | null };
 
-const SOURCE_RANK: Record<string, number> = { google_sheet: 0, manual_override: 1 };
+const SOURCE_RANK: Record<string, number> = { google_sheet: 0, manual_override: 1, official_members_book: 2 };
 
 /** Righe del socio indicato dalla chiave, la più autorevole per prima (manuale, libro soci, modulo). */
 function rowsOfKey(key: MemberKey, rows: readonly EvidenceRow[]): EvidenceRow[] {
@@ -264,7 +281,7 @@ function toSummary(
     email: best.email ?? sameMember.find((row) => row.email)?.email ?? null,
     // Scadenza come la mostra la pagina admin (anno associativo corrente).
     expires_at: stateFor(identity, rows).membershipExpiresAt,
-    source: best.source === "manual_override" ? "manuale" : "modulo",
+    source: best.source === "manual_override" ? "manuale" : best.source === "official_members_book" ? "libro" : "modulo",
   };
 }
 

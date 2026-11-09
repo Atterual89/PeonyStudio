@@ -20,7 +20,7 @@ export function paymentWindowFor(workshopStartsOn: string): { period: Membership
   const period = membershipPeriodFor(workshopStartsOn);
   // Prima del primo periodo non c'è una regola: nessun pagamento conta.
   if (!period) return { period, options: { paymentsFrom: "9999-12-31" } };
-  return { period, options: { paymentsFrom: period.paymentsFrom, paymentsUntil: period.validUntil } };
+  return { period, options: { paymentsFrom: period.paymentsFrom, paymentsUntil: period.validUntil, referenceDate: workshopStartsOn.slice(0, 10) } };
 }
 
 /** deriveMembershipState per il periodo associativo del workshop. */

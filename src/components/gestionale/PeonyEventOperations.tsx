@@ -56,9 +56,11 @@ function MembershipFacts({ info, ownerLabel }: { info: PeonyMembership | null; o
       <details className="text-xs text-[#5f524c]">
         <summary className="w-fit cursor-pointer break-words py-1 text-[#a8583e]">Dettagli associazione · {ownerLabel}</summary>
         <div className="space-y-0.5 pt-1">
-          <p>Modulo: {info.formPresent ? "trovato" : "assente"}</p>
-          <p>Quota: {info.feePaid ? "verificata" : "non verificata"}</p>
-          <p>Abbinamento: {matchLabel}</p>
+          {info.verifiedInOfficialBook ? <p>Libro soci ufficiale: tessera verificata</p> : <>
+            <p>Modulo: {info.formPresent ? "trovato" : "assente"}</p>
+            <p>Quota: {info.feePaid ? "verificata" : "non verificata"}</p>
+            <p>Abbinamento: {matchLabel}</p>
+          </>}
         </div>
       </details>
     </div>
@@ -95,7 +97,7 @@ function PersonRow({ person, eventId }: { person: PeonyAttendee; eventId: string
           <div>
             <p className="text-xs font-semibold text-[#5f524c]">Intestatario · {person.name}</p>
             {person.email?<a href={"mailto:"+person.email} className="block break-all text-sm text-[#a8583e] underline">{person.email}</a>:null}
-            {person.associationRequired && person.association?.matchMethod !== "payment_email" &&
+            {person.associationRequired && person.association?.matchMethod !== "payment_email" && !person.association?.verifiedInOfficialBook &&
               <QuotaOkCheckbox
                 checked={Boolean(person.association?.feePaid)}
                 editable={!person.association?.feePaid||person.association.matchMethod==="manual"}
@@ -119,7 +121,7 @@ function PersonRow({ person, eventId }: { person: PeonyAttendee; eventId: string
             <div className="space-y-1 border-t border-[#211815]/10 pt-2">
               <p className="text-xs font-semibold text-[#5f524c]">Partner: {partnerLabel}</p>
               {person.partner?.email?<p className="break-all text-xs text-[#5f524c]">{person.partner.email}</p>:null}
-              {person.partner && person.associationRequired && person.partner.membership?.matchMethod !== "payment_email" &&
+              {person.partner && person.associationRequired && person.partner.membership?.matchMethod !== "payment_email" && !person.partner.membership?.verifiedInOfficialBook &&
                 <QuotaOkCheckbox checked={Boolean(person.partner.membership?.feePaid)}
                   editable={!person.partner.membership?.feePaid||person.partner.membership.matchMethod==="manual"}
                   onToggle={paid=>setPeonyQuotaOkAction({
