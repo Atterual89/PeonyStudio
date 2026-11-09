@@ -20,6 +20,7 @@ export function BillingDirectoryManager() {
   const [opened,setOpened]=useState<string|null>(null);
   const [message,setMessage]=useState("");
   const [pending,startTransition]=useTransition();
+  const [reviewChoice,setReviewChoice]=useState<{reviewId:string;personId:string|null}|null>(null);
   async function reload() {
     const res=await listBillingDirectoryAction();
     if(res.ok){setPeople(res.data.people);setReviews(res.data.reviews);}
@@ -39,8 +40,6 @@ export function BillingDirectoryManager() {
   }
   function importFile(){
     if(!file||!preview||first===""||last===""||first===last){setMessage("Seleziona due colonne distinte per nome e cognome.");return;}
-    const ok=window.confirm("Importare "+preview.total+" righe nell'anagrafica condivisa? Gli omonimi saranno lasciati in revisione.");
-    if(!ok)return;
     setMessage("");
     startTransition(async()=>{
       const form=new FormData();
@@ -52,13 +51,15 @@ export function BillingDirectoryManager() {
       await reload();
     });
   }
-  function resolve(id:string,personId:string|null){
-    const name=reviews.find(r=>r.id===id)?.name||"questa persona";
-    if(!window.confirm(personId?"Collegare "+name+" alla scheda selezionata?":"Creare una scheda separata per "+name+"?"))return;
+  function resolve(id:string,personId:string|null){setReviewChoice({reviewId:id,personId});}
+  function commitReview(){
+    if(!reviewChoice)return;
+    const choice=reviewChoice;
     setMessage("");
     startTransition(async()=>{
-      const res=await resolveBillingReviewAction({reviewId:id,personId});
+      const res=await resolveBillingReviewAction({reviewId:choice.reviewId,personId:choice.personId});
       if(!res.ok){setMessage(res.error);return;}
+      setReviewChoice(null);
       setMessage("Abbinamento salvato.");
       await reload();
     });
@@ -113,6 +114,13 @@ export function BillingDirectoryManager() {
             Crea scheda distinta
           </button>
         </div>
+        {reviewChoice?.reviewId===review.id&&<div className="rounded-lg bg-[#f2ede3] p-2 text-sm">
+          <p>Confermi {reviewChoice.personId?"l\'abbinamento":"la creazione di una nuova scheda"} per {review.name}?</p>
+          <div className="mt-2 flex gap-3">
+            <button type="button" disabled={pending} onClick={commitReview} className="font-semibold text-[#a8583e] underline">Conferma</button>
+            <button type="button" disabled={pending} onClick={()=>setReviewChoice(null)} className="underline">Annulla</button>
+          </div>
+        </div>}
       </div>)}
     </section>}
     <section className="space-y-2">

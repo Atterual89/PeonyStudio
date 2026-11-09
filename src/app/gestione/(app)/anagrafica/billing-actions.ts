@@ -82,7 +82,8 @@ export async function searchBillingDirectoryAction(input:{query:string}) {
   if(query.length<2)return {ok:true as const,data:[] as BillingEntry[]};
   try {
     const tokens=query.split(/\s+/).filter(Boolean);
-    const people=await billingRows(operator.id);
+    const operatorId=operator.id;
+    const people=await billingRows(operatorId);
     const results=people.filter(p=>tokens.every(t=>normalizeText(p.name+" "+p.email).includes(t)))
       .sort((a,b)=>a.name.localeCompare(b.name,"it")).slice(0,20)
       .map(({id,name,email})=>({id,name,email}));
@@ -93,7 +94,8 @@ export async function searchBillingDirectoryAction(input:{query:string}) {
 export async function listBillingDirectoryAction() {
   const operator=await requireOrganizer();
   try {
-    const people=await billingRows(operator.id);
+    const operatorId=operator.id;
+    const people=await billingRows(operatorId);
     const {data,error}=await getGestionaleDb().from("gw_billing_import_reviews")
       .select("id,first_name,last_name,email,reason,candidate_ids")
       .eq("owner_operator_id",operator.id).eq("status","pending")
