@@ -131,10 +131,11 @@ export async function markPeonyEmailSent(
   ticketIds: string[],
   kind: PeonyEmailKind,
   subject: string,
+  mode: "initial" | "reminder" = "initial",
 ): Promise<PeonyActionResult> {
   const operator = await requireAdmin();
   const event = await getPeonyEvent(eventId);
-  if (!event || !validKind(kind) || !Array.isArray(ticketIds) ||
+  if (!event || !validKind(kind) || (mode!=="initial" && mode!=="reminder") || !Array.isArray(ticketIds) ||
       ticketIds.length === 0 || ticketIds.length > 200 ||
       ticketIds.some((id) => typeof id !== "string" || !id || id.length > 200) ||
       typeof subject !== "string" || !subject.trim() || subject.length > 300) {
@@ -150,6 +151,14 @@ export async function markPeonyEmailSent(
       data.some((row) => !isActivePeonyTicket(row.status) || !row.holder_email?.includes("@"))) {
     return { ok: false, error: "Alcuni biglietti non sono validi o non hanno email." };
   }
+  const previous = await getGestionaleDb().from("gw_peony_email_sends")
+    .select("ticket_id").eq("event_id", eventId).eq("kind", kind).in("ticket_id",ids).range(0,9999);
+  if (previous.error) return { ok:false,error:"Impossibile verificare gli invii precedenti." };
+  const prior=new Set((previous.data??[]).map(row=>row.ticket_id));
+  if (mode==="initial" && ids.some(id=>prior.has(id)))
+    return { ok:false,error:"Alcune persone hanno già ricevuto questa email. Usa Sollecito." };
+  if (mode==="reminder" && ids.some(id=>!prior.has(id)))
+    return { ok:false,error:"Per un sollecito seleziona solo persone già contattate." };
   const { error } = await getGestionaleDb().from("gw_peony_email_sends")
     .upsert(ids.map((id) => ({
       event_id: eventId, ticket_id: id,
