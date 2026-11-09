@@ -245,7 +245,7 @@ function BookingDetailsContent({
   }
 
   return (
-    <div className="space-y-3 border-t border-[#211815]/10 px-4 pb-5 pt-4">
+    <div className="space-y-3">
       <div className="space-y-3">
         <p className="flex flex-wrap items-center gap-2 text-sm text-[#5f524c]">
           Stato:
