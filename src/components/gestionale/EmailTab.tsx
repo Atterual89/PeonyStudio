@@ -76,7 +76,13 @@ function EditWorkshopDetails({workshop,defaults,saved,ticketTailorFields,onSave,
   }
   function save() {
     startTransition(async()=>{
-      const result=await saveWorkshopEmailAction({workshopId:workshop.id,version,fields:data});
+      const fields:Partial<WorkshopEmailData>={...data};
+      // TT-sourced values remain live; only explicitly edited overrides are stored.
+      if (ticketTailorFields.schedule && JSON.stringify(fields.schedule)===JSON.stringify(ticketTailorFields.schedule))
+        delete fields.schedule;
+      if (ticketTailorFields.extraNotes && fields.extraNotes===ticketTailorFields.extraNotes)
+        delete fields.extraNotes;
+      const result=await saveWorkshopEmailAction({workshopId:workshop.id,version,fields});
       if(result.ok) {
         setVersion(result.data.version);onSave(data);setMessage({tone:"success",text:"Dettagli salvati."});router.refresh();
       } else setMessage({tone:"error",text:result.error});
