@@ -6,7 +6,7 @@ export type EmailRecipient = {
   personId: string;
   name: string;
   email: string | null;
-  type: "membership_request" | "membership_reminder" | "partner" | "partner_reminder" | "workshop_details";
+  type: "membership_request" | "membership_reminder" | "partner" | "partner_reminder" | "workshop_details" | "workshop_details_reminder";
   partnerStatus?: "unknown" | "registered" | "not_registered";
   coupleBooking?: boolean;
   partnerName?: string;
@@ -40,8 +40,10 @@ export function emailRecipients(bookings: readonly BookingView[], sends: readonl
         const sentPartner = relevant.some((s) => s.kind === "partner");
         out.push({ ...base, type: sentPartner ? "partner_reminder" : "partner" });
       }
-      if (["acconto", "saldato"].includes(b.status) && !relevant.some((s) => s.kind === "workshop_details")) {
-        out.push({ ...base, type: "workshop_details" });
+      if (["acconto", "saldato"].includes(b.status)) {
+        const sentDetails = relevant.some(s => s.kind === "workshop_details");
+        // Only the first communication is auto-eligible. Follow-ups require explicit selection.
+        out.push({ ...base, type: sentDetails ? "workshop_details_reminder" : "workshop_details" });
       }
     }
   }
