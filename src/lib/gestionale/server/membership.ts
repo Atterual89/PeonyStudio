@@ -52,8 +52,8 @@ function pick(row: MembershipEvidenceRow, tableId: string | null): EvidenceRow {
 /**
  * Copia salvata delle fonti: utile anche quando Vercel non puo' accedere
  * all'account di servizio Google. Non si dichiara mai che sia in tempo reale.
- * TeamArtist/registro ufficiale e' la prova di pagamento e iscrizione, il
- * semplice modulo Google non equivale a quota verificata.
+ * Soltanto il modulo Google conferma la registrazione; la quota richiede
+ * una conferma email o una validazione manuale per l'annualita' corretta.
  */
 async function fetchSavedEvidence(): Promise<Evidence> {
   const rows: Array<{
