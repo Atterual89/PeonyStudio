@@ -8,7 +8,7 @@ import { partnerFromCheckout, peonyPartnerRequired, type CheckoutPartner } from 
 import { choosePartner } from "@/lib/gestionale/peony-booking-partner";
 import { buildPeonyMemberDirectory } from "@/lib/gestionale/peony-member-candidates";
 import { timestampToRomeDate } from "@/lib/gestionale/workshops";
-import { isActivePeonyTicket, isPeonyTicketEvent } from "@/lib/gestionale/peony-ticket-rules";
+import { isActivePeonyTicket, isPeonyTicketEvent, isMembershipFreePeonyEvent } from "@/lib/gestionale/peony-ticket-rules";
 import { peonyTicketRole, ticketTypeNameForIssuedTicket, ticketTypeNamesFromEventPayload, type PeonyTicketRole } from "@/lib/gestionale/peony-ticket-type";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
@@ -52,6 +52,7 @@ export type PeonyAttendee = {
   email: string | null;
   ticketType: string | null;
   ticketRole: PeonyTicketRole;
+  freeEvent: boolean;
   notes: string | null;
   association: PeonyMembership | null;
   associationRequired: boolean;
@@ -219,6 +220,7 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
     if (response.error) throw new Error(`${label}: ${response.error.message}`);
   }
   const ticketNames=ticketTypeNamesFromEventPayload(rawEvent.data?.raw_payload);
+  const freeEvent=isMembershipFreePeonyEvent(event.title);
   const participantByTicket = new Map((participants.data ?? []).map((row) => [row.ticket_tailor_issued_ticket_id, row]));
   const enrollmentByOrder = new Map((enrollments.data ?? []).filter((r) => r.ticket_tailor_order_id)
     .map((row) => [row.ticket_tailor_order_id, row]));
@@ -280,10 +282,11 @@ export async function loadPeonyAttendees(event: PeonyEvent): Promise<PeonyRoster
         email: ticket.holder_email?.trim() || null,
         ticketType,
         ticketRole,
+        freeEvent,
         notes: participantByTicket.get(ticket.ticket_tailor_issued_ticket_id)?.notes_admin ?? null,
-        association: ticketRole!=="practitioner"
+        association: freeEvent||ticketRole!=="practitioner"
           ? null : associationStatus(evidence, event, identity),
-        associationRequired: ticketRole==="practitioner",
+        associationRequired: !freeEvent&&ticketRole==="practitioner",
         partnerRequired: required,
         partner,
         holderMatch:matchedHolder,
