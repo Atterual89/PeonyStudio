@@ -1,0 +1,46 @@
+import {describe,it,expect} from "vitest";
+import {readFileSync} from "node:fs";
+const read=(path:string)=>readFileSync(path,"utf8");
+const peony=read("src/components/gestionale/PeonyEventOperations.tsx");
+const kl=read("src/components/gestionale/ParticipantsTab.tsx");
+const registry=read("src/components/gestionale/UnifiedPeopleDirectory.tsx");
+const resolver=read("src/lib/gestionale/server/peony-events.ts");
+const actions=read("src/app/gestione/(app)/peony/actions.ts");
+const card=read("src/components/gestionale/UnifiedParticipantCard.tsx");
+
+describe("Ticket Tailor -> Anagrafica <- Kinbaku LuXuria",()=>{
+ it("gli eventi usano la stessa scheda espandibile e i controlli propri rimangono",()=>{
+  expect(peony).toContain("<UnifiedParticipantCard");
+  expect(kl).toContain("<UnifiedParticipantCard");
+  expect(card).toContain("aria-expanded={expanded}");
+  expect(peony).toContain("<PeonyPartnerFinder");
+  expect(peony).toContain("<QuotaOkCheckbox");
+  expect(kl).toContain("<BookingDetails");
+  expect(kl).toContain("<PresentToggle");
+  expect(kl).toContain("rowMenu(booking)");
+ });
+ it("il nome originale di Ticket Tailor rimane separato dal profilo ufficiale",()=>{
+  expect(resolver).toContain("resolveCentralPerson");
+  expect(resolver).toContain("enteredName:ticketName");
+  expect(resolver).toContain("linkedPersonId:resolved?.personId??null");
+  expect(peony).toContain("Nome nel biglietto:");
+ });
+ it("una scelta esplicita nel registro associa anche gw_people solo se univoco",()=>{
+  expect(actions).toContain("resolveCentralPerson({people:directory!.people");
+  expect(actions).toContain("personId=resolved?.personId??null");
+  expect(actions).toContain("member_row_id:memberId");
+ });
+ it("anagrafiche separate dalle registrazioni non collegate, senza perdere la ricerca",()=>{
+  expect(registry).toContain('view==="people"?Boolean(contact.personId)');
+  expect(registry).toContain('view==="review"?isReview(contact)');
+  expect(registry).toContain('contact.kind==="registro"');
+  expect(registry).toContain("Altri filtri");
+  expect(registry).toContain("<RegistryPersonActions");
+  expect(registry).toContain("<MemberQuickLink");
+ });
+ it("le quote associative non sono le rate dei workshop",()=>{
+  expect(peony).toContain("peonyStatus");
+  expect(kl).toContain("MembershipBadge");
+  expect(kl).toContain("StatusTag");
+ });
+});

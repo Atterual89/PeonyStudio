@@ -13,9 +13,11 @@ describe("ricerca soci senza duplicati",()=>{
    expect(rows).toHaveLength(3);
    expect(rows.filter(row=>row.email)).toHaveLength(2);
  });
- it("non mostra due risultati se anagrafica e libro coincidono",()=>{
+ it("mantiene selezionabile il profilo anagrafico anche se esiste una prova del libro",()=>{
    const rows=buildPeonyMemberDirectory([official,form],[{id:"p1",first_name:"Gabriele",last_name:"Vierzi",email:"gabriele@example.it",nickname:null}]);
-   expect(rows).toHaveLength(1);
+   expect(rows).toHaveLength(2);
+   expect(rows[0]).toMatchObject({kind:"person",id:"p1",origin:"Anagrafica"});
+   expect(rows[1]).toMatchObject({kind:"member",id:"book1"});
  });
  it("email condivisa da nominativi diversi non fonde persone diverse",()=>{
    const rows=buildPeonyMemberDirectory([form,{...form,id:"form3",first_name:"Giulia",last_name:"Bianchi"}],[]);
