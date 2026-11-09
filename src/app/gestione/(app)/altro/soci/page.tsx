@@ -50,6 +50,11 @@ export default async function SociPage({searchParams}:{searchParams:Promise<{quo
     Apri anagrafiche
    </Link>
   </div>
+  <Link prefetch={false} href="/gestione/altro/soci/abbinamenti-ale"
+    className="flex min-h-12 items-center justify-between rounded-xl border border-[#211815]/10 bg-white/80 px-3 text-sm font-semibold text-[#a8583e]">
+    <span>Matching anagrafica Alessandra ↔ Persone e libro soci</span>
+    <span aria-hidden="true">Apri</span>
+  </Link>
   <details id="allineamento-anagrafiche" className="rounded-xl border border-[#211815]/10 bg-white/70 p-3">
    <summary className="cursor-pointer text-sm font-semibold">Abbinamenti da confermare{proposals?.proposals.length?` · ${proposals.proposals.length}`:""}</summary>
    <div className="mt-3">

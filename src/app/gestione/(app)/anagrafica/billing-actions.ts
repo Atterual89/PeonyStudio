@@ -39,26 +39,14 @@ export async function previewBillingFileAction(form: FormData) {
   } catch(error) { return {ok:false as const,error:publicError(error)}; }
 }
 
-export async function importBillingFileAction(form: FormData) {
-  const operator=await requireOrganizer();
-  try {
-    const sheet=await readBillingFile(fileOf(form));
-    if(form.get("first")===null||form.get("last")===null)throw new Error("Seleziona nome e cognome.");
-    const first=Number(form.get("first"));
-    const last=Number(form.get("last"));
-    const selectedEmail=String(form.get("email")??"");
-    const email=selectedEmail===""?null:Number(selectedEmail);
-    if(!Number.isInteger(first)||!Number.isInteger(last)||(email!==null&&!Number.isInteger(email)))
-      throw new Error("Seleziona nome e cognome.");
-    const rows=mappedBillingRows(sheet,{first,last,email});
-    const db=getGestionaleDb();
-    const {data,error}=await db.rpc("gw_import_billing_rows",{
-      p_operator_id:operator.id,p_rows:rows,
-    });
-    if(error)throw new Error(error.message);
-    refreshGestione();
-    return {ok:true as const,data:data as {created:number;matched:number;review:number;skipped:number}};
-  }catch(error){return{ok:false as const,error:publicError(error)};}
+/** Flusso legacy disabilitato: poteva abbinare per sola omonimia.
+ * L'import aggiornato scrive soltanto gw_ale_contacts.
+ */
+export async function importBillingFileAction(_form:FormData):Promise<
+  {ok:false;error:string}|{ok:true;data:{created:number;matched:number;review:number;skipped:number}}
+>{
+  await requireOrganizer();
+  return {ok:false,error:"Usa la nuova importazione nell'Anagrafica Alessandra."};
 }
 
 async function billingRows(operatorId:string) {
@@ -136,14 +124,12 @@ export async function listBillingDirectoryAction() {
   }catch(error){return{ok:false as const,error:publicError(error)};}
 }
 
-export async function resolveBillingReviewAction(input:{reviewId:string;personId:string|null}) {
-  const operator=await requireOrganizer();
-  if(!isUuidLike(input?.reviewId)||input.personId!==null&&!isUuidLike(input.personId))
-    return {ok:false as const,error:"Selezione non valida."};
-  const {error}=await getGestionaleDb().rpc("gw_resolve_billing_review",{
-    p_operator_id:operator.id,p_review_id:input.reviewId,p_person_id:input.personId,
-  });
-  if(error)return {ok:false as const,error:"Impossibile abbinare. Verifica il nominativo."};
-  refreshGestione();
-  return {ok:true as const};
+/** Revisione legacy non disponibile ad Alessandra.
+ * La scelta di corrispondenza è ora solo nella pagina Verifiche admin.
+ */
+export async function resolveBillingReviewAction(_input:{reviewId:string;personId:string|null}):
+  Promise<{ok:false;error:string}|{ok:true}>{
+  const {requireAdmin}=await import("@/lib/gestionale/server/auth");
+  await requireAdmin();
+  return {ok:false,error:"Usa la pagina Matching Alessandra nelle Verifiche."};
 }
