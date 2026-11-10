@@ -1,5 +1,6 @@
 "use client";
 import { useState, useTransition } from "react";
+import { countAssignedPaymentSlots } from "@/lib/gestionale/payment-slot-progress";
 import { confirmAssociationPaymentAction, findPaymentPeopleAction, ignoreAssociationPaymentAction } from "@/app/gestione/(app)/quote-email/actions";
 
 type Person = {kind:"person"|"member";id:string;name:string;email:string|null;source:string};
@@ -72,7 +73,10 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
   });
  }
 
- const unresolved=payments.filter(p=>!ignored[p.id]&&p.slots.length+(saved[p.id]?.length??0)<p.availableSlots).length;
+ // L'assegnazione appena confermata compare sia in saved che nelle props
+ // dopo un aggiornamento server: contare gli SLOT univoci, non le righe UI.
+ const countUsed=(p:Payment)=>countAssignedPaymentSlots(p.slots,saved[p.id]??[]);
+ const unresolved=payments.filter(p=>!ignored[p.id]&&countUsed(p)<p.availableSlots).length;
  return <div className="space-y-4">
   {lastConfirmed&&<div role="status" className="fixed bottom-24 left-4 right-4 z-40 mx-auto flex max-w-xl items-start justify-between gap-3 rounded-xl border border-[#326941]/40 bg-[#eef6ee] p-3 text-sm text-[#326941] shadow-lg">
     <span>{lastConfirmed}</span>
@@ -82,7 +86,7 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
   {payments.length===0&&<p className="text-sm text-[#5f524c]">Nessun pagamento in attesa nei risultati caricati.</p>}
   {payments.map(p=>{
    const extra=saved[p.id]??[];
-   const used=p.slots.length+extra.length;
+   const used=countUsed(p);
    const closed=Boolean(ignored[p.id])||used>=p.availableSlots;
    const isWorking=working===p.id;
    const notice=feedback[p.id];
@@ -98,8 +102,8 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
      <p className="text-xs text-[#5f524c]">Quote da 15 € assegnate: {used}/{p.availableSlots}</p>
      {!closed&&<p className="text-xs font-semibold">Annualità {periodLabel(periodFor(p.id))} · valida fino al {p.associationExpiresAt?.split("-").reverse().join("/")??"—"}</p>}
     </div>
-    {p.alreadyPaidPeriod && !closed && <p className="text-sm text-[#9b4b1e]">Quota {periodLabel(p.alreadyPaidPeriod)} già registrata: controlla l’eventuale duplicazione prima di confermare.</p>}
-    {extra.map((item,i)=><p key={`${item.slot}-${i}`} role="status" className="rounded-lg border border-[#326941]/30 bg-[#eef6ee] p-3 text-sm text-[#326941]">
+    {p.alreadyPaidPeriod && used===0 && !closed && <p className="text-sm text-[#9b4b1e]">Quota {periodLabel(p.alreadyPaidPeriod)} già registrata: controlla l’eventuale duplicazione prima di confermare.</p>}
+    {extra.filter(item=>!p.assigned.some(a=>a.slot===item.slot)).map((item,i)=><p key={`${item.slot}-${i}`} role="status" className="rounded-lg border border-[#326941]/30 bg-[#eef6ee] p-3 text-sm text-[#326941]">
      Quota salvata nel database: <strong>{item.name}</strong> · periodo {item.period} · quota {item.slot}/{p.availableSlots}.
     </p>)}
     {p.assigned.map(item=><p key={item.slot} className="rounded-lg border border-[#326941]/20 bg-[#eef6ee] px-3 py-2 text-sm text-[#326941]">
