@@ -56,14 +56,15 @@ export function GoogleFormsReview({cases,readCount}:{cases:FormReviewCase[];read
         Nessun accorpamento o pagamento viene confermato automaticamente.
         I casi rinviati rimarranno da controllare al prossimo accesso.
       </p>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {filters.map(item=><button key={item.value} type="button"
-          onClick={()=>chooseFilter(item.value)}
-          aria-pressed={filter===item.value}
-          className={`min-h-9 rounded-lg border px-3 py-1 text-xs font-semibold ${filter===item.value?"border-[#a8583e] bg-[#a8583e]/10 text-[#a8583e]":"border-[#211815]/15 text-[#5f524c]"}`}>
-          {item.label} · {item.value==="all"?cases.length-approved.length-deferred.length:counter(item.value)}
-        </button>)}
-      </div>
+      <label className="mt-3 block max-w-sm text-xs font-semibold text-[#5f524c]">
+        Filtra le incongruenze
+        <select value={filter} onChange={event=>chooseFilter(event.target.value as "all"|FormReviewKind)}
+          className="mt-1 min-h-10 w-full rounded-lg border border-[#211815]/20 bg-white px-3 text-sm">
+          {filters.map(item=><option key={item.value} value={item.value}>
+            {item.label} ({item.value==="all"?cases.length-approved.length-deferred.length:counter(item.value)})
+          </option>)}
+        </select>
+      </label>
     </div>
     {feedback&&<p role={feedback.kind==="error"?"alert":"status"} className={`rounded-lg border p-3 text-sm ${feedback.kind==="error"?"border-[#a8583e]/35 text-[#9b2c2c]":"border-[#326941]/35 text-[#326941]"}`}>{feedback.text}</p>}
     {current?<div className="space-y-3 rounded-xl border border-[#211815]/15 bg-white p-4">
