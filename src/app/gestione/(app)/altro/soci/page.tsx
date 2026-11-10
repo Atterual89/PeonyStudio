@@ -7,6 +7,7 @@ import { PaymentEmailReview } from "@/components/gestionale/PaymentEmailReview";
 import { CompleteAllFromMembers } from "@/components/gestionale/CompleteAllFromMembers";
 import { RefreshMembershipButton } from "@/components/gestionale/QuotaOk";
 import { SyncSociButton } from "@/components/gestionale/SyncSociButton";
+import { SyncOfficialBookButton } from "@/components/gestionale/SyncOfficialBookButton";
 import { AssociationMailSyncControl } from "@/components/gestionale/AssociationMailSyncControl";
 import { Notice } from "@/components/gestionale/ui";
 import { getAssociationMailState } from "@/app/gestione/(app)/quote-email/actions";
@@ -71,14 +72,15 @@ export default async function SociPage({searchParams}:{searchParams:Promise<{quo
       <Link prefetch={false} href="/gestione/altro" className="text-sm text-[#5f524c] underline">Altre impostazioni</Link>
     </div>
     <div className="flex flex-wrap items-start gap-2">
+      <SyncOfficialBookButton/>
       <SyncSociButton/>
       <Suspense fallback={<span role="status" className="px-2 py-3 text-xs text-[#5f524c]">Controllo connessione Gmail…</span>}>
         <AssociationMailSyncControl/>
       </Suspense>
     </div>
     <p className="text-xs text-[#5f524c]">
-      Prima aggiorna i moduli associativi; poi controlla i versamenti da PayPal/Qonto.
-      Il libro ufficiale Team Artist segue il proprio allineamento.
+      Il libro soci viene letto dalla copia Google dell’export Team Artist; i moduli associativi sono una fonte distinta.
+      Infine verifica i pagamenti da PayPal/Qonto.
     </p>
     <div className="flex justify-end">
       <Link prefetch={false} href={`/gestione/persone${typeof params.q==="string"?`?q=${encodeURIComponent(params.q.slice(0,100))}`:""}`}
