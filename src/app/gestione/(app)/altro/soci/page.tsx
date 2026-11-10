@@ -70,6 +70,13 @@ export default async function SociPage({searchParams}:{searchParams:Promise<{quo
       <h1 className="font-serif text-xl font-medium">Verifiche soci e quote</h1>
       <Link prefetch={false} href="/gestione/altro" className="text-sm text-[#5f524c] underline">Altre impostazioni</Link>
     </div>
+    <Link prefetch={false} href="/gestione/altro/soci/controllo"
+      className="block rounded-xl border border-[#a8583e]/40 bg-white/90 p-4">
+      <span className="font-semibold text-[#a8583e]">Apri controllo associazione</span>
+      <p className="mt-1 text-sm text-[#5f524c]">
+        Modulo Google o cartaceo, quota pagata, anagrafica e doppioni: tutto in una schermata, con stati separati.
+      </p>
+    </Link>
     <div className="space-y-2 rounded-xl border border-[#211815]/10 bg-white/75 p-3">
       <h2 className="text-sm font-semibold">1. Moduli Google e anagrafica</h2>
       <SyncSociButton/>
