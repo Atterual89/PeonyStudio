@@ -45,14 +45,14 @@ export async function getAssociationMailState() {
   const db = getGestionaleDb();
   const [state, payments, suggestions] = await Promise.all([
     db.from("gw_payment_sync_state").select("initial_from,last_success_at").eq("source","gmail_payments").maybeSingle(),
-    db.from("gw_association_payment_emails").select("id,provider,payer_name,amount_cents,note,paid_at,status").eq("status","pending").gte("paid_at","2025-08-31T22:00:00Z")
-      .order("paid_at",{ascending:false}).limit(75),
+    db.from("gw_association_payment_emails").select("id,provider,payer_name,amount_cents,note,paid_at,status").gte("paid_at","2025-08-31T22:00:00Z")
+      .order("paid_at",{ascending:false}).limit(250),
     db.rpc("gw_payment_suggest_people"),
   ]);
   if (state.error || payments.error) return {ok:false as const,error:"Archivio pagamenti non disponibile. Verifica che la migrazione sia stata applicata."};
   const ids=(payments.data??[]).map(p=>p.id);
   const allocations=ids.length
-    ? await db.from("gw_association_payment_allocations").select("payment_id,slot,person_id,member_key").in("payment_id",ids)
+    ? await db.from("gw_association_payment_allocations").select("id,payment_id,slot,person_id,member_key").in("payment_id",ids)
     : {data:[],error:null};
   if (allocations.error) return {ok:false as const,error:"Impossibile caricare gli abbinamenti delle quote."};
 
@@ -113,7 +113,7 @@ export async function getAssociationMailState() {
     assigned: (allocations.data??[]).filter(a=>a.payment_id===p.id).map(a=>{
       const person=a.person_id?directory.find(row=>row.id===a.person_id):null;
       const member=a.member_key?forms.find(row=>row.id===a.member_key):null;
-      return {slot:a.slot as number,name:person?.name??member?.name??"Persona già associata"};
+      return {id:a.id as string,slot:a.slot as number,name:person?.name??member?.name??"Persona già associata"};
     }),
     associationPeriodFrom: period?.paymentsFrom ?? null,
     associationExpiresAt: period?.validUntil ?? null,
@@ -167,7 +167,7 @@ export async function findPaymentPeopleAction(query: string): Promise<PaymentPer
   return combinePaymentPersonCandidates([...local,...book]);
 }
 export async function ignoreAssociationPaymentAction(paymentId: string) {
-  await requireAdmin();
+  const operator=await requireAdmin();
   if(!isUuidLike(paymentId))return {ok:false as const,error:"Pagamento non valido."};
   const db=getGestionaleDb();
   const {data:slots,error:slotError}=await db.from("gw_association_payment_allocations")
@@ -175,6 +175,9 @@ export async function ignoreAssociationPaymentAction(paymentId: string) {
   if(slotError || slots?.length)return {ok:false as const,error:"Pagamento già assegnato o non disponibile."};
   const {error}=await db.from("gw_association_payment_emails").update({status:"ignored",updated_at:new Date().toISOString()}).eq("id",paymentId).eq("status","pending");
   if(error)return {ok:false as const,error:"Impossibile ignorare il pagamento."};
+  await db.from("gw_association_payment_corrections").insert({
+    payment_id:paymentId,operation:"ignore",operator_id:operator.id
+  });
   refreshGestione();return {ok:true as const};
 }
 export type PaymentTarget = {kind:"person"|"member"; id:string};
@@ -292,4 +295,31 @@ export async function confirmAssociationPaymentAction(paymentId: string,target:P
   await clearMembershipCache();
   refreshGestione();
   return {ok:true as const,data:{slot:allocation.slot,periodFrom:allocation.period_from}};
+}
+
+/** Rimuove solo il collegamento selezionato; la funzione SQL conserva l'audit. */
+export async function unassignAssociationPaymentAction(allocationId:string,reason:string) {
+ const operator=await requireAdmin();
+ if(!isUuidLike(allocationId))return {ok:false as const,error:"Abbinamento non valido."};
+ const db=getGestionaleDb();
+ const {error}=await db.rpc("gw_unassign_association_payment",{
+  p_allocation_id:allocationId,p_operator_id:operator.id,p_reason:reason.trim().slice(0,300)||null
+ });
+ if(error){console.error("[quote-email] Disassociazione",error.code);return {ok:false as const,error:"Non è stato possibile disassociare la quota. Controlla che la migrazione 044 sia applicata."};}
+ await clearMembershipCache();refreshGestione();
+ return {ok:true as const};
+}
+/** Ripristino esplicito dei movimenti ignorati, senza assegnazione automatica. */
+export async function restoreAssociationPaymentAction(paymentId:string) {
+ const operator=await requireAdmin();
+ if(!isUuidLike(paymentId))return {ok:false as const,error:"Pagamento non valido."};
+ const db=getGestionaleDb();
+ const {data,error}=await db.from("gw_association_payment_emails")
+  .update({status:"pending",updated_at:new Date().toISOString()})
+  .eq("id",paymentId).eq("status","ignored").select("id").maybeSingle();
+ if(error||!data)return {ok:false as const,error:"Pagamento non ignorato o non disponibile."};
+ await db.from("gw_association_payment_corrections").insert({
+  payment_id:paymentId,operation:"restore",operator_id:operator.id
+ });
+ refreshGestione();return {ok:true as const};
 }
