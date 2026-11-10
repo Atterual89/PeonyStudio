@@ -67,6 +67,11 @@ export async function importPaymentNotifications(mode:"recent"|"historic"="recen
     : mode==="historic"?historicalUntil:new Date(Date.now()-120_000);
   if(!Number.isFinite(windowFrom.getTime())||!Number.isFinite(windowUntil.getTime()))
     throw new Error("Checkpoint Gmail non valido.");
+  if(mode==="historic" && !resetHistoricWindow && !state?.pending_page_token &&
+    state?.checked_through && Date.parse(state.checked_through)>=historicalUntil.getTime()){
+    // Recupero già completo, nessuna chiamata Gmail aggiuntiva.
+    return {scanned:0,imported:0,skipped:0,hasMore:false,lastSuccessAt:state.last_success_at??null};
+  }
   const gmail=google.gmail({version:"v1",auth:await gmailAuthForPayments()});
   const profile=await gmail.users.getProfile({userId:"me"});
   if(profile.data.emailAddress?.toLowerCase()!==PEONY_GMAIL_ADDRESS)
