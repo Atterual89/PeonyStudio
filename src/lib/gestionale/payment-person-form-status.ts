@@ -16,12 +16,11 @@ export function formStatusForPerson(
 ):PersonFormStatus{
   const candidateEmails=[...new Set([person.email,person.membership_email]
     .map(normalizeMembershipEmail).filter(value=>value.includes("@")))];
-  const identities:Array<{firstName:string|null;lastName:string|null;email:string|null}>=candidateEmails.map(email=>({
+  // Non inferire l'identità dal solo nome: gli omonimi possono coincidere.
+  if(!candidateEmails.length)return "missing";
+  const identities=candidateEmails.map(email=>({
     firstName:person.first_name,lastName:person.last_name,email,
   }));
-  if(!identities.length)identities.push({
-    firstName:person.first_name,lastName:person.last_name,email:null,
-  });
   const relevant=evidence.filter(row=>row.source==="google_sheet" ||
     (row.source==="manual_form"&&row.membership_status==="verified"));
   const compatible=(row:FormEvidenceForCandidate)=>
