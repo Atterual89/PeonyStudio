@@ -27,6 +27,9 @@ declare
  v_payment public.gw_association_payment_emails%rowtype;
  v_evidence record;
  v_other integer;
+ v_email text;
+ v_first text;
+ v_last text;
 begin
  if p_operator_id is null then raise exception 'Operatore obbligatorio'; end if;
  select * into v_alloc from public.gw_association_payment_allocations
@@ -35,6 +38,10 @@ begin
  select * into v_payment from public.gw_association_payment_emails
   where id=v_alloc.payment_id for update;
  if not found then raise exception 'Pagamento non trovato'; end if;
+ if v_alloc.person_id is not null then
+  select lower(btrim(coalesce(email,''))),lower(btrim(coalesce(first_name,''))),lower(btrim(coalesce(last_name,'')))
+   into v_email,v_first,v_last from public.gw_people where id=v_alloc.person_id;
+ end if;
  -- L'abbinamento e la verifica sono corretti insieme in una transazione.
  select count(*) into v_other from public.gw_association_payment_allocations
   where id<>v_alloc.id and person_id is not distinct from v_alloc.person_id
@@ -46,6 +53,9 @@ begin
    select id,notes_admin from public.association_members
    where source='manual_override'
     and membership_starts_at=v_alloc.period_from
+    and ((v_email is not null and v_email<>'' and lower(btrim(coalesce(email,'')))=v_email)
+      or ((v_email is null or v_email='') and v_first<>'' and v_last<>''
+        and lower(btrim(coalesce(first_name,'')))=v_first and lower(btrim(coalesce(last_name,'')))=v_last))
     and notes_admin like 'Quota confermata da email (riferimento '||v_alloc.payment_id::text||')%'
    for update
   loop
