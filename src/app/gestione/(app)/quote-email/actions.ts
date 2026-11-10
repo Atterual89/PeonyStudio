@@ -11,6 +11,7 @@ import { membershipPeriodForPayment } from "@/lib/association/membership-periods
 import { suggestedQuotaCount } from "@/lib/gestionale/payment-email-parser";
 import { combinePaymentPersonCandidates } from "@/lib/gestionale/payment-person-candidates";
 import { proposePeopleForPayment } from "@/lib/gestionale/payment-auto-proposals";
+import { formStatusForPerson, formStatusLabel } from "@/lib/gestionale/payment-person-form-status";
 import { normalizeMembershipEmail, normalizeMembershipNameKey } from "@/lib/association/membership-state";
 import { refreshGestione } from "@/lib/gestionale/server/refresh";
 import { todayInRome } from "@/lib/gestionale/workshops";
@@ -70,17 +71,17 @@ export async function getAssociationMailState() {
   const [directoryRows,formRows]=await Promise.all([
     db.from("gw_people").select("id,first_name,last_name,nickname,email")
       .is("deleted_at",null).is("merged_into",null).range(0,9999),
-    db.from("association_members").select("first_name,last_name,email")
-      .eq("source","google_sheet").range(0,9999),
+    db.from("association_members").select("first_name,last_name,email,source,membership_status")
+      .in("source",["google_sheet","manual_form"]).range(0,9999),
   ]);
   if(directoryRows.error||formRows.error)
     return {ok:false as const,error:"Impossibile proporre le persone dai moduli Google."};
   const directory=(directoryRows.data??[]).map(p=>({
     kind:"person" as const,id:p.id,
     name:[p.first_name,p.last_name].filter(Boolean).join(" ")||p.nickname||p.email||"Persona",
-    email:p.email,source:"Anagrafica",
+    email:p.email,source:"Anagrafica · "+formStatusLabel(formStatusForPerson(p,formRows.data??[])),
   }));
-  const forms=(formRows.data??[]).filter(p=>Boolean(p.email))
+  const forms=(formRows.data??[]).filter(p=>p.source==="google_sheet"&&Boolean(p.email))
     .map(p=>({
       kind:"member" as const,id:"e:"+normalizeMembershipEmail(p.email),
       name:[p.first_name,p.last_name].filter(Boolean).join(" ")||p.email||"Persona",
@@ -143,10 +144,23 @@ export async function findPaymentPeopleAction(query: string): Promise<PaymentPer
     name:[p.first_name,p.last_name].filter(Boolean).join(" ")||p.nickname||p.email||"Persona",
     email:p.email,source:p.nickname?`Anagrafica · ${p.nickname}`:"Anagrafica"
   }));
+  const formEmails=[...new Set((people.data??[]).map(p=>p.email).filter((email):email is string=>Boolean(email)))];
+  const matchedEvidence=formEmails.length
+    ? await db.from("association_members")
+        .select("first_name,last_name,email,source,membership_status")
+        .in("source",["google_sheet","manual_form"]).in("email",formEmails).limit(200)
+    : {data:[],error:null};
+  if(matchedEvidence.error)throw new Error("Impossibile verificare il modulo della persona.");
+  for(const row of local){
+    const person=(people.data??[]).find(p=>p.id===row.id);
+    if(person){
+      row.source += " · "+formStatusLabel(formStatusForPerson(person,matchedEvidence.data??[]));
+    }
+  }
   const book=members.map(m=>({
     kind:"member" as const,id:m.id,
     name:[m.first_name,m.last_name].filter(Boolean).join(" ")||m.email||"Socio",
-    email:m.email,source:`Modulo Google / registrazione${m.matchedAlias?` · ${m.matchedAlias}`:""}`
+    email:m.email,source:`Registrazione associativa da verificare${m.matchedAlias?` · ${m.matchedAlias}`:""}`
   }));
   return combinePaymentPersonCandidates([...local,...book]);
 }
