@@ -45,7 +45,7 @@ async function PaymentReviews({open}:{open:boolean}) {
     .filter((p):p is NonNullable<typeof p>=>Boolean(p))
     .filter((p,i,all)=>all.findIndex(other=>other.paymentsFrom===p.paymentsFrom)===i)
     .map(p=>({from:p.paymentsFrom,label:p.validUntil.startsWith("2026")?"2025/26":p.validUntil.slice(0,4)}));
-  return <details id="quote-email" open={open} className="rounded-xl border border-[#211815]/10 bg-white/70 p-3">
+  return <details open={open} className="rounded-xl border border-[#211815]/10 bg-white/70 p-3">
     <summary className="cursor-pointer text-sm font-semibold">Pagamenti email da verificare{mail.ok?` · ${mail.payments.length}`:""}</summary>
     <div className="mt-3">
       {mail.ok?<PaymentEmailReview payments={mail.payments} periods={periods}
@@ -96,9 +96,11 @@ export default async function SociPage({searchParams}:{searchParams:Promise<{quo
     <Suspense fallback={<p role="status" className="py-2 text-sm text-[#5f524c]">Caricamento delle proposte di abbinamento…</p>}>
       <MemberProposals/>
     </Suspense>
-    <Suspense fallback={<p role="status" className="py-2 text-sm text-[#5f524c]">Caricamento dei pagamenti da verificare…</p>}>
-      <PaymentReviews open={params.quote==="1"}/>
-    </Suspense>
+    <div id="quote-email">
+      <Suspense fallback={<p role="status" className="py-2 text-sm text-[#5f524c]">Caricamento dei pagamenti da verificare…</p>}>
+        <PaymentReviews open={params.quote==="1"}/>
+      </Suspense>
+    </div>
     <details className="rounded-xl border border-[#211815]/10 bg-white/55 p-3">
       <summary className="cursor-pointer text-sm font-semibold text-[#5f524c]">Altre operazioni</summary>
       <div className="mt-3 flex flex-wrap gap-2 text-sm">
