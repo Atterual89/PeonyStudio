@@ -51,3 +51,21 @@ export async function confirmReviewedGoogleFormAction(
     return {ok:false,error:error instanceof Error?error.message:"Conferma non riuscita. Nessun'altra registrazione è stata modificata."};
   }
 }
+
+/** Consolida soltanto copie perfettamente identiche, con controllo e archivio SQL atomici. */
+export async function consolidateIdenticalGoogleFormsAction(sourceRowId:string):
+ Promise<{ok:true;message:string}|{ok:false;error:string}> {
+ const operator=await requireAdmin();
+ if(!/^(eng:)?[0-9]{1,7}$/.test(sourceRowId))
+  return {ok:false,error:"Identificativo modulo non valido."};
+ const db=createSupabaseAdminClient();
+ const {data,error}=await db.rpc("gw_consolidate_identical_google_form_copies",{
+  p_source_row_id:sourceRowId,p_operator_id:operator.id
+ });
+ if(error){
+  console.error("[soci] Consolidamento modulo non riuscito",error.code);
+  return {ok:false,error:"Non è stato possibile consolidare: verifica che le copie siano identiche e non siano collegate a persone diverse."};
+ }
+ await clearMembershipCache();refreshGestione();
+ return {ok:true,message:`${data} copie archiviate. Il modulo principale e tutti i pagamenti sono stati mantenuti.`};
+}
