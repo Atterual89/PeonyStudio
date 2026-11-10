@@ -25,10 +25,10 @@ export default async function WorkshopDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string | string[]; filtro?: string | string[] }>;
+  searchParams: Promise<{ tab?: string | string[]; filtro?: string | string[]; booking?: string | string[] }>;
 }) {
   const operator = await requireOperator();
-  const [{ id }, { tab, filtro }] = await Promise.all([params, searchParams]);
+  const [{ id }, { tab, filtro, booking }] = await Promise.all([params, searchParams]);
 
   const moved = workshopTabRedirect(operator.role, tab);
   if (moved) redirect(`/gestione/w/${id}?tab=${moved}`);
@@ -124,7 +124,7 @@ export default async function WorkshopDetailPage({
       </nav>
 
       <div className="mt-3">
-        {active === "partecipanti" && bookings ? <ParticipantsTab workshopId={workshop.id} workshopStartsOn={workshop.startsOn} today={today} showPresence={presence} bookings={bookings} /> : null}
+        {active === "partecipanti" && bookings ? <ParticipantsTab workshopId={workshop.id} workshopStartsOn={workshop.startsOn} today={today} showPresence={presence} bookings={bookings} focusBookingId={typeof booking === "string" ? booking : undefined} /> : null}
         {active === "iscrizioni" && registrations ? (
           <RegistrationsTab
             workshop={{ id: workshop.id, version: workshop.version, defaultFeeCents: workshop.default_fee_cents }}
