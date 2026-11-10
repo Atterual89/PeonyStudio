@@ -73,7 +73,7 @@ export async function readOfficialMembersBookFromGoogleSheet() {
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId,
     range,
-  });
+  }, { timeout: 20_000 });
 
   return normalizeOfficialMembersBookRows(response.data.values ?? []);
 }

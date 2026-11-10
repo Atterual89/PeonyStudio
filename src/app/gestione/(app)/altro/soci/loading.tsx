@@ -1,6 +1,6 @@
 import { PageLoading } from "@/components/gestionale/ui";
 
-// Fase 5: la lettura del libro soci (Google Sheet) può richiedere qualche secondo.
+// La pagina apre subito i comandi; ogni fonte lenta ha una propria Suspense.
 export default function Loading() {
-  return <PageLoading label="Lettura del libro soci…" />;
+  return <PageLoading label="Apertura verifiche…" />;
 }

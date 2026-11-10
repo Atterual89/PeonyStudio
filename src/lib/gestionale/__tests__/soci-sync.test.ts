@@ -12,12 +12,12 @@ describe("sync soci nel gestionale PIN", () => {
   it("autorizza solo gli admin in entrambe le azioni", () => {
     expect(actions).toContain("export async function previewSociSyncAction()");
     expect(actions).toContain("export async function applySociSyncAction(");
-    expect(actions.match(/await requireAdmin\(\)/g)).toHaveLength(3);
+    expect(actions.match(/await requireAdmin\(\)/g)).toHaveLength(4);
   });
 
   it("aggiorna le domande separatamente dal libro ufficiale e senza cancellazioni", () => {
     expect(actions).toContain("buildAssociationMembersSyncPreview");
-    expect(actions).not.toContain("buildOfficialMembersBookSyncPreview");
+    expect(actions).toContain("buildOfficialMembersBookSyncPreview");
     expect(actions).toContain("applyAssociationMembersSync(db, { removeStaleRows: false })");
     expect(actions).toContain("fingerprint(forms) !== expectedToken");
     expect(actions).toContain("forms.validRows < previousForms * 0.75");
@@ -29,7 +29,7 @@ describe("sync soci nel gestionale PIN", () => {
 
   it("presenta solo registrazioni Google e verifica quote separata", () => {
     const ui = source("src/components/gestionale/SyncSociButton.tsx");
-    expect(ui).toContain("Sincronizza soci");
+    expect(ui).toContain("Aggiorna moduli Google");
     expect(ui).toContain("Conferma aggiornamento");
     expect(ui).toContain("Registrazioni Google già aggiornate.");
     expect(ui).not.toContain('stat("Libro soci"');
@@ -38,7 +38,10 @@ describe("sync soci nel gestionale PIN", () => {
     expect(home).not.toContain("<SyncSociButton />");
     const settings = source("src/app/gestione/(app)/altro/soci/page.tsx");
     expect(settings).toMatch(/<SyncSociButton\s*\/>/);
-    expect(settings).toContain("Sincronizzazioni e manutenzione");
+    expect(settings).toContain("<SyncOfficialBookButton/>");
+    expect(settings.indexOf("<SyncOfficialBookButton/>")).toBeLessThan(settings.indexOf("<SyncSociButton/>"));
+    expect(settings.indexOf("<SyncSociButton/>")).toBeLessThan(settings.indexOf("<AssociationMailSyncControl/>"));
+    expect(settings).toContain("<Suspense");
   });
 
   it("la pagina di revisione soci è protetta e legge tutte le righe", () => {

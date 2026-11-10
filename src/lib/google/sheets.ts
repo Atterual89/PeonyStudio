@@ -103,11 +103,11 @@ export async function readAssociationMembersFromGoogleSheet() {
     sheets.spreadsheets.values.get({
       spreadsheetId,
       range,
-    }),
+    }, { timeout: 20_000 }),
     sheets.spreadsheets.values.get({
       spreadsheetId: ENGLISH_REGISTRATION_SPREADSHEET_ID,
       range: ENGLISH_REGISTRATION_RANGE,
-    }),
+    }, { timeout: 20_000 }),
   ]);
 
   const italian = normalizeGoogleSheetRows(

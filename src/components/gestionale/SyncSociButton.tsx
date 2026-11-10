@@ -75,7 +75,7 @@ export function SyncSociButton() {
       <button type="button" disabled={busy} onClick={checkSources}
         className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#a8583e] bg-white/85 px-4 text-sm font-semibold text-[#a8583e] disabled:opacity-60 sm:w-auto">
         <RefreshCw aria-hidden="true" className={`h-4 w-4 ${busy ? "animate-spin" : ""}`} />
-        {busy ? "Controllo soci…" : "Sincronizza soci"}
+        {busy ? "Lettura moduli…" : "Aggiorna moduli Google"}
       </button>
 
       {preview ? (

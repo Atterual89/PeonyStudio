@@ -9,7 +9,7 @@ import { InlinePersonNickname,QuickPersonQuota,RegistryPersonActions } from "./P
 import { AssociationStatusDot,AssociationDotLegend,type AssociationDotStatus } from "./AssociationStatusDot";
 
 const directoryDot:Record<UnifiedContact["association"],AssociationDotStatus>={
-  verificata:"verified",da_verificare:"missing_form",solo_modulo:"payment_missing",
+  verificata:"verified",da_verificare:"form_to_verify",solo_modulo:"payment_missing",
   non_presente:"unlinked",non_disponibile:"unknown",
 };
 type View="people"|"review"|"registry";
@@ -126,6 +126,11 @@ export function UnifiedPeopleDirectory({contacts,initialQuery=""}:{contacts:Unif
           </button>
           {open&&<div className="mt-2 space-y-3 border-t border-[#211815]/10 pt-3 text-sm">
             {contact.email?<p className="break-all">{contact.email}</p>:<p className="text-[#9b4b1e]">Email non disponibile</p>}
+            {contact.association==="da_verificare"&&
+              <p className="rounded-lg border border-[#d99b23]/30 bg-[#fff8eb] p-2 text-xs text-[#815c23]">
+                <strong>Quota OK.</strong> La registrazione associativa non risulta nel modulo Google o nel libro soci sincronizzato.
+                Controlla il modulo: non serve confermare di nuovo il pagamento.
+              </p>}
             <details className="text-xs text-[#5f524c]">
               <summary className="cursor-pointer text-[#a8583e]">Origine e abbinamento</summary>
               <p className="mt-1">{contact.source}{contact.link==="confermato"?" · Confermato":

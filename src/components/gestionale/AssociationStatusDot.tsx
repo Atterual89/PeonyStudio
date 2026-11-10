@@ -5,6 +5,7 @@ export type AssociationDotStatus =
   | "verified"
   | "payment_missing"
   | "missing_form"
+  | "form_to_verify"
   | "not_required"
   | "unlinked"
   | "unknown";
@@ -13,6 +14,7 @@ const STATUS:Record<AssociationDotStatus,{label:string;style:string}>={
   verified:{label:"Associazione verificata",style:"bg-[#32834b] ring-[#32834b]/20"},
   payment_missing:{label:"Quota associativa da verificare",style:"bg-[#d99b23] ring-[#d99b23]/20"},
   missing_form:{label:"Modulo associativo assente",style:"bg-[#c73535] ring-[#c73535]/20"},
+  form_to_verify:{label:"Quota OK · modulo associativo da verificare",style:"bg-[#d99b23] ring-[#d99b23]/20"},
   not_required:{label:"Tessera associativa non richiesta",style:"bg-[#929292] ring-[#929292]/20"},
   unlinked:{label:"Registrazione Google non collegata",style:"bg-[#c73535] ring-[#c73535]/20"},
   unknown:{label:"Stato associativo non disponibile",style:"bg-transparent border border-dashed border-[#707070] ring-[#707070]/10"},
@@ -32,6 +34,7 @@ export function AssociationDotLegend(){
     {status:"verified",label:"Verificata"},
     {status:"payment_missing",label:"Quota da verificare"},
     {status:"missing_form",label:"Modulo assente"},
+    {status:"form_to_verify",label:"Quota OK · modulo da verificare"},
     {status:"not_required",label:"Non richiesta"},
   ];
   return <details className="text-xs text-[#5f524c]">

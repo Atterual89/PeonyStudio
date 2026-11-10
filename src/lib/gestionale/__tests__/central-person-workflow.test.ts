@@ -55,13 +55,14 @@ describe("Ticket Tailor -> Anagrafica <- Kinbaku LuXuria",()=>{
   expect(route).toContain("initialTicketId={initialTicketId}");
   expect(peony).toContain("initialExpanded={person.ticketId===initialTicketId}");
  });
- it("Persone offre la revisione diretta degli abbinamenti Peony senza persona canonica",()=>{
+ it("Persone non segnala come problema i biglietti già collegati al libro soci",()=>{
   const loader=read("src/lib/gestionale/server/peony-person-history.ts");
   const page=read("src/app/gestione/(app)/persone/page.tsx");
   expect(loader).toContain("loadPendingPeonyLinks");
   expect(loader).toContain('.is("person_id",null).not("member_row_id","is",null)');
-  expect(page).toContain("Da collegare · {pendingPeony.length}");
-  expect(page).toContain("loadPendingPeonyLinks().catch");
+  expect(page).not.toContain("Da collegare · {pendingPeony.length}");
+  expect(page).not.toContain("loadPendingPeonyLinks().catch");
+  expect(page).toContain("<UnifiedPeopleDirectory");
  });
  it("Peony e la ricerca fatture di Alessandra cercano alias senza esporre altre schede",()=>{
   const peony=read("src/app/gestione/(app)/peony/actions.ts");
