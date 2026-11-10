@@ -1,6 +1,7 @@
 "use server";
 
 import { createHash } from "node:crypto";
+import { isGoogleFormImportSuspicious } from "@/lib/association/form-import-integrity";
 import { MAX_BOOK_FILE_SIZE, parseWorkbook, replaceMembersBook, validateMembersBook } from "@/lib/association/book-upload";
 import {
   applyAssociationMembersSync,
@@ -85,7 +86,7 @@ async function loadPreview() {
   // La fonte Google restituisce UNA registrazione per identità, quindi
   // confrontiamo registrazioni distinte con registrazioni distinte.
   const previousUniqueForms = forms.existingUniqueRows;
-  if (previousUniqueForms >= 30 && forms.validRows < previousUniqueForms * 0.75) {
+  if (isGoogleFormImportSuspicious(forms.validRows, previousUniqueForms)) {
     throw new SociSyncError(
       `Dati Google potenzialmente incompleti: ${forms.validRows} registrazioni distinte lette, ${previousUniqueForms} registrazioni distinte già salvate. Controlla i fogli italiano e inglese. Nessuna cancellazione.`
     );
