@@ -113,7 +113,7 @@ describe("Peony reference email layout",()=>{
     expect(html).toContain("peony-logo.png");
     expect(html).toContain("peony-entrance.jpg");
     expect(html).toContain("Association registration");
-    expect(html).toContain("31/12/2026");
+    expect(html).toContain("31/12/2027");
     expect(html).toContain("max-width:680px");
   });
 });
