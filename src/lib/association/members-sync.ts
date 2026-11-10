@@ -494,3 +494,55 @@ function isInsertedId(value: unknown): value is { id: string } {
     typeof (value as { id?: unknown }).id === "string"
   );
 }
+
+/**
+ * Importa una sola risposta Google dopo la revisione esplicita dell'admin.
+ * Non crea schede persona, non assegna pagamenti e non elimina record.
+ * Blocca i casi con copie duplicate o associazione ambigua.
+ */
+export async function applyReviewedGoogleFormRow(
+  supabase: SupabaseClient,
+  sourceRowId: string,
+  expectedSourceHash: string,
+): Promise<{kind:"created"|"updated"|"unchanged";name:string}> {
+  if(!/^(eng:)?[0-9]{1,7}$/.test(sourceRowId)||!/^[a-f0-9]{64}$/.test(expectedSourceHash))
+    throw new Error("Riferimento del modulo non valido.");
+  const preview=await buildAssociationMembersSyncPreview(supabase);
+  const form=preview.validSourceRows.find(row=>row.source_row_id===sourceRowId);
+  const item=preview.previewRows.find(row=>row.source_row_id===sourceRowId);
+  if(!form||!item||form.source_hash!==expectedSourceHash||item.action==="invalid"||item.action==="skipped")
+    throw new Error("Il modulo Google è cambiato: ricarica la revisione.");
+  const {data:copies,error:copiesError}=await supabase.from("association_members")
+    .select("id,email").eq("source","google_sheet").eq("source_row_id",sourceRowId).limit(5);
+  if(copiesError)throw new Error("Non posso verificare i record già importati.");
+  if((copies??[]).length>1)throw new Error("La stessa risposta Google ha più copie nel database: prima esamina il duplicato.");
+  const fromName=normalizeNameKeyForReview(form.first_name,form.last_name);
+  const conflicting=preview.validSourceRows.some(other=>
+    other.source_row_id!==sourceRowId&&
+    normalizeNameKeyForReview(other.first_name,other.last_name)===fromName&&
+    Boolean(other.email&&form.email&&other.email!==form.email));
+  if(conflicting)throw new Error("Nome presente con email diverse: risolvi prima il possibile omonimo.");
+  if(item.matchMethod==="name"&&item.existingMemberId){
+    const {data:old,error}=await supabase.from("association_members")
+      .select("email").eq("id",item.existingMemberId).maybeSingle();
+    if(error)throw new Error("Impossibile rileggere il record da aggiornare.");
+    if(old?.email&&form.email&&old.email.trim().toLowerCase()!==form.email)
+      throw new Error("Email diversa dall'anagrafica esistente: associa manualmente, senza sovrascrivere.");
+  }
+  const label=[form.first_name,form.last_name].filter(Boolean).join(" ").trim();
+  if(item.action==="unchanged")return {kind:"unchanged",name:label};
+  if(item.existingMemberId){
+    const {error}=await supabase.from("association_members")
+      .update({...mapSheetRowToMemberUpdatePayload(form,item.preserveManualStatus),updated_at:new Date().toISOString()})
+      .eq("id",item.existingMemberId);
+    if(error)throw new Error("Aggiornamento non riuscito: "+error.message);
+    return {kind:"updated",name:label};
+  }
+  const {error}=await supabase.from("association_members").insert(mapSheetRowToMemberInsertPayload(form));
+  if(error)throw new Error("Importazione non riuscita: "+error.message);
+  return {kind:"created",name:label};
+}
+function normalizeNameKeyForReview(first:string,last:string):string{
+  return [first,last].join(" ").trim().toLowerCase().normalize("NFD")
+    .replace(/[\u0300-\u036f]/g,"").split(/\s+/).filter(Boolean).sort().join(" ");
+}
