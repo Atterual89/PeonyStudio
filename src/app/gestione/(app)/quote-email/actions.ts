@@ -134,7 +134,7 @@ export async function findPaymentPeopleAction(query: string): Promise<PaymentPer
   if(q.length<2)return [];
   const db=getGestionaleDb();
   const [people, members]=await Promise.all([
-    db.from("gw_people").select("id,first_name,last_name,nickname,email")
+    db.from("gw_people").select("id,first_name,last_name,nickname,email,membership_email")
       .is("deleted_at",null).is("merged_into",null)
       .or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,nickname.ilike.%${q}%,email.ilike.%${q}%`).limit(15),
     searchMembers(q,15,undefined,{includeLinked:true}),
