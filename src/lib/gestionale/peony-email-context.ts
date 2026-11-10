@@ -1,5 +1,5 @@
 import { emailAssets, emailBox, emailButton, emailParagraph, emailSection, escapeHtml } from "@/lib/gestionale/email/layout";
-import { membershipPeriodFor } from "@/lib/association/membership-periods";
+import { membershipPeriodForPayment } from "@/lib/association/membership-periods";
 
 /** Event-specific information synced from Ticket Tailor. Never infer missing schedule or equipment. */
 export type PeonyEmailEventContext = {
@@ -77,12 +77,12 @@ function eventTimes(context?: PeonyEmailEventContext): string | null {
 }
 
 function membershipPeriodText(context: PeonyEmailEventContext | undefined, language: PeonyEmailLanguage): string {
-  const period = context?.startsOn ? membershipPeriodFor(context.startsOn) : null;
+  const period = context?.startsOn ? membershipPeriodForPayment(new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" })) : null;
   if (!period) return "";
   const [year, month, day] = period.validUntil.split("-");
   return language === "it" ?
-    "La quota per questo periodo è valida fino al " + day + "/" + month + "/" + year + "." :
-    "Membership for this period is valid until " + day + "/" + month + "/" + year + ".";
+     "La quota versata ora è valida fino al " + day + "/" + month + "/" + year + "." :
+     "Membership paid now is valid until " + day + "/" + month + "/" + year + ".";
 }
 
 /** Static Peony information and conditional sections are shared by all emails of a cluster. */
