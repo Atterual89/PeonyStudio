@@ -35,6 +35,7 @@ export type UnifiedContact = {
   quotaPaid?: boolean;
   expiresAt?: string | null;
   formSource?: "google" | "cartaceo" | null;
+  paperFormVerified?: boolean;
   search: string;
 };
 type PersonRef = Pick<Person,
@@ -66,7 +67,7 @@ function stateOf(rows:readonly RegistryEvidence[],date:string, identity?:{
   const period=membershipPeriodFor(date);
   const person=identity??rows.find(row=>row.source==="google_sheet"||row.source==="manual_form")??rows[0];
   return deriveMembershipState([...rows],{
-    email:person.email,firstName:person.first_name,lastName:person.last_name,
+    email:person?.email??null,firstName:person?.first_name??null,lastName:person?.last_name??null,
   },{
     paymentsFrom:period?.paymentsFrom,paymentsUntil:period?.validUntil,referenceDate:date,
   });
@@ -189,6 +190,7 @@ export function buildUnifiedDirectory(input:{
       personId:person.id,personVersion:person.version??null,possiblePersonId:null,possiblePersonVersion:null,kind:group?"unita":"anagrafica",
       association:association(state),source:direct.length?sources(direct):"Anagrafica",
       formPresent:state.formPresent,quotaPaid:state.currentYearPaid,expiresAt:state.membershipExpiresAt,
+      paperFormVerified:direct.some(r=>r.source==="manual_form"&&r.membership_status==="verified"),
       formSource:direct.some(r=>r.source==="google_sheet"&&formIdentityCompatible({firstName:person.first_name,lastName:person.last_name,email:person.email},r))?"google":
         direct.some(r=>r.source==="manual_form"&&r.membership_status==="verified")?"cartaceo":null,
       link,search:[fullName,person.nickname,email,person.instagram,person.phone,person.teamartist_id,
