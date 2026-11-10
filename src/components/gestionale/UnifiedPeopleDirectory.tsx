@@ -154,7 +154,7 @@ export function UnifiedPeopleDirectory({contacts,initialQuery=""}:{contacts:Unif
               {contact.personId&&<Link prefetch={false} href={`/gestione/p/${contact.personId}`}
                 className="inline-flex min-h-9 items-center rounded-lg border border-[#211815]/15 px-3 font-semibold text-[#a8583e]">Apri / modifica</Link>}
               {contact.personId&&<InlinePersonNickname personId={contact.personId} onSaved={setSavedMessage}/>}
-              {contact.personId&&<PaperFormControl personId={contact.personId}
+              {contact.personId&&(!contact.formPresent||contact.paperFormVerified)&&<PaperFormControl personId={contact.personId}
                 verified={Boolean(contact.paperFormVerified)} onSaved={setSavedMessage}/>}
               {contact.personId&&contact.association==="solo_modulo"&&
                 <QuickPersonQuota personId={contact.personId} onSaved={setSavedMessage}/>}
