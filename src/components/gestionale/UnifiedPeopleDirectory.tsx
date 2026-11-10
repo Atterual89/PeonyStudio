@@ -7,10 +7,11 @@ import type { UnifiedContact } from "@/lib/gestionale/unified-directory";
 import { MemberQuickLink } from "./MemberQuickLink";
 import { InlinePersonNickname,QuickPersonQuota,RegistryPersonActions } from "./PersonDirectoryActions";
 import { AssociationStatusDot,AssociationDotLegend,type AssociationDotStatus } from "./AssociationStatusDot";
+import { PaperFormControl } from "./PaperFormControl";
 
 const directoryDot:Record<UnifiedContact["association"],AssociationDotStatus>={
   verificata:"verified",da_verificare:"form_to_verify",solo_modulo:"payment_missing",
-  non_presente:"unlinked",non_disponibile:"unknown",
+  non_presente:"missing_form",non_disponibile:"unknown",
 };
 type View="people"|"review"|"registry";
 type Status="all"|"verified"|"payment_missing"|"missing";
@@ -94,7 +95,7 @@ export function UnifiedPeopleDirectory({contacts,initialQuery=""}:{contacts:Unif
             className="mt-1 min-h-10 w-full rounded-lg border border-[#211815]/15 bg-white px-2 text-sm">
             <option value="all">Tutte le fonti</option>
             <option value="google">Modulo Google</option>
-            <option value="official">Libro soci ufficiale</option>
+            <option value="official">Moduli cartacei</option>
             <option value="manual">Verifica manuale</option>
           </select>
         </label>
@@ -126,9 +127,17 @@ export function UnifiedPeopleDirectory({contacts,initialQuery=""}:{contacts:Unif
           </button>
           {open&&<div className="mt-2 space-y-3 border-t border-[#211815]/10 pt-3 text-sm">
             {contact.email?<p className="break-all">{contact.email}</p>:<p className="text-[#9b4b1e]">Email non disponibile</p>}
+            {contact.personId&&<div className="flex flex-wrap gap-2 text-xs">
+              <span className={`rounded-lg border px-2 py-1 ${contact.formPresent?"border-[#326941]/25 text-[#326941]":"border-[#c73535]/20 text-[#9b2c2c]"}`}>
+                Modulo: {contact.formPresent?contact.formSource==="cartaceo"?"cartaceo OK":"Google OK":"da verificare"}
+              </span>
+              <span className={`rounded-lg border px-2 py-1 ${contact.quotaPaid?"border-[#326941]/25 text-[#326941]":"border-[#c2923b]/25 text-[#805b26]"}`}>
+                Quota: {contact.quotaPaid?"OK"+(contact.expiresAt?" · fino al "+contact.expiresAt.split("-").reverse().join("/"):""):"da verificare"}
+              </span>
+            </div>}
             {contact.association==="da_verificare"&&
               <p className="rounded-lg border border-[#d99b23]/30 bg-[#fff8eb] p-2 text-xs text-[#815c23]">
-                <strong>Quota OK.</strong> La registrazione associativa non risulta nel modulo Google o nel libro soci sincronizzato.
+                <strong>Quota OK.</strong> Nessun modulo Google o cartaceo risulta confermato per questa persona.
                 Controlla il modulo: non serve confermare di nuovo il pagamento.
               </p>}
             <details className="text-xs text-[#5f524c]">
@@ -141,6 +150,8 @@ export function UnifiedPeopleDirectory({contacts,initialQuery=""}:{contacts:Unif
               {contact.personId&&<Link prefetch={false} href={`/gestione/p/${contact.personId}`}
                 className="inline-flex min-h-9 items-center rounded-lg border border-[#211815]/15 px-3 font-semibold text-[#a8583e]">Apri / modifica</Link>}
               {contact.personId&&<InlinePersonNickname personId={contact.personId} onSaved={setSavedMessage}/>}
+              {contact.personId&&<PaperFormControl personId={contact.personId}
+                verified={Boolean(contact.paperFormVerified)} onSaved={setSavedMessage}/>}
               {contact.personId&&contact.association==="solo_modulo"&&
                 <QuickPersonQuota personId={contact.personId} onSaved={setSavedMessage}/>}
               {!contact.personId&&contact.possiblePersonId&&
