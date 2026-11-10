@@ -31,7 +31,7 @@ describe("quote email: suggerimenti dai moduli e divisione in due",()=>{
   const ui=readFileSync("src/components/gestionale/PaymentEmailReview.tsx","utf8");
   const action=readFileSync("src/app/gestione/(app)/quote-email/actions.ts","utf8");
   expect(ui).toContain("Quota ${used+1} di ${p.availableSlots}");
-  expect(ui).toContain("persone proposte automaticamente".replace("persone","Persone"));
+  expect(ui).toContain("Corrispondenze suggerite dalla causale");
   expect(ui).toContain("La prima quota è già attribuita");
   expect(ui).toContain("p.assigned.map");
   expect(action).toContain("Le due quote devono essere assegnate a persone diverse.");
