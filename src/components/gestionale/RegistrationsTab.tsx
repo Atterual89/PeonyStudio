@@ -755,7 +755,7 @@ export function RegistrationsTab({
                           {registration.people.map(person => {
                             const label = registrationPersonLabel(person);
                             return <span key={person.participantId} className={label.linked ? "mr-2 text-[#326941]" : "mr-2 text-[#9b5928]"}>
-                              {label.linked ? "Anagrafica abbinata" : person.matchStatus==="automatico" ? "Abbinamento da confermare" : "Da abbinare"}
+                              {label.linked ? "Excel e anagrafica abbinati" : person.matchStatus==="confermato" && !person.autoCreated ? "Contatto Excel da abbinare" : person.matchStatus==="automatico" ? "Abbinamento da confermare" : "Da abbinare"}
                             </span>;
                           })}
                           {registration.people.some(person => !registrationPersonLabel(person).email) ?
