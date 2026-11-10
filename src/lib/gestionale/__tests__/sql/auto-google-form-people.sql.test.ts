@@ -31,6 +31,15 @@ describe("anagrafica centrale alimentata dai moduli Google",()=>{
     const t=await createTestDb(MIGRATIONS,{supabaseDefaults:true});
     await t.db.exec(readFileSync(join(process.cwd(),
       "supabase/migrations/045_gw_auto_person_from_google_forms.sql"),"utf8"));
+    // Secondo nome e seconda email: Gaia e Gaia Maria sono candidate alla
+    // stessa persona, non devono generare due schede automatiche.
+    await t.db.exec(`
+      insert into public.gw_people(first_name,last_name,email)
+      values ('Gaia','Baietti','gaia-old@example.test');
+      insert into public.association_members (source,source_row_id,first_name,last_name,email)
+      values ('google_sheet','g1','Gaia Maria','Baietti','gaia-new@example.test');`);
+    expect(await t.value<number>(`select count(*)::int v from gw_people
+      where first_name like 'Gaia%' and last_name='Baietti'`)).toBe(1);
     await t.db.exec(`
       insert into public.association_members (source,source_row_id,first_name,last_name,email)
       values ('google_sheet','x1','Barbara','Hochstrasser','shared@example.test');`);
