@@ -79,6 +79,19 @@ export function GoogleFormsReview({cases,readCount}:{cases:FormReviewCase[];read
         {current.relatedRecords>1&&<p className="text-xs text-[#9b4b1e]">Record da confrontare: {current.relatedRecords}</p>}
       </div>
       <p className="text-sm text-[#5f524c]">{current.explanation}</p>
+      {current.evidence.length>0&&<details className="rounded-lg border border-[#211815]/10 bg-[#fcfaf5] p-3">
+        <summary className="cursor-pointer text-sm font-semibold">
+          Confronta le fonti · {current.evidence.length}
+        </summary>
+        <div className="mt-2 space-y-2">
+          {current.evidence.map((row,i)=><div key={row.id+"-"+i}
+            className="rounded-lg border border-[#211815]/10 bg-white p-2 text-xs">
+            <p className="font-semibold">{row.source} · {row.name}</p>
+            {row.email&&<p className="break-all">{row.email}</p>}
+            <p className="text-[#5f524c]">Stato: {row.status??"non disponibile"} · ID: {row.id.slice(0,8)}</p>
+          </div>)}
+        </div>
+      </details>}
       {current.candidates.length>0&&<div className="space-y-2 rounded-lg bg-[#f8f3ea] p-3">
         <p className="text-sm font-semibold">Anagrafiche potenzialmente corrispondenti</p>
         {current.candidates.map(p=><div key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#211815]/10 bg-white p-2 text-sm">
