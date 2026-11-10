@@ -38,5 +38,7 @@ export function paymentMailBody(part:GmailPart|null|undefined): string {
     for(const child of node.parts??[])visit(child);
   }
   visit(part);
-  return plain.filter(Boolean).join("\n") || html.filter(Boolean).join("\n");
+  // Conserva anche la versione HTML: alcune notifiche PayPal omettono la
+  // causale nella parte text/plain ma la includono nell\x27HTML.
+  return [...plain.filter(Boolean),...html.filter(Boolean)].join("\n");
 }
