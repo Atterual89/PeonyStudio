@@ -1,10 +1,10 @@
 "use client";
 import { useState, useTransition } from "react";
 import { countAssignedPaymentSlots } from "@/lib/gestionale/payment-slot-progress";
-import { confirmAssociationPaymentAction, findPaymentPeopleAction, ignoreAssociationPaymentAction } from "@/app/gestione/(app)/quote-email/actions";
+import { confirmAssociationPaymentAction, findPaymentPeopleAction, ignoreAssociationPaymentAction, restoreAssociationPaymentAction, unassignAssociationPaymentAction } from "@/app/gestione/(app)/quote-email/actions";
 
 type Person = {kind:"person"|"member";id:string;name:string;email:string|null;source:string};
-type Payment = {id:string;provider:string;payer_name:string|null;amount_cents:number;note:string|null;paid_at:string;availableSlots:number;slots:number[];suggested:{id:string;name:string}|null;proposals:Person[];assigned:{slot:number;name:string}[];alreadyPaidPeriod:string|null;associationPeriodFrom:string|null;associationExpiresAt:string|null};
+type Payment = {id:string;status:string;provider:string;payer_name:string|null;amount_cents:number;note:string|null;paid_at:string;availableSlots:number;slots:number[];suggested:{id:string;name:string}|null;proposals:Person[];assigned:{id:string;slot:number;name:string}[];alreadyPaidPeriod:string|null;associationPeriodFrom:string|null;associationExpiresAt:string|null};
 type SavedQuota = {name:string;period:string;slot:number};
 type Notice = {tone:"error"|"success";text:string};
 
@@ -12,6 +12,9 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
  payments:Payment[];periods:{from:string;label:string}[];defaultPeriod:string
 }){
  const [pending,start]=useTransition();
+ const [view,setView]=useState<"pending"|"confirmed"|"ignored">("pending");
+ const [removed,setRemoved]=useState<Record<string,string[]>>({});
+ const [restored,setRestored]=useState<Record<string,boolean>>({});
  const [working,setWorking]=useState<string|null>(null);
  const [searching,setSearching]=useState<string|null>(null);
  const [search,setSearch]=useState<Record<string,string>>({});
@@ -19,6 +22,32 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
  const [feedback,setFeedback]=useState<Record<string,Notice>>({});
  const [saved,setSaved]=useState<Record<string,SavedQuota[]>>({});
  const [ignored,setIgnored]=useState<Record<string,boolean>>({});
+ function unassign(paymentId:string,allocationId:string){
+  if(blocked||!window.confirm("Disassociare questa quota? Lo stato associativo sarà ricalcolato e la correzione registrata."))return;
+  setWorking(paymentId);
+  start(async()=>{
+   try {
+    const result=await unassignAssociationPaymentAction(allocationId,"Correzione abbinamento");
+    if(result.ok){
+     setRemoved(prev=>({...prev,[paymentId]:[...(prev[paymentId]??[]),allocationId]}));
+     setFeedback(prev=>({...prev,[paymentId]:{tone:"success",text:"Quota disassociata. La verifica derivata è stata aggiornata."}}));
+    }else setError(paymentId,result.error);
+   }catch{setError(paymentId,"Disassociazione non riuscita.");}
+   finally{setWorking(null);}
+  });
+ }
+ function restore(paymentId:string){
+  if(blocked)return;
+  setWorking(paymentId);
+  start(async()=>{
+   try{
+    const result=await restoreAssociationPaymentAction(paymentId);
+    if(result.ok){setRestored(prev=>({...prev,[paymentId]:true}));setIgnored(prev=>({...prev,[paymentId]:false}));}
+    else setError(paymentId,result.error);
+   }catch{setError(paymentId,"Ripristino non riuscito.");}
+   finally{setWorking(null);}
+  });
+ }
  const periodFor=(id:string)=>payments.find(p=>p.id===id)?.associationPeriodFrom??defaultPeriod;
  const periodLabel=(from:string)=>periods.find(p=>p.from===from)?.label??from;
  const blocked=pending||Boolean(working)||Boolean(searching);
@@ -73,15 +102,20 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
 
  // L'assegnazione appena confermata compare sia in saved che nelle props
  // dopo un aggiornamento server: contare gli SLOT univoci, non le righe UI.
- const countUsed=(p:Payment)=>countAssignedPaymentSlots(p.slots,saved[p.id]??[]);
- const unresolved=payments.filter(p=>!ignored[p.id]&&countUsed(p)<p.availableSlots).length;
+ const countUsed=(p:Payment)=>countAssignedPaymentSlots(p.slots.filter(slot=>!p.assigned.some(a=>a.slot===slot&&(removed[p.id]??[]).includes(a.id))),saved[p.id]??[]);
+ const statusFor=(p:Payment)=>ignored[p.id]?"ignored":restored[p.id]?"pending":p.status;
+ const unresolved=payments.filter(p=>statusFor(p)==="pending"&&countUsed(p)<p.availableSlots).length;
  return <div className="space-y-4">
   <h2 className="font-semibold">Pagamenti da verificare ({unresolved})</h2>
+  <div className="flex flex-wrap gap-2" aria-label="Filtro pagamenti">
+   {([["pending","Da verificare"],["confirmed","Assegnati"],["ignored","Ignorati"]] as const).map(([value,label])=><button key={value} type="button" onClick={()=>setView(value)} aria-pressed={view===value} className={`rounded-lg border px-3 py-2 text-sm ${view===value?"border-[#a8583e] bg-[#f6f1e9] font-semibold":"border-[#211815]/15"}`}>{label}</button>)}
+  </div>
   {payments.length===0&&<p className="text-sm text-[#5f524c]">Nessun pagamento in attesa nei risultati caricati.</p>}
-  {payments.map(p=>{
+  {payments.filter(p=>statusFor(p)===view).map(p=>{
    const extra=saved[p.id]??[];
-   const used=countUsed(p);
-   const closed=Boolean(ignored[p.id])||used>=p.availableSlots;
+   const activeAssigned=p.assigned.filter(item=>!(removed[p.id]??[]).includes(item.id));
+   const used=countAssignedPaymentSlots(activeAssigned.map(item=>item.slot),saved[p.id]??[]);
+   const closed=statusFor(p)==="ignored"||used>=p.availableSlots;
    const isWorking=working===p.id;
    const notice=feedback[p.id];
    const periodAlreadyPaid=Boolean(p.alreadyPaidPeriod&&periodFor(p.id)===p.alreadyPaidPeriod);
@@ -100,12 +134,15 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
     {extra.filter(item=>!p.assigned.some(a=>a.slot===item.slot)).map((item,i)=><p key={`${item.slot}-${i}`} role="status" className="rounded-lg border border-[#326941]/30 bg-[#eef6ee] p-3 text-sm text-[#326941]">
      Quota salvata nel database: <strong>{item.name}</strong> · periodo {item.period} · quota {item.slot}/{p.availableSlots}.
     </p>)}
-    {p.assigned.map(item=><p key={item.slot} className="rounded-lg border border-[#326941]/20 bg-[#eef6ee] px-3 py-2 text-sm text-[#326941]">
-      Quota {item.slot}/{p.availableSlots} già assegnata: <strong>{item.name}</strong>.
-    </p>)}
+    {activeAssigned.map(item=><div key={item.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#326941]/20 bg-[#eef6ee] px-3 py-2 text-sm">
+      <span>Quota {item.slot}/{p.availableSlots} assegnata: <strong>{item.name}</strong></span>
+      <button type="button" disabled={blocked} onClick={()=>unassign(p.id,item.id)} className="rounded-lg border border-[#9b4b1e]/40 px-3 py-2 text-[#9b4b1e] disabled:opacity-50">Disassocia</button>
+    </div>)}
     {ignored[p.id]&&<p role="status" className="rounded-lg bg-[#f2ede3] p-3 text-sm">Pagamento ignorato e salvato.</p>}
+    {notice?.tone==="success"&&<p role="status" className="rounded-lg bg-[#eef6ee] p-3 text-sm">{notice.text}</p>}
     {notice?.tone==="error"&&<p role="alert" className="rounded-lg border border-[#9b4b1e]/30 bg-[#fdf3e9] p-3 text-sm font-medium text-[#9b4b1e]">{notice.text}</p>}
-    {!closed&&<>
+    {statusFor(p)==="ignored"&&<button type="button" disabled={blocked} onClick={()=>restore(p.id)} className="rounded-lg border px-3 py-2 text-sm">Ripristina pagamento</button>}
+    {!closed&&statusFor(p)==="pending"&&<>
      <p className="text-sm font-semibold text-[#5f524c]">
        {p.availableSlots>1?`Quota ${used+1} di ${p.availableSlots} (15 €): ${used===0?"scegli la prima persona":"scegli un'altra persona per la quota rimanente"}`:"Assegna la quota da 15 €"}
      </p>
