@@ -1,15 +1,14 @@
 import "server-only";
 
-import { requireOperator } from "@/lib/gestionale/server/auth";
+import { requireOperator, requireOrganizer } from "@/lib/gestionale/server/auth";
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
 import { comparePayments, lastUsedMethod, type FeeRow } from "@/lib/gestionale/payments";
 import type { BookingStatus, InvoiceStatus, OperatorRole, Payment, PaymentMethod, Registration } from "@/lib/gestionale/types";
 import { isUuidLike } from "@/lib/gestionale/validation";
 
-// Letture per l'organizzatrice (D18, tab Iscrizioni). Si selezionano SOLO il
-// testo scritto da Ale (entered_as) e i dati economici: MAI colonne di
-// gw_people né del libro soci. Un test controlla le chiavi restituite. Le
-// righe eliminate (D22) non si leggono.
+// Letture per l'organizzatrice (tab Iscrizioni). La sola identità confermata
+// viene esposta come nome, nickname ed email; mai ID o dati associativi.
+// Le righe eliminate (D22) non si leggono.
 
 const PAYMENT_COLUMNS = "id, kind, amount_cents, payment_type, paid_on, method, received_by, description, corrects_payment_id, created_at";
 
@@ -17,7 +16,7 @@ const REGISTRATION_COLUMNS = [
   "id, version, status, present, notes, invoice_status, agreed_fee_cents, fee_custom, created_at",
   // Solo il ruolo di chi l'ha creata ("Inserito da Peony/Ale"), mai il nome.
   "gw_operators!gw_bookings_created_by_fkey(role)",
-  "gw_booking_participants(id, is_primary, entered_as, entered_email, match_status, auto_created_person, removed_at)",
+  "gw_booking_participants(id, is_primary, entered_as, entered_email, match_status, auto_created_person, removed_at, gw_people!gw_booking_participants_person_id_fkey(first_name, last_name, nickname, email, merged_into))",
   `gw_payments(${PAYMENT_COLUMNS})`,
 ].join(", ");
 
@@ -64,7 +63,7 @@ type RegistrationRecord = {
   fee_custom: boolean;
   created_at: string;
   gw_operators?: { role: OperatorRole } | { role: OperatorRole }[] | null;
-  gw_booking_participants: { id: string; is_primary: boolean; entered_as: string | null; entered_email: string | null; match_status: "automatico"|"da_abbinare"|"confermato"; auto_created_person: boolean; removed_at: string | null }[];
+  gw_booking_participants: { id: string; is_primary: boolean; entered_as: string | null; entered_email: string | null; match_status: "automatico"|"da_abbinare"|"confermato"; auto_created_person: boolean; removed_at: string | null; gw_people?: {first_name:string|null;last_name:string|null;nickname:string|null;email:string|null;merged_into:string|null}|null }[];
   gw_payments: PaymentRecord[];
 };
 
@@ -150,7 +149,7 @@ export async function getFeeRows(workshopId: string): Promise<FeeRow[]> {
 
 /** Prenotazioni del workshop come le vede Ale: testo scritto da lei, quote e pagamenti. */
 export async function getRegistrations(workshopId: string): Promise<Registration[]> {
-  await requireOperator();
+  await requireOrganizer();
   if (!isUuidLike(workshopId)) return [];
 
   const [{ data, error }, hints] = await Promise.all([
@@ -180,15 +179,27 @@ export async function getRegistrations(workshopId: string): Promise<Registration
     people: row.gw_booking_participants
       .filter((p) => !p.removed_at)
       .sort((a, b) => Number(b.is_primary) - Number(a.is_primary))
-      .map((p) => ({
-        participantId: p.id,
-        isPrimary: p.is_primary,
-        enteredAs: p.entered_as,
-        enteredEmail: p.entered_email ?? null,
-        alreadyAs: hints.get(p.id) ?? null,
-        matchStatus: p.match_status ?? "da_abbinare",
-        autoCreated: Boolean(p.auto_created_person),
-      })),
+      .map((p) => {
+        // Un link tecnico (automatico/provvisorio) non equivale a un'identità
+        // confermata; non mostrare dati di altre schede finché non lo è.
+        const profile = p.gw_people;
+        const confirmed = p.match_status === "confermato" && !p.auto_created_person && profile && !profile.merged_into;
+        const fullName = profile ? [profile.first_name, profile.last_name].filter(Boolean).join(" ").trim() : "";
+        return {
+          participantId: p.id,
+          isPrimary: p.is_primary,
+          enteredAs: p.entered_as,
+          enteredEmail: p.entered_email ?? null,
+          alreadyAs: hints.get(p.id) ?? null,
+          matchStatus: p.match_status ?? "da_abbinare",
+          autoCreated: Boolean(p.auto_created_person),
+          linkedProfile: confirmed ? {
+            name: fullName || profile.nickname || p.entered_as || "Persona senza nome",
+            nickname: profile.nickname,
+            email: profile.email,
+          } : null,
+        };
+      }),
     payments: sortPayments(row.gw_payments.map(toPayment)),
   }));
 }
