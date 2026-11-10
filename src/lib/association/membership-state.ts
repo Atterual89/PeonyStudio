@@ -58,7 +58,12 @@ export function deriveMembershipState(
   const targetName = normalizeNameKey(identity.firstName, identity.lastName);
   const samePerson = (row: MembershipEvidenceRow) => {
     const email = normalizeEmail(row.email);
-    if (targetEmail && email === targetEmail) return true;
+    if (targetEmail && email === targetEmail) {
+      // L'indirizzo può essere condiviso: se entrambi i nominativi sono
+      // disponibili, una quota intestata a Eva non deve validare Barbara.
+      const rowName = normalizeNameKey(row.first_name, row.last_name);
+      return !targetName || !rowName || formIdentityCompatible(identity, row);
+    }
     return Boolean(targetName) && normalizeNameKey(row.first_name, row.last_name) === targetName &&
       (!targetEmail || !email || email === targetEmail);
   };
