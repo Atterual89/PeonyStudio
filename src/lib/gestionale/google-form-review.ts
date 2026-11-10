@@ -11,6 +11,7 @@ export type FormReviewCase = {
   sourceRowId: string | null;
   sourceHash: string | null;
   relatedRecords: number;
+  differences: Array<{label:string;before:string;after:string}>;
   evidence: Array<{id:string;source:string;name:string;email:string|null;status:string|null}>;
   candidates: Array<{ id: string; name: string; email: string | null }>;
   explanation: string;
@@ -26,6 +27,9 @@ export type ReviewMember = {
   last_name: string | null;
   email: string | null;
   membership_status: string | null;
+  contact?: string | null;
+  membership_starts_at?: string | null;
+  membership_expires_at?: string | null;
 };
 export type ReviewPerson = {
   id: string;
@@ -78,7 +82,7 @@ export function buildGoogleFormReviewQueue(input:{
     result.push({
       id:`duplicate:${sourceRowId}`,kind:"duplicate",
       name:name(first.first_name,first.last_name),email:first.email,
-      sourceRowId,sourceHash:null,relatedRecords:rows.length,evidence:evidenceOf(rows),
+      sourceRowId,sourceHash:null,relatedRecords:rows.length,differences:[],evidence:evidenceOf(rows),
       candidates:candidates(name(first.first_name,first.last_name),first.email),
       explanation:`${rows.length} copie della stessa risposta Google nel database. Verifica gli abbinamenti prima di archiviare quelle in eccesso.`,
       canConfirm:false,
@@ -103,7 +107,7 @@ export function buildGoogleFormReviewQueue(input:{
     ambiguousNames.add(key);
     result.push({
       id:`homonym:${key}`,kind:"homonym",name:name(rows[0].first,rows[0].last),
-      email:null,sourceRowId:null,sourceHash:null,relatedRecords:addresses.length,
+      email:null,sourceRowId:null,sourceHash:null,relatedRecords:addresses.length,differences:[],
       evidence:evidenceOf(members.filter(member=>normName(member.first_name,member.last_name)===key)),
       candidates:candidates(name(rows[0].first,rows[0].last),null),
       explanation:`Lo stesso nome compare con ${addresses.length} indirizzi email diversi. Possono essere omonimi, email condivise o una sola persona: decidi prima di collegare.`,
@@ -118,12 +122,31 @@ export function buildGoogleFormReviewQueue(input:{
     if(isDuplicate||isAmbiguous)continue;
     const matched=candidates(name(row.first_name,row.last_name),row.email);
     const isNew=row.action==="create";
+    const previous=members.find(member=>member.id===row.existingMemberId);
+    const current=preview.validSourceRows.find(form=>form.source_row_id===row.source_row_id);
+    const differences:Array<{label:string;before:string;after:string}>=[];
+    if(previous&&current){
+      const fields:[
+        string,string|null|undefined,string|null|undefined,
+      ][]=[
+        ["Nome",previous.first_name,current.first_name],
+        ["Cognome",previous.last_name,current.last_name],
+        ["Email",previous.email,current.email],
+        ["Contatto",previous.contact,current.contact],
+        ["Data modulo",previous.membership_starts_at,current.membership_starts_at],
+        ["Scadenza associativa registrata",previous.membership_expires_at,current.membership_expires_at],
+      ];
+      for(const [label,before,after] of fields){
+        if((before??"").trim()!==(after??"").trim())
+          differences.push({label,before:before||"—",after:after||"—"});
+      }
+    }
     result.push({
       id:`form:${row.source_row_id}`,kind:isNew?"new":"changed",
       name:name(row.first_name,row.last_name),email:row.email,
       sourceRowId:row.source_row_id,
       sourceHash:preview.validSourceRows.find(source=>source.source_row_id===row.source_row_id)?.source_hash??null,
-      relatedRecords:1,evidence:evidenceOf(members.filter(member=>member.source==="google_sheet"&&member.source_row_id===row.source_row_id)),candidates:matched,
+      relatedRecords:1,differences,evidence:evidenceOf(members.filter(member=>member.source==="google_sheet"&&member.source_row_id===row.source_row_id)),candidates:matched,
       explanation:isNew
         ? matched.length?"Modulo nuovo: esiste già una possibile scheda persona. Importa il modulo e collegalo alla scheda esistente, senza crearne un'altra.":"Modulo nuovo: controlla i dati prima di aggiungerlo."
         : "Il modulo Google e la copia nel database differiscono. Verifica i campi prima di aggiornare.",
@@ -141,7 +164,7 @@ export function buildGoogleFormReviewQueue(input:{
     result.push({
       id:`missing:${payment.id}`,kind:"missing_form",
       name:name(payment.first_name,payment.last_name),email:payment.email,
-      sourceRowId:null,sourceHash:null,relatedRecords:1,evidence:evidenceOf([payment]),
+      sourceRowId:null,sourceHash:null,relatedRecords:1,differences:[],evidence:evidenceOf([payment]),
       candidates:candidates(name(payment.first_name,payment.last_name),payment.email),
       explanation:"Quota confermata ma modulo Google non trovato. Controlla l'indirizzo del modulo prima di chiedere una nuova compilazione.",
       canConfirm:false,
