@@ -41,7 +41,7 @@ vi.mock("@/lib/association/manual-validation", () => ({
 
 const P = "00000000-0000-4000-8000-0000000000a1";
 const W = "00000000-0000-4000-8000-0000000000b1";
-const PERIOD_2027 = { paymentsFrom: "2027-01-01", validUntil: "2027-12-31" };
+const PERIOD_2027 = { paymentsFrom: "2026-09-01", validUntil: "2027-12-31" };
 
 beforeEach(() => {
   role = "admin";
@@ -97,7 +97,7 @@ describe("Segna quota ok", () => {
 
   it("4e (#15): dalla scheda persona, il periodo scelto (non solo quello di oggi)", async () => {
     const { markQuotaOkAction } = await import("@/app/gestione/(app)/p/membership-actions");
-    expect(await markQuotaOkAction({ personId: P, workshopId: null, periodFrom: "2027-01-01" })).toEqual({ ok: true });
+    expect(await markQuotaOkAction({ personId: P, workshopId: null, periodFrom: "2026-09-01" })).toEqual({ ok: true });
     expect(save).toHaveBeenCalledWith(identity, { period: PERIOD_2027 });
     expect(await markQuotaOkAction({ personId: P, workshopId: null, periodFrom: "2025-09-01" })).toEqual({ ok: true });
     expect(save).toHaveBeenLastCalledWith(identity, { period: { paymentsFrom: "2025-09-01", validUntil: "2026-12-31" } });
