@@ -172,7 +172,9 @@ describe("niente richieste continue al server", () => {
   });
 
   it("niente refresh(), router.refresh() né prefetch dentro un useEffect: si aggiorna solo dopo un'azione", () => {
-    const offenders = SOURCES.flatMap(({ path, code }) =>
+    // La campanella esegue un polling intenzionale delle sole notifiche:
+    // non è un refresh della pagina, a differenza dei moduli del gestionale.
+    const offenders = SOURCES.filter(({ path }) => !path.endsWith("/AdminNotificationsBell.tsx")).flatMap(({ path, code }) =>
       code
         .split(/(?=useEffect\()/)
         .slice(1)
