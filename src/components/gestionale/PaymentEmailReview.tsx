@@ -1,5 +1,6 @@
 "use client";
 import { useState, useTransition } from "react";
+import { countAssignedPaymentSlots } from "@/lib/gestionale/payment-slot-progress";
 import { confirmAssociationPaymentAction, findPaymentPeopleAction, ignoreAssociationPaymentAction } from "@/app/gestione/(app)/quote-email/actions";
 
 type Person = {kind:"person"|"member";id:string;name:string;email:string|null;source:string};
@@ -74,9 +75,7 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
 
  // L'assegnazione appena confermata compare sia in saved che nelle props
  // dopo un aggiornamento server: contare gli SLOT univoci, non le righe UI.
- const countUsed=(p:Payment)=>new Set([
-  ...p.slots,...(saved[p.id]??[]).map(item=>item.slot)
- ]).size;
+ const countUsed=(p:Payment)=>countAssignedPaymentSlots(p.slots,saved[p.id]??[]);
  const unresolved=payments.filter(p=>!ignored[p.id]&&countUsed(p)<p.availableSlots).length;
  return <div className="space-y-4">
   {lastConfirmed&&<div role="status" className="fixed bottom-24 left-4 right-4 z-40 mx-auto flex max-w-xl items-start justify-between gap-3 rounded-xl border border-[#326941]/40 bg-[#eef6ee] p-3 text-sm text-[#326941] shadow-lg">
