@@ -4,7 +4,7 @@ import { countAssignedPaymentSlots } from "@/lib/gestionale/payment-slot-progres
 import { confirmAssociationPaymentAction, findPaymentPeopleAction, ignoreAssociationPaymentAction } from "@/app/gestione/(app)/quote-email/actions";
 
 type Person = {kind:"person"|"member";id:string;name:string;email:string|null;source:string};
-type Payment = {id:string;provider:string;payer_name:string|null;amount_cents:number;note:string|null;paid_at:string;availableSlots:number;slots:number[];suggested:{id:string;name:string}|null;proposals:Person[];assigned:{slot:number;name:string}[];alreadyPaidPeriod:string|null;associationPeriodFrom:string|null;associationExpiresAt:string|null};
+type Payment = {id:string;provider:string;payer_name:string|null;amount_cents:number;note:string|null;paid_at:string;availableSlots:number;slots:number[];suggested:{id:string;name:string}|null;proposals:Person[];assigned:{slot:number;name:string}[];alreadyPaidPeriod:string|null;associationPeriodFrom:string|null;associationExpiresAt:string|null;noteKind:"membership"|"other"|"uncertain";beneficiaryHints:string[]};
 type SavedQuota = {name:string;period:string;slot:number};
 type Notice = {tone:"error"|"success";text:string};
 
@@ -74,9 +74,11 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
  // L'assegnazione appena confermata compare sia in saved che nelle props
  // dopo un aggiornamento server: contare gli SLOT univoci, non le righe UI.
  const countUsed=(p:Payment)=>countAssignedPaymentSlots(p.slots,saved[p.id]??[]);
- const unresolved=payments.filter(p=>!ignored[p.id]&&countUsed(p)<p.availableSlots).length;
+ const unresolved=payments.filter(p=>!ignored[p.id]&&p.noteKind!=="other"&&countUsed(p)<p.availableSlots).length;
+ const nonFee=payments.filter(p=>p.noteKind==="other"&&!ignored[p.id]).length;
  return <div className="space-y-4">
-  <h2 className="font-semibold">Pagamenti da verificare ({unresolved})</h2>
+  <h2 className="font-semibold">Quote candidate da verificare ({unresolved})</h2>
+  {nonFee>0&&<p className="text-xs text-[#805b26]">{nonFee} pagamenti con causale riferita a eventi: da escludere o verificare separatamente.</p>}
   {payments.length===0&&<p className="text-sm text-[#5f524c]">Nessun pagamento in attesa nei risultati caricati.</p>}
   {payments.map(p=>{
    const extra=saved[p.id]??[];
@@ -85,13 +87,27 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
    const isWorking=working===p.id;
    const notice=feedback[p.id];
    const periodAlreadyPaid=Boolean(p.alreadyPaidPeriod&&periodFor(p.id)===p.alreadyPaidPeriod);
+   const eligible=p.proposals.filter(person=>!p.assigned.some(a=>a.name.toLowerCase()===person.name.toLowerCase())&&
+     !extra.some(a=>a.name.toLowerCase()===person.name.toLowerCase()));
    return <section key={p.id} className="space-y-3 rounded-xl border border-[#211815]/15 bg-white p-3 sm:p-4">
     <div className="flex justify-between gap-2">
      <strong>{p.provider.toUpperCase()} · {(p.amount_cents/100).toLocaleString("it-IT",{style:"currency",currency:"EUR"})}</strong>
      <span className="text-xs text-[#5f524c]">{new Date(p.paid_at).toLocaleDateString("it-IT")}</span>
     </div>
     <p className="text-sm">{p.payer_name||"Pagante non riconosciuto"}</p>
-    {p.note&&<p className="text-xs text-[#5f524c]">Messaggio: {p.note}</p>}
+    {p.note&&<p className="rounded-lg bg-[#f6f1e9] p-2 text-xs text-[#5f524c]">
+      <strong>Causale originale:</strong> {p.note}
+    </p>}
+    {p.beneficiaryHints.length>0&&<p className="text-sm">
+      <strong>Beneficiari indicati:</strong> {p.beneficiaryHints.join(" · ")}
+    </p>}
+    {p.noteKind==="other"&&<p className="rounded-lg border border-[#d5a052]/30 bg-[#fff8eb] p-2 text-sm text-[#805b26]">
+      La causale sembra riferirsi a un evento o un'attività, non alla quota associativa.
+      {used>0?" Una quota è già stata assegnata: serve una verifica dell'abbinamento.":" Non assegnare quote su questo pagamento."}
+    </p>}
+    {p.noteKind==="uncertain"&&<p className="text-xs text-[#805b26]">
+      Importo compatibile con una quota, ma la causale non conferma il beneficiario. Verifica prima di associare.
+    </p>}
     <div className="flex flex-wrap items-end justify-between gap-2">
      <p className="text-xs text-[#5f524c]">Quote da 15 € assegnate: {used}/{p.availableSlots}</p>
      {!closed&&<p className="text-xs font-semibold">Annualità {periodLabel(periodFor(p.id))} · valida fino al {p.associationExpiresAt?.split("-").reverse().join("/")??"—"}</p>}
@@ -105,13 +121,15 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
     </p>)}
     {ignored[p.id]&&<p role="status" className="rounded-lg bg-[#f2ede3] p-3 text-sm">Pagamento ignorato e salvato.</p>}
     {notice?.tone==="error"&&<p role="alert" className="rounded-lg border border-[#9b4b1e]/30 bg-[#fdf3e9] p-3 text-sm font-medium text-[#9b4b1e]">{notice.text}</p>}
-    {!closed&&<>
+    {p.noteKind==="other"&&!closed&&used===0&&<button type="button" disabled={blocked} onClick={()=>ignore(p.id)}
+      className="min-h-10 text-xs font-semibold text-[#a8583e] underline">Escludi dalla verifica quote</button>}
+    {!closed&&p.noteKind!=="other"&&<>
      <p className="text-sm font-semibold text-[#5f524c]">
        {p.availableSlots>1?`Quota ${used+1} di ${p.availableSlots} (15 €): ${used===0?"scegli la prima persona":"scegli un'altra persona per la quota rimanente"}`:"Assegna la quota da 15 €"}
      </p>
-     {used===0&&p.proposals.length>0&&<div className="space-y-2 rounded-lg bg-[#f6f1e9] p-3 text-sm">
-       <p className="text-xs font-semibold">Persone proposte automaticamente</p>
-       {p.proposals.map(person=><div key={person.kind+person.id}
+     {eligible.length>0&&<div className="space-y-2 rounded-lg bg-[#f6f1e9] p-3 text-sm">
+       <p className="text-xs font-semibold">{p.beneficiaryHints.length?"Corrispondenze suggerite dalla causale":"Pagante proposto: verifica che sia il beneficiario"}</p>
+       {eligible.map(person=><div key={person.kind+person.id}
          className="flex flex-wrap items-center justify-between gap-2 border-t border-[#211815]/10 pt-2">
          <span><strong className="block">{person.name}</strong>
            <small className="block break-all text-[#5f524c]">{person.source}{person.email?` · ${person.email}`:""}</small>
