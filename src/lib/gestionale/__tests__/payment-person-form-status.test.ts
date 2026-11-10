@@ -19,6 +19,12 @@ describe("quote: modulo collegato alla persona centrale",()=>{
       [form("Gaia maria","Baietti","baiagaietti@hotmail.it")],
     )).toBe("google");
   });
+  it("recupera il modulo tramite email associativa anche quando cambia il recapito",()=>{
+    expect(formStatusForPerson(
+      {first_name:"Gabriele",last_name:"Vierzi",email:"nuovo@example.test",membership_email:"gabriel.vierzi@me.com"},
+      [form("Gabriele","Vierzi","gabriel.vierzi@me.com")],
+    )).toBe("google");
+  });
   it("Barbara e Eva: stessa email non certifica il modulo",()=>{
     expect(formStatusForPerson(
       {first_name:"Barbara",last_name:"Hochstrasser",email:"ba.hochstrasser@gmail.com"},
