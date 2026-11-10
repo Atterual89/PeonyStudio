@@ -1,4 +1,5 @@
 import { FIRST_MEMBERSHIP_PERIOD, membershipPeriodFor } from "./membership-periods";
+import { formIdentityCompatible } from "./form-identity";
 
 // Periodo in corso per la pagina admin (stessi valori di prima: 2025-09-01 e
 // 2026-12-31), definito in membership-periods.ts.
@@ -63,7 +64,9 @@ export function deriveMembershipState(
   };
   // Il modulo Google non scade. Il libro ufficiale puo' confermare una
   // precedente registrazione: la sua scadenza limita SOLO la quota annuale.
-  const googleFormPresent = rows.some(row => row.source === "google_sheet" && samePerson(row));
+  const googleFormPresent = rows.some(row =>
+    (row.source === "google_sheet" || (row.source === "manual_form" && row.membership_status === "verified")) &&
+    formIdentityCompatible(identity, row));
   // La quota è confermata esclusivamente da un pagamento email abbinato
   // oppure da un inserimento manuale salvato nel gestionale.
   const referenceDate = (options.referenceDate ?? (options.paymentsFrom ? paymentWindow.until : today) ?? today).slice(0, 10);
