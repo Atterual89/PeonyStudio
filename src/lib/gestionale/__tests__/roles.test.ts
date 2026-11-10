@@ -360,7 +360,7 @@ describe("loader di Ale: solo identità minima dei profili confermati", () => {
 
     aleContactRows = [{ person_id: UUID }]; // Collegamento esplicito Excel → anagrafica.
     const { getRegistrations } = await import("../server/registrations");
-    const registrations = await getRegistrations(UUID);
+    const registrations = await getRegistrations(UUID, {includeLinkedProfile:true});
 
     const query = selects.find((s) => s.table === "gw_bookings")!;
     // Join con campi minimi: non esporre identificativi o dettagli associativi.
@@ -381,7 +381,7 @@ describe("loader di Ale: solo identità minima dei profili confermati", () => {
     expect(registrations[0].agreedFeeCents).toBe(45000);
 
     aleContactRows = []; // Senza associazione Excel il nome centrale NON arriva ad Alessandra.
-    const withoutExcel = await getRegistrations(UUID);
+    const withoutExcel = await getRegistrations(UUID, {includeLinkedProfile:true});
     expect(withoutExcel[0].people[0].linkedProfile).toBeNull();
 
     // "Inserito da Ale" / "Inserito da Peony": solo il ruolo, mai il nome dell'operatore.
