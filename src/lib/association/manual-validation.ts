@@ -94,7 +94,7 @@ export async function saveManualValidation(
   if (existingResult.error) return { ok: false, status: 500, message: existingResult.error.message };
 
   const existing = ((existingResult.data ?? []) as ManualRow[]).find(
-    (row) => sameIdentity(row, email, nameKey) && (!period || row.membership_starts_at?.slice(0, 10) === period.paymentsFrom),
+    (row) => sameIdentity(row, email, nameKey) && row.membership_starts_at?.slice(0, 10) === dates.paymentsFrom,
   );
 
   // La prova del bonifico/PayPal già associato prevale sul controllo
