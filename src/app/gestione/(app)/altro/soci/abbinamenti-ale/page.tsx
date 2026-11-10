@@ -8,8 +8,9 @@ import {listAleMatchingAction} from "./actions";
 import {AdminAleMatchingPanel,type AleMatchCandidate} from "@/components/gestionale/AdminAleMatchingPanel";
 import {Notice} from "@/components/gestionale/ui";
 
-export default async function AleMatchingPage(){
+export default async function AleMatchingPage({ searchParams }: { searchParams: Promise<{ contatto?: string | string[] }> }){
   await requireAdmin();
+  const { contatto } = await searchParams;
   const [staging,registry]=await Promise.all([
     listAleMatchingAction(),
     loadUnifiedDirectory(todayInRome()).catch((error:unknown)=>{
@@ -29,6 +30,6 @@ export default async function AleMatchingPage(){
     </div>
     {!registry?<Notice tone="error">Registro associativo non disponibile: abbinamenti sospesi finché non torna accessibile.</Notice>:null}
     {!staging.ok?<Notice tone="error">{staging.error}</Notice>:null}
-    {registry&&staging.ok?<AdminAleMatchingPanel rows={staging.data} candidates={candidates}/>:null}
+    {registry&&staging.ok?<AdminAleMatchingPanel rows={staging.data} candidates={candidates} focusedContactId={typeof contatto==="string"?contatto:undefined}/>:null}
   </section>;
 }
