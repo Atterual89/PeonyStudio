@@ -2,6 +2,7 @@ import {normalizeMembershipEmail} from "@/lib/association/membership-state";
 
 export type AutoPaymentCandidate={
   kind:"person"|"member";id:string;name:string;email:string|null;source:string;
+  formStatus?:"google"|"paper"|"conflict"|"missing";
 };
 const tokens=(value:string|null|undefined):string[] =>
  (value??"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")

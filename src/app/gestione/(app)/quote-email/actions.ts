@@ -113,7 +113,7 @@ export async function getAssociationMailState() {
     const candidateName=beneficiary&&[...directory,...forms].some(candidate=>paymentNameMatch(beneficiary,candidate.name)>=75)
       ? beneficiary:p.payer_name;
     const candidates=proposePeopleForPayment(candidateName,directory,forms);
-    const formCheck=candidates.some(item=>item.formStatus==="google")?"found"
+    const formCheck:"found"|"review"|"missing"=candidates.some(item=>item.formStatus==="google")?"found"
       :candidates.some(item=>item.formStatus==="conflict")?"review"
       :candidates.some(item=>item.formStatus==="paper")?"review":"missing";
     return ({
