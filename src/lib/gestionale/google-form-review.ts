@@ -127,7 +127,7 @@ export function buildGoogleFormReviewQueue(input:{
       explanation:isNew
         ? matched.length?"Modulo nuovo: esiste già una possibile scheda persona. Conferma il collegamento prima di crearne un'altra.":"Modulo nuovo: controlla i dati prima di aggiungerlo."
         : "Il modulo Google e la copia nel database differiscono. Verifica i campi prima di aggiornare.",
-      canConfirm:(!isNew||matched.length===0)&&matched.length<=1,
+      canConfirm:matched.length<=1,
     });
   }
   const formEmails=new Set(preview.validSourceRows.map(row=>email(row.email)).filter(Boolean));
