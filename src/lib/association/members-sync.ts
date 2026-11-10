@@ -40,6 +40,8 @@ export type AssociationMemberPreviewRow = {
 };
 
 export type AssociationMembersSyncPreview = {
+  /** Numero di registrazioni Google distinte nello storico; non il totale delle righe duplicate. */
+  existingUniqueRows: number;
   totalRows: number;
   validRows: number;
   invalidRows: number;
@@ -324,6 +326,10 @@ function buildPreview(
   );
 
   return {
+    existingUniqueRows: new Set(existingMembers.map(member =>
+      member.source_row_id?.trim() ||
+      (member.email ? `email:${member.email.trim().toLowerCase()}` : `id:${member.id}`)
+    )).size,
     totalRows: sheetResult.totalRows,
     validRows: previewRows.filter((row) => row.action !== "invalid").length,
     invalidRows: previewRows.filter((row) => row.action === "invalid").length,
