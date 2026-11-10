@@ -5,19 +5,43 @@ import { getGestionaleDb } from "@/lib/gestionale/server/db";
 
 /**
  * Web Push senza dipendenze: VAPID RFC 8292 + aes128gcm RFC 8291/8188.
- * Le chiavi private restano sul server Netlify; il browser riceve solo la public key.
+ * Le chiavi risiedono in Supabase Vault (non in GitHub né nel client).
+ * Un eventuale set completo di variabili server-side prevale su Vault.
  */
 export type PushKeys = { p256dh: string; auth: string };
 export type PushSubscriptionRecord = PushKeys & { endpoint: string; operator_id: string };
+type VapidConfig = { publicKey: string; privateKey: string; subject: string };
 
-export function publicVapidKey(): string | null {
-  return process.env.GW_VAPID_PUBLIC_KEY?.trim() || null;
+let cachedConfig: { value: VapidConfig | null; until: number } | null = null;
+
+async function getVapidConfig(): Promise<VapidConfig | null> {
+  const publicKey = process.env.GW_VAPID_PUBLIC_KEY?.trim();
+  const privateKey = process.env.GW_VAPID_PRIVATE_KEY?.trim();
+  if (publicKey && privateKey) return {
+    publicKey, privateKey,
+    subject: process.env.GW_VAPID_SUBJECT?.trim() || "mailto:peony.studio.turin@gmail.com",
+  };
+
+  if (cachedConfig && cachedConfig.until > Date.now()) return cachedConfig.value;
+  const { data, error } = await getGestionaleDb().rpc("gw_get_vapid_config");
+  if (error) {
+    console.error("[gestionale] Configurazione Vault VAPID non accessibile:", error.code);
+    return null;
+  }
+  const value = data as Partial<VapidConfig> | null;
+  const config = value && typeof value.publicKey === "string" &&
+    typeof value.privateKey === "string" && typeof value.subject === "string"
+      ? { publicKey: value.publicKey, privateKey: value.privateKey, subject: value.subject }
+      : null;
+  cachedConfig = { value: config, until: Date.now() + 300_000 };
+  return config;
 }
-function privateVapidKey(): string | null {
-  return process.env.GW_VAPID_PRIVATE_KEY?.trim() || null;
+
+export async function publicVapidKey(): Promise<string | null> {
+  return (await getVapidConfig())?.publicKey ?? null;
 }
-export function pushConfigured(): boolean {
-  return Boolean(publicVapidKey() && privateVapidKey());
+export async function pushConfigured(): Promise<boolean> {
+  return Boolean(await getVapidConfig());
 }
 
 function knownPushEndpoint(endpoint: string): URL | null {
@@ -77,9 +101,9 @@ function encryptPayload(payload: string, keys: PushKeys): Buffer {
   recordSize.writeUInt32BE(4096);
   return Buffer.concat([salt, recordSize, Buffer.from([serverPublic.length]), serverPublic, encrypted]);
 }
-function vapidAuthorization(audience: string): string {
-  const publicKey = Buffer.from(publicVapidKey()!, "base64url");
-  const privateKey = Buffer.from(privateVapidKey()!, "base64url");
+function vapidAuthorization(audience: string, config: VapidConfig): string {
+  const publicKey = Buffer.from(config.publicKey, "base64url");
+  const privateKey = Buffer.from(config.privateKey, "base64url");
   if (publicKey.length !== 65 || publicKey[0] !== 4 || privateKey.length !== 32) {
     throw new Error("Chiavi VAPID non valide");
   }
@@ -92,21 +116,23 @@ function vapidAuthorization(audience: string): string {
   const encoded = (obj: object) => Buffer.from(JSON.stringify(obj)).toString("base64url");
   const input = encoded({ typ: "JWT", alg: "ES256" }) + "." +
     encoded({ aud: audience, exp: Math.floor(Date.now() / 1000) + 3600,
-      sub: process.env.GW_VAPID_SUBJECT || "mailto:peony.studio.turin@gmail.com" });
+      sub: config.subject });
   const signature = sign("sha256", Buffer.from(input), { key, dsaEncoding: "ieee-p1363" }).toString("base64url");
-  return `vapid t=${input}.${signature}, k=${publicVapidKey()}`;
+  return `vapid t=${input}.${signature}, k=${config.publicKey}`;
 }
 
 type PushOutcome = "ok" | "expired" | "failed";
 export async function sendWebPush(subscription: PushSubscriptionRecord, payload: object): Promise<PushOutcome> {
   const endpoint = knownPushEndpoint(subscription.endpoint);
-  if (!endpoint || !pushConfigured()) return "failed";
+  if (!endpoint) return "failed";
+  const config = await getVapidConfig();
+  if (!config) return "failed";
   try {
     const body = encryptPayload(JSON.stringify(payload), subscription);
     const response = await fetch(endpoint, {
       method: "POST",
       headers: {
-        "Authorization": vapidAuthorization(endpoint.origin),
+        "Authorization": vapidAuthorization(endpoint.origin, config),
         "Content-Encoding": "aes128gcm",
         "Content-Type": "application/octet-stream",
         "TTL": "86400",
@@ -140,12 +166,9 @@ export async function dispatchAlePush(operatorId: string): Promise<void> {
     .order("created_at", { ascending: true })
     .limit(200);
   if (error || !pending?.length) return;
-  if (!pushConfigured()) {
-    // I vecchi eventi non devono essere inviati quando le push verranno attivate.
-    await db.from("gw_admin_notifications").update({ push_sent_at: new Date().toISOString() })
-      .in("id", pending.map(n => n.id));
-    return;
-  }
+  // Chiavi temporaneamente non disponibili: conserviamo la coda, senza
+  // perdere gli avvisi durante errori di rete o rotazioni delle credenziali.
+  if (!(await pushConfigured())) return;
   const { data: subscriptions, error: subscriptionsError } = await db.from("gw_admin_push_subscriptions")
     .select("operator_id,endpoint,p256dh,auth")
     .in("operator_id", [...new Set(pending.map(n => n.recipient_operator_id))]);
