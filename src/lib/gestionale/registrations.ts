@@ -5,11 +5,27 @@ import { normalizeText } from "./format";
 import { ADMIN_ENTRY_LABEL } from "./labels";
 import type { Registration } from "./types";
 
-/** "Claudia + Francesco" come li ha scritti Ale, principale per primo. */
+type RegisteredPerson = Registration["people"][number];
+
+/** Mostra il profilo confermato, senza nascondere il nickname usato da Ale. */
+export function registrationPersonLabel(person: RegisteredPerson): {
+  name: string; alias: string | null; linked: boolean;
+  email: string | null; emailSource: "anagrafica" | "iscrizione" | null;
+} {
+  const profile = person.linkedProfile;
+  const name = profile?.name?.trim() || person.enteredAs?.trim() || ADMIN_ENTRY_LABEL;
+  const alias = profile
+    ? [profile.nickname, person.enteredAs].map(value => value?.trim())
+        .find(value => value && normalizeText(value) !== normalizeText(name)) ?? null
+    : null;
+  const email = profile?.email || person.enteredEmail || null;
+  return { name, alias, linked: Boolean(profile), email,
+    emailSource: profile?.email ? "anagrafica" : person.enteredEmail ? "iscrizione" : null };
+}
+
+/** Nome completo quando abbinato, altrimenti nome/nickname inserito da Ale. */
 export function registrationTitle(registration: Pick<Registration, "people">): string {
-  const names = registration.people.map((person) => person.enteredAs);
-  if (names.every((name) => !name)) return ADMIN_ENTRY_LABEL;
-  return names.map((name) => name ?? ADMIN_ENTRY_LABEL).join(" + ");
+  return registration.people.map(person => registrationPersonLabel(person).name).join(" + ") || ADMIN_ENTRY_LABEL;
 }
 
 /**
@@ -19,7 +35,9 @@ export function registrationTitle(registration: Pick<Registration, "people">): s
 export function matchesSearch(registration: Pick<Registration, "people">, query: string): boolean {
   const words = normalizeText(query).split(" ").filter(Boolean);
   if (words.length === 0) return true;
-  const text = normalizeText(registration.people.map((person) => `${person.enteredAs ?? ""} ${person.enteredEmail ?? ""}`).join(" "));
+  const text = normalizeText(registration.people.map((person) =>
+    [person.enteredAs, person.enteredEmail, person.linkedProfile?.name,
+      person.linkedProfile?.nickname, person.linkedProfile?.email].filter(Boolean).join(" ")).join(" "));
   return words.every((word) => text.includes(word));
 }
 
