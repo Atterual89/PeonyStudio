@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { distinctStoredGoogleForms } from "@/lib/association/form-import-integrity";
 
 import {
   readAssociationMembersFromGoogleSheet,
@@ -326,10 +327,7 @@ function buildPreview(
   );
 
   return {
-    existingUniqueRows: new Set(existingMembers.map(member =>
-      member.source_row_id?.trim() ||
-      (member.email ? `email:${member.email.trim().toLowerCase()}` : `id:${member.id}`)
-    )).size,
+    existingUniqueRows: distinctStoredGoogleForms(existingMembers),
     totalRows: sheetResult.totalRows,
     validRows: previewRows.filter((row) => row.action !== "invalid").length,
     invalidRows: previewRows.filter((row) => row.action === "invalid").length,
