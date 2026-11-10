@@ -9,7 +9,7 @@ import { SyncSociButton } from "@/components/gestionale/SyncSociButton";
 import { AssociationMailSyncControl } from "@/components/gestionale/AssociationMailSyncControl";
 import { Notice } from "@/components/gestionale/ui";
 import { getAssociationMailState } from "@/app/gestione/(app)/quote-email/actions";
-import { membershipPeriodFor } from "@/lib/association/membership-periods";
+import { membershipPeriodFor, membershipPeriodForPayment } from "@/lib/association/membership-periods";
 import { todayInRome } from "@/lib/gestionale/workshops";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { findMemberLinkProposals } from "@/lib/gestionale/server/member-links";
@@ -32,10 +32,10 @@ export default async function SociPage({searchParams}:{searchParams:Promise<{quo
  ]);
  const today=todayInRome();
  const periods=Array.from({length:Math.max(1,Number(today.slice(0,4))-2025+2)},
-   (_,i)=>membershipPeriodFor(`${2025+i}-01-01`))
+   (_,i)=>membershipPeriodFor(`${2025+i}-12-31`))
    .filter((p):p is NonNullable<typeof p>=>Boolean(p))
    .filter((p,i,all)=>all.findIndex(other=>other.paymentsFrom===p.paymentsFrom)===i)
-   .map(p=>({from:p.paymentsFrom,label:p.paymentsFrom==="2025-09-01"?"2025/26":p.paymentsFrom.slice(0,4)}));
+   .map(p=>({from:p.paymentsFrom,label:p.validUntil.startsWith("2026")?"2025/26":p.validUntil.slice(0,4)}));
  return <section className="mx-auto max-w-3xl space-y-3">
   <div className="flex flex-wrap items-center justify-between gap-2">
    <h1 className="font-serif text-xl font-medium">Verifiche soci e quote</h1>
@@ -66,7 +66,7 @@ export default async function SociPage({searchParams}:{searchParams:Promise<{quo
    <summary className="cursor-pointer text-sm font-semibold">Pagamenti email da verificare{mail.ok?` · ${mail.payments.length}`:""}</summary>
    <div className="mt-3">
     {mail.ok?<PaymentEmailReview payments={mail.payments} periods={periods}
-      defaultPeriod={membershipPeriodFor(today)?.paymentsFrom??"2025-09-01"}/>:
+      defaultPeriod={membershipPeriodForPayment(today)?.paymentsFrom??"2025-09-01"}/>:
      <Notice tone="error">{mail.error}</Notice>}
    </div>
   </details>
