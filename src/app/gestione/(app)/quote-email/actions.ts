@@ -50,7 +50,7 @@ export async function getAssociationMailState() {
   if (state.error || payments.error) return {ok:false as const,error:"Archivio pagamenti non disponibile. Verifica che la migrazione sia stata applicata."};
   const ids=(payments.data??[]).map(p=>p.id);
   const allocations=ids.length
-    ? await db.from("gw_association_payment_allocations").select("payment_id,slot,person_id").in("payment_id",ids)
+    ? await db.from("gw_association_payment_allocations").select("payment_id,slot,person_id,member_key").in("payment_id",ids)
     : {data:[],error:null};
   if (allocations.error) return {ok:false as const,error:"Impossibile caricare gli abbinamenti delle quote."};
 
@@ -108,6 +108,11 @@ export async function getAssociationMailState() {
     return ({
     ...p, suggested:proposed, alreadyPaidPeriod,
     proposals:proposePeopleForPayment(p.payer_name,directory,forms),
+    assigned: (allocations.data??[]).filter(a=>a.payment_id===p.id).map(a=>{
+      const person=a.person_id?directory.find(row=>row.id===a.person_id):null;
+      const member=a.member_key?forms.find(row=>row.id===a.member_key):null;
+      return {slot:a.slot as number,name:person?.name??member?.name??"Persona già associata"};
+    }),
     associationPeriodFrom: period?.paymentsFrom ?? null,
     associationExpiresAt: period?.validUntil ?? null,
     availableSlots:suggestedQuotaCount({
@@ -185,6 +190,32 @@ export async function confirmAssociationPaymentAction(paymentId: string,target:P
   if(!identity.email&&!(identity.firstName&&identity.lastName))
     return {ok:false as const,error:"Anagrafica insufficiente per verificare la quota."};
   const db=getGestionaleDb();
+  // Nello stesso bonifico da 30€ la seconda quota deve essere assegnata
+  // a un'altra persona, anche quando la prima era collegata come "member".
+  const {data:prior,error:priorError}=await db.from("gw_association_payment_allocations")
+    .select("person_id,member_key").eq("payment_id",paymentId);
+  if(priorError)return {ok:false as const,error:"Impossibile controllare le quote già assegnate."};
+  const targetMail=normalizeMembershipEmail(identity.email);
+  const targetName=normalizeMembershipNameKey(identity.firstName,identity.lastName);
+  for(const row of prior??[]){
+    if((personId&&row.person_id===personId)||(memberKey&&row.member_key===memberKey))
+      return {ok:false as const,error:"Questa persona ha già una quota associata al pagamento."};
+    let priorIdentity:{email:string|null;firstName:string|null;lastName:string|null}|null=null;
+    if(row.person_id){
+      const existing=await getPerson(row.person_id);
+      if(existing)priorIdentity=await membershipIdentityOf(existing);
+    }else if(row.member_key){
+      const member=await getMemberLink(row.member_key);
+      if(member)priorIdentity={email:member.email,firstName:member.firstName,lastName:member.lastName};
+    }
+    if(!priorIdentity)continue;
+    const priorMail=normalizeMembershipEmail(priorIdentity.email);
+    const priorName=normalizeMembershipNameKey(priorIdentity.firstName,priorIdentity.lastName);
+    if((targetMail&&priorMail&&targetMail===priorMail)||
+       (targetName&&priorName&&targetName===priorName)){
+      return {ok:false as const,error:"Le due quote devono essere assegnate a persone diverse."};
+    }
+  }
   const {data:payment,error}=await db.from("gw_association_payment_emails")
     .select("id,provider,amount_cents,status,paid_at").eq("id",paymentId).maybeSingle();
   if(error||!payment||payment.status!=="pending")
