@@ -31,6 +31,12 @@ describe("quote: modulo collegato alla persona centrale",()=>{
       [form("Eva","Müller","ba.hochstrasser@gmail.com")],
     )).toBe("conflict");
   });
+  it("non attesta un modulo a un omonimo senza email confermata",()=>{
+    expect(formStatusForPerson(
+      {first_name:"Gabriele",last_name:"Vierzi",email:null},
+      [form("Gabriele","Vierzi","gabriel.vierzi@me.com")],
+    )).toBe("missing");
+  });
   it("modulo cartaceo verificato è valido, quello revocato no",()=>{
     const person={first_name:"Barbara",last_name:"Hochstrasser",email:"ba.hochstrasser@gmail.com"};
     expect(formStatusForPerson(person,[form("Barbara","Hochstrasser",person.email,"manual_form","verified")])).toBe("paper");
