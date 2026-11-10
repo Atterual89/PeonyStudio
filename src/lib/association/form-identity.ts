@@ -1,4 +1,13 @@
-import { normalizeMembershipEmail, normalizeMembershipNameKey } from "./membership-state";
+const normalizeMembershipEmail=(s?:string|null)=>{
+  const value=(s??"").trim().toLowerCase();
+  const [local,domain]=value.split("@");
+  if(!local||!domain)return value;
+  const d=domain==="googlemail.com"?"gmail.com":domain;
+  return d==="gmail.com"?`${local.split("+")[0].replace(/\\./g,"")}@${d}`:`${local}@${d}`;
+};
+const normalizeMembershipNameKey=(first?:string|null,last?:string|null)=>
+  [first,last].filter(Boolean).join(" ").trim().toLowerCase().normalize("NFD")
+  .replace(/[\\u0300-\\u036f]/g,"").split(/\\s+/).filter(Boolean).sort().join(" ");
 
 /** Correlazione prudente: il solo indirizzo email può essere condiviso.
  * Il cognome deve coincidere e i nomi possono differire solo per secondi nomi.
