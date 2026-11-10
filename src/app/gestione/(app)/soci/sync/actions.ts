@@ -1,6 +1,7 @@
 "use server";
 
 import { createHash } from "node:crypto";
+import { isGoogleFormImportSuspicious } from "@/lib/association/form-import-integrity";
 import { MAX_BOOK_FILE_SIZE, parseWorkbook, replaceMembersBook, validateMembersBook } from "@/lib/association/book-upload";
 import {
   applyAssociationMembersSync,
@@ -81,16 +82,14 @@ async function loadPreview() {
   if (forms.totalRows < 1 || forms.validRows < Math.max(1, Math.floor(forms.totalRows * 0.7)) || forms.errors.length > 0) {
     throw new SociSyncError("Il foglio delle domande Google è vuoto o non ha intestazioni e righe compatibili. Nessuna registrazione modificata.");
   }
-  const result = await db.from("association_members")
-    .select("id", { count: "exact", head: true })
-    .eq("source", "google_sheet");
-  if (result.error) {
-    console.error("[gestionale] Conteggio domande salvate non riuscito", result.error.code);
-    throw new SociSyncError("Impossibile confrontare le domande Google con i dati già salvati nel database. Nessun dato modificato.");
-  }
-  const previousForms = result.count ?? 0;
-  if (previousForms >= 30 && forms.validRows < previousForms * 0.75) {
-    throw new SociSyncError(`Dati Google incompleti: ${forms.validRows} risposte valide lette, ${previousForms} registrazioni già salvate. Controlla i fogli italiano e inglese e gli intervalli di lettura. Sincronizzazione sospesa per sicurezza: nessuna cancellazione.`);
+  // Il database storico conserva anche copie duplicate degli stessi moduli.
+  // La fonte Google restituisce UNA registrazione per identità, quindi
+  // confrontiamo registrazioni distinte con registrazioni distinte.
+  const previousUniqueForms = forms.existingUniqueRows;
+  if (isGoogleFormImportSuspicious(forms.validRows, previousUniqueForms)) {
+    throw new SociSyncError(
+      `Dati Google potenzialmente incompleti: ${forms.validRows} registrazioni distinte lette, ${previousUniqueForms} registrazioni distinte già salvate. Controlla i fogli italiano e inglese. Nessuna cancellazione.`
+    );
   }
   return { forms };
 }

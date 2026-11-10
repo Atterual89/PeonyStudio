@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { distinctStoredGoogleForms } from "@/lib/association/form-import-integrity";
 
 import {
   readAssociationMembersFromGoogleSheet,
@@ -40,6 +41,8 @@ export type AssociationMemberPreviewRow = {
 };
 
 export type AssociationMembersSyncPreview = {
+  /** Numero di registrazioni Google distinte nello storico; non il totale delle righe duplicate. */
+  existingUniqueRows: number;
   totalRows: number;
   validRows: number;
   invalidRows: number;
@@ -324,6 +327,7 @@ function buildPreview(
   );
 
   return {
+    existingUniqueRows: distinctStoredGoogleForms(existingMembers),
     totalRows: sheetResult.totalRows,
     validRows: previewRows.filter((row) => row.action !== "invalid").length,
     invalidRows: previewRows.filter((row) => row.action === "invalid").length,
