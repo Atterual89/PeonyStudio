@@ -41,8 +41,8 @@ describe("stato moduli Google e cartacei distinti dalla quota",()=>{
     const data=buildUnifiedDirectory({people,evidence:[
       {id:"g",...gaia},{id:"e",...eva}
     ],today:"2026-11-10"});
-    expect(data.find(c=>c.personId==="gaia")).toMatchObject({formPresent:true,quotaPaid:false,association:"solo_modulo"});
-    expect(data.find(c=>c.personId==="barbara")).toMatchObject({formPresent:false,association:"non_presente"});
+    expect(data.find(c=>c.personId==="gaia")).toMatchObject({formPresent:true,quotaPaid:false,association:"solo_modulo",identityConflict:false});
+    expect(data.find(c=>c.personId==="barbara")).toMatchObject({formPresent:false,association:"non_presente",identityConflict:true});
     const withPaper=buildUnifiedDirectory({people,evidence:[
       {id:"g",...gaia},{id:"e",...eva},{id:"b",source_row_id:"manual_form:person:barbara",...barbara},
     ],today:"2026-11-10"});
