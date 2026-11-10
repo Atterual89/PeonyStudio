@@ -37,8 +37,8 @@ begin
   if v_payment.paid_at is null then
     raise exception 'Data del pagamento non disponibile';
   end if;
-  v_paid_year := extract(year from v_payment.paid_at)::integer;
-  v_paid_year := v_paid_year + case when extract(month from v_payment.paid_at) >= 9 then 1 else 0 end;
+  v_paid_year := extract(year from v_payment.paid_at at time zone 'Europe/Rome')::integer;
+  v_paid_year := v_paid_year + case when extract(month from v_payment.paid_at at time zone 'Europe/Rome') >= 9 then 1 else 0 end;
   v_expected_from := make_date(v_paid_year-1,9,1);
   v_expected_until := make_date(v_paid_year,12,31);
   if v_expected_from < date '2025-09-01' or
@@ -132,7 +132,7 @@ update public.association_members m
  where m.source='manual_override'
    and m.membership_starts_at=date '2025-09-01'
    and m.membership_expires_at=date '2026-12-31'
-   and e.paid_at::date between date '2026-09-01' and date '2026-12-31'
+   and (e.paid_at at time zone 'Europe/Rome')::date between date '2026-09-01' and date '2026-12-31'
    and m.notes_admin like 'Quota confermata da email (riferimento '||e.id::text||')%';
 
 -- Le verifiche manuali già attribuite esplicitamente al 2027 diventano
