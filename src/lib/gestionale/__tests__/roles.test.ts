@@ -1,6 +1,6 @@
 // D18 — sicurezza dei ruoli, lato server. Sessione simulata (cookie + riga di
 // gw_sessions): con un'organizzatrice ogni azione, pagina e loader riservati
-// agli admin risponde 404; i loader di Ale non restituiscono dati anagrafici.
+// agli admin risponde 404; Ale vede i dati centrali soltanto con il collegamento Excel.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -29,6 +29,7 @@ let bookingRows: unknown[] = [];
 let participantRows: unknown[] = [];
 let workshopRow: unknown = null;
 let paymentRows: unknown[] = [];
+let aleContactRows: unknown[] = [];
 
 function sessionRow() {
   const now = new Date();
@@ -50,6 +51,7 @@ function query(table: string) {
     if (table === "gw_booking_participants") return { data: participantRows, error: null };
     if (table === "gw_workshops") return { data: workshopRow, error: null };
     if (table === "gw_payments") return { data: paymentRows, error: null };
+    if (table === "gw_ale_contacts") return { data: aleContactRows, error: null };
     return { data: [], error: null };
   };
   const builder: Record<string, unknown> = {};
@@ -77,6 +79,7 @@ beforeEach(() => {
   participantRows = [];
   workshopRow = null;
   paymentRows = [];
+  aleContactRows = [];
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
 afterEach(() => {
@@ -355,6 +358,7 @@ describe("loader di Ale: solo identità minima dei profili confermati", () => {
       },
     ];
 
+    aleContactRows = [{ person_id: UUID }]; // Collegamento esplicito Excel → anagrafica.
     const { getRegistrations } = await import("../server/registrations");
     const registrations = await getRegistrations(UUID);
 
@@ -363,6 +367,7 @@ describe("loader di Ale: solo identità minima dei profili confermati", () => {
     expect(query.columns.match(/gw_people!gw_booking_participants_person_id_fkey\(([^)]*)\)/)?.[1])
       .toBe("first_name, last_name, nickname, email, merged_into");
     expect(selects.some((s) => s.table === "gw_people" || s.table === "association_members")).toBe(false);
+    expect(selects.some((s) => s.table === "gw_ale_contacts")).toBe(true);
 
     const keys = [...allKeys(registrations)];
     expect(keys.filter((key) => FORBIDDEN_KEYS.includes(key))).toEqual([]);
@@ -374,6 +379,10 @@ describe("loader di Ale: solo identità minima dei profili confermati", () => {
     expect(registrations[1].people).toEqual([{ participantId: "pd", isPrimary: true, enteredAs: "Ginestra", enteredEmail: null, alreadyAs: null, matchStatus:"da_abbinare",autoCreated:false,linkedProfile:null }]);
     expect(JSON.stringify(registrations)).not.toMatch(/intrusa@example\.test|Segreto|Non esporre/);
     expect(registrations[0].agreedFeeCents).toBe(45000);
+
+    aleContactRows = []; // Senza associazione Excel il nome centrale NON arriva ad Alessandra.
+    const withoutExcel = await getRegistrations(UUID);
+    expect(withoutExcel[0].people[0].linkedProfile).toBeNull();
 
     // "Inserito da Ale" / "Inserito da Peony": solo il ruolo, mai il nome dell'operatore.
     const { insertedByLabel } = await import("../labels");
