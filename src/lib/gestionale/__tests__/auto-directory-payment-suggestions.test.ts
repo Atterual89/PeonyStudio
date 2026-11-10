@@ -42,6 +42,10 @@ describe("quote email: suggerimenti dai moduli e divisione in due",()=>{
   expect(page).toContain('.eq("created_by",organizer.id)');
   expect(page).toContain('.in("workshop_id",allowedWorkshops)');
   expect(page).not.toContain("loadUnifiedDirectory");
+  const update=readFileSync("src/app/gestione/(app)/anagrafica/actions.ts","utf8");
+  expect(update).toContain('.eq("created_by",operator.id)');
+  expect(update).toContain('allowed.has(booking.workshop_id)');
+  expect(update).toContain('if (!permitted) return');
   const admin=readFileSync("src/app/gestione/(app)/persone/page.tsx","utf8");
   expect(admin).toContain("await requireAdmin()");
  });
