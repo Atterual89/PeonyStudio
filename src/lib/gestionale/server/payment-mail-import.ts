@@ -44,7 +44,7 @@ export async function importPaymentNotifications(mode:"recent"|"historic"="recen
     if(baselineError)throw new Error("Impossibile leggere l'ultimo aggiornamento del libro soci.");
     // On fresh installs with no historical source, use membership start rather
     // than silently skipping all past payments.
-    const firstPeriod=Date.parse("2025-09-01T00:00:00Z");
+    const firstPeriod=HISTORIC_START.getTime();
     const sourceUpdated=baseline?.updated_at?Date.parse(baseline.updated_at):firstPeriod;
     initial=new Date(Math.max(firstPeriod,Math.min(Date.now(),sourceUpdated)-48*3600_000));
   }
