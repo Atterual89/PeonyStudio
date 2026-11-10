@@ -26,7 +26,8 @@ function ParticipantLine({entry,suggestedEmail}:{
   const [message,setMessage]=useState<Message>(null);
   const [pending,startTransition]=useTransition();
   const display=registrationPersonLabel(entry);
-  const status=display.linked?"Anagrafica abbinata":entry.matchStatus==="automatico"?"Abbinamento da confermare":"Da abbinare";
+  const workshopLinked=entry.matchStatus==="confermato"&&!entry.autoCreated;
+  const status=display.linked?"Excel e anagrafica abbinati":workshopLinked?"Contatto Excel da abbinare":entry.matchStatus==="automatico"?"Abbinamento da confermare":"Da abbinare";
   useEffect(()=>{
     if(editing)return;
     setName(entry.enteredAs??"");
@@ -73,6 +74,7 @@ function ParticipantLine({entry,suggestedEmail}:{
             {display.email||"Email mancante"}
             {display.emailSource?<span className="ml-1 text-xs">· {display.emailSource==="anagrafica"?"dall'anagrafica":"inserita nel workshop"}</span>:null}
           </p>
+          {workshopLinked && !display.linked ? <p className="text-xs text-[#7a5212]">Il workshop ha già un profilo collegato. Per visualizzarne i dati, l’admin deve abbinare anche il contatto importato da Excel.</p> : null}
           {entry.enteredEmail && entry.linkedProfile?.email &&
             entry.enteredEmail.trim().toLowerCase()!==entry.linkedProfile.email.trim().toLowerCase() ?
             <p className="break-all text-xs text-[#7a5212]">
@@ -118,7 +120,7 @@ function ParticipantLine({entry,suggestedEmail}:{
     {message&&<Notice tone={message.tone}>{message.text}</Notice>}
     {!editing&&!(entry.autoCreated&&entry.matchStatus==="da_abbinare"&&
       suggestCoupleSplit(entry.enteredAs??""))&&
-      <OrganizerPersonMatcher participantId={entry.participantId} enteredAs={entry.enteredAs??""} linked={display.linked}/>}
+      <OrganizerPersonMatcher participantId={entry.participantId} enteredAs={entry.enteredAs??""} linked={workshopLinked}/>}
     {!editing&&entry.autoCreated&&entry.matchStatus==="da_abbinare"&&
       suggestCoupleSplit(entry.enteredAs??"")&&
       <p className="text-xs text-[#7a5212]">Prima dividi la coppia; poi abbina le due persone separatamente.</p>}
