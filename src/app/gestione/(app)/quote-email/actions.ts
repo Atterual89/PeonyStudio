@@ -14,11 +14,21 @@ import { refreshGestione } from "@/lib/gestionale/server/refresh";
 import { todayInRome } from "@/lib/gestionale/workshops";
 import { isUuidLike } from "@/lib/gestionale/validation";
 
-/** Analisi storica 2024→inizio import ordinario; non assegna mai quote. */
+/** Analisi dal 1/9/2025 fino all'inizio dell'import ordinario, senza assegnazioni. */
 export async function syncHistoricalAssociationMailAction() {
   await requireAdmin();
-  try { return {ok:true as const,data:await importPaymentNotifications("historic")}; }
-  catch(error) { return {ok:false as const,error:error instanceof Error?error.message:"Impossibile leggere lo storico Gmail."}; }
+  try {
+    return {ok:true as const,data:await importPaymentNotifications("historic")};
+  } catch(error) {
+    const details=error instanceof Error?error.message:String(error);
+    if (/quota exceeded|rate.?limit|userRateLimitExceeded|rateLimitExceeded|quotaExceeded|too many requests|429/i.test(details)) {
+      console.warn("[gmail-history] Limite Gmail raggiunto: blocco storico interrotto senza avanzare il checkpoint.");
+      return {ok:false as const,error:
+        "Limite temporaneo di Gmail raggiunto. I pagamenti già salvati non sono persi: riprova più tardi, un blocco alla volta."};
+    }
+    console.error("[gmail-history] Errore durante il recupero storico",error instanceof Error?error.name:"unknown");
+    return {ok:false as const,error:"Impossibile leggere le notifiche Gmail. Nessuna quota è stata assegnata; riprova più tardi."};
+  }
 }
 
 export async function syncAssociationMailAction() {
@@ -31,7 +41,7 @@ export async function getAssociationMailState() {
   const db = getGestionaleDb();
   const [state, payments, suggestions] = await Promise.all([
     db.from("gw_payment_sync_state").select("initial_from,last_success_at").eq("source","gmail_payments").maybeSingle(),
-    db.from("gw_association_payment_emails").select("id,provider,payer_name,amount_cents,note,paid_at,status").eq("status","pending").gte("paid_at","2025-09-01T00:00:00Z")
+    db.from("gw_association_payment_emails").select("id,provider,payer_name,amount_cents,note,paid_at,status").eq("status","pending").gte("paid_at","2025-08-31T22:00:00Z")
       .order("paid_at",{ascending:false}).limit(75),
     db.rpc("gw_payment_suggest_people"),
   ]);

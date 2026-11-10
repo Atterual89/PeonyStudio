@@ -17,17 +17,18 @@ export async function HistoricPaymentAudit(){
       .eq("source","gmail_payments_history_2024").maybeSingle(),
     db.from("gw_association_payment_emails")
       .select("id,provider,payer_name,paid_at,amount_cents,status")
-      .gte("paid_at","2024-01-01T00:00:00Z")
+      .gte("paid_at","2025-08-31T22:00:00Z")
       .order("paid_at",{ascending:false}).range(0,999),
   ]);
   const rows=(payments.data??[]) as EmailPayment[];
   const yearOf=(iso:string)=>new Intl.DateTimeFormat("en-CA",{year:"numeric",timeZone:"Europe/Rome"}).format(new Date(iso));
-  const years=["2024","2025","2026"];
+  const currentYear=Number(new Intl.DateTimeFormat("en-CA",{year:"numeric",timeZone:"Europe/Rome"}).format(new Date()));
+  const years=Array.from({length:Math.max(1,currentYear-2025+1)},(_,index)=>String(2025+index));
   return <section className="space-y-3 rounded-xl border border-[#211815]/10 bg-white/75 p-3">
-    <h2 className="font-serif text-lg">3. Analisi dei pagamenti storici</h2>
+    <h2 className="font-serif text-lg">3. Analisi delle quote dal settembre 2025</h2>
     <p className="text-sm text-[#5f524c]">
       Le email di PayPal/Qonto sono indizi di pagamento, non quote già assegnate.
-      L'analisi parte dal 1° gennaio 2024 e non modifica le validità associative.
+      L'analisi parte dal 1° settembre 2025 e non modifica le validità associative.
     </p>
     <HistoricalMailSyncButton/>
     {mailState.error||payments.error?
@@ -36,13 +37,15 @@ export async function HistoricPaymentAudit(){
         <p className="text-xs text-[#5f524c]">
           {mailState.data?.last_success_at
             ?"Ultimo controllo storico: "+new Date(mailState.data.last_success_at).toLocaleString("it-IT")
-            :"Importazione storica non ancora eseguita nel gestionale."}
+            :mailState.data?.pending_page_token
+              ?"Analisi in corso: puoi proseguire dal punto salvato."
+              :"Analisi da settembre 2025 non ancora completata."}
         </p>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {years.map(year=>{
             const perYear=rows.filter(row=>yearOf(row.paid_at)===year);
             return <div key={year} className="rounded-lg border border-[#211815]/10 p-3">
-              <p className="text-sm font-semibold">{year}</p>
+              <p className="text-sm font-semibold">{year}{year==="2025"?" (set–dic)":""}</p>
               <p className="text-xl font-semibold tabular-nums">{perYear.length}</p>
               <p className="text-xs text-[#5f524c]">
                 {perYear.filter(p=>p.status==="pending").length} da verificare
@@ -64,8 +67,8 @@ export async function HistoricPaymentAudit(){
           </div>
         </details>
         <p className="text-xs text-[#5f524c]">
-          Le notifiche antecedenti al settembre 2025 richiedono una revisione storica:
-          non devono essere abbinate automaticamente alle annualità 2026 o 2027.
+          Sono inclusi solo i pagamenti dal 1° settembre 2025. Le notifiche restano
+          candidate da verificare: non sono quote confermate automaticamente.
         </p>
       </>}
   </section>;
