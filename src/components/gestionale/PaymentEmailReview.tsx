@@ -118,7 +118,7 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
          <span><strong className="block">{person.name}</strong>
            <small className="block break-all text-[#5f524c]">{person.source}{person.email?` · ${person.email}`:""}</small>
          </span>
-         <button type="button" disabled={blocked||periodAlreadyPaid}
+         <button type="button" disabled={blocked||(periodAlreadyPaid&&person.kind==="person"&&person.id===p.suggested?.id)}
            className="min-h-10 rounded-lg bg-[#a8583e] px-3 py-2 text-white disabled:opacity-50"
            onClick={()=>assign(p.id,{kind:person.kind,id:person.id},person.name)}>
            Associa 15 €
