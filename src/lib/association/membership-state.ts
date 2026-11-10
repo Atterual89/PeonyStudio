@@ -50,7 +50,9 @@ export function deriveMembershipState(
   identity: { email?: string | null; firstName?: string | null; lastName?: string | null },
   options: DeriveMembershipOptions = {},
 ): DerivedMembershipState {
-  const paymentWindow = { from: options.paymentsFrom ?? CURRENT_MEMBERSHIP_START, until: options.paymentsUntil ?? null };
+  const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" });
+  const defaultPeriod = membershipPeriodFor(today) ?? FIRST_MEMBERSHIP_PERIOD;
+  const paymentWindow = { from: options.paymentsFrom ?? defaultPeriod.paymentsFrom, until: options.paymentsUntil ?? null };
   const targetEmail = normalizeEmail(identity.email);
   const targetName = normalizeNameKey(identity.firstName, identity.lastName);
   const samePerson = (row: MembershipEvidenceRow) => {
@@ -64,7 +66,7 @@ export function deriveMembershipState(
   const googleFormPresent = rows.some(row => row.source === "google_sheet" && samePerson(row));
   // La quota è confermata esclusivamente da un pagamento email abbinato
   // oppure da un inserimento manuale salvato nel gestionale.
-  const referenceDate = (options.referenceDate ?? paymentWindow.until ?? CURRENT_MEMBERSHIP_EXPIRY).slice(0, 10);
+  const referenceDate = (options.referenceDate ?? (options.paymentsFrom ? paymentWindow.until : today) ?? today).slice(0, 10);
   const payments = rows.filter(row => row.source === "manual_override" &&
     isPaymentInWindow(row, paymentWindow, referenceDate) && samePerson(row));
   // Se esistono quota 2026 e rinnovo 2027, mostra la scadenza più lunga.
