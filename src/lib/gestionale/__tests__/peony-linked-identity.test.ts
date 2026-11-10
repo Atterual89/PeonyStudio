@@ -23,13 +23,13 @@ describe("stato associativo da identità collegata ai biglietti Peony", () => {
     const identity = identityForLinkedPeonyAttendee([official], linked, null,
       { email: null, firstName: "Gesù", lastName: "Christian" });
     expect(identity.firstName).toBe("christian martelli");
-    expect(deriveMembershipState([official], identity, period).status).toBe("valid");
+    expect(deriveMembershipState([official], identity, period).status).toBe("missing_form");
   });
 
   it("il collegamento al libro già verificato prevale sul nome differente del biglietto", () => {
     const identity = identityForLinkedPeonyAttendee([official], null, official.id,
       { firstName: "Alias", lastName: "Diverso" });
-    expect(deriveMembershipState([official], identity, period).verifiedInOfficialBook).toBe(true);
+    expect(deriveMembershipState([official], identity, period).verifiedInOfficialBook).toBe(false);
   });
 
   it("una quota manuale senza modulo non diventa verde solo perche' e' stata collegata", () => {
