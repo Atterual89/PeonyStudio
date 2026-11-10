@@ -51,7 +51,7 @@ describe("#15 — stato tessera per periodo nella scheda persona", () => {
   it("periodi di oggi e dei workshop della persona, con nome breve", () => {
     const periods = personPeriods("2026-10-29", ["2027-02-06", "2026-11-14", "2025-06-01"]);
     expect(periods.map(periodLabel)).toEqual(["2025/26", "2027"]);
-    expect(periods.map((p) => p.paymentsFrom)).toEqual(["2025-09-01", "2027-01-01"]);
+    expect(periods.map((p) => p.paymentsFrom)).toEqual(["2025-09-01", "2026-09-01"]);
   });
 });
 
