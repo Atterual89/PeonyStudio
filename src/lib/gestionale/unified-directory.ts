@@ -121,7 +121,9 @@ export function buildUnifiedDirectory(input:{
   aliasesByPerson?:ReadonlyMap<string,readonly string[]>;
 }):UnifiedContact[]{
   const people=active(input.people);
-  const groups=groupEvidence(input.evidence);
+  // Team Artist è una fase a valle, non genera registrazioni o pagamenti.
+  const groups=groupEvidence(input.evidence.filter(row =>
+    row.source==="google_sheet" || row.source==="manual_override"));
   const byEmail=new Map<string,PersonRef[]>();
   const byName=new Map<string,PersonRef[]>();
   const byGroupEmail=new Map<string,Group[]>();
