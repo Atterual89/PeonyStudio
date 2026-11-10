@@ -30,7 +30,7 @@ describe("RPC quote associative: confine del 1 settembre", () => {
     `);
     const after = await t.value<string>(`
       insert into gw_association_payment_emails(gmail_message_id,provider,paid_at,payer_name,amount_cents)
-      values('01-sep-2026','qonto','2026-09-01T11:00:00+02','Lia Rossi',1500)
+      values('01-sep-2026','qonto','2026-09-01T00:30:00+02','Lia Rossi',1500)
       returning id v
     `);
     const assign = (paymentId: string, from: string, until: string) =>
