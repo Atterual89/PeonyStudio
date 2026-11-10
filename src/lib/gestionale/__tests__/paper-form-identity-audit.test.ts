@@ -13,6 +13,24 @@ const barbara={first_name:"Barbara",last_name:"Hochstrasser",email:"ba.hochstras
 const identity={email:"baiagaietti@hotmail.it",firstName:"Gaia",lastName:"Baietti"};
 
 describe("stato moduli Google e cartacei distinti dalla quota",()=>{
+  it("non assegna a Barbara una quota di Eva usando la stessa email",()=>{
+    const state=deriveMembershipState([
+      {first_name:"Eva",last_name:"Müller",email:"ba.hochstrasser@gmail.com",
+       source:"manual_override",membership_status:"verified",
+       membership_starts_at:"2026-09-01",membership_expires_at:"2027-12-31"},
+    ],{firstName:"Barbara",lastName:"Hochstrasser",email:"ba.hochstrasser@gmail.com"},
+    {paymentsFrom:"2026-09-01",referenceDate:"2026-11-10"});
+    expect(state.currentYearPaid).toBe(false);
+  });
+  it("continua ad accettare quota con email e nominativo compatibile",()=>{
+    const state=deriveMembershipState([
+      {first_name:"Gaia maria",last_name:"Baietti",email:"baiagaietti@hotmail.it",
+       source:"manual_override",membership_status:"verified",
+       membership_starts_at:"2026-09-01",membership_expires_at:"2027-12-31"},
+    ],{firstName:"Gaia",lastName:"Baietti",email:"baiagaietti@hotmail.it"},
+    {paymentsFrom:"2026-09-01",referenceDate:"2026-11-10"});
+    expect(state.currentYearPaid).toBe(true);
+  });
   it("Gaia Maria Baietti è compatibile con Gaia Baietti, pur senza quota",()=>{
     expect(formIdentityCompatible(identity,gaia)).toBe(true);
     const state=deriveMembershipState([gaia],identity,
