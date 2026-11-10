@@ -66,7 +66,7 @@ describe("menu gestionale semplificato", () => {
     expect(nav).not.toContain('label: "Cerca"');
     expect(nav).not.toContain('label: "Altro"');
     const settings = source("src/app/gestione/(app)/altro/page.tsx");
-    expect(settings).toContain("Allineamento e libro soci");
+    expect(settings).toContain("Registrazioni e quote");
     expect(settings).not.toContain("Registrazioni associazione");
   });
 });
