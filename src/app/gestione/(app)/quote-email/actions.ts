@@ -7,7 +7,7 @@ import { getPerson } from "@/lib/gestionale/server/data";
 import { membershipIdentityOf, clearMembershipCache, searchMembers, getMemberLink } from "@/lib/gestionale/server/membership";
 import { deriveMembershipState } from "@/lib/association/membership-state";
 import { readAllMemberEvidence } from "@/lib/gestionale/server/peony-events";
-import { membershipPeriodFor } from "@/lib/association/membership-periods";
+import { membershipPeriodForPayment } from "@/lib/association/membership-periods";
 import { suggestedQuotaCount } from "@/lib/gestionale/payment-email-parser";
 import { combinePaymentPersonCandidates } from "@/lib/gestionale/payment-person-candidates";
 import { refreshGestione } from "@/lib/gestionale/server/refresh";
@@ -59,13 +59,15 @@ export async function getAssociationMailState() {
   return {ok:true as const, state:state.data, payments:(payments.data??[]).map(p=>{
     const proposed=suggestionsByPayment.get(p.id)??null;
     const person=proposed?peopleById.get(proposed.id):null;
-    const period=membershipPeriodFor(p.paid_at.slice(0,10));
+    const period=membershipPeriodForPayment(p.paid_at.slice(0,10));
     const alreadyPaidPeriod=person&&period&&deriveMembershipState(
       verifiedPayments,{email:person.email,firstName:person.first_name,lastName:person.last_name},
       {paymentsFrom:period.paymentsFrom,paymentsUntil:period.validUntil}
     ).paymentMatchMethod==="payment_email"?period.paymentsFrom:null;
     return ({
     ...p, suggested:proposed, alreadyPaidPeriod,
+    associationPeriodFrom: period?.paymentsFrom ?? null,
+    associationExpiresAt: period?.validUntil ?? null,
     availableSlots:suggestedQuotaCount({
       provider:p.provider as "paypal"|"qonto", payerName:p.payer_name,
       amountCents:p.amount_cents, transactionRef:null,note:p.note,
@@ -118,7 +120,7 @@ export async function confirmAssociationPaymentAction(paymentId: string,target:P
   if(!isUuidLike(paymentId)||!target||!["person","member"].includes(target.kind)||
      typeof target.id!=="string"||target.id.length>300||typeof periodFrom!=="string")
     return {ok:false as const,error:"Dati non validi."};
-  const period=membershipPeriodFor(periodFrom);
+  const period=membershipPeriodForPayment(periodFrom);
   const currentYear=Number(todayInRome().slice(0,4));
   if(!period||period.paymentsFrom!==periodFrom||
      Number(period.validUntil.slice(0,4))>currentYear+1)
@@ -142,9 +144,12 @@ export async function confirmAssociationPaymentAction(paymentId: string,target:P
     return {ok:false as const,error:"Anagrafica insufficiente per verificare la quota."};
   const db=getGestionaleDb();
   const {data:payment,error}=await db.from("gw_association_payment_emails")
-    .select("id,provider,amount_cents,status").eq("id",paymentId).maybeSingle();
+    .select("id,provider,amount_cents,status,paid_at").eq("id",paymentId).maybeSingle();
   if(error||!payment||payment.status!=="pending")
     return {ok:false as const,error:"Pagamento già chiuso o inesistente."};
+  // È la data effettiva del pagamento a decidere l’annualità, mai il menu.
+  if (membershipPeriodForPayment(payment.paid_at.slice(0, 10))?.paymentsFrom !== period.paymentsFrom)
+    return {ok:false as const,error:"La quota deve essere assegnata all’annualità determinata dalla data del pagamento."};
   const capacity=suggestedQuotaCount({
     provider:payment.provider as "paypal"|"qonto",
     payerName:null,amountCents:payment.amount_cents,transactionRef:null,note:null
@@ -156,11 +161,7 @@ export async function confirmAssociationPaymentAction(paymentId: string,target:P
   // pagamento confermato via email per lo stesso periodo non va duplicato.
   const state=deriveMembershipState(evidence,identity,window);
   if(state.currentYearPaid&&state.paymentMatchMethod!=="manual")
-    return {ok:false as const,error:
-      period.paymentsFrom==="2025-09-01"
-        ?"Quota 2025/26 già verificata: non è stato salvato nulla. Se il pagamento riguarda il 2027, seleziona 2027 nella scheda e riprova."
-        :`Quota ${period.paymentsFrom.slice(0,4)} già verificata via email: non è stato salvato nulla.`
-    };
+    return {ok:false as const,error:`Quota ${period.validUntil.slice(0,4)} già verificata via email: non è stato salvato nulla.`};
   // Una verifica esclusivamente manuale NON blocca un pagamento documentato:
   // la funzione SQL sostituisce la sua prova conservando l'abbinamento e lo storico.
   const {error:rpcError}=await db.rpc("gw_confirm_association_payment",{
