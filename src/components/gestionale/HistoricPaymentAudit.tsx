@@ -1,4 +1,5 @@
 import "server-only";
+import Link from "next/link";
 
 import { HistoricalMailSyncButton } from "@/components/gestionale/HistoricalMailSyncButton";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
@@ -58,6 +59,9 @@ export async function HistoricPaymentAudit(){
             </div>;
           })}
         </div>
+        <Link prefetch={false} className="inline-flex min-h-10 items-center rounded-lg border border-[#a8583e]/40 px-3 py-2 text-sm font-semibold text-[#a8583e]" href="/gestione/altro/soci?quote=1#quote-email">
+          Rivedi i pagamenti importati e abbinali alle persone
+        </Link>
         <details className="rounded-lg border border-[#211815]/10 p-3">
           <summary className="cursor-pointer text-sm font-semibold">Ultimi pagamenti candidati importati</summary>
           <div className="mt-2 divide-y divide-[#211815]/10">
