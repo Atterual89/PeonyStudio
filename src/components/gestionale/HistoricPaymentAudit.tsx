@@ -1,4 +1,5 @@
 import "server-only";
+import Link from "next/link";
 
 import { HistoricalMailSyncButton } from "@/components/gestionale/HistoricalMailSyncButton";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
@@ -13,7 +14,7 @@ export async function HistoricPaymentAudit(){
   const db=getGestionaleDb();
   const [mailState,payments]=await Promise.all([
     db.from("gw_payment_sync_state")
-      .select("last_success_at,checked_through,pending_page_token")
+      .select("last_success_at,checked_through,pending_page_token,pending_window_from,pending_window_until")
       .eq("source","gmail_payments_history_2024").maybeSingle(),
     db.from("gw_association_payment_emails")
       .select("id,provider,payer_name,paid_at,amount_cents,status")
@@ -24,16 +25,27 @@ export async function HistoricPaymentAudit(){
   const yearOf=(iso:string)=>new Intl.DateTimeFormat("en-CA",{year:"numeric",timeZone:"Europe/Rome"}).format(new Date(iso));
   const currentYear=Number(new Intl.DateTimeFormat("en-CA",{year:"numeric",timeZone:"Europe/Rome"}).format(new Date()));
   const years=Array.from({length:Math.max(1,currentYear-2025+1)},(_,index)=>String(2025+index));
+  const isInProgress=Boolean(mailState.data?.pending_page_token);
+  const earliestImported=rows.length
+    ? new Date(Math.min(...rows.map(row=>new Date(row.paid_at).getTime())))
+      .toLocaleDateString("it-IT",{timeZone:"Europe/Rome"})
+    : null;
   return <section className="space-y-3 rounded-xl border border-[#211815]/10 bg-white/75 p-3">
     <h2 className="font-serif text-lg">3. Analisi delle quote dal settembre 2025</h2>
     <p className="text-sm text-[#5f524c]">
       Le email di PayPal/Qonto sono indizi di pagamento, non quote già assegnate.
       L'analisi parte dal 1° settembre 2025 e non modifica le validità associative.
     </p>
-    <HistoricalMailSyncButton/>
+    <HistoricalMailSyncButton initialHasMore={isInProgress}/>
     {mailState.error||payments.error?
       <p role="alert" className="text-sm text-[#9b2c2c]">Impossibile leggere il riepilogo dei pagamenti.</p>:
       <>
+        {isInProgress&&<div role="status" className="space-y-1 rounded-lg border border-[#a8583e]/25 p-3 text-sm">
+          <p className="font-semibold">Archivio storico non ancora completo</p>
+          <p>Notifiche candidate presenti: {rows.length}{earliestImported?` · prima ricevuta importata: ${earliestImported}`:""}.</p>
+          <p>Prosegui con i blocchi Gmail fino alla conferma di completamento, poi verifica le quote candidate.
+          Le ricevute precedenti alla prima data visualizzata potrebbero essere ancora da importare.</p>
+        </div>}
         <p className="text-xs text-[#5f524c]">
           {mailState.data?.last_success_at
             ?"Ultimo controllo storico: "+new Date(mailState.data.last_success_at).toLocaleString("it-IT")
@@ -53,6 +65,9 @@ export async function HistoricPaymentAudit(){
             </div>;
           })}
         </div>
+        <Link prefetch={false} className="inline-flex min-h-10 items-center rounded-lg border border-[#a8583e]/40 px-3 py-2 text-sm font-semibold text-[#a8583e]" href="/gestione/altro/soci?quote=1#quote-email">
+          Rivedi i pagamenti importati e abbinali alle persone
+        </Link>
         <details className="rounded-lg border border-[#211815]/10 p-3">
           <summary className="cursor-pointer text-sm font-semibold">Ultimi pagamenti candidati importati</summary>
           <div className="mt-2 divide-y divide-[#211815]/10">

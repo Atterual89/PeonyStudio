@@ -3,12 +3,12 @@ import { useRouter } from "next/navigation";
 import { useState,useTransition } from "react";
 import { syncHistoricalAssociationMailAction } from "@/app/gestione/(app)/quote-email/actions";
 
-export function HistoricalMailSyncButton(){
+export function HistoricalMailSyncButton({initialHasMore=false}:{initialHasMore?:boolean}){
   const router=useRouter();
   const [busy,start]=useTransition();
   const [result,setResult]=useState<string|null>(null);
   const [error,setError]=useState<string|null>(null);
-  const [hasMore,setHasMore]=useState(false);
+  const [hasMore,setHasMore]=useState(initialHasMore);
 
   function run(){
     setError(null);

@@ -38,7 +38,7 @@ export function IdentityAuditDashboard({contacts,duplicates,counts}:{
         ["Moduli da verificare",counts.formsToVerify],
         ["Quote da verificare",counts.paymentsToVerify],
         ["In regola",counts.verified],
-        ["Possibili doppioni",counts.duplicates],
+        ["Segnalazioni da verificare",counts.duplicates],
       ].map(([label,value])=><div key={label} className="rounded-xl border border-[#211815]/10 bg-white/80 p-3">
         <p className="text-2xl font-semibold tabular-nums">{value}</p>
         <p className="mt-1 text-xs text-[#5f524c]">{label}</p>
@@ -51,7 +51,7 @@ export function IdentityAuditDashboard({contacts,duplicates,counts}:{
       </button>
       <button type="button" onClick={()=>{setTab("duplicates");setShowAll(false);}}
         className={tab==="duplicates"?"rounded-lg bg-[#a8583e] px-3 py-2 text-sm font-semibold text-white":"rounded-lg border border-[#211815]/15 px-3 py-2 text-sm"}>
-        Doppioni e conflitti ({counts.duplicates})
+        Duplicati e conflitti ({counts.duplicates})
       </button>
     </div>
     <label className="block text-sm">
@@ -106,7 +106,9 @@ export function IdentityAuditDashboard({contacts,duplicates,counts}:{
       </p>
       {matchingDuplicates.slice(0,showAll?undefined:50).map(d=><div key={d.key}
         className="rounded-xl border border-[#211815]/10 bg-white/85 p-3">
-        <p className="text-xs font-semibold text-[#a8583e]">{d.reason} · {d.recordCount} record</p>
+        <p className="text-xs font-semibold text-[#a8583e]">{d.reason==="modulo duplicato"
+          ? `1 modulo Google · ${d.recordCount-1} ${d.recordCount===2?"copia duplicata":"copie duplicate"}`
+          : `${d.reason} · ${d.recordCount} record da confrontare`}</p>
         <p className="mt-1 font-semibold">{d.name}</p>
         {d.email&&<p className="break-all text-xs">{d.email}</p>}
         <div className="mt-2 flex flex-wrap gap-2">
