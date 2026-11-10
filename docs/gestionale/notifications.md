@@ -9,18 +9,26 @@
 - Su ciascun browser gli admin possono abilitare o disabilitare le push e inviare una push di prova. Le notifiche push contengono soltanto titolo generico e collegamento al gestionale, non recapiti o dati fiscali.
 - Il sistema funziona senza permesso push: la campanella resta sempre disponibile.
 
-## Attivazione su Netlify
+## Attivazione push senza configurare Netlify
 
-Applicare la migrazione `041_gw_ale_admin_notifications.sql` al database Peony e configurare **solo nel contesto server** le variabili Netlify:
+Le chiavi VAPID sono state generate una sola volta e memorizzate in modo
+**cifrato su Supabase Vault** (progetto `PeonyStudioWebSite`).
+Il server Next.js recupera le chiavi con la RPC `gw_get_vapid_config`
+autorizzata esclusivamente al ruolo `service_role`, già usato dal
+gestionale. Il browser riceve soltanto la chiave pubblica.
 
-```sh
-# Eseguire una sola volta in un terminale con Node
-node scripts/gestionale/generate-vapid.mjs
-```
+**Non è necessario configurare variabili su Netlify e non è necessario
+eseguire lo script locale.** Le eventuali variabili `GW_VAPID_*`
+continuano a funzionare come override server-side, ma non servono.
 
-Copiarne l'output nelle variabili di ambiente Netlify: `GW_VAPID_PUBLIC_KEY`, `GW_VAPID_PRIVATE_KEY`, `GW_VAPID_SUBJECT`. **Non versionare le chiavi private nel repository**. Non cambiare VAPID dopo aver attivato dispositivi, altrimenti bisogna disattivare e riattivare le sottoscrizioni. Riavviare il deploy Netlify affinché le variabili siano disponibili alle Server Actions.
+Da ciascun telefono: aprire `https://peonystudio.net/gestione`,
+entrare come admin, aprire **Notifiche → Attiva push**, autorizzare
+il browser e premere **Prova push**.
 
-Da ciascun telefono: aprire `https://peonystudio.net/gestione`, entrare come admin, aprire **Notifiche → Attiva push**, autorizzare il browser e premere **Prova push**. Le push richiedono HTTPS, Service Worker e autorizzazione sul dispositivo. Su iPhone/iPad è richiesta l'app web aggiunta alla schermata Home; su Android Chrome supporta push anche via browser. La campanella non richiede installazione.
+Le push richiedono HTTPS, Service Worker e autorizzazione del browser.
+Su iPhone/iPad bisogna aggiungere l'app web alla schermata Home;
+su Android Chrome supporta Web Push dal browser. La campanella
+non richiede alcuna installazione.
 
 ## Controlli
 
