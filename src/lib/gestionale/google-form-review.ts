@@ -53,6 +53,7 @@ export function buildGoogleFormReviewQueue(input:{
   const people=input.people.filter(person=>!person.merged_into);
   const forms=members.filter(row=>row.source==="google_sheet");
   const payments=members.filter(row=>row.source==="manual_override"&&row.membership_status==="verified");
+  const paper=members.filter(row=>row.source==="manual_form"&&row.membership_status==="verified");
   const candidates=(personName:string,emailAddress:string|null)=>{
     const n=normName(...personNameParts(personName));
     const e=email(emailAddress);
@@ -70,7 +71,7 @@ export function buildGoogleFormReviewQueue(input:{
   const evidenceOf=(rows:readonly ReviewMember[])=>
     rows.map(row=>({
       id:row.id,
-      source:row.source==="google_sheet"?"Modulo Google":row.source==="manual_override"?"Quota email/manuale":"Altro",
+      source:row.source==="google_sheet"?"Modulo Google":row.source==="manual_override"?"Quota email/manuale":row.source==="manual_form"?"Modulo cartaceo":"Altro",
       name:name(row.first_name,row.last_name),
       email:row.email,status:row.membership_status,
     }));
@@ -160,6 +161,8 @@ export function buildGoogleFormReviewQueue(input:{
     const key=email(payment.email)||normName(payment.first_name,payment.last_name);
     if(!key||missingKeys.has(key))continue;
     if(formEmails.has(email(payment.email))||(!payment.email&&formNames.has(normName(payment.first_name,payment.last_name))))continue;
+    if(paper.some(row=>(row.email&&payment.email&&email(row.email)===email(payment.email))||
+      normName(row.first_name,row.last_name)===normName(payment.first_name,payment.last_name)))continue;
     missingKeys.add(key);
     result.push({
       id:`missing:${payment.id}`,kind:"missing_form",
