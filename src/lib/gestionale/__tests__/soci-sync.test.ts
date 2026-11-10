@@ -20,7 +20,8 @@ describe("sync soci nel gestionale PIN", () => {
     expect(actions).not.toContain("buildOfficialMembersBookSyncPreview");
     expect(actions).toContain("applyAssociationMembersSync(db, { removeStaleRows: false })");
     expect(actions).toContain("fingerprint(forms) !== expectedToken");
-    expect(actions).toContain("forms.validRows < previousForms * 0.75");
+    expect(actions).toContain("isGoogleFormImportSuspicious(forms.validRows, previousUniqueForms)");
+    expect(actions).toContain("forms.existingUniqueRows");
     expect(actions).toContain("clearMembershipCache()");
     expect(actions).toContain("refreshGestione()");
     expect(actions).toContain("applyOfficialMembersBookSync(createSupabaseAdminClient(), { removeStaleRows: false })");
