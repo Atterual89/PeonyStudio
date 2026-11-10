@@ -102,7 +102,7 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
  }
  function openFormLookup(p:Payment){
   if(formPanels[p.id]){setFormPanels(prev=>({...prev,[p.id]:false}));return;}
-  const raw=p.note?.match(/(?:quota\\s+(?:socio|associativa)(?:\\s+(?:di|per))?|tessera\\s+(?:di|per))\\s+([a-zà-ÿ][a-zà-ÿ'\\s-]{4,70})/i)?.[1]?.trim();
+  const raw=p.note?.match(/(?:quota\s+(?:socio|associativa)(?:\s+(?:di|per))?|tessera\s+(?:di|per))\s+([a-zà-ÿ][a-zà-ÿ'\s-]{4,70})/i)?.[1]?.trim();
   setFormQueries(prev=>({...prev,[p.id]:prev[p.id]??raw??p.payer_name??""}));
   setFormPanels(prev=>({...prev,[p.id]:true}));
  }
