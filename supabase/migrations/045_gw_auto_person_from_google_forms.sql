@@ -52,8 +52,15 @@ begin
   -- omonimia, non generare una seconda persona automaticamente.
   if exists(
     select 1 from public.gw_people p
-    where p.deleted_at is null and p.merged_into is null and
-      public.gw_name_key(concat_ws(' ',p.first_name,p.last_name))=v_key
+    where p.deleted_at is null and p.merged_into is null
+      and public.gw_name_key(concat_ws(' ',p.first_name,p.last_name)) is not null
+      and (
+        public.gw_name_key(concat_ws(' ',p.first_name,p.last_name))=v_key
+        or string_to_array(public.gw_name_key(concat_ws(' ',p.first_name,p.last_name)),' ')
+           <@ string_to_array(v_key,' ')
+        or string_to_array(v_key,' ')
+           <@ string_to_array(public.gw_name_key(concat_ws(' ',p.first_name,p.last_name)),' ')
+      )
   ) then return 'review'; end if;
 
   insert into public.gw_people
