@@ -90,7 +90,7 @@ export function IdentityAuditDashboard({contacts,duplicates,counts}:{
           </span>
         </div>
         {c.personId&&<div className="flex flex-wrap items-start gap-2">
-          <PaperFormControl personId={c.personId} verified={Boolean(c.paperFormVerified)} onSaved={setMessage}/>
+          {(!c.formPresent||c.paperFormVerified)&&<PaperFormControl personId={c.personId} verified={Boolean(c.paperFormVerified)} onSaved={setMessage}/>}
           {c.formPresent&&!c.quotaPaid&&<QuickPersonQuota personId={c.personId} onSaved={setMessage}/>}
         </div>}
         {!c.formPresent&&c.quotaPaid&&<p className="text-xs text-[#9b4b1e]">Quota già presente: non ripetere il pagamento. Controlla solo il modulo.</p>}
