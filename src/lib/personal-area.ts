@@ -128,7 +128,7 @@ async function loadMembershipState(
     .select(
       "first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at",
     )
-    .in("source", ["google_sheet", "official_members_book", "manual_override"])
+    .in("source", ["google_sheet", "manual_form", "manual_override"])
     .range(0, 9999);
 
   if (error) throw new Error(error.message);
