@@ -59,7 +59,7 @@ export async function getAssociationMailState() {
   return {ok:true as const, state:state.data, payments:(payments.data??[]).map(p=>{
     const proposed=suggestionsByPayment.get(p.id)??null;
     const person=proposed?peopleById.get(proposed.id):null;
-    const period=membershipPeriodForPayment(p.paid_at.slice(0,10));
+    const period=membershipPeriodForPayment(new Intl.DateTimeFormat("sv-SE",{timeZone:"Europe/Rome"}).format(new Date(p.paid_at)));
     const alreadyPaidPeriod=person&&period&&deriveMembershipState(
       verifiedPayments,{email:person.email,firstName:person.first_name,lastName:person.last_name},
       {paymentsFrom:period.paymentsFrom,paymentsUntil:period.validUntil}
@@ -148,7 +148,7 @@ export async function confirmAssociationPaymentAction(paymentId: string,target:P
   if(error||!payment||payment.status!=="pending")
     return {ok:false as const,error:"Pagamento già chiuso o inesistente."};
   // È la data effettiva del pagamento a decidere l’annualità, mai il menu.
-  if (membershipPeriodForPayment(payment.paid_at.slice(0, 10))?.paymentsFrom !== period.paymentsFrom)
+  if (membershipPeriodForPayment(new Intl.DateTimeFormat("sv-SE",{timeZone:"Europe/Rome"}).format(new Date(payment.paid_at)))?.paymentsFrom !== period.paymentsFrom)
     return {ok:false as const,error:"La quota deve essere assegnata all’annualità determinata dalla data del pagamento."};
   const capacity=suggestedQuotaCount({
     provider:payment.provider as "paypal"|"qonto",
