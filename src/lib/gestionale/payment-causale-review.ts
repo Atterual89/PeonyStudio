@@ -11,7 +11,7 @@ export function classifyPaymentNote(note:string|null|undefined):PaymentNoteKind 
   if(eventPattern.test(note))return "other";
   return "uncertain";
 }
-const prefix=/^\s*(?:(?:pagamento|versamento|rinnovo)\s+)?(?:(?:quote?|quota)\s*(?:associativ\w*|ass\.?|soci\w*|socio|tessera|iscrizion\w*)?|(?:membership|annual|registration)\s*(?:fee|dues?|payment)|tessera\s+(?:associativa|di iscrizione)|rinnovo\s+tessera)\s*(?:per|for|di|payment)?\s*[:;,.-]?\s*/i;
+const prefix=/^\s*(?:(?:pagamento|versamento|rinnovo)\s+)?(?:(?:quota|quote)\s*(?:associativ\w*|ass\.?|soci\w*|socio|tessera|iscrizion\w*)?|(?:membership|annual|registration)\s*(?:fee|dues?|payment)|tessera\s+(?:associativa|di iscrizione)|rinnovo\s+tessera)\s*(?:per|for|di|payment)?\s*[:;,.-]?\s*/i;
 export function paymentBeneficiaryHints(note:string|null|undefined):string[]{
   if(classifyPaymentNote(note)!=="membership"||!note)return [];
   let content=note.trim();
