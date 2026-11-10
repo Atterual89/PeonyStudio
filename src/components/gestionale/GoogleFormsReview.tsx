@@ -37,7 +37,7 @@ export function GoogleFormsReview({cases,readCount}:{cases:FormReviewCase[];read
   }
   function consolidate(){
     if(!current||current.kind!=="duplicate"||!current.sourceRowId)return;
-    if(!window.confirm("Consolidare le copie solo se perfettamente identiche? Verrà mantenuta la registrazione principale e archiviata ogni copia rimossa."))return;
+    if(!window.confirm("Confrontare con il modulo Google attuale e archiviare le copie precedenti? Se i dati personali differiscono, il consolidamento sarà bloccato."))return;
     setFeedback(null);
     startTransition(async()=>{
       try{
@@ -113,9 +113,9 @@ export function GoogleFormsReview({cases,readCount}:{cases:FormReviewCase[];read
         <div className="mt-2 space-y-2">
           {current.evidence.map((row,i)=><div key={row.id+"-"+i}
             className="rounded-lg border border-[#211815]/10 bg-white p-2 text-xs">
-            <p className="font-semibold">{row.source} · {row.name}</p>
+            <p className="font-semibold">{row.source} · {row.name} {current.kind==="duplicate"?`· Copia ${i+1}`:""}</p>
             {row.email&&<p className="break-all">{row.email}</p>}
-            <p className="text-[#5f524c]">Stato: {row.status??"non disponibile"} · ID: {row.id.slice(0,8)}</p>
+            <p className="text-[#5f524c]">Stato: {row.status??"non disponibile"}{row.expiresAt?` · Scadenza registrata: ${row.expiresAt.split("-").reverse().join("/")}`:""}</p>
           </div>)}
         </div>
       </details>}
@@ -134,7 +134,7 @@ export function GoogleFormsReview({cases,readCount}:{cases:FormReviewCase[];read
       <div className="flex flex-wrap gap-2">
         {current.kind==="duplicate"&&current.sourceRowId&&<button type="button" disabled={pending} onClick={consolidate}
           className="min-h-10 rounded-lg bg-[#a8583e] px-4 text-sm font-semibold text-white disabled:opacity-50">
-          {pending?"Controllo in corso…":"Verifica e consolida copie identiche"}
+          {pending?"Controllo in corso…":"Consolida versioni della stessa risposta"}
         </button>}
         {current.canConfirm&&current.sourceHash&&<button type="button" disabled={pending} onClick={confirm}
           className="min-h-10 rounded-lg bg-[#a8583e] px-4 text-sm font-semibold text-white disabled:opacity-50">

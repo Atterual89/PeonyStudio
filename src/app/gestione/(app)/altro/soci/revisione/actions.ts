@@ -59,8 +59,16 @@ export async function consolidateIdenticalGoogleFormsAction(sourceRowId:string):
  if(!/^(eng:)?[0-9]{1,7}$/.test(sourceRowId))
   return {ok:false,error:"Identificativo modulo non valido."};
  const db=createSupabaseAdminClient();
+ // Prima verifica la versione effettiva del Google Sheet corrente.
+ // Non scegliere la versione basandosi solo su date o hash già salvati nel DB.
+ let preview;
+ try{preview=await buildAssociationMembersSyncPreview(db);}
+ catch{return {ok:false,error:"Impossibile leggere il modulo Google aggiornato. Riprova dopo la sincronizzazione."};}
+ const source=preview.validSourceRows.find(row=>row.source_row_id===sourceRowId);
+ if(!source||!/^[a-f0-9]{64}$/.test(source.source_hash))
+  return {ok:false,error:"Modulo Google non disponibile o non valido. Nessun dato modificato."};
  const {data,error}=await db.rpc("gw_consolidate_identical_google_form_copies",{
-  p_source_row_id:sourceRowId,p_operator_id:operator.id
+  p_source_row_id:sourceRowId,p_operator_id:operator.id,p_expected_source_hash:source.source_hash
  });
  if(error){
   console.error("[soci] Consolidamento modulo non riuscito",error.code);
