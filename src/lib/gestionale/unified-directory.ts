@@ -36,6 +36,7 @@ export type UnifiedContact = {
   expiresAt?: string | null;
   formSource?: "google" | "cartaceo" | null;
   paperFormVerified?: boolean;
+  identityConflict?: boolean;
   search: string;
 };
 type PersonRef = Pick<Person,
@@ -191,6 +192,9 @@ export function buildUnifiedDirectory(input:{
       association:association(state),source:direct.length?sources(direct):"Anagrafica",
       formPresent:state.formPresent,quotaPaid:state.currentYearPaid,expiresAt:state.membershipExpiresAt,
       paperFormVerified:direct.some(r=>r.source==="manual_form"&&r.membership_status==="verified"),
+      identityConflict:input.evidence.some(row=>row.source==="google_sheet"&&
+        Boolean(mail(row.email)&&mail(row.email)===mail(person.email))&&
+        !formIdentityCompatible({firstName:person.first_name,lastName:person.last_name,email:person.email},row)),
       formSource:direct.some(r=>r.source==="google_sheet"&&formIdentityCompatible({firstName:person.first_name,lastName:person.last_name,email:person.email},r))?"google":
         direct.some(r=>r.source==="manual_form"&&r.membership_status==="verified")?"cartaceo":null,
       link,search:[fullName,person.nickname,email,person.instagram,person.phone,person.teamartist_id,
