@@ -15,7 +15,7 @@ export type MemberDirectoryCandidate = {
   name: string;
   email: string | null;
   aliases?:string[];
-  origin: "Libro soci" | "Modulo Google" | "Conferma manuale" | "Anagrafica" | "Libro soci + modulo";
+  origin: "Libro soci" | "Modulo Google" | "Modulo cartaceo" | "Conferma manuale" | "Anagrafica" | "Libro soci + modulo";
   // L'identità è esplicita. In caso di omonimia non unire mai indirizzi diversi.
 };
 const keyName=(first:string|null,last:string|null)=>
@@ -23,9 +23,9 @@ const keyName=(first:string|null,last:string|null)=>
 const fullName=(first:string|null,last:string|null,nick?:string|null)=>
   cleanPartnerName([first,last].filter(Boolean).join(" "))||cleanPartnerName(nick)||null;
 const sourcePriority=(source:string|null)=>
-  source==="official_members_book"?0:source==="google_sheet"?1:source==="manual_override"?2:3;
+  source==="google_sheet"?0:source==="manual_form"?1:source==="manual_override"?2:3;
 const origin=(source:string|null):MemberDirectoryCandidate["origin"]=>
-  source==="official_members_book"?"Libro soci":source==="google_sheet"?"Modulo Google":"Conferma manuale";
+  source==="manual_form"?"Modulo cartaceo":source==="google_sheet"?"Modulo Google":"Conferma manuale";
 
 /**
  * Righe libro soci + modulo Google: unisce soltanto nominativi univoci.
@@ -39,7 +39,7 @@ export function buildPeonyMemberDirectory(
 ): MemberDirectoryCandidate[] {
   const groups=new Map<string,DirectoryMemberRow[]>();
   for(const row of evidence){
-    if(!["official_members_book","google_sheet","manual_override"].includes(row.source??""))continue;
+    if(!["google_sheet","manual_form","manual_override"].includes(row.source??""))continue;
     const name=keyName(row.first_name,row.last_name);
     const email=cleanPartnerEmail(row.email);
     const groupKey=name?`name:${name}`:email?`only-email:${normalizeMembershipEmail(email)}`:"";

@@ -50,14 +50,14 @@ export async function loadUnifiedDirectory(today:string){
     }),
   ]);
   const evidence: Array<{
-    id:string;first_name:string|null;last_name:string|null;email:string|null;
+    id:string;source_row_id?:string|null;first_name:string|null;last_name:string|null;email:string|null;
     source:string|null;membership_status:string|null;membership_starts_at:string|null;
     membership_expires_at:string|null;notes_admin:string|null;
   }>=[];
   for(let offset=0;offset<10000;offset+=500){
     const {data,error}=await db.from("association_members")
-      .select("id,first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at,notes_admin")
-      .in("source",["google_sheet","manual_override"])
+      .select("id,source_row_id,first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at,notes_admin")
+      .in("source",["google_sheet","manual_override","manual_form"])
       .order("id",{ascending:true}).range(offset,offset+499);
     if(error)throw new Error("Impossibile caricare il registro associativo.");
     evidence.push(...(data??[]));

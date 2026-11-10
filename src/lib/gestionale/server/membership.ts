@@ -137,10 +137,10 @@ const readCurrentManualValidations = cache(async (): Promise<EvidenceRow[]> => {
   for(let offset=0;offset<10000;offset+=500) {
     const {data,error}=await getGestionaleDb().from("association_members")
       .select("id,first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at,notes_admin")
-      .eq("source","manual_override").order("id",{ascending:true})
+      .in("source",["manual_override","manual_form"]).order("id",{ascending:true})
       .range(offset,offset+499);
     if(error)throw new Error(`Gestionale (quote manuali aggiornate): ${error.message}`);
-    rows.push(...(data??[]).map(row=>pick(row,row.id)));
+    rows.push(...(data??[]).map(row=>pick(row,row.source==="manual_override"?row.id:null)));
     if((data??[]).length<500)break;
   }
   return rows;
@@ -170,7 +170,7 @@ async function loadEvidenceWithOrder(): Promise<Evidence> {
     evidenceCache.evidence,
     readCurrentManualValidations(),
   ]);
-  // La domanda Google è la fonte di registrazione; la quota è email o manuale.
+  // Modulo Google o cartaceo e, separatamente, quote da email o manuali.
   return {...sources, rows:[...sources.rows, ...manual]};
 }
 
@@ -186,7 +186,7 @@ export async function clearMembershipCache(): Promise<void> {
 
 type Identity = { email: string | null; firstName: string | null; lastName: string | null };
 
-const SOURCE_RANK: Record<string, number> = { google_sheet: 0, manual_override: 1, official_members_book: 2 };
+const SOURCE_RANK: Record<string, number> = { google_sheet: 0, manual_form: 1, manual_override: 2 };
 
 /** Righe del socio indicato dalla chiave, la più autorevole per prima (manuale, libro soci, modulo). */
 function rowsOfKey(key: MemberKey, rows: readonly EvidenceRow[]): EvidenceRow[] {

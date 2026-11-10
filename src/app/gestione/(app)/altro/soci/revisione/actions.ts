@@ -18,7 +18,7 @@ export async function loadGoogleFormReviewAction():Promise<QueueResult>{
       buildAssociationMembersSyncPreview(db),loadPeople(),
       db.from("association_members")
         .select("id,source,source_row_id,first_name,last_name,email,membership_status,contact,membership_starts_at,membership_expires_at")
-        .in("source",["google_sheet","manual_override"]).order("id").range(0,9999),
+        .in("source",["google_sheet","manual_override","manual_form"]).order("id").range(0,9999),
     ]);
     if(membersResponse.error)throw new Error(membersResponse.error.message);
     if(preview.errors.length||preview.validRows<Math.max(1,Math.floor(preview.totalRows*.7)))

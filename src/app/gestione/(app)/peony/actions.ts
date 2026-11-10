@@ -213,7 +213,7 @@ export type PeonyPartnerCandidate = {
   id: string;
   name: string;
   email: string | null;
-  origin: "Libro soci" | "Modulo Google" | "Conferma manuale" | "Anagrafica" | "Libro soci + modulo";
+  origin: "Libro soci" | "Modulo Google" | "Modulo cartaceo" | "Conferma manuale" | "Anagrafica" | "Libro soci + modulo";
   membership: "valid" | "payment_missing" | "missing_form" | null;
 };
 export type PartnerSearchResult =

@@ -13,11 +13,12 @@ export type PaymentImportResult = {
   scanned: number; imported: number; skipped: number;
   hasMore: boolean; lastSuccessAt: string | null;
 };
-export async function importPaymentNotifications(): Promise<PaymentImportResult> {
+export async function importPaymentNotifications(mode:"recent"|"historic"="recent"): Promise<PaymentImportResult> {
   const db = getGestionaleDb();
+  const source=mode==="historic"?"gmail_payments_history_2024":SOURCE;
   const {data:state,error}=await db.from("gw_payment_sync_state")
     .select("initial_from,checked_through,last_success_at,pending_window_from,pending_window_until,pending_page_token")
-    .eq("source",SOURCE).maybeSingle();
+    .eq("source",source).maybeSingle();
   if(error)throw new Error("Archivio sincronizzazione Gmail non disponibile: applica la migrazione.");
   // First run starts automatically at the latest official association-source update.
   // Never use manual validations as a baseline: those are not source sync events.
@@ -25,6 +26,8 @@ export async function importPaymentNotifications(): Promise<PaymentImportResult>
   let initial:Date;
   if (state?.initial_from) {
     initial=new Date(state.initial_from);
+  } else if(mode==="historic") {
+    initial=new Date("2024-01-01T00:00:00+01:00");
   } else {
     const {data:baseline,error:baselineError}=await db.from("association_members")
       .select("updated_at").in("source",["google_sheet","official_members_book"])
@@ -41,8 +44,18 @@ export async function importPaymentNotifications(): Promise<PaymentImportResult>
     ? new Date(state.pending_window_from)
     : new Date(Math.max(initial.getTime(),(state?.checked_through
       ? Date.parse(state.checked_through)-48*3600_000 : initial.getTime())));
+  // L'archivio storico termina dove comincia l'import incrementale corrente.
+  // I due checkpoint sono indipendenti e i messaggi sono idempotenti per Gmail ID.
+  const cutoff=mode==="historic"
+    ? await db.from("gw_payment_sync_state").select("initial_from")
+        .eq("source",SOURCE).maybeSingle()
+    : null;
+  if(cutoff?.error)throw new Error("Impossibile verificare l'inizio dell'import ordinario.");
+  const historicalUntil=cutoff?.data?.initial_from
+    ? new Date(cutoff.data.initial_from):new Date("2026-10-25T00:00:00Z");
   const windowUntil=state?.pending_window_until
-    ? new Date(state.pending_window_until):new Date(Date.now()-120_000);
+    ? new Date(state.pending_window_until)
+    : mode==="historic"?historicalUntil:new Date(Date.now()-120_000);
   if(!Number.isFinite(windowFrom.getTime())||!Number.isFinite(windowUntil.getTime()))
     throw new Error("Checkpoint Gmail non valido.");
   const gmail=google.gmail({version:"v1",auth:await gmailAuthForPayments()});
@@ -81,7 +94,7 @@ export async function importPaymentNotifications(): Promise<PaymentImportResult>
   const token=list.data.nextPageToken||null;
   const hasMore=Boolean(token);
   const {error:checkpointError}=await db.from("gw_payment_sync_state").upsert({
-    source:SOURCE,
+    source,
     initial_from:initial.toISOString(),
     pending_window_from:hasMore?windowFrom.toISOString():null,
     pending_window_until:hasMore?windowUntil.toISOString():null,

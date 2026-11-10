@@ -1,10 +1,12 @@
 import { deriveMembershipState, normalizeMembershipEmail, normalizeMembershipNameKey } from "@/lib/association/membership-state";
 import { membershipPeriodFor } from "@/lib/association/membership-periods";
+import { formIdentityCompatible } from "@/lib/association/form-identity";
 import { groupMemberEvidence } from "@/lib/gestionale/member-evidence-groups";
 import type { Person } from "@/lib/gestionale/types";
 
 export type RegistryEvidence = {
   id: string;
+  source_row_id?: string | null;
   first_name: string | null;
   last_name: string | null;
   email: string | null;
@@ -29,6 +31,12 @@ export type UnifiedContact = {
   association: "verificata" | "da_verificare" | "solo_modulo" | "non_presente" | "non_disponibile";
   source: string;
   link: "confermato" | "email" | "da_verificare" | "nessuno";
+  formPresent?: boolean;
+  quotaPaid?: boolean;
+  expiresAt?: string | null;
+  formSource?: "google" | "cartaceo" | null;
+  paperFormVerified?: boolean;
+  identityConflict?: boolean;
   search: string;
 };
 type PersonRef = Pick<Person,
@@ -50,18 +58,22 @@ const sources=(rows:readonly RegistryEvidence[])=>{
     r.membership_status==="verified"&&r.notes_admin?.startsWith("Quota confermata da email ("));
   if(provenEmail)labels.push("Pagamento email confermato");
   if(rows.some(r=>r.source==="google_sheet"))labels.push("Modulo Google");
+  if(rows.some(r=>r.source==="manual_form"&&r.membership_status==="verified"))labels.push("Modulo cartaceo");
   if(!provenEmail&&rows.some(r=>r.source==="manual_override"))labels.push("Verifica manuale");
   return labels.join(" · ");
 };
-function association(rows:readonly RegistryEvidence[],date:string):UnifiedContact["association"] {
-  if(!rows.length)return "non_presente";
+function stateOf(rows:readonly RegistryEvidence[],date:string, identity?:{
+  email:string|null;first_name:string|null;last_name:string|null;
+}) {
   const period=membershipPeriodFor(date);
-  const person=rows.find(row=>row.source==="google_sheet")??rows[0];
-  const state=deriveMembershipState([...rows],{
-    email:person.email,firstName:person.first_name,lastName:person.last_name,
+  const person=identity??rows.find(row=>row.source==="google_sheet"||row.source==="manual_form")??rows[0];
+  return deriveMembershipState([...rows],{
+    email:person?.email??null,firstName:person?.first_name??null,lastName:person?.last_name??null,
   },{
-    paymentsFrom:period?.paymentsFrom,paymentsUntil:period?.validUntil,
+    paymentsFrom:period?.paymentsFrom,paymentsUntil:period?.validUntil,referenceDate:date,
   });
+}
+function association(state:ReturnType<typeof stateOf>):UnifiedContact["association"] {
   if(state.status==="valid")return "verificata";
   if(state.formPresent)return "solo_modulo";
   return state.currentYearPaid?"da_verificare":"non_presente";
@@ -84,12 +96,10 @@ function groupEvidence(rows:readonly RegistryEvidence[]):Group[]{
     emails:new Set(group.map(row=>mail(row.email)).filter(email=>email.includes("@"))),
   }));
 }
-const compatible=(person:PersonRef,group:Group)=>{
-  const pn=nameKey(person.first_name,person.last_name);
-  return !pn || !group.nameKey || pn===group.nameKey;
-};
+const compatible=(person:PersonRef,group:Group)=>group.rows.some(row=>
+  formIdentityCompatible({firstName:person.first_name,lastName:person.last_name,email:person.email||person.membership_email},row));
 const preferred=(group:Group)=>{
-  const rank:Record<string,number>={google_sheet:0,manual_override:1};
+  const rank:Record<string,number>={google_sheet:0,manual_form:1,manual_override:2};
   return [...group.rows].sort((a,b)=>(rank[a.source??""]??9)-(rank[b.source??""]??9))[0];
 };
 const active=(people:readonly PersonRef[])=>people.filter(p=>!p.merged_into);
@@ -123,7 +133,7 @@ export function buildUnifiedDirectory(input:{
   const people=active(input.people);
   // Team Artist è una fase a valle, non genera registrazioni o pagamenti.
   const groups=groupEvidence(input.evidence.filter(row =>
-    row.source==="google_sheet" || row.source==="manual_override"));
+    row.source==="google_sheet" || row.source==="manual_override" || row.source==="manual_form"));
   const byEmail=new Map<string,PersonRef[]>();
   const byName=new Map<string,PersonRef[]>();
   const byGroupEmail=new Map<string,Group[]>();
@@ -158,16 +168,35 @@ export function buildUnifiedDirectory(input:{
       const options=(byGroupEmail.get(personEmail)??[]).filter(g=>compatible(person,g));
       if(options.length===1){group=options[0];link="email";}
     }
+    const paperRows=input.evidence.filter(row=>row.source==="manual_form"&&
+      row.source_row_id==="manual_form:person:"+person.id&&row.membership_status==="verified");
+    if(!group&&paperRows.length){
+      group={id:"paper:"+person.id,nameKey:nameKey(person.first_name,person.last_name),
+        rows:paperRows,emails:new Set(paperRows.map(row=>mail(row.email)).filter(Boolean))};
+      link="confermato";
+    }
     // Two anagrafiche pointing to one registry row must never be silently joined.
     if(group&&claimed.has(group.id)){group=undefined;link="da_verificare";}
     if(group)claimed.add(group.id);
+    const direct=input.evidence.filter(row=>
+      ["google_sheet","manual_form","manual_override"].includes(row.source??"")&&
+      formIdentityCompatible({firstName:person.first_name,lastName:person.last_name,
+        email:person.membership_email||person.email},row));
+    const state=stateOf(direct,input.today,person);
     const best=group?preferred(group):null;
     const fullName=nameOf(person)||nameOf(best??{first_name:null,last_name:null})||person.nickname||person.email||"Persona senza nome";
     const email=person.email||best?.email||null;
     contacts.push({
       key:`person:${person.id}`,memberKey:null,name:fullName,nickname:person.nickname,email,
       personId:person.id,personVersion:person.version??null,possiblePersonId:null,possiblePersonVersion:null,kind:group?"unita":"anagrafica",
-      association:association(group?.rows??[],input.today),source:group?sources(group.rows):"Anagrafica",
+      association:association(state),source:direct.length?sources(direct):"Anagrafica",
+      formPresent:state.formPresent,quotaPaid:state.currentYearPaid,expiresAt:state.membershipExpiresAt,
+      paperFormVerified:direct.some(r=>r.source==="manual_form"&&r.membership_status==="verified"),
+      identityConflict:input.evidence.some(row=>row.source==="google_sheet"&&
+        Boolean(mail(row.email)&&mail(row.email)===mail(person.email))&&
+        !formIdentityCompatible({firstName:person.first_name,lastName:person.last_name,email:person.email},row)),
+      formSource:direct.some(r=>r.source==="google_sheet"&&formIdentityCompatible({firstName:person.first_name,lastName:person.last_name,email:person.email},r))?"google":
+        direct.some(r=>r.source==="manual_form"&&r.membership_status==="verified")?"cartaceo":null,
       link,search:[fullName,person.nickname,email,person.instagram,person.phone,person.teamartist_id,
         group?.rows.map(nameOf).join(" "),...(input.aliasesByPerson?.get(person.id)??[])].filter(Boolean).join(" "),
     });
@@ -183,7 +212,7 @@ export function buildUnifiedDirectory(input:{
     contacts.push({
       key:`source:${group.id}`,memberKey:memberKeyForGroup(group,groups),name,email,nickname:null,personId:null,personVersion:null,possiblePersonId,
       possiblePersonVersion:possiblePersonId?(matched[0].version??null):null,
-      kind:"registro",association:association(group.rows,input.today),source:sources(group.rows),
+      kind:"registro",association:association(stateOf(group.rows,input.today)),source:sources(group.rows),
       link:possiblePersonId?"da_verificare":"nessuno",
       search:[name,email,group.rows.map(nameOf).join(" ")].filter(Boolean).join(" "),
     });
