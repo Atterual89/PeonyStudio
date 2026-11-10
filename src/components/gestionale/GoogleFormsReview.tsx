@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
-import { confirmReviewedGoogleFormAction } from "@/app/gestione/(app)/altro/soci/revisione/actions";
+import { confirmReviewedGoogleFormAction, consolidateIdenticalGoogleFormsAction } from "@/app/gestione/(app)/altro/soci/revisione/actions";
 import type { FormReviewCase,FormReviewKind } from "@/lib/gestionale/google-form-review";
 
 const kinds:Record<FormReviewKind,string>={
@@ -34,6 +34,21 @@ export function GoogleFormsReview({cases,readCount}:{cases:FormReviewCase[];read
     if(!current)return;
     setDeferred(old=>[...old,current.id]);
     setIndex(0);setFeedback(null);
+  }
+  function consolidate(){
+    if(!current||current.kind!=="duplicate"||!current.sourceRowId)return;
+    if(!window.confirm("Consolidare le copie solo se perfettamente identiche? Verrà mantenuta la registrazione principale e archiviata ogni copia rimossa."))return;
+    setFeedback(null);
+    startTransition(async()=>{
+      try{
+        const result=await consolidateIdenticalGoogleFormsAction(current.sourceRowId!);
+        if(!result.ok){setFeedback({kind:"error",text:result.error});return;}
+        setApproved(old=>[...old,current.id]);setIndex(0);
+        setFeedback({kind:"success",text:result.message});router.refresh();
+      }catch{
+        setFeedback({kind:"error",text:"Consolidamento non riuscito. Nessun dato modificato."});
+      }
+    });
   }
   function confirm(){
     if(!current?.canConfirm||!current.sourceRowId||!current.sourceHash)return;
@@ -117,6 +132,10 @@ export function GoogleFormsReview({cases,readCount}:{cases:FormReviewCase[];read
         </Link>}
       </div>}
       <div className="flex flex-wrap gap-2">
+        {current.kind==="duplicate"&&current.sourceRowId&&<button type="button" disabled={pending} onClick={consolidate}
+          className="min-h-10 rounded-lg bg-[#a8583e] px-4 text-sm font-semibold text-white disabled:opacity-50">
+          {pending?"Controllo in corso…":"Verifica e consolida copie identiche"}
+        </button>}
         {current.canConfirm&&current.sourceHash&&<button type="button" disabled={pending} onClick={confirm}
           className="min-h-10 rounded-lg bg-[#a8583e] px-4 text-sm font-semibold text-white disabled:opacity-50">
           {pending?"Conferma in corso…":"Conferma questo modulo"}
