@@ -16,7 +16,7 @@ import { loadPeonyPersonHistory } from "@/lib/gestionale/server/peony-person-his
 import { memberKeyOfPerson } from "@/lib/gestionale/member-key";
 import { getLinkedMemberSummary, getMembershipBadges } from "@/lib/gestionale/server/membership";
 import { todayInRome } from "@/lib/gestionale/workshops";
-import { membershipPeriodFor } from "@/lib/association/membership-periods";
+import { membershipPeriodFor, membershipPeriodForPayment } from "@/lib/association/membership-periods";
 import { contactLabel } from "@/lib/gestionale/contacts";
 import { formatPeriod, periodLabel, personPeriods } from "@/lib/gestionale/membership-rule";
 import { MembershipBadge } from "@/components/gestionale/MembershipBadge";
@@ -72,7 +72,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
   const periodBadges = await Promise.all(
     periods.map(async (period) => ({
       period,
-      badge: (await getMembershipBadges([person], period.paymentsFrom)).get(person.id) ?? ({ kind: "non_collegata" } as Badge),
+      badge: (await getMembershipBadges([person], period.validUntil)).get(person.id) ?? ({ kind: "non_collegata" } as Badge),
     })),
   );
   const markName = fullName(person) && person.first_name && person.last_name ? fullName(person) : displayName(person);
@@ -148,7 +148,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
             <li key={period.paymentsFrom} className="flex flex-wrap items-center gap-2">
               <span className="w-16 text-sm font-semibold">{periodLabel(period)}</span>
               <MembershipBadge badge={badge} />
-              <QuotaOkControls personId={person.id} name={markName} badge={badge} canMark={canMark} referenceDate={period.paymentsFrom} />
+              <QuotaOkControls personId={person.id} name={markName} badge={badge} canMark={canMark && period.paymentsFrom === membershipPeriodForPayment(todayInRome())?.paymentsFrom} referenceDate={period.paymentsFrom} />
             </li>
           ))}
         </ul>
