@@ -124,6 +124,60 @@ export async function getAssociationMailState() {
   });
   })};
 }
+/** Lettura mirata delle evidenze per una persona, senza confondere i moduli con i pagamenti. */
+export async function getMembershipVerificationDetailsAction(personId:string) {
+ await requireAdmin();
+ if(!isUuidLike(personId))return {ok:false as const,error:"Persona non valida."};
+ const person=await getPerson(personId);
+ if(!person||person.merged_into)return {ok:false as const,error:"Persona non disponibile."};
+ const identity=await membershipIdentityOf(person);
+ const email=normalizeMembershipEmail(identity.email);
+ const name=normalizeMembershipNameKey(identity.firstName,identity.lastName);
+ const db=getGestionaleDb();
+ const {data,error}=await db.from("association_members")
+  .select("id,first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at,notes_admin")
+  .in("source",["manual_override","google_sheet","manual_form","official_members_book"])
+  .ilike("last_name",identity.lastName?.trim()||"__no_last_name__")
+  .order("membership_starts_at",{ascending:false}).limit(500);
+ if(error)return {ok:false as const,error:"Impossibile leggere le verifiche."};
+ const matches=(data??[]).filter(row=>{
+  const rowEmail=normalizeMembershipEmail(row.email);
+  const rowName=normalizeMembershipNameKey(row.first_name,row.last_name);
+  return Boolean(name&&rowName===name&&(!email||!rowEmail||rowEmail===email));
+ });
+ const linkedPaymentIds=[...new Set(matches.flatMap(row=>{
+  const ref=row.notes_admin?.match(/riferimento ([0-9a-fA-F-]{36})/);
+  return ref?[ref[1]]:[];
+ }))];
+ const allocations=linkedPaymentIds.length
+  ? await db.from("gw_association_payment_allocations").select("payment_id,person_id").in("payment_id",linkedPaymentIds)
+  : {data:[],error:null};
+ if(allocations.error)return {ok:false as const,error:"Impossibile verificare i collegamenti dei pagamenti."};
+ return {ok:true as const,personName:[person.first_name,person.last_name].filter(Boolean).join(" ")||person.nickname||"Persona",
+  verifications:matches.map(row=>{
+   const ref=row.notes_admin?.match(/riferimento ([0-9a-fA-F-]{36})/)?.[1]??null;
+   const linked=Boolean(ref&&(allocations.data??[]).some(a=>a.payment_id===ref&&a.person_id===personId));
+   return {id:row.id,source:row.source,status:row.membership_status,
+    from:row.membership_starts_at,until:row.membership_expires_at,
+    paymentRef:ref,linked,canRevoke:row.source==="manual_override"&&row.membership_status==="verified"&&!linked,
+    label:row.source==="manual_override"?(ref?"Verifica da email":"Verifica manuale"):
+      row.source==="google_sheet"?"Modulo Google":row.source==="official_members_book"?"Archivio storico":"Modulo manuale"};
+  })};
+}
+/** Revoca solo una evidenza amministrativa, con controllo in DB e audit transazionale. */
+export async function revokeMembershipVerificationAction(personId:string,evidenceId:string,reason:string){
+ const operator=await requireAdmin();
+ if(!isUuidLike(personId)||!isUuidLike(evidenceId)||typeof reason!=="string"||reason.trim().length<5)
+  return {ok:false as const,error:"Indica una motivazione di almeno 5 caratteri."};
+ const db=getGestionaleDb();
+ const {error}=await db.rpc("gw_revoke_membership_verification",{
+  p_evidence_id:evidenceId,p_person_id:personId,p_operator_id:operator.id,p_reason:reason.trim().slice(0,300)
+ });
+ if(error){console.error("[quote-email] Revoca verifica",error.code);return {ok:false as const,error:"Impossibile revocare la verifica. Controlla il collegamento alla persona o al pagamento."};}
+ await clearMembershipCache();refreshGestione();
+ return {ok:true as const};
+}
+
 export type PaymentPersonCandidate = {
  kind:"person"|"member"; id:string; name:string; email:string|null; source:string;
 };

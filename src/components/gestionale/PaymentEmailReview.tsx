@@ -1,10 +1,12 @@
 "use client";
 import { useState, useTransition } from "react";
 import { countAssignedPaymentSlots } from "@/lib/gestionale/payment-slot-progress";
-import { confirmAssociationPaymentAction, findPaymentPeopleAction, ignoreAssociationPaymentAction, restoreAssociationPaymentAction, unassignAssociationPaymentAction } from "@/app/gestione/(app)/quote-email/actions";
+import { confirmAssociationPaymentAction, getMembershipVerificationDetailsAction, revokeMembershipVerificationAction, findPaymentPeopleAction, ignoreAssociationPaymentAction, restoreAssociationPaymentAction, unassignAssociationPaymentAction } from "@/app/gestione/(app)/quote-email/actions";
 
 type Person = {kind:"person"|"member";id:string;name:string;email:string|null;source:string};
 type Payment = {id:string;status:string;provider:string;payer_name:string|null;amount_cents:number;note:string|null;paid_at:string;availableSlots:number;slots:number[];suggested:{id:string;name:string}|null;proposals:Person[];assigned:{id:string;slot:number;name:string}[];alreadyPaidPeriod:string|null;associationPeriodFrom:string|null;associationExpiresAt:string|null};
+type Verification = {id:string;source:string;status:string;from:string|null;until:string|null;paymentRef:string|null;linked:boolean;canRevoke:boolean;label:string};
+type VerificationPanel = {personId:string;personName:string;items:Verification[]};
 type SavedQuota = {name:string;period:string;slot:number};
 type Notice = {tone:"error"|"success";text:string};
 
@@ -15,6 +17,9 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
  const [view,setView]=useState<"pending"|"confirmed"|"ignored">("pending");
  const [removed,setRemoved]=useState<Record<string,string[]>>({});
  const [restored,setRestored]=useState<Record<string,boolean>>({});
+ const [verificationPanels,setVerificationPanels]=useState<Record<string,VerificationPanel>>({});
+ const [reasons,setReasons]=useState<Record<string,string>>({});
+ const [revoked,setRevoked]=useState<Record<string,boolean>>({});
  const [working,setWorking]=useState<string|null>(null);
  const [searching,setSearching]=useState<string|null>(null);
  const [search,setSearch]=useState<Record<string,string>>({});
@@ -45,6 +50,35 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
     if(result.ok){setRestored(prev=>({...prev,[paymentId]:true}));setIgnored(prev=>({...prev,[paymentId]:false}));}
     else setError(paymentId,result.error);
    }catch{setError(paymentId,"Ripristino non riuscito.");}
+   finally{setWorking(null);}
+  });
+ }
+ function manageVerification(paymentId:string,personId:string){
+  if(blocked)return;
+  if(verificationPanels[paymentId]){setVerificationPanels(prev=>{const next={...prev};delete next[paymentId];return next;});return;}
+  setWorking(paymentId);
+  start(async()=>{
+   try{
+    const result=await getMembershipVerificationDetailsAction(personId);
+    if(!result.ok){setError(paymentId,result.error);return;}
+    setVerificationPanels(prev=>({...prev,[paymentId]:{personId,personName:result.personName,items:result.verifications}}));
+   }catch{setError(paymentId,"Impossibile caricare le verifiche della persona.");}
+   finally{setWorking(null);}
+  });
+ }
+ function revokeVerification(paymentId:string,recordId:string){
+  const panel=verificationPanels[paymentId];
+  const reason=(reasons[recordId]??"").trim();
+  if(blocked||!panel||reason.length<5)return;
+  if(!window.confirm("Revocare questa specifica verifica? Il modulo Google e i pagamenti resteranno invariati."))return;
+  setWorking(paymentId);
+  start(async()=>{
+   try{
+    const result=await revokeMembershipVerificationAction(panel.personId,recordId,reason);
+    if(!result.ok){setError(paymentId,result.error);return;}
+    setRevoked(prev=>({...prev,[recordId]:true}));
+    setFeedback(prev=>({...prev,[paymentId]:{tone:"success",text:"Verifica revocata. Modulo e pagamenti non sono stati modificati."}}));
+   }catch{setError(paymentId,"Revoca non riuscita.");}
    finally{setWorking(null);}
   });
  }
@@ -130,7 +164,35 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
      <p className="text-xs text-[#5f524c]">Quote da 15 € assegnate: {used}/{p.availableSlots}</p>
      {!closed&&<p className="text-xs font-semibold">Annualità {periodLabel(periodFor(p.id))} · valida fino al {p.associationExpiresAt?.split("-").reverse().join("/")??"—"}</p>}
     </div>
-    {p.alreadyPaidPeriod && used===0 && !closed && <p className="text-sm text-[#9b4b1e]">Quota {periodLabel(p.alreadyPaidPeriod)} già registrata: controlla l’eventuale duplicazione prima di confermare.</p>}
+    {p.alreadyPaidPeriod && used===0 && !closed && <div className="space-y-2 rounded-lg border border-[#9b4b1e]/20 p-3 text-sm">
+     <p className="text-[#9b4b1e]">Quota {periodLabel(p.alreadyPaidPeriod)} già registrata: controlla l’eventuale duplicazione prima di confermare.</p>
+     {(()=>{const candidate=p.suggested?.id??p.proposals.find(person=>person.kind==="person")?.id;
+      return candidate?<button type="button" disabled={blocked} onClick={()=>manageVerification(p.id,candidate)}
+       className="rounded-lg border border-[#9b4b1e]/40 px-3 py-2 text-[#9b4b1e] disabled:opacity-50">{verificationPanels[p.id]?"Chiudi verifiche":"Gestisci verifica"}</button>:<p className="text-xs text-[#5f524c]">Seleziona prima la persona dall’anagrafica per controllare le verifiche.</p>;
+     })()}
+    </div>}
+    {verificationPanels[p.id]&&<div className="space-y-3 rounded-lg border border-[#211815]/15 bg-[#faf8f5] p-3 text-sm">
+     <strong className="block">Verifiche di {verificationPanels[p.id].personName}</strong>
+     {verificationPanels[p.id].items.length===0&&<p>Nessuna verifica trovata per questa persona.</p>}
+     {verificationPanels[p.id].items.map(record=><div key={record.id} className="space-y-2 border-t border-[#211815]/10 pt-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+       <span><strong>{record.label}</strong> · {revoked[record.id]?"Revocata":record.status==="verified"?"Verificata":record.status==="expired"?"Scaduta":record.status==="pending"?"Da verificare":record.status}</span>
+       <small className="text-[#5f524c]">{record.from??"—"} → {record.until??"—"}</small>
+      </div>
+      {record.paymentRef&&<p className="break-all text-xs text-[#5f524c]">Riferimento pagamento: {record.paymentRef}</p>}
+      {record.linked&&<p className="text-xs text-[#805b26]">Pagamento ancora assegnato a questa persona: per correggerlo usa «Disassocia» nella scheda Assegnati.</p>}
+      {record.canRevoke&&!revoked[record.id]&&<>
+       <label className="block text-xs text-[#5f524c]" htmlFor={`reason-${record.id}`}>Motivo della revoca</label>
+       <input id={`reason-${record.id}`} className="w-full rounded-lg border p-2 text-sm" value={reasons[record.id]??""}
+        onChange={e=>setReasons(prev=>({...prev,[record.id]:e.target.value}))}
+        placeholder="Es. attribuita alla persona sbagliata" maxLength={300}/>
+       <button type="button" disabled={blocked||(reasons[record.id]??"").trim().length<5}
+        onClick={()=>revokeVerification(p.id,record.id)}
+        className="rounded-lg border border-[#9b4b1e]/40 px-3 py-2 text-[#9b4b1e] disabled:opacity-50">Revoca questa verifica</button>
+      </>}
+      {!record.canRevoke&&!revoked[record.id]&&!record.linked&&<p className="text-xs text-[#5f524c]">Questa fonte non è revocabile qui.</p>}
+     </div>)}
+    </div>}
     {extra.filter(item=>!p.assigned.some(a=>a.slot===item.slot)).map((item,i)=><p key={`${item.slot}-${i}`} role="status" className="rounded-lg border border-[#326941]/30 bg-[#eef6ee] p-3 text-sm text-[#326941]">
      Quota salvata nel database: <strong>{item.name}</strong> · periodo {item.period} · quota {item.slot}/{p.availableSlots}.
     </p>)}
