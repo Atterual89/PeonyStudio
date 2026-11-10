@@ -3,7 +3,7 @@ import { useState, useTransition } from "react";
 import { confirmAssociationPaymentAction, findPaymentPeopleAction, ignoreAssociationPaymentAction } from "@/app/gestione/(app)/quote-email/actions";
 
 type Person = {kind:"person"|"member";id:string;name:string;email:string|null;source:string};
-type Payment = {id:string;provider:string;payer_name:string|null;amount_cents:number;note:string|null;paid_at:string;availableSlots:number;slots:number[];suggested:{id:string;name:string}|null;alreadyPaidPeriod:string|null};
+type Payment = {id:string;provider:string;payer_name:string|null;amount_cents:number;note:string|null;paid_at:string;availableSlots:number;slots:number[];suggested:{id:string;name:string}|null;alreadyPaidPeriod:string|null;associationPeriodFrom:string|null;associationExpiresAt:string|null};
 type SavedQuota = {name:string;period:string;slot:number};
 type Notice = {tone:"error"|"success";text:string};
 
@@ -18,9 +18,8 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
  const [feedback,setFeedback]=useState<Record<string,Notice>>({});
  const [saved,setSaved]=useState<Record<string,SavedQuota[]>>({});
  const [ignored,setIgnored]=useState<Record<string,boolean>>({});
- const [periodByPayment,setPeriodByPayment]=useState<Record<string,string>>({});
  const [lastConfirmed,setLastConfirmed]=useState<string|null>(null);
- const periodFor=(id:string)=>periodByPayment[id]??defaultPeriod;
+ const periodFor=(id:string)=>payments.find(p=>p.id===id)?.associationPeriodFrom??defaultPeriod;
  const periodLabel=(from:string)=>periods.find(p=>p.from===from)?.label??from;
  const blocked=pending||Boolean(working)||Boolean(searching);
  const setError=(id:string,text:string)=>setFeedback(prev=>({...prev,[id]:{tone:"error",text}}));
@@ -88,7 +87,6 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
    const isWorking=working===p.id;
    const notice=feedback[p.id];
    const periodAlreadyPaid=Boolean(p.alreadyPaidPeriod&&periodFor(p.id)===p.alreadyPaidPeriod);
-   const nextPeriod=p.alreadyPaidPeriod?periods.find(period=>period.from>p.alreadyPaidPeriod!)??null:null;
    return <section key={p.id} className="space-y-3 rounded-xl border border-[#211815]/15 bg-white p-3 sm:p-4">
     <div className="flex justify-between gap-2">
      <strong>{p.provider.toUpperCase()} · {(p.amount_cents/100).toLocaleString("it-IT",{style:"currency",currency:"EUR"})}</strong>
@@ -98,28 +96,9 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
     {p.note&&<p className="text-xs text-[#5f524c]">Messaggio: {p.note}</p>}
     <div className="flex flex-wrap items-end justify-between gap-2">
      <p className="text-xs text-[#5f524c]">Quote assegnate: {used}/{p.availableSlots}</p>
-     {!closed&&<label className="text-xs font-semibold" htmlFor={`period-${p.id}`}>
-      Periodo della quota
-      <select id={`period-${p.id}`} className="ml-2 min-h-10 rounded-lg border border-[#211815]/25 bg-white px-2 text-sm"
-       value={periodFor(p.id)} disabled={blocked} onChange={e=>{
-        setPeriodByPayment(prev=>({...prev,[p.id]:e.target.value}));
-        setFeedback(prev=>{const next={...prev};delete next[p.id];return next;});
-       }}>
-       {periods.map(period=><option key={period.from} value={period.from}>{period.label}</option>)}
-      </select>
-     </label>}
+     {!closed&&<p className="text-xs font-semibold">Annualità {periodLabel(periodFor(p.id))} · valida fino al {p.associationExpiresAt?.split("-").reverse().join("/")??"—"}</p>}
     </div>
-    {p.alreadyPaidPeriod && !closed && <div className="space-y-2 rounded-lg border border-[#a8583e]/30 bg-[#f8f3ea] p-3 text-sm">
-      <p><strong>Periodo {periodLabel(p.alreadyPaidPeriod)} già verificato nel libro soci.</strong> Il pagamento email è ancora da riconciliare: non è possibile assegnarlo due volte allo stesso periodo.</p>
-      {nextPeriod && <div className="flex flex-wrap items-center gap-2">
-        <p>Se si tratta della quota {nextPeriod.label}, seleziona quell'anno e poi conferma la persona.</p>
-        {periodAlreadyPaid&&<button type="button" disabled={blocked} className="min-h-10 rounded-lg border border-[#a8583e] px-3 py-2 font-semibold text-[#a8583e] disabled:opacity-50"
-          onClick={()=>{setPeriodByPayment(previous=>({...previous,[p.id]:nextPeriod.from}));setFeedback(previous=>{const next={...previous};delete next[p.id];return next;});}}>
-          Seleziona {nextPeriod.label}
-        </button>}
-      </div>}
-      {!periodAlreadyPaid&&<p className="font-semibold text-[#326941]">Periodo selezionato: {periodLabel(periodFor(p.id))}. Verifica che sia la destinazione corretta del versamento.</p>}
-    </div>}
+    {p.alreadyPaidPeriod && !closed && <p className="text-sm text-[#9b4b1e]">Quota {periodLabel(p.alreadyPaidPeriod)} già registrata: controlla l’eventuale duplicazione prima di confermare.</p>}
     {extra.map((item,i)=><p key={`${item.slot}-${i}`} role="status" className="rounded-lg border border-[#326941]/30 bg-[#eef6ee] p-3 text-sm text-[#326941]">
      Quota salvata nel database: <strong>{item.name}</strong> · periodo {item.period} · quota {item.slot}/{p.availableSlots}.
     </p>)}

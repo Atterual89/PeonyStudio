@@ -1,6 +1,6 @@
 import "server-only";
 
-import { FIRST_MEMBERSHIP_PERIOD, type MembershipPeriod } from "@/lib/association/membership-periods";
+import { FIRST_MEMBERSHIP_PERIOD, membershipPeriodForPayment, type MembershipPeriod } from "@/lib/association/membership-periods";
 import { normalizeMembershipEmail, normalizeMembershipNameKey } from "@/lib/association/membership-state";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { withSupabaseClockSkewRetry } from "@/lib/supabase/retry";
@@ -76,7 +76,7 @@ async function loadManualRows(supabase: ReturnType<typeof createSupabaseAdminCli
 /**
  * "Segna quota ok": crea o aggiorna la riga manual_override della persona
  * (email, oppure nome e cognome). Senza `period`, come la route di sempre:
- * primo periodo (CURRENT_MEMBERSHIP_START / _EXPIRY) e una riga per persona.
+ * annualità determinata automaticamente dalla data corrente (ora italiana).
  * Con `period`: le date di quel periodo e la riga di quel periodo.
  */
 export async function saveManualValidation(
@@ -87,14 +87,14 @@ export async function saveManualValidation(
   if (!email && !nameKey) return { ok: false, status: 400, message: IDENTITY_REQUIRED };
 
   const period = options.period;
-  const dates = period ?? FIRST_MEMBERSHIP_PERIOD;
+  const dates = period ?? membershipPeriodForPayment(new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" })) ?? FIRST_MEMBERSHIP_PERIOD;
   const supabase = options.supabase ?? createSupabaseAdminClient();
 
   const existingResult = await loadManualRows(supabase);
   if (existingResult.error) return { ok: false, status: 500, message: existingResult.error.message };
 
   const existing = ((existingResult.data ?? []) as ManualRow[]).find(
-    (row) => sameIdentity(row, email, nameKey) && (!period || row.membership_starts_at?.slice(0, 10) === period.paymentsFrom),
+    (row) => sameIdentity(row, email, nameKey) && row.membership_starts_at?.slice(0, 10) === dates.paymentsFrom,
   );
 
   // La prova del bonifico/PayPal già associato prevale sul controllo
@@ -112,7 +112,7 @@ export async function saveManualValidation(
     membership_starts_at: dates.paymentsFrom,
     membership_expires_at: dates.validUntil,
     source: "manual_override",
-    source_row_id: makeSourceRowId(email, nameKey, period),
+    source_row_id: makeSourceRowId(email, nameKey, dates),
     source_hash: null,
     notes_admin: "Validazione manuale da admin",
     updated_at: new Date().toISOString(),
@@ -148,7 +148,7 @@ export async function revokeManualValidation(
   const { email, nameKey } = readIdentity(identity);
   if (!email && !nameKey) return { ok: false, status: 400, message: IDENTITY_REQUIRED };
 
-  const period = options.period ?? FIRST_MEMBERSHIP_PERIOD;
+  const period = options.period ?? membershipPeriodForPayment(new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" })) ?? FIRST_MEMBERSHIP_PERIOD;
   const supabase = options.supabase ?? createSupabaseAdminClient();
 
   const existingResult = await loadManualRows(supabase);
@@ -161,8 +161,7 @@ export async function revokeManualValidation(
         row.membership_status === "verified" &&
         !row.notes_admin?.startsWith("Quota confermata da email (") &&
         sameIdentity(row, email, nameKey) &&
-        startsAt >= period.paymentsFrom &&
-        startsAt <= period.validUntil
+        startsAt === period.paymentsFrom
       );
     })
     .map((row) => row.id);

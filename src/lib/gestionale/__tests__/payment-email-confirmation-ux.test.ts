@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { membershipPeriodFor } from "@/lib/association/membership-periods";
+import { membershipPeriodForPayment } from "@/lib/association/membership-periods";
 
 const file = (path:string)=>readFileSync(join(process.cwd(),path),"utf8");
 const review=file("src/components/gestionale/PaymentEmailReview.tsx");
@@ -9,14 +9,13 @@ const actions=file("src/app/gestione/(app)/quote-email/actions.ts");
 
 describe("Conferma delle quote importate da Gmail",()=>{
  it("non confonde il periodo 2025/26 già pagato con la nuova quota 2027",()=>{
-  expect(membershipPeriodFor("2026-11-04")?.paymentsFrom).toBe("2025-09-01");
-  expect(membershipPeriodFor("2027-01-01")?.paymentsFrom).toBe("2027-01-01");
-  expect(actions).toContain("Quota 2025/26 già verificata");
-  expect(actions).toContain("seleziona 2027");
+  expect(membershipPeriodForPayment("2026-11-04")?.paymentsFrom).toBe("2026-09-01");
+  expect(membershipPeriodForPayment("2027-01-01")?.paymentsFrom).toBe("2026-09-01");
+  expect(actions).toContain("timeZone:\"Europe/Rome\"");
  });
  it("mostra il periodo nella scheda di ogni singolo pagamento",()=>{
-  expect(review).toContain("periodByPayment");
-  expect(review).toContain("Periodo della quota");
+  expect(review).toContain("associationPeriodFrom");
+  expect(review).toContain("Annualità");
   expect(review).toContain("periodFor(p.id)");
  });
  it("se fallisce la chiamata mostra un errore nel riquadro, senza falso successo",()=>{

@@ -1,4 +1,4 @@
-import { FIRST_MEMBERSHIP_PERIOD } from "./membership-periods";
+import { FIRST_MEMBERSHIP_PERIOD, membershipPeriodFor } from "./membership-periods";
 
 // Periodo in corso per la pagina admin (stessi valori di prima: 2025-09-01 e
 // 2026-12-31), definito in membership-periods.ts.
@@ -50,7 +50,9 @@ export function deriveMembershipState(
   identity: { email?: string | null; firstName?: string | null; lastName?: string | null },
   options: DeriveMembershipOptions = {},
 ): DerivedMembershipState {
-  const paymentWindow = { from: options.paymentsFrom ?? CURRENT_MEMBERSHIP_START, until: options.paymentsUntil ?? null };
+  const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" });
+  const defaultPeriod = membershipPeriodFor(today) ?? FIRST_MEMBERSHIP_PERIOD;
+  const paymentWindow = { from: options.paymentsFrom ?? defaultPeriod.paymentsFrom, until: options.paymentsUntil ?? null };
   const targetEmail = normalizeEmail(identity.email);
   const targetName = normalizeNameKey(identity.firstName, identity.lastName);
   const samePerson = (row: MembershipEvidenceRow) => {
@@ -64,14 +66,19 @@ export function deriveMembershipState(
   const googleFormPresent = rows.some(row => row.source === "google_sheet" && samePerson(row));
   // La quota è confermata esclusivamente da un pagamento email abbinato
   // oppure da un inserimento manuale salvato nel gestionale.
+  const referenceDate = (options.referenceDate ?? (options.paymentsFrom ? paymentWindow.until : today) ?? today).slice(0, 10);
   const payments = rows.filter(row => row.source === "manual_override" &&
-    isPaymentInWindow(row, paymentWindow) && samePerson(row));
-  const payment = payments.find(row => row.notes_admin?.startsWith("Quota confermata da email (")) ?? payments[0];
+    isPaymentInWindow(row, paymentWindow, referenceDate) && samePerson(row));
+  // Se esistono quota 2026 e rinnovo 2027, mostra la scadenza più lunga.
+  const payment = [...payments].sort((a, b) =>
+    (b.membership_expires_at ?? "").localeCompare(a.membership_expires_at ?? "") ||
+    Number(Boolean(b.notes_admin?.startsWith("Quota confermata da email ("))) -
+    Number(Boolean(a.notes_admin?.startsWith("Quota confermata da email (")))
+  )[0];
   const paid = Boolean(payment);
 
   // Il libro ufficiale puo' attestare una tessera gia' verificata, ma una
   // registrazione scaduta non diventa una quota valida del nuovo periodo.
-  const referenceDate = (options.referenceDate ?? paymentWindow.until ?? CURRENT_MEMBERSHIP_EXPIRY).slice(0, 10);
   const official = rows.filter(row => row.source === "official_members_book" &&
     row.membership_status === "verified" &&
     Boolean(row.membership_starts_at && row.membership_starts_at.slice(0, 10) <= referenceDate &&
@@ -118,12 +125,15 @@ export function deriveMembershipState(
 function isPaymentInWindow(
   row: MembershipEvidenceRow,
   window: { from: string; until: string | null },
+  referenceDate: string,
 ) {
   return (
     row.membership_status === "verified" &&
     Boolean(
       row.membership_starts_at &&
         row.membership_starts_at >= window.from &&
+        row.membership_starts_at.slice(0, 10) <= referenceDate &&
+        Boolean(row.membership_expires_at && row.membership_expires_at.slice(0, 10) >= referenceDate) &&
         (window.until === null || row.membership_starts_at.slice(0, 10) <= window.until),
     )
   );

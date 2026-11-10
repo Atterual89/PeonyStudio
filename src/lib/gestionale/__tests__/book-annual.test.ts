@@ -43,7 +43,7 @@ describe("Libro Soci Team Artist per annualità", () => {
 
   it("applica correttamente le scadenze anche alla copia del modulo", () => {
     expect(getDefaultMembershipExpiryDate("2025-09-01")).toBe("2026-12-31");
-    expect(getDefaultMembershipExpiryDate("2026-11-07")).toBe("2026-12-31");
+    expect(getDefaultMembershipExpiryDate("2026-11-07")).toBe("2027-12-31");
     expect(getDefaultMembershipExpiryDate("2027-03-07")).toBe("2027-12-31");
   });
 });

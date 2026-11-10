@@ -59,10 +59,10 @@ describe("registrazione Google e quota indipendenti", () => {
     expect(status([form(),manual(),email])).toMatchObject({kind:"in_regola",match:"payment_email"});
   });
   it("la quota del 2025/26 non verifica il rinnovo 2027", () => {
-    expect(status([form(),manual()], "2027-02-19")).toEqual({kind:"quota_mancante",paymentsFrom:"2027-01-01"});
+    expect(status([form(),manual()], "2027-02-19")).toEqual({kind:"quota_mancante",paymentsFrom:"2026-09-01"});
     expect(status([form(),manual({membership_starts_at:"2027-01-01",membership_expires_at:"2027-12-31"})],
       "2027-02-19")).toEqual({kind:"in_regola",match:"manual",expiresAt:"2027-12-31"});
-    expect(paymentWindowFor("2027-02-19").options.paymentsFrom).toBe("2027-01-01");
+    expect(paymentWindowFor("2027-02-19").options.paymentsFrom).toBe("2026-09-01");
   });
   it("una quota revocata non è pagata", () => {
     expect(status([form(),manual({membership_status:"revoked"})])).toMatchObject({kind:"quota_mancante"});

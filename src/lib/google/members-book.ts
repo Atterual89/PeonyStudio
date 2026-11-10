@@ -195,7 +195,9 @@ function getMembershipStatusAndDates({
   if (quota > 0) {
     return {
       membership_status: "verified" as const,
-      membership_starts_at: period.paymentsFrom,
+      // La colonna annuale del libro non riporta la data del pagamento:
+      // non anticiparne la validità al settembre precedente senza prova.
+      membership_starts_at: year >= 2027 ? `${year}-01-01` : period.paymentsFrom,
       membership_expires_at: period.validUntil,
     };
   }

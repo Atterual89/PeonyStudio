@@ -107,7 +107,7 @@ describe("route manual-validate (comportamento di prima)", () => {
     const { POST } = await import("@/app/api/admin/association-members/manual-validate/route");
     const response = await POST(post({ email: " Nuova.Persona@Gmail.com ", first_name: " Nuova ", last_name: "Persona" }));
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ ok: true, id: "nuova", created: true, expires_at: "2026-12-31" });
+    expect(await response.json()).toEqual({ ok: true, id: "nuova", created: true, expires_at: "2027-12-31" });
     expect(writes).toEqual([
       {
         op: "insert",
@@ -117,10 +117,10 @@ describe("route manual-validate (comportamento di prima)", () => {
           last_name: "Persona",
           email: "nuovapersona@gmail.com",
           membership_status: "verified",
-          membership_starts_at: "2025-09-01",
-          membership_expires_at: "2026-12-31",
+          membership_starts_at: "2026-09-01",
+          membership_expires_at: "2027-12-31",
           source: "manual_override",
-          source_row_id: "manual:email:nuovapersona@gmail.com",
+          source_row_id: "manual:email:nuovapersona@gmail.com:2026-09-01",
           source_hash: null,
           notes_admin: "Validazione manuale da admin",
           updated_at: NOW,
@@ -129,14 +129,17 @@ describe("route manual-validate (comportamento di prima)", () => {
     ]);
   });
 
-  it("persona già validata (stesso nome e cognome): aggiorna la sua riga, nessun'altra", async () => {
+  it("un rinnovo da settembre non sovrascrive la quota 2026 già registrata", async () => {
     const { POST } = await import("@/app/api/admin/association-members/manual-validate/route");
     const response = await POST(post({ first_name: "marta", last_name: "MANUALE" }));
-    expect(await response.json()).toEqual({ ok: true, id: "man-1", created: false, expires_at: "2026-12-31" });
+    expect(await response.json()).toEqual({ ok: true, id: "nuova", created: true, expires_at: "2027-12-31" });
     expect(writes).toHaveLength(1);
-    expect(writes[0]).toMatchObject({ op: "update", payload: { source_row_id: "manual:name:manuale marta", email: null } });
-    expect(writes[0].filters).toContainEqual(["id", "man-1"]);
-    expect(rows.find((row) => row.id === "libro-1")).toMatchObject({ source: "official_members_book", membership_status: "verified" });
+    expect(writes[0]).toMatchObject({
+      op: "insert", payload: { membership_starts_at: "2026-09-01",
+        membership_expires_at: "2027-12-31", source_row_id: "manual:name:manuale marta:2026-09-01" },
+    });
+    expect(rows.find(row => row.id === "man-1")?.membership_starts_at).toBe("2025-09-01");
+    expect(rows.find(row => row.id === "libro-1")?.membership_status).toBe("verified");
   });
 
   it("errore di lettura: 500 con il messaggio", async () => {
@@ -163,11 +166,11 @@ describe("funzione condivisa con il periodo", () => {
   });
 
   it("annullare: solo le righe manual_override verified della persona e del periodo diventano 'revoked'", async () => {
-    rows.push({ id: "man-2027", source: "manual_override", first_name: "Marta", last_name: "Manuale", email: null, membership_status: "verified", membership_starts_at: "2027-01-01" });
+    rows.push({ id: "man-2027", source: "manual_override", first_name: "Marta", last_name: "Manuale", email: null, membership_status: "verified", membership_starts_at: "2026-09-01" });
     const { revokeManualValidation } = await import("@/lib/association/manual-validation");
     expect(await revokeManualValidation({ firstName: "Marta", lastName: "Manuale" })).toEqual({ ok: true, revoked: 1 });
-    expect(rows.find((row) => row.id === "man-1")?.membership_status).toBe("revoked");
-    expect(rows.find((row) => row.id === "man-2027")?.membership_status).toBe("verified");
+    expect(rows.find((row) => row.id === "man-1")?.membership_status).toBe("verified");
+    expect(rows.find((row) => row.id === "man-2027")?.membership_status).toBe("revoked");
     expect(writes[0].filters).toContainEqual(["source", "manual_override"]);
     // La persona del libro soci con lo stesso nome non c'entra; nessuna riga: niente scritture.
     writes.length = 0;
@@ -177,6 +180,7 @@ describe("funzione condivisa con il periodo", () => {
   });
 
   it("route manual-revoke: segreto obbligatorio, poi annulla", async () => {
+    rows.push({ id: "man-2027", source: "manual_override", first_name: "Marta", last_name: "Manuale", email: null, membership_status: "verified", membership_starts_at: "2026-09-01" });
     const { POST } = await import("@/app/api/admin/association-members/manual-revoke/route");
     expect((await POST(post({ first_name: "Marta", last_name: "Manuale" }, null))).status).toBe(401);
     const response = await POST(post({ first_name: "Marta", last_name: "Manuale" }));

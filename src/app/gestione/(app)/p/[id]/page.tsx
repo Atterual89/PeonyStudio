@@ -72,7 +72,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
   const periodBadges = await Promise.all(
     periods.map(async (period) => ({
       period,
-      badge: (await getMembershipBadges([person], period.paymentsFrom)).get(person.id) ?? ({ kind: "non_collegata" } as Badge),
+      badge: (await getMembershipBadges([person], period.validUntil)).get(person.id) ?? ({ kind: "non_collegata" } as Badge),
     })),
   );
   const markName = fullName(person) && person.first_name && person.last_name ? fullName(person) : displayName(person);

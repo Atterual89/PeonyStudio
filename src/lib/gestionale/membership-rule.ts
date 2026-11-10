@@ -10,7 +10,7 @@
 // Le correzioni di gw_membership_overrides non si usano più (migrazione 022:
 // convertite in validazioni manuali).
 
-import { membershipPeriodFor, type MembershipPeriod } from "@/lib/association/membership-periods";
+import { membershipPeriodFor, membershipPeriodForPayment, type MembershipPeriod } from "@/lib/association/membership-periods";
 import { deriveMembershipState, type DeriveMembershipOptions, type DerivedMembershipState } from "@/lib/association/membership-state";
 
 import type { MembershipBadge } from "./types";
@@ -109,7 +109,7 @@ export const MEMBERSHIP_SHORT_LABELS: Record<MembershipBadge["kind"], string> = 
 export function periodLabel(period: MembershipPeriod): string {
   const from = period.paymentsFrom.slice(0, 4);
   const until = period.validUntil.slice(0, 4);
-  return from === until ? from : `${from}/${until.slice(2)}`;
+  return until === "2026" ? "2025/26" : until;
 }
 
 /**
@@ -118,6 +118,8 @@ export function periodLabel(period: MembershipPeriod): string {
  */
 export function personPeriods(today: string, workshopStarts: readonly string[]): MembershipPeriod[] {
   const periods = new Map<string, MembershipPeriod>();
+  const currentPaymentPeriod = membershipPeriodForPayment(today);
+  if (currentPaymentPeriod) periods.set(currentPaymentPeriod.paymentsFrom, currentPaymentPeriod);
   for (const date of [today, ...workshopStarts]) {
     const period = membershipPeriodFor(date);
     if (period) periods.set(period.paymentsFrom, period);

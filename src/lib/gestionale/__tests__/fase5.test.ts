@@ -101,7 +101,7 @@ describe("stato associativo per data del workshop", () => {
   it("valida fino al 31/12/2026: workshop di novembre 2026 in regola, di febbraio 2027 no", () => {
     const rows = [evidence({source:"manual_override"}), evidence({ source: "google_sheet" })];
     expect(badge(rows, "2026-11-14")).toMatchObject({ kind: "in_regola", expiresAt: "2026-12-31" });
-    expect(membershipLabel(badge(rows, "2027-02-06"))).toBe("Quota non registrata dal 1 gen 2027");
+    expect(membershipLabel(badge(rows, "2027-02-06"))).toBe("Quota non registrata dal 1 set 2026");
   });
 
   it("persona non collegata e non trovata → Non collegata (da verificare)", () => {

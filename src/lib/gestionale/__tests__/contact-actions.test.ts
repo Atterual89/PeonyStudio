@@ -96,7 +96,7 @@ describe("richieste di associazione", () => {
     expect(addOne.mock.calls.map((call) => call.slice(1))).toEqual([
       [P, "2025-09-01", "2026-10-12", "via Gmail"],
       [P, "2025-09-01", "2026-10-20", null],
-      [P, "2027-01-01", "2026-10-21", null],
+      [P, "2026-09-01", "2026-10-21", null],
     ]);
   });
 

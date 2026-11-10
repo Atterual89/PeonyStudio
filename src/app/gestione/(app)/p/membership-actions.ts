@@ -5,7 +5,7 @@ import { getGestionaleDb } from "@/lib/gestionale/server/db";
 import { confirmManualQuotaPersisted } from "@/lib/gestionale/server/manual-quota-proof";
 
 import { revokeManualValidation, saveManualValidation } from "@/lib/association/manual-validation";
-import { membershipPeriodFor } from "@/lib/association/membership-periods";
+import { membershipPeriodFor, membershipPeriodForPayment } from "@/lib/association/membership-periods";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { getPerson, getWorkshopView } from "@/lib/gestionale/server/data";
 import { clearMembershipCache, membershipIdentityOf } from "@/lib/gestionale/server/membership";
@@ -31,14 +31,16 @@ type Target = { personId: string; workshopId?: string | null; periodFrom?: strin
 
 async function resolve(input: Target) {
   if (!isUuidLike(input?.personId) || (input.workshopId != null && !isUuidLike(input.workshopId))) return null;
-  if (input.periodFrom != null && (!isIsoDate(input.periodFrom) || membershipPeriodFor(input.periodFrom)?.paymentsFrom !== input.periodFrom)) {
+  if (input.periodFrom != null && (!isIsoDate(input.periodFrom) || membershipPeriodForPayment(input.periodFrom)?.paymentsFrom !== input.periodFrom)) {
     return null;
   }
   const person = await getPerson(input.personId);
   if (!person || person.merged_into) return null;
   const workshop = input.workshopId ? await getWorkshopView(input.workshopId) : null;
   if (input.workshopId && !workshop) return null;
-  const period = membershipPeriodFor(workshop ? workshop.startsOn : (input.periodFrom ?? todayInRome()));
+  const period = input.periodFrom
+    ? membershipPeriodForPayment(input.periodFrom)
+    : membershipPeriodForPayment(todayInRome());
   const identity = await membershipIdentityOf(person);
   const complete = Boolean(identity.email?.trim()) || Boolean(identity.firstName?.trim() && identity.lastName?.trim());
   return { person, period, identity, complete };
@@ -96,8 +98,8 @@ export async function setFormQuotaPaidAction(formMemberId: string, paid: boolean
     .maybeSingle();
   if (error || !form) return { ok: false, error: "Domanda Google non trovata. Aggiorna le domande." };
   const today = todayInRome();
-  const period = membershipPeriodFor(periodDate ?? today);
-  const currentPeriod = membershipPeriodFor(today);
+  const period = membershipPeriodForPayment(periodDate ?? today);
+  const currentPeriod = membershipPeriodForPayment(today);
   if (!period || !currentPeriod) return { ok: false, error: "Periodo associativo non valido." };
   // Pagamenti del periodo attuale e rinnovi dell'anno successivo soltanto.
   if (period.paymentsFrom < currentPeriod.paymentsFrom ||

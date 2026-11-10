@@ -18,13 +18,12 @@ describe("riconciliazione Qonto e periodi indipendenti",()=>{
     expect(deriveMembershipState(evidence,identity,{paymentsFrom:"2027-01-01",paymentsUntil:"2027-12-31"}).currentYearPaid).toBe(false);
     expect(membershipPeriodFor("2026-11-04")?.paymentsFrom).toBe("2025-09-01");
   });
-  it("mostra il conflitto prima della conferma, con cambio esplicito di periodo",()=>{
+  it("mostra il conflitto e impedisce di cambiare annualità rispetto alla data della email",()=>{
     expect(actions).toContain("const alreadyPaidPeriod=person&&period");
     expect(actions).toContain("alreadyPaidPeriod,");
     expect(review).toContain("periodAlreadyPaid");
-    expect(review).toContain("Seleziona {nextPeriod.label}");
-    expect(review).toContain("disabled={blocked||periodAlreadyPaid}");
-    expect(review).toContain("non è possibile assegnarlo due volte");
+    expect(review).toContain("associationPeriodFrom");
+    expect(actions).toContain("membershipPeriodForPayment(new Intl.DateTimeFormat");
   });
   it("il collegamento alla persona resta distinto dalla quota e non cancella prove",()=>{
     expect(memberSearch).toContain("groupMemberEvidence(rows)");
