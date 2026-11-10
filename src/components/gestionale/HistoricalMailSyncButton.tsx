@@ -6,45 +6,45 @@ import { syncHistoricalAssociationMailAction } from "@/app/gestione/(app)/quote-
 export function HistoricalMailSyncButton(){
   const router=useRouter();
   const [busy,start]=useTransition();
-  const [progress,setProgress]=useState("");
   const [result,setResult]=useState<string|null>(null);
   const [error,setError]=useState<string|null>(null);
+  const [hasMore,setHasMore]=useState(false);
+
   function run(){
-    setError(null);setResult(null);setProgress("Ricerca delle email del 2024…");
+    setError(null);
+    setResult(null);
+    // Un SOLO blocco per clic. Prima erano otto richieste consecutive:
+    // su Gmail questo può esaurire il limite per utente.
     start(async()=>{
       try{
-        let scanned=0,found=0,skipped=0,more=false;
-        for(let page=0;page<8;page++){
-          const response=await syncHistoricalAssociationMailAction();
-          if(!response.ok){setError(response.error);setProgress("");return;}
-          scanned+=response.data.scanned;found+=response.data.imported;
-          skipped+=response.data.skipped;more=response.data.hasMore;
-          setProgress("Email controllate: "+scanned+" · candidate nuove: "+found+
-            (more?" · Altre email da esaminare…":""));
-          if(!more)break;
+        const response=await syncHistoricalAssociationMailAction();
+        if(!response.ok){
+          setError(response.error);
+          return;
         }
-        setResult("Controllate "+scanned+" notifiche. "+found+" nuovi pagamenti candidati, "+
-          skipped+" esclusi dal filtro quote. "+(more?"Premi di nuovo per proseguire.":"Intervallo storico completato."));
-        setProgress("");
+        const {scanned,imported,skipped,hasMore:more}=response.data;
+        setHasMore(more);
+        setResult(
+          `Notifiche controllate: ${scanned} · nuovi pagamenti candidati: ${imported}`+
+          ` · non pertinenti: ${skipped}. `+
+          (more?"Puoi proseguire con il prossimo blocco.":"Intervallo completato.")
+        );
         router.refresh();
       }catch{
-        setError("L'importazione si è interrotta: premi ancora per riprendere dall'ultimo checkpoint.");
-        setProgress("");
+        setError("Lettura interrotta. I dati già importati restano salvati; riprova più tardi.");
       }
     });
   }
   return <div className="space-y-2">
     <button type="button" disabled={busy} onClick={run}
       className="min-h-10 rounded-xl border border-[#a8583e] bg-white px-4 text-sm font-semibold text-[#a8583e] disabled:opacity-50">
-      {busy?"Analisi email in corso…":"Analizza email dal gennaio 2024"}
+      {busy?"Controllo Gmail in corso…":hasMore?"Prosegui analisi email":"Analizza email dal settembre 2025"}
     </button>
-    {progress&&<p role="status" className="text-xs text-[#5f524c]">{progress}</p>}
     {result&&<p role="status" className="text-sm text-[#326941]">{result}</p>}
     {error&&<p role="alert" className="text-sm text-[#9b2c2c]">{error}</p>}
     <p className="text-xs text-[#5f524c]">
-      Cerca notifiche PayPal e Qonto in blocchi, evita i duplicati e conserva
-      il punto raggiunto. Le quote vengono soltanto proposte per revisione,
-      mai assegnate automaticamente.
+      Controlla un piccolo blocco per volta, conserva il punto raggiunto ed evita
+      di duplicare pagamenti. La revisione non assegna automaticamente le quote.
     </p>
   </div>;
 }
