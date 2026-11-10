@@ -12,7 +12,7 @@ export type FormReviewCase = {
   sourceHash: string | null;
   relatedRecords: number;
   differences: Array<{label:string;before:string;after:string}>;
-  evidence: Array<{id:string;source:string;name:string;email:string|null;status:string|null}>;
+  evidence: Array<{id:string;source:string;name:string;email:string|null;status:string|null;expiresAt?:string|null}>;
   candidates: Array<{ id: string; name: string; email: string | null }>;
   explanation: string;
   /** Le incongruenze potenzialmente ambigue non sono importabili in un clic. */
@@ -27,6 +27,7 @@ export type ReviewMember = {
   last_name: string | null;
   email: string | null;
   membership_status: string | null;
+  source_hash?: string | null;
   contact?: string | null;
   membership_starts_at?: string | null;
   membership_expires_at?: string | null;
@@ -73,7 +74,7 @@ export function buildGoogleFormReviewQueue(input:{
       id:row.id,
       source:row.source==="google_sheet"?"Modulo Google":row.source==="manual_override"?"Quota email/manuale":row.source==="manual_form"?"Modulo cartaceo":"Altro",
       name:name(row.first_name,row.last_name),
-      email:row.email,status:row.membership_status,
+      email:row.email,status:row.membership_status,expiresAt:row.membership_expires_at,
     }));
   const duplicateSourceIds=new Set<string>();
   for(const [sourceRowId,rows] of bySource){
@@ -83,9 +84,13 @@ export function buildGoogleFormReviewQueue(input:{
     result.push({
       id:`duplicate:${sourceRowId}`,kind:"duplicate",
       name:name(first.first_name,first.last_name),email:first.email,
-      sourceRowId,sourceHash:null,relatedRecords:rows.length,differences:[],evidence:evidenceOf(rows),
+      sourceRowId,sourceHash:null,relatedRecords:rows.length,
+      differences:[...new Set(rows.map(row=>row.membership_expires_at??"—"))].length>1
+       ? [{label:"Scadenza registrata",before:rows[0].membership_expires_at??"—",
+          after:rows.at(-1)?.membership_expires_at??"—"}]:[],
+      evidence:evidenceOf(rows),
       candidates:candidates(name(first.first_name,first.last_name),first.email),
-      explanation:`${rows.length} copie della stessa risposta Google nel database. Verifica gli abbinamenti prima di archiviare quelle in eccesso.`,
+      explanation:`${rows.length} copie tecniche della stessa risposta Google, create durante le sincronizzazioni. Gli ID sono del database, non nuovi moduli compilati. Confronta le versioni prima di consolidare.`,
       canConfirm:false,
     });
   }
