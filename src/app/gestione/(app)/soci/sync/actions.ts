@@ -125,8 +125,28 @@ export async function applySociSyncAction(expectedToken: string): Promise<SyncOu
     // Le domande non provano il pagamento; le validazioni manuali e il libro
     // ufficiale restano invariati. Nessuna riga viene rimossa.
     const report = await applyAssociationMembersSync(db, { removeStaleRows: false });
+    // Verifica dopo la scrittura: un modulo Google può essere presente nella
+    // fonte ma assente in Supabase (es. riga saltata da una sync parziale).
+    // Non dichiarare "aggiornato" se anche una sola email manca.
+    const storedEmails = new Set<string>();
+    for (let offset = 0; offset < 10000; offset += 500) {
+      const {data,error} = await db.from("association_members")
+        .select("email").eq("source","google_sheet")
+        .order("id",{ascending:true}).range(offset,offset+499);
+      if (error) throw new SociSyncError("Impossibile verificare la completezza delle registrazioni importate.");
+      for (const member of data??[]) {
+        if (member.email) storedEmails.add(member.email.trim().toLowerCase());
+      }
+      if ((data??[]).length < 500) break;
+    }
+    const missingForms = forms.validSourceRows.filter(row =>
+      row.email && !storedEmails.has(row.email.trim().toLowerCase()));
     await clearMembershipCache();
     refreshGestione();
+    if (missingForms.length) {
+      console.error("[gestionale] Moduli Google non importati",missingForms.map(row=>row.source_row_id));
+      return {ok:false,message:`Sincronizzazione incompleta: ${missingForms.length} moduli Google ancora assenti nel database. Nessuna registrazione precedente è stata cancellata.`};
+    }
     if (report.errors.length) {
       console.warn("[gestionale] Domande Google con righe da controllare", report.errors.length);
       return { ok: false, message: `Aggiornamento parziale: ${report.created} domande nuove, ${report.updated} modificate. Alcune righe richiedono verifica; nessuna cancellazione.` };
