@@ -79,6 +79,18 @@ export function GoogleFormsReview({cases,readCount}:{cases:FormReviewCase[];read
         {current.relatedRecords>1&&<p className="text-xs text-[#9b4b1e]">Record da confrontare: {current.relatedRecords}</p>}
       </div>
       <p className="text-sm text-[#5f524c]">{current.explanation}</p>
+      {current.differences.length>0&&<div className="rounded-lg border border-[#211815]/10 p-3">
+        <p className="mb-2 text-sm font-semibold">Differenze da verificare</p>
+        <div className="space-y-2">
+          {current.differences.map(change=><div key={change.label} className="grid gap-1 border-b border-[#211815]/10 pb-2 text-xs sm:grid-cols-[120px_1fr_1fr]">
+            <strong>{change.label}</strong>
+            <span className="break-all text-[#6d5c54]">Prima: {change.before}</span>
+            <span className="break-all text-[#326941]">Google: {change.after}</span>
+          </div>)}
+        </div>
+      </div>}
+      {current.kind==="changed"&&current.differences.length===0&&
+        <p className="text-xs text-[#5f524c]">Differenza tecnica nella versione della registrazione; i campi principali non sono cambiati.</p>}
       {current.evidence.length>0&&<details className="rounded-lg border border-[#211815]/10 bg-[#fcfaf5] p-3">
         <summary className="cursor-pointer text-sm font-semibold">
           Confronta le fonti · {current.evidence.length}
