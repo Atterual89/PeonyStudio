@@ -144,7 +144,7 @@ describe("anagrafica visibile nel workshop di Ale", () => {
   });
 
   it("non spaccia l'email dell'iscrizione per email anagrafica", () => {
-    const provisional = { ...linked, matchStatus: "da_abbinare", linkedProfile: null, enteredEmail: "ale@example.test" };
+    const provisional: Registration["people"][number] = { ...linked, matchStatus: "da_abbinare", linkedProfile: null, enteredEmail: "ale@example.test" };
     expect(registrationPersonLabel(provisional)).toEqual({
       name: "Pikushi", alias: null, linked: false,
       email: "ale@example.test", emailSource: "iscrizione",
