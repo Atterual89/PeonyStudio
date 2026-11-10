@@ -24,7 +24,7 @@ export type DerivedMembershipState = {
   membershipStartsAt: string | null;
   membershipExpiresAt: string | null;
   paymentMatchMethod: "email" | "name" | "manual" | "payment_email" | null;
-  /** Tessera vigente attestata dal libro ufficiale; non crea un pagamento manuale. */
+  /** Campo legacy: Team Artist non è fonte per verificare moduli o quote. */
   verifiedInOfficialBook: boolean;
 };
 
@@ -77,46 +77,19 @@ export function deriveMembershipState(
   )[0];
   const paid = Boolean(payment);
 
-  // Il libro ufficiale puo' attestare una tessera gia' verificata, ma una
-  // registrazione scaduta non diventa una quota valida del nuovo periodo.
-  const official = rows.filter(row => row.source === "official_members_book" &&
-    row.membership_status === "verified" &&
-    Boolean(row.membership_starts_at && row.membership_starts_at.slice(0, 10) <= referenceDate &&
-      row.membership_expires_at && row.membership_expires_at.slice(0, 10) >= referenceDate));
-  const sameOfficialName = (row: MembershipEvidenceRow) => Boolean(targetName) &&
-    normalizeNameKey(row.first_name, row.last_name) === targetName;
-  const directOfficial = targetEmail ? official.filter(row =>
-    normalizeEmail(row.email) === targetEmail && (!targetName || sameOfficialName(row))) : [];
-  // Un solo nome nel libro ufficiale e nessun conflitto tra due moduli Google.
-  // I nickname non sono mai prove di identita' per questo automatismo.
-  const nameOfficial = official.filter(row => sameOfficialName(row) &&
-    (!normalizeEmail(row.email) || normalizeEmail(row.email) === targetEmail));
-  const formEmails = new Set(rows.filter(row => row.source === "google_sheet" && sameOfficialName(row))
-    .map(row => normalizeEmail(row.email)).filter(email => email.includes("@")));
-  const safeNameMatch = nameOfficial.length === 1 && formEmails.size <= 1 &&
-    (!targetEmail || formEmails.size === 0 || formEmails.has(targetEmail));
-  const officialProof = directOfficial.length === 1 ? directOfficial[0] : safeNameMatch ? nameOfficial[0] : null;
-  const verifiedInOfficialBook = Boolean(officialProof);
-  const historicalOfficial = rows.filter(row => row.source === "official_members_book" &&
-    (row.membership_status === "verified" || row.membership_status === "expired"));
-  const directHistorical = targetEmail ? historicalOfficial.filter(row =>
-    normalizeEmail(row.email) === targetEmail && (!targetName || sameOfficialName(row))) : [];
-  const nameHistorical = historicalOfficial.filter(row => sameOfficialName(row) &&
-    (!normalizeEmail(row.email) || normalizeEmail(row.email) === targetEmail));
-  // Senza email, non fondere automaticamente omonimi o due moduli che
-  // indicano indirizzi incompatibili: richiedono revisione manuale.
-  const safeHistoricalName = nameHistorical.length === 1 && formEmails.size <= 1 &&
-    (!targetEmail || formEmails.size === 0 || formEmails.has(targetEmail));
-  const registeredInOfficialBook = directHistorical.length === 1 || safeHistoricalName;
-  const formPresent = googleFormPresent || registeredInOfficialBook;
+  // Team Artist viene DOPO il modulo e il versamento: le righe del
+  // libro ufficiale restano consultabili come archivio, ma non sostituiscono
+  // né la domanda Google né la prova del pagamento.
+  const formPresent = googleFormPresent;
+  const verifiedInOfficialBook = false;
 
   return {
-    status: verifiedInOfficialBook || (formPresent && paid) ? "valid" : !formPresent ? "missing_form" : "payment_missing",
+    status: formPresent && paid ? "valid" : !formPresent ? "missing_form" : "payment_missing",
     formPresent,
     currentYearPaid: paid,
     verifiedInOfficialBook,
-    membershipStartsAt: payment?.membership_starts_at ?? officialProof?.membership_starts_at ?? null,
-    membershipExpiresAt: payment?.membership_expires_at ?? officialProof?.membership_expires_at ?? null,
+    membershipStartsAt: payment?.membership_starts_at ?? null,
+    membershipExpiresAt: payment?.membership_expires_at ?? null,
     paymentMatchMethod: !payment ? null :
       payment.notes_admin?.startsWith("Quota confermata da email (") ? "payment_email" : "manual",
   };
