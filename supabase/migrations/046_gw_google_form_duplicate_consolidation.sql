@@ -54,7 +54,7 @@ begin
  select array_agg(distinct association_member_id) into v_linked
  from public.gw_people
  where association_member_id=any(array(select (x).id from unnest(v_rows) x))
-  and deleted_at is null and merged_into is null;
+;
  if coalesce(array_length(v_linked,1),0)>1 then
   raise exception 'Più copie sono collegate a persone: verificare prima di consolidare'; end if;
  v_canonical:=coalesce(v_linked[1],v_first.id);
