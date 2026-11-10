@@ -11,7 +11,7 @@ describe("Conferma delle quote importate da Gmail",()=>{
  it("non confonde il periodo 2025/26 già pagato con la nuova quota 2027",()=>{
   expect(membershipPeriodForPayment("2026-11-04")?.paymentsFrom).toBe("2026-09-01");
   expect(membershipPeriodForPayment("2027-01-01")?.paymentsFrom).toBe("2026-09-01");
-  expect(actions).toContain("membershipPeriodForPayment(payment.paid_at.slice(0, 10))");
+  expect(actions).toContain("timeZone:\"Europe/Rome\"");
  });
  it("mostra il periodo nella scheda di ogni singolo pagamento",()=>{
   expect(review).toContain("associationPeriodFrom");
