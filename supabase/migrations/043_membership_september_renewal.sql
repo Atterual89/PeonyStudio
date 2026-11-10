@@ -151,7 +151,7 @@ update public.gw_association_payment_allocations a
   from public.gw_association_payment_emails e
  where a.payment_id=e.id
    and a.period_from in (date '2025-09-01',date '2027-01-01')
-   and e.paid_at::date between date '2026-09-01' and date '2026-12-31';
+   and (e.paid_at at time zone 'Europe/Rome')::date between date '2026-09-01' and date '2026-12-31';
 
 commit;
 notify pgrst, 'reload schema';
