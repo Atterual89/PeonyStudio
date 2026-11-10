@@ -41,7 +41,7 @@ export async function getAssociationMailState() {
   const db = getGestionaleDb();
   const [state, payments, suggestions] = await Promise.all([
     db.from("gw_payment_sync_state").select("initial_from,last_success_at").eq("source","gmail_payments").maybeSingle(),
-    db.from("gw_association_payment_emails").select("id,provider,payer_name,amount_cents,note,paid_at,status").eq("status","pending").gte("paid_at","2025-09-01T00:00:00Z")
+    db.from("gw_association_payment_emails").select("id,provider,payer_name,amount_cents,note,paid_at,status").eq("status","pending").gte("paid_at","2025-08-31T22:00:00Z")
       .order("paid_at",{ascending:false}).limit(75),
     db.rpc("gw_payment_suggest_people"),
   ]);
