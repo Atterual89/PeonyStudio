@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {useMemo,useState,useTransition} from "react";
+import {useEffect,useMemo,useState,useTransition} from "react";
 import {useRouter} from "next/navigation";
 import {matchAleContactAction,type AleMatchRow} from "@/app/gestione/(app)/altro/soci/abbinamenti-ale/actions";
 
@@ -21,12 +21,16 @@ function State({association}:{association:string}){
   return <span className="text-xs text-[#5f524c]">{labels[association]||association}</span>;
 }
 
-export function AdminAleMatchingPanel({rows,candidates}:{rows:AleMatchRow[];candidates:AleMatchCandidate[]}){
+export function AdminAleMatchingPanel({rows,candidates,focusedContactId}:{rows:AleMatchRow[];candidates:AleMatchCandidate[];focusedContactId?:string}){
   const router=useRouter();
-  const [filter,setFilter]=useState<"pending"|"linked"|"all">("pending");
-  const [query,setQuery]=useState("");
-  const [open,setOpen]=useState<string|null>(null);
-  const [candidateQuery,setCandidateQuery]=useState("");
+  const focused = rows.find(row=>row.id===focusedContactId);
+  const [filter,setFilter]=useState<"pending"|"linked"|"all">(focused?"all":"pending");
+  const [query,setQuery]=useState(focused?.displayName??"");
+  const [open,setOpen]=useState<string|null>(focused&&!focused.personId?focused.id:null);
+  const [candidateQuery,setCandidateQuery]=useState(focused?.displayName??"");
+  useEffect(()=>{
+    if(focusedContactId)document.getElementById(`ale-contact-${focusedContactId}`)?.scrollIntoView({block:"center",behavior:"smooth"});
+  },[focusedContactId]);
   const [selected,setSelected]=useState<string|null>(null);
   const [confirming,setConfirming]=useState(false);
   const [message,setMessage]=useState("");
@@ -87,7 +91,7 @@ export function AdminAleMatchingPanel({rows,candidates}:{rows:AleMatchRow[];cand
       {filtered.slice(0,150).map(row=>{
         const linked=row.personId||matchedLocal[row.id];
         const chosen=selected?candidates.find(c=>c.personId===selected):null;
-        return <li key={row.id} className="rounded-xl border border-[#211815]/10 bg-white p-3">
+        return <li key={row.id} id={`ale-contact-${row.id}`} className="rounded-xl border border-[#211815]/10 bg-white p-3">
           <button type="button" className="flex w-full items-center justify-between gap-2 text-left"
             disabled={Boolean(linked)} aria-expanded={open===row.id}
             onClick={()=>openRow(row)}>

@@ -10,6 +10,7 @@ import { explainConflict } from "@/lib/gestionale/server/conflicts";
 import { getWorkshopView } from "@/lib/gestionale/server/data";
 import { paidCents, statusJustified } from "@/lib/gestionale/payments";
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
+import { dispatchAlePush } from "@/lib/gestionale/server/admin-push";
 import {
   addPayment,
   correctPayment,
@@ -182,6 +183,8 @@ export async function addRegistrationAction(input: {
     payment,
   });
   if (!result.ok) return result;
+  try { await dispatchAlePush(operator.id); }
+  catch (error) { console.error("[gestionale] Invio push iscrizione:", error); }
   refreshGestione();
   return { ok: true };
 }
@@ -514,6 +517,8 @@ export async function importRosterAction(input: {
     rows: rows as ImportRowInput[],
   });
   if (!result.ok) return result;
+  try { await dispatchAlePush(operator.id); }
+  catch (error) { console.error("[gestionale] Invio push importazione iscrizioni:", error); }
   refreshGestione();
   return result;
 }

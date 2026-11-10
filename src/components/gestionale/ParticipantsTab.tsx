@@ -1,7 +1,7 @@
 "use client";
 
 import { Mail } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   BOOKING_FILTERS,
@@ -97,6 +97,7 @@ export function ParticipantsTab({
   today,
   showPresence = false,
   bookings,
+  focusBookingId,
 }: {
   workshopId: string;
   workshopStartsOn: string;
@@ -104,10 +105,11 @@ export function ParticipantsTab({
   /** D27: spunta "Presente" sulla riga, dal giorno di inizio. */
   showPresence?: boolean;
   bookings: BookingView[];
+  focusBookingId?: string;
 }) {
   const [filter, setFilter] = useState<BookingFilter>("confermati");
   const [query, setQuery] = useState("");
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(focusBookingId ?? null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sort, setSort] = useState<{ key: SortKey; asc: boolean }>({ key: "data", asc: true });
   // D26: nei gruppi delle richieste contano le iscrizioni confermate; a richiesta anche gli interessati.
@@ -118,7 +120,7 @@ export function ParticipantsTab({
 
   const visible = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("it");
-    const rows = bookings.filter((b) => matchesBookingFilter(b, filter, { includeInterested }) && (
+    const rows = bookings.filter((b) => (b.bookingId === focusBookingId || matchesBookingFilter(b, filter, { includeInterested })) && (
       !normalizedQuery || [bookingTitle(b), ...b.people.flatMap((p) => [p.displayName, p.fullName ?? "", p.person.nickname ?? "", p.person.email ?? ""])]
         .some((value) => value.toLocaleLowerCase("it").includes(normalizedQuery))
     ));
@@ -128,7 +130,10 @@ export function ParticipantsTab({
       const cmp = av < bv ? -1 : av > bv ? 1 : bookingTitle(a).localeCompare(bookingTitle(b));
       return sort.asc ? cmp : -cmp;
     });
-  }, [bookings, filter, sort, includeInterested, query]);
+  }, [bookings, filter, sort, includeInterested, query, focusBookingId]);
+  useEffect(() => {
+    if (focusBookingId) document.getElementById(`booking-${focusBookingId}`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [focusBookingId]);
   const notLinked = new Set(bookings.flatMap((b) => b.people).filter((p) => p.membership.kind === "non_collegata").map((p) => p.person.id)).size;
 
   function toggle(id: string) {
@@ -227,7 +232,7 @@ export function ParticipantsTab({
         <ul className="mt-4 space-y-2">
           {visible.map(booking=>{
             const open=openId===booking.bookingId;
-            return <li key={booking.bookingId}>
+            return <li key={booking.bookingId} id={`booking-${booking.bookingId}`}>
               <UnifiedParticipantCard
                 expanded={open} onToggle={()=>toggle(booking.bookingId)}
                 primary={<PeopleLines booking={booking}/>}
