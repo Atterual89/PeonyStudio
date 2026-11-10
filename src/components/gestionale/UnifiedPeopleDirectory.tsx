@@ -140,6 +140,10 @@ export function UnifiedPeopleDirectory({contacts,initialQuery=""}:{contacts:Unif
                 <strong>Quota OK.</strong> Nessun modulo Google o cartaceo risulta confermato per questa persona.
                 Controlla il modulo: non serve confermare di nuovo il pagamento.
               </p>}
+            {contact.identityConflict&&<p className="rounded-lg border border-[#9b4b1e]/25 bg-[#fff8eb] p-2 text-xs text-[#8b531d]">
+              Attenzione: questa email compare su un modulo intestato a un altro nome.
+              Non collegare automaticamente. <Link className="underline" href="/gestione/altro/soci/controllo">Controlla identità</Link>.
+            </p>}
             <details className="text-xs text-[#5f524c]">
               <summary className="cursor-pointer text-[#a8583e]">Origine e abbinamento</summary>
               <p className="mt-1">{contact.source}{contact.link==="confermato"?" · Confermato":
@@ -160,10 +164,12 @@ export function UnifiedPeopleDirectory({contacts,initialQuery=""}:{contacts:Unif
               {!contact.personId&&contact.memberKey&&
                 <RegistryPersonActions memberKey={contact.memberKey} registryName={contact.name} onSaved={setSavedMessage}/>}
             </div>
-            {contact.personId&&contact.personVersion!==null&&
+            {contact.personId&&contact.personVersion!==null&&!contact.identityConflict&&!contact.formPresent&&
               <MemberQuickLink personId={contact.personId} version={contact.personVersion}
                 personName={contact.nickname||contact.name} mode={contact.link==="confermato"?"change":"link"}
                 onSaved={setSavedMessage}/>}
+            {contact.personId&&contact.formPresent&&!contact.identityConflict&&
+              <p className="text-xs text-[#326941]">Modulo già riconosciuto: non serve un secondo collegamento.</p>}
             {!contact.personId&&!contact.memberKey&&
               <p className="text-xs text-[#5f524c]">Controlla l'identità prima di collegare una scheda.</p>}
           </div>}
