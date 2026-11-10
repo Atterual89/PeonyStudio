@@ -161,8 +161,7 @@ export async function revokeManualValidation(
         row.membership_status === "verified" &&
         !row.notes_admin?.startsWith("Quota confermata da email (") &&
         sameIdentity(row, email, nameKey) &&
-        startsAt >= period.paymentsFrom &&
-        startsAt <= period.validUntil
+        startsAt === period.paymentsFrom
       );
     })
     .map((row) => row.id);
