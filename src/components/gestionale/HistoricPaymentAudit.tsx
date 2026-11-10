@@ -40,6 +40,12 @@ export async function HistoricPaymentAudit(){
     {mailState.error||payments.error?
       <p role="alert" className="text-sm text-[#9b2c2c]">Impossibile leggere il riepilogo dei pagamenti.</p>:
       <>
+        {isInProgress&&<div role="status" className="space-y-1 rounded-lg border border-[#a8583e]/25 p-3 text-sm">
+          <p className="font-semibold">Archivio storico non ancora completo</p>
+          <p>Notifiche candidate presenti: {rows.length}{earliestImported?` · prima ricevuta importata: ${earliestImported}`:""}.</p>
+          <p>Prosegui con i blocchi Gmail fino alla conferma di completamento, poi verifica le quote candidate.
+          Le ricevute precedenti alla prima data visualizzata potrebbero essere ancora da importare.</p>
+        </div>}
         <p className="text-xs text-[#5f524c]">
           {mailState.data?.last_success_at
             ?"Ultimo controllo storico: "+new Date(mailState.data.last_success_at).toLocaleString("it-IT")
