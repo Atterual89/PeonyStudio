@@ -109,7 +109,7 @@ export async function getAssociationMailState() {
     ).paymentMatchMethod==="payment_email"?period.paymentsFrom:null;
     // Il nome del pagante non coincide sempre con quello del beneficiario.
     // Riconosci solo i messaggi che indicano esplicitamente il destinatario.
-    const beneficiary=p.note?.match(/(?:quota\\s+(?:socio|associativa)(?:\\s+(?:di|per))?|tessera\\s+(?:di|per))\\s+([a-zà-ÿ][a-zà-ÿ'\\s-]{4,70})/i)?.[1]?.trim()??null;
+    const beneficiary=p.note?.match(/(?:quota\s+(?:socio|associativa)(?:\s+(?:di|per))?|tessera\s+(?:di|per))\s+([a-zà-ÿ][a-zà-ÿ'\s-]{4,70})/i)?.[1]?.trim()??null;
     const candidateName=beneficiary&&[...directory,...forms].some(candidate=>paymentNameMatch(beneficiary,candidate.name)>=75)
       ? beneficiary:p.payer_name;
     const candidates=proposePeopleForPayment(candidateName,directory,forms);
@@ -193,7 +193,7 @@ export async function searchGoogleFormsForPaymentAction(rawQuery:string) {
  const q=typeof rawQuery==="string"?rawQuery.trim().replace(/[%_,()\\\\]/g,"").slice(0,80):"";
  if(q.length<2)return {ok:false as const,error:"Inserisci almeno due caratteri."};
  const db=getGestionaleDb();
- const terms=q.toLocaleLowerCase("it-IT").split(/\\s+/).filter(Boolean);
+ const terms=q.toLocaleLowerCase("it-IT").split(/\s+/).filter(Boolean);
  const {data,error}=await db.from("association_members")
   .select("id,first_name,last_name,email,membership_starts_at")
   .eq("source","google_sheet").range(0,9999);
