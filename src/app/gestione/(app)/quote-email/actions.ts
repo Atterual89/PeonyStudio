@@ -70,7 +70,7 @@ export async function getAssociationMailState() {
   // Le proposte non dipendono più dalla ricerca manuale o dalla presenza di una
   // scheda preesistente. I moduli Google sono considerati senza creare quote.
   const [directoryRows,formRows]=await Promise.all([
-    db.from("gw_people").select("id,first_name,last_name,nickname,email")
+    db.from("gw_people").select("id,first_name,last_name,nickname,email,membership_email")
       .is("deleted_at",null).is("merged_into",null).range(0,9999),
     db.from("association_members").select("first_name,last_name,email,source,membership_status")
       .in("source",["google_sheet","manual_form"]).range(0,9999),
@@ -145,7 +145,8 @@ export async function findPaymentPeopleAction(query: string): Promise<PaymentPer
     name:[p.first_name,p.last_name].filter(Boolean).join(" ")||p.nickname||p.email||"Persona",
     email:p.email,source:p.nickname?`Anagrafica · ${p.nickname}`:"Anagrafica"
   }));
-  const formEmails=[...new Set((people.data??[]).map(p=>p.email).filter((email):email is string=>Boolean(email)))];
+  const formEmails=[...new Set((people.data??[]).flatMap(p=>[p.email,p.membership_email])
+    .filter((email):email is string=>Boolean(email)))];
   const matchedEvidence=formEmails.length
     ? await db.from("association_members")
         .select("first_name,last_name,email,source,membership_status")
