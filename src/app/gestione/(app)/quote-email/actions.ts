@@ -11,6 +11,8 @@ import { membershipPeriodForPayment } from "@/lib/association/membership-periods
 import { suggestedQuotaCount } from "@/lib/gestionale/payment-email-parser";
 import { combinePaymentPersonCandidates } from "@/lib/gestionale/payment-person-candidates";
 import { proposePeopleForPayment } from "@/lib/gestionale/payment-auto-proposals";
+import { formStatusForPerson, formStatusLabel } from "@/lib/gestionale/payment-person-form-status";
+import { formIdentityCompatible } from "@/lib/association/form-identity";
 import { normalizeMembershipEmail, normalizeMembershipNameKey } from "@/lib/association/membership-state";
 import { refreshGestione } from "@/lib/gestionale/server/refresh";
 import { todayInRome } from "@/lib/gestionale/workshops";
@@ -68,19 +70,19 @@ export async function getAssociationMailState() {
   // Le proposte non dipendono più dalla ricerca manuale o dalla presenza di una
   // scheda preesistente. I moduli Google sono considerati senza creare quote.
   const [directoryRows,formRows]=await Promise.all([
-    db.from("gw_people").select("id,first_name,last_name,nickname,email")
+    db.from("gw_people").select("id,first_name,last_name,nickname,email,membership_email")
       .is("deleted_at",null).is("merged_into",null).range(0,9999),
-    db.from("association_members").select("first_name,last_name,email")
-      .eq("source","google_sheet").range(0,9999),
+    db.from("association_members").select("first_name,last_name,email,source,membership_status")
+      .in("source",["google_sheet","manual_form"]).range(0,9999),
   ]);
   if(directoryRows.error||formRows.error)
     return {ok:false as const,error:"Impossibile proporre le persone dai moduli Google."};
   const directory=(directoryRows.data??[]).map(p=>({
     kind:"person" as const,id:p.id,
     name:[p.first_name,p.last_name].filter(Boolean).join(" ")||p.nickname||p.email||"Persona",
-    email:p.email,source:"Anagrafica",
+    email:p.email,source:"Anagrafica · "+formStatusLabel(formStatusForPerson(p,formRows.data??[])),
   }));
-  const forms=(formRows.data??[]).filter(p=>Boolean(p.email))
+  const forms=(formRows.data??[]).filter(p=>p.source==="google_sheet"&&Boolean(p.email))
     .map(p=>({
       kind:"member" as const,id:"e:"+normalizeMembershipEmail(p.email),
       name:[p.first_name,p.last_name].filter(Boolean).join(" ")||p.email||"Persona",
@@ -132,7 +134,7 @@ export async function findPaymentPeopleAction(query: string): Promise<PaymentPer
   if(q.length<2)return [];
   const db=getGestionaleDb();
   const [people, members]=await Promise.all([
-    db.from("gw_people").select("id,first_name,last_name,nickname,email")
+    db.from("gw_people").select("id,first_name,last_name,nickname,email,membership_email")
       .is("deleted_at",null).is("merged_into",null)
       .or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,nickname.ilike.%${q}%,email.ilike.%${q}%`).limit(15),
     searchMembers(q,15,undefined,{includeLinked:true}),
@@ -143,10 +145,24 @@ export async function findPaymentPeopleAction(query: string): Promise<PaymentPer
     name:[p.first_name,p.last_name].filter(Boolean).join(" ")||p.nickname||p.email||"Persona",
     email:p.email,source:p.nickname?`Anagrafica · ${p.nickname}`:"Anagrafica"
   }));
+  const formEmails=[...new Set((people.data??[]).flatMap(p=>[p.email,p.membership_email])
+    .filter((email):email is string=>Boolean(email)))];
+  const matchedEvidence=formEmails.length
+    ? await db.from("association_members")
+        .select("first_name,last_name,email,source,membership_status")
+        .in("source",["google_sheet","manual_form"]).in("email",formEmails).limit(200)
+    : {data:[],error:null};
+  if(matchedEvidence.error)throw new Error("Impossibile verificare il modulo della persona.");
+  for(const row of local){
+    const person=(people.data??[]).find(p=>p.id===row.id);
+    if(person){
+      row.source += " · "+formStatusLabel(formStatusForPerson(person,matchedEvidence.data??[]));
+    }
+  }
   const book=members.map(m=>({
     kind:"member" as const,id:m.id,
     name:[m.first_name,m.last_name].filter(Boolean).join(" ")||m.email||"Socio",
-    email:m.email,source:`Modulo Google / registrazione${m.matchedAlias?` · ${m.matchedAlias}`:""}`
+    email:m.email,source:`Registrazione associativa da verificare${m.matchedAlias?` · ${m.matchedAlias}`:""}`
   }));
   return combinePaymentPersonCandidates([...local,...book]);
 }
@@ -182,10 +198,28 @@ export async function confirmAssociationPaymentAction(paymentId: string,target:P
     identity=await membershipIdentityOf(person);
     personId=person.id;
   } else {
+    // La registrazione Google è una prova della PERSONA, non un destinatario
+    // alternativo del versamento. Mai scrivere nuove allocazioni member_key.
     const member=await getMemberLink(target.id);
-    if(!member)return {ok:false as const,error:"Socio non trovato nel libro associativo."};
-    identity={email:member.email,firstName:member.firstName,lastName:member.lastName};
-    memberKey=target.id;
+    if(!member)return {ok:false as const,error:"Registrazione associativa non trovata."};
+    if(!member.email)
+      return {ok:false as const,error:"Collega prima il modulo alla scheda Persona: non è identificabile tramite email."};
+    const dbLookup=getGestionaleDb();
+    const {data:possible,error:lookupError}=await dbLookup.from("gw_people")
+      .select("id,first_name,last_name,email")
+      .ilike("email",member.email).is("deleted_at",null).is("merged_into",null).limit(20);
+    if(lookupError)return {ok:false as const,error:"Impossibile verificare l'anagrafica centrale."};
+    const matched=(possible??[]).filter(p=>formIdentityCompatible(
+      {firstName:p.first_name,lastName:p.last_name,email:p.email},
+      {first_name:member.firstName,last_name:member.lastName,email:member.email},
+    ));
+    if(matched.length!==1)
+      return {ok:false as const,error:"Registrazione non collegata univocamente a una Persona. Verifica l'anagrafica prima della quota."};
+    const person=await getPerson(matched[0].id);
+    if(!person||person.merged_into)return {ok:false as const,error:"Persona non disponibile."};
+    personId=person.id;
+    identity=await membershipIdentityOf(person);
+    // memberKey resta null: la quota appartiene sempre al person_id.
   }
   if(!identity.email&&!(identity.firstName&&identity.lastName))
     return {ok:false as const,error:"Anagrafica insufficiente per verificare la quota."};
@@ -252,7 +286,7 @@ export async function confirmAssociationPaymentAction(paymentId: string,target:P
     .select("id,slot,period_from")
     .eq("payment_id",paymentId)
     .eq("period_from",period.paymentsFrom)
-    .eq(target.kind==="person"?"person_id":"member_key",target.id)
+    .eq("person_id",personId!)
     .maybeSingle();
   if(verifyError||!allocation)return {ok:false as const,error:"Salvataggio non confermato dal database. Ricarica e controlla la quota prima di riprovare."};
   await clearMembershipCache();

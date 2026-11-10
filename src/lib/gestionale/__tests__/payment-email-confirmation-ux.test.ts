@@ -23,11 +23,11 @@ describe("Conferma delle quote importate da Gmail",()=>{
   expect(review).toContain('role="alert"');
   expect(review).toContain("Non è stato possibile confermare il salvataggio");
  });
- it("se riesce mostra una conferma visibile sul telefono e non solo in testa alla lista",()=>{
-  expect(review).toContain("setLastConfirmed");
+ it("mostra la conferma dentro il pagamento corretto, senza toast di altre persone",()=>{
   expect(review).toContain('role="status"');
   expect(review).toContain("Quota salvata nel database");
-  expect(review).toContain("bottom-24");
+  expect(review).not.toContain("setLastConfirmed");
+  expect(review).not.toContain("bottom-24");
  });
  it("non conferma mai un successo prima del riscontro dal database",()=>{
   expect(actions).toContain('from("gw_association_payment_allocations")');
