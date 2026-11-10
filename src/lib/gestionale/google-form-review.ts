@@ -125,7 +125,7 @@ export function buildGoogleFormReviewQueue(input:{
       sourceHash:preview.validSourceRows.find(source=>source.source_row_id===row.source_row_id)?.source_hash??null,
       relatedRecords:1,evidence:evidenceOf(members.filter(member=>member.source==="google_sheet"&&member.source_row_id===row.source_row_id)),candidates:matched,
       explanation:isNew
-        ? matched.length?"Modulo nuovo: esiste già una possibile scheda persona. Conferma il collegamento prima di crearne un'altra.":"Modulo nuovo: controlla i dati prima di aggiungerlo."
+        ? matched.length?"Modulo nuovo: esiste già una possibile scheda persona. Importa il modulo e collegalo alla scheda esistente, senza crearne un'altra.":"Modulo nuovo: controlla i dati prima di aggiungerlo."
         : "Il modulo Google e la copia nel database differiscono. Verifica i campi prima di aggiornare.",
       canConfirm:matched.length<=1,
     });
