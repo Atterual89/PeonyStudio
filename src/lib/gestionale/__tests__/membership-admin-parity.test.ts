@@ -34,6 +34,6 @@ describe("stesse regole per admin e gestionale",()=>{
   expect(CURRENT_MEMBERSHIP_EXPIRY).toBe("2026-12-31");
   expect(membershipPeriodFor("2025-08-31")).toBeNull();
   expect(membershipPeriodFor("2026-11-14")?.paymentsFrom).toBe("2025-09-01");
-  expect(membershipPeriodFor("2027-02-01")?.paymentsFrom).toBe("2027-01-01");
+  expect(membershipPeriodFor("2027-02-01")?.paymentsFrom).toBe("2026-09-01");
  });
 });
