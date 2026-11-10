@@ -1,4 +1,4 @@
-import { membershipPeriodFor } from "@/lib/association/membership-periods";
+import { membershipPeriodForPayment } from "@/lib/association/membership-periods";
 import type { WorkshopView } from "../types";
 import type { WorkshopEmailData } from "./types";
 
@@ -72,7 +72,9 @@ export function workshopEmailDefaults(workshop: Pick<WorkshopView, "displayName"
 }
 
 export function emailMembershipDates(startsOn: string): { validUntil: string; renewalUntil: string } {
-  const period = membershipPeriodFor(startsOn);
+  // La scadenza comunicata dipende da quando si paga, non dalla data del corso.
+  const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" });
+  const period = membershipPeriodForPayment(today);
   const year = period ? Number(period.validUntil.slice(0, 4)) + 1 : Number(startsOn.slice(0, 4)) + 1;
   return {
     validUntil: period ? englishDate(period.validUntil) : "",
