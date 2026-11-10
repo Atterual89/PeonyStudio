@@ -66,7 +66,7 @@ export function MemberQuickLink({
       }
     } catch {
       if (sequence.current === request)
-        setNotice({ kind: "error", text: "Ricerca nel libro soci non riuscita. Riprova." });
+        setNotice({ kind: "error", text: "Ricerca registrazioni non riuscita. Riprova." });
     } finally {
       if (sequence.current === request) setSearching(false);
     }
@@ -119,13 +119,13 @@ export function MemberQuickLink({
   return <div className="space-y-2">
     <button type="button" className="min-h-10 text-sm font-semibold text-[#a8583e] underline"
       aria-expanded={open} onClick={() => { setOpen(!open); setNotice(null); }}>
-      {mode === "change" ? "Cambia abbinamento" : "Cerca nel libro soci"}
+      {mode === "change" ? "Cambia abbinamento" : "Cerca registrazione"}
     </button>
     {open && <div className="space-y-2 rounded-xl border border-[#a8583e]/30 bg-[#f8f3ea] p-3">
       <p className="text-sm font-semibold">Collega {personName} a una socia o un socio</p>
       <p className="text-xs text-[#5f524c]">Cerca per nome, nickname o email, anche se il nickname è diverso.</p>
       <form onSubmit={search} className="flex flex-wrap gap-2">
-        <label className="sr-only" htmlFor={`find-member-${personId}`}>Nome o email nel libro soci</label>
+        <label className="sr-only" htmlFor={`find-member-${personId}`}>Nome o email del modulo Google</label>
         <input id={`find-member-${personId}`} className={`${inputClass} min-w-0 flex-1`}
           type="search" value={query} onChange={event => editQuery(event.target.value)}
           placeholder="Nome, cognome o email della socia" autoComplete="off" />

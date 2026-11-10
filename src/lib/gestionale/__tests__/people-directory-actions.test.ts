@@ -16,11 +16,11 @@ describe("Persone admin: azioni sulle registrazioni senza scheda",()=>{
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({kind:"registro",memberKey:"e:elisa@example.test"});
   });
-  it("propone il collegamento nominale per una tessera del libro ufficiale senza email",()=>{
+  it("Team Artist non produce registrazioni in attesa di collegamento",()=>{
     const rows=buildUnifiedDirectory({people:[],evidence:[
       evidence("official","official_members_book","Claudia","Armani",null),
     ],today});
-    expect(rows[0]).toMatchObject({kind:"registro",memberKey:"n:armani claudia",association:"verificata"});
+    expect(rows).toHaveLength(0);
   });
   it("per una conferma solo manuale usa la chiave della validazione, senza dichiarare il modulo",()=>{
     const id="22222222-2222-4222-8222-222222222222";

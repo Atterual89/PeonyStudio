@@ -7,7 +7,7 @@ import {
   buildAssociationMembersSyncPreview,
   type AssociationMembersSyncPreview,
 } from "@/lib/association/members-sync";
-import { applyOfficialMembersBookSync, buildOfficialMembersBookSyncPreview } from "@/lib/association/members-book-sync";
+import { applyOfficialMembersBookSync } from "@/lib/association/members-book-sync";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { clearMembershipCache } from "@/lib/gestionale/server/membership";
 import { refreshGestione } from "@/lib/gestionale/server/refresh";
@@ -125,8 +125,28 @@ export async function applySociSyncAction(expectedToken: string): Promise<SyncOu
     // Le domande non provano il pagamento; le validazioni manuali e il libro
     // ufficiale restano invariati. Nessuna riga viene rimossa.
     const report = await applyAssociationMembersSync(db, { removeStaleRows: false });
+    // Verifica dopo la scrittura: un modulo Google può essere presente nella
+    // fonte ma assente in Supabase (es. riga saltata da una sync parziale).
+    // Non dichiarare "aggiornato" se anche una sola email manca.
+    const storedEmails = new Set<string>();
+    for (let offset = 0; offset < 10000; offset += 500) {
+      const {data,error} = await db.from("association_members")
+        .select("email").eq("source","google_sheet")
+        .order("id",{ascending:true}).range(offset,offset+499);
+      if (error) throw new SociSyncError("Impossibile verificare la completezza delle registrazioni importate.");
+      for (const member of data??[]) {
+        if (member.email) storedEmails.add(member.email.trim().toLowerCase());
+      }
+      if ((data??[]).length < 500) break;
+    }
+    const missingForms = forms.validSourceRows.filter(row =>
+      row.email && !storedEmails.has(row.email.trim().toLowerCase()));
     await clearMembershipCache();
     refreshGestione();
+    if (missingForms.length) {
+      console.error("[gestionale] Moduli Google non importati",missingForms.map(row=>row.source_row_id));
+      return {ok:false,message:`Sincronizzazione incompleta: ${missingForms.length} moduli Google ancora assenti nel database. Nessuna registrazione precedente è stata cancellata.`};
+    }
     if (report.errors.length) {
       console.warn("[gestionale] Domande Google con righe da controllare", report.errors.length);
       return { ok: false, message: `Aggiornamento parziale: ${report.created} domande nuove, ${report.updated} modificate. Alcune righe richiedono verifica; nessuna cancellazione.` };
@@ -178,54 +198,3 @@ export async function uploadSociBookAction(formData: FormData):
   }
 }
 
-
-/**
- * Allinea il libro soci ufficiale dalla copia Google dell'export Team Artist.
- * Non è la lettura delle domande di associazione: le due fonti restano distinte.
- * La lettura e la scrittura avvengono solo su richiesta dell'admin, mai durante
- * il caricamento iniziale di Verifiche. Nessuna riga storica viene eliminata.
- */
-export async function syncOfficialBookAction(): Promise<
-  | { ok: true; rows: number; created: number; updated: number; unchanged: number }
-  | { ok: false; message: string }
-> {
-  await requireAdmin();
-  if (["GOOGLE_SERVICE_ACCOUNT_EMAIL", "GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY",
-    "GOOGLE_SHEET_ID", "GOOGLE_MEMBERS_BOOK_RANGE"].some(name => !process.env[name]?.trim())) {
-    return { ok: false, message: "Libro soci Team Artist non collegato al foglio Google: configurazione incompleta sul server. Nessun dato modificato." };
-  }
-  try {
-    const db = createSupabaseAdminClient();
-    const [preview, previous] = await Promise.all([
-      buildOfficialMembersBookSyncPreview(db),
-      db.from("association_members").select("id", { count: "exact", head: true })
-        .eq("source", "official_members_book"),
-    ]);
-    if (previous.error) {
-      return { ok: false, message: "Impossibile verificare lo storico del libro soci: sincronizzazione sospesa." };
-    }
-    const existing = previous.count ?? 0;
-    if (preview.errors.length || !preview.validRows || preview.invalidRows > Math.max(5, preview.totalRows * 0.1)) {
-      return { ok: false, message: "Libro soci Google incompleto o con colonne non riconosciute. Controlla il foglio prima di riprovare: nessun dato modificato." };
-    }
-    if (existing >= 30 && preview.validRows < existing * 0.75) {
-      return { ok: false, message: `Libro soci più corto dello storico (${preview.validRows}/${existing} righe). Importazione bloccata per evitare incongruenze.` };
-    }
-    if (!preview.wouldCreate && !preview.wouldUpdate) {
-      return { ok: true, rows: preview.validRows, created: 0, updated: 0, unchanged: preview.unchanged };
-    }
-    const result = await applyOfficialMembersBookSync(db, { removeStaleRows: false });
-    await clearMembershipCache();
-    refreshGestione();
-    if (result.errors.length) {
-      return { ok: false, message: `Allineamento parziale: ${result.created} nuove, ${result.updated} aggiornate; ${result.errors.length} righe da controllare. Nessuna riga cancellata.` };
-    }
-    return {
-      ok: true, rows: result.validRows, created: result.created,
-      updated: result.updated, unchanged: result.unchanged,
-    };
-  } catch (error) {
-    console.error("[gestionale] Allineamento libro soci da Google fallito", error instanceof Error ? error.message : error);
-    return { ok: false, message: "Non riesco a leggere il libro soci ufficiale dal foglio Google. Verifica accessi del service account e intervallo Team Artist. Nessun dato è stato eliminato." };
-  }
-}

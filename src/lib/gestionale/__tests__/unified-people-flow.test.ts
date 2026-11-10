@@ -13,7 +13,7 @@ describe("anagrafica unica: ricerca e associazione del nickname",()=>{
         association_member_id:null,membership_email:null,membership_name_key:null,merged_into:null,
       }],
       evidence:[{
-        id:"m1",first_name:"Francesca",last_name:"Rossi",email:null,source:"official_members_book",
+        id:"m1",first_name:"Francesca",last_name:"Rossi",email:null,source:"google_sheet",
         membership_status:"verified",membership_starts_at:"2025-09-01",membership_expires_at:"2026-12-31",
       }]
     });

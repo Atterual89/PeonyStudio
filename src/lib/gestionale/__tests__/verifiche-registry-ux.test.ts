@@ -36,9 +36,9 @@ describe("Persone: quota confermata ma modulo da verificare", () => {
   it("la pagina Verifiche non attende il libro soci per mostrare i comandi", () => {
     const page=readFileSync("src/app/gestione/(app)/altro/soci/page.tsx","utf8");
     expect(page).toContain("<Suspense");
-    expect(page).toContain("<SyncOfficialBookButton/>");
+    expect(page).not.toContain("<SyncOfficialBookButton/>");
     expect(page).toContain("<SyncSociButton/>");
-    expect(page.indexOf("<SyncOfficialBookButton/>")).toBeLessThan(page.indexOf("<AssociationMailSyncControl/>"));
+    expect(page.indexOf("<SyncSociButton/>")).toBeLessThan(page.indexOf("<AssociationMailSyncControl/>"));
     expect(page).not.toContain('await Promise.all([\n  findMemberLinkProposals()');
     const loading=readFileSync("src/app/gestione/(app)/altro/soci/loading.tsx","utf8");
     expect(loading).not.toContain("Lettura del libro soci…");

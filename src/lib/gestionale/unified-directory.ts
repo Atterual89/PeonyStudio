@@ -50,7 +50,6 @@ const sources=(rows:readonly RegistryEvidence[])=>{
     r.membership_status==="verified"&&r.notes_admin?.startsWith("Quota confermata da email ("));
   if(provenEmail)labels.push("Pagamento email confermato");
   if(rows.some(r=>r.source==="google_sheet"))labels.push("Modulo Google");
-  if(rows.some(r=>r.source==="official_members_book"))labels.push("Libro soci ufficiale");
   if(!provenEmail&&rows.some(r=>r.source==="manual_override"))labels.push("Verifica manuale");
   return labels.join(" · ");
 };
@@ -68,8 +67,8 @@ function association(rows:readonly RegistryEvidence[],date:string):UnifiedContac
   return state.currentYearPaid?"da_verificare":"non_presente";
 }
 /**
- * Group same-name sources by compatible email. An official entry without email
- * joins an email cluster only if that name identifies exactly one email cluster.
+ * Group Google forms and payment proofs by compatible email. An entry without
+ * email joins a cluster only if the name identifies exactly one person.
  * This is presentation-only; it does not persist links or verify identities.
  */
 function groupEvidence(rows:readonly RegistryEvidence[]):Group[]{
@@ -122,7 +121,9 @@ export function buildUnifiedDirectory(input:{
   aliasesByPerson?:ReadonlyMap<string,readonly string[]>;
 }):UnifiedContact[]{
   const people=active(input.people);
-  const groups=groupEvidence(input.evidence);
+  // Team Artist è una fase a valle, non genera registrazioni o pagamenti.
+  const groups=groupEvidence(input.evidence.filter(row =>
+    row.source==="google_sheet" || row.source==="manual_override"));
   const byEmail=new Map<string,PersonRef[]>();
   const byName=new Map<string,PersonRef[]>();
   const byGroupEmail=new Map<string,Group[]>();

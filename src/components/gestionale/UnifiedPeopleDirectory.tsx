@@ -68,7 +68,7 @@ export function UnifiedPeopleDirectory({contacts,initialQuery=""}:{contacts:Unif
       {([
         {id:"people",name:"Anagrafiche",count:counts.people},
         {id:"review",name:"Da sistemare",count:counts.review},
-        {id:"registry",name:"Solo registro soci",count:counts.registry},
+        {id:"registry",name:"Senza anagrafica",count:counts.registry},
       ] as const).map(item=><button type="button" key={item.id} onClick={()=>{setView(item.id);setShowAll(false);}}
         role="tab" aria-selected={view===item.id}
         className={`min-h-10 rounded-xl px-3 text-sm font-semibold ${view===item.id?"bg-[#a8583e] text-white":"border border-[#211815]/15 bg-white text-[#5f524c]"}`}>
@@ -119,7 +119,7 @@ export function UnifiedPeopleDirectory({contacts,initialQuery=""}:{contacts:Unif
               </span>
               <span className="mt-1 block text-xs text-[#5f524c]">
                 {[contact.nickname?"Nickname: "+contact.nickname:null,
-                  contact.kind==="registro"?"Solo nel registro soci":null].filter(Boolean).join(" · ")}
+                  contact.kind==="registro"?"Registrazione senza scheda":null].filter(Boolean).join(" · ")}
               </span>
             </span>
             <span className="shrink-0 text-lg text-[#a8583e]" aria-hidden="true">{open?"−":"+"}</span>

@@ -14,13 +14,13 @@ describe("stesse regole per admin e gestionale",()=>{
    paymentsFrom:"2025-09-01",paymentsUntil:"2026-12-31"}));
   expect(deriveMembershipState(rows,id).status).toBe("valid");
  });
- it("il libro ufficiale verifica la tessera solo finche' e' vigente",()=>{
+ it("Team Artist non determina la verifica associativa",()=>{
   const official=[row("official_members_book","2025-09-01")];
   expect(deriveMembershipState(official,{email:"dafne@example.test"})).toMatchObject({
-    status:"valid",currentYearPaid:false,formPresent:true,verifiedInOfficialBook:true,
+    status:"missing_form",currentYearPaid:false,formPresent:false,verifiedInOfficialBook:false,
   });
   expect(deriveMembershipState(official,{email:"dafne@example.test"},{referenceDate:"2027-02-19"}))
-    .toMatchObject({status:"payment_missing",formPresent:true,verifiedInOfficialBook:false});
+    .toMatchObject({status:"missing_form",formPresent:false,verifiedInOfficialBook:false});
  });
  it("quote per periodi indipendenti e modulo una sola volta",()=>{
   const rows=[row("google_sheet","2025-09-01"),row("manual_override","2027-01-03")];
