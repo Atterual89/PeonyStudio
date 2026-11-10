@@ -23,7 +23,7 @@ describe("riconciliazione Qonto e periodi indipendenti",()=>{
     expect(actions).toContain("alreadyPaidPeriod,");
     expect(review).toContain("periodAlreadyPaid");
     expect(review).toContain("associationPeriodFrom");
-    expect(actions).toContain("membershipPeriodForPayment(payment.paid_at.slice(0, 10))");
+    expect(actions).toContain("membershipPeriodForPayment(new Intl.DateTimeFormat");
   });
   it("il collegamento alla persona resta distinto dalla quota e non cancella prove",()=>{
     expect(memberSearch).toContain("groupMemberEvidence(rows)");
