@@ -88,14 +88,6 @@ export default async function SociPage({searchParams}:{searchParams:Promise<{quo
         Apri anagrafiche
       </Link>
     </div>
-    <Link prefetch={false} href="/gestione/altro/soci/abbinamenti-ale"
-      className="flex min-h-12 items-center justify-between rounded-xl border border-[#211815]/10 bg-white/80 px-3 text-sm font-semibold text-[#a8583e]">
-      <span>Matching anagrafica Alessandra ↔ Persone e libro soci</span>
-      <span aria-hidden="true">Apri</span>
-    </Link>
-    <Suspense fallback={<p role="status" className="py-2 text-sm text-[#5f524c]">Caricamento delle proposte di abbinamento…</p>}>
-      <MemberProposals/>
-    </Suspense>
     <details id="quote-email" open={params.quote==="1"}
       className="rounded-xl border border-[#211815]/10 bg-white/75 p-3">
       <summary className="cursor-pointer text-sm font-semibold">2. Verifica delle quote (email o manuali)</summary>
@@ -111,7 +103,15 @@ export default async function SociPage({searchParams}:{searchParams:Promise<{quo
     </details>
     <details className="rounded-xl border border-[#211815]/10 bg-white/55 p-3">
       <summary className="cursor-pointer text-sm font-semibold text-[#5f524c]">Altre operazioni</summary>
-      <div className="mt-3 flex flex-wrap gap-2 text-sm">
+      <div className="mt-3 space-y-3 text-sm">
+    <Link prefetch={false} href="/gestione/altro/soci/abbinamenti-ale"
+      className="flex min-h-12 items-center justify-between rounded-xl border border-[#211815]/10 bg-white/80 px-3 text-sm font-semibold text-[#a8583e]">
+      <span>Matching anagrafica Alessandra ↔ Persone e libro soci</span>
+      <span aria-hidden="true">Apri</span>
+    </Link>
+    <Suspense fallback={<p role="status" className="py-2 text-sm text-[#5f524c]">Caricamento delle proposte di abbinamento…</p>}>
+      <MemberProposals/>
+    </Suspense>
         <RefreshMembershipButton/>
         <Suspense fallback={<span className="text-xs text-[#5f524c]">Controllo anagrafiche…</span>}>
           <ExtraMaintenance/>
