@@ -46,14 +46,14 @@ describe("registro unico: modulo Google e quota email/manuale",()=>{
     expect(contacts).toHaveLength(2);
     expect(contacts.find(c=>c.personId==="a")?.kind).toBe("anagrafica");
   });
-  it("rispetta il collegamento nominale gia' salvato al libro ufficiale",()=>{
+  it("il libro ufficiale non trasforma un modulo senza quota in regola",()=>{
     const gaia={...person("a","Gaia","Baietti","gaia@example.test"),membership_name_key:"baietti gaia"};
     const contacts=buildUnifiedDirectory({today,people:[gaia],evidence:[
       evidence("f","google_sheet","Gaia maria","Baietti","gaia@example.test"),
       evidence("book","official_members_book","Gaia","Baietti",null),
     ]});
-    expect(contacts.find(c=>c.personId==="a")).toMatchObject({kind:"unita",link:"confermato",association:"verificata"});
-    expect(contacts.find(c=>c.personId==="a")?.source).toContain("Libro soci ufficiale");
+    expect(contacts.find(c=>c.personId==="a")).toMatchObject({kind:"unita",link:"confermato",association:"solo_modulo"});
+    expect(contacts.find(c=>c.personId==="a")?.source).not.toContain("Libro soci ufficiale");
   });
   it("trova moduli senza email con collegamento nominale da confermare",()=>{
     const contacts=buildUnifiedDirectory({today,people:[person("a","Gaia","Baietti",null)],
