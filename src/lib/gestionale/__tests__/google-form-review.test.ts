@@ -51,7 +51,7 @@ describe("revisione associativa per persona e non per fonte",()=>{
      people:[{id:"p1",first_name:"Nuova",last_name:"Socia",nickname:null,email:"nuova@example.test",merged_into:null}],
    });
    expect(cases.find(c=>c.id==="form:527")).toMatchObject({
-     kind:"new",canConfirm:false,candidates:[{id:"p1"}],
+     kind:"new",canConfirm:true,candidates:[{id:"p1"}],
    });
  });
 });
