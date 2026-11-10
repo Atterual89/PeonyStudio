@@ -16,7 +16,7 @@ import { loadPeonyPersonHistory } from "@/lib/gestionale/server/peony-person-his
 import { memberKeyOfPerson } from "@/lib/gestionale/member-key";
 import { getLinkedMemberSummary, getMembershipBadges } from "@/lib/gestionale/server/membership";
 import { todayInRome } from "@/lib/gestionale/workshops";
-import { membershipPeriodFor, membershipPeriodForPayment } from "@/lib/association/membership-periods";
+import { membershipPeriodFor } from "@/lib/association/membership-periods";
 import { contactLabel } from "@/lib/gestionale/contacts";
 import { formatPeriod, periodLabel, personPeriods } from "@/lib/gestionale/membership-rule";
 import { MembershipBadge } from "@/components/gestionale/MembershipBadge";
@@ -148,7 +148,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
             <li key={period.paymentsFrom} className="flex flex-wrap items-center gap-2">
               <span className="w-16 text-sm font-semibold">{periodLabel(period)}</span>
               <MembershipBadge badge={badge} />
-              <QuotaOkControls personId={person.id} name={markName} badge={badge} canMark={canMark && period.paymentsFrom === membershipPeriodForPayment(todayInRome())?.paymentsFrom} referenceDate={period.paymentsFrom} />
+              <QuotaOkControls personId={person.id} name={markName} badge={badge} canMark={canMark} referenceDate={period.paymentsFrom} />
             </li>
           ))}
         </ul>
