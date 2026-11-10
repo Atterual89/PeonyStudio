@@ -10,7 +10,7 @@ import { readAllMemberEvidence } from "@/lib/gestionale/server/peony-events";
 import { membershipPeriodForPayment } from "@/lib/association/membership-periods";
 import { suggestedQuotaCount } from "@/lib/gestionale/payment-email-parser";
 import { combinePaymentPersonCandidates } from "@/lib/gestionale/payment-person-candidates";
-import { proposePeopleForPayment } from "@/lib/gestionale/payment-auto-proposals";
+import { proposePeopleForPayment, paymentNameMatch } from "@/lib/gestionale/payment-auto-proposals";
 import { formStatusForPerson, formStatusLabel } from "@/lib/gestionale/payment-person-form-status";
 import { formIdentityCompatible } from "@/lib/association/form-identity";
 import { normalizeMembershipEmail, normalizeMembershipNameKey } from "@/lib/association/membership-state";
@@ -80,13 +80,13 @@ export async function getAssociationMailState() {
   const directory=(directoryRows.data??[]).map(p=>({
     kind:"person" as const,id:p.id,
     name:[p.first_name,p.last_name].filter(Boolean).join(" ")||p.nickname||p.email||"Persona",
-    email:p.email,source:"Anagrafica · "+formStatusLabel(formStatusForPerson(p,formRows.data??[])),
+    email:p.email,formStatus:formStatusForPerson(p,formRows.data??[]),source:"Anagrafica · "+formStatusLabel(formStatusForPerson(p,formRows.data??[])),
   }));
   const forms=(formRows.data??[]).filter(p=>p.source==="google_sheet"&&Boolean(p.email))
     .map(p=>({
       kind:"member" as const,id:"e:"+normalizeMembershipEmail(p.email),
       name:[p.first_name,p.last_name].filter(Boolean).join(" ")||p.email||"Persona",
-      email:p.email,source:"Modulo Google",
+      email:p.email,formStatus:"google" as const,source:"Modulo Google",
     }));
   const suggestedIds=[...new Set([...suggestionsByPayment.values()].map(x=>x.id))];
   const suggestedPeople=suggestedIds.length
@@ -107,9 +107,18 @@ export async function getAssociationMailState() {
       verifiedPayments,{email:person.email,firstName:person.first_name,lastName:person.last_name},
       {paymentsFrom:period.paymentsFrom,paymentsUntil:period.validUntil}
     ).paymentMatchMethod==="payment_email"?period.paymentsFrom:null;
+    // Il nome del pagante non coincide sempre con quello del beneficiario.
+    // Riconosci solo i messaggi che indicano esplicitamente il destinatario.
+    const beneficiary=p.note?.match(/(?:quota\\s+(?:socio|associativa)(?:\\s+(?:di|per))?|tessera\\s+(?:di|per))\\s+([a-zà-ÿ][a-zà-ÿ'\\s-]{4,70})/i)?.[1]?.trim()??null;
+    const candidateName=beneficiary&&[...directory,...forms].some(candidate=>paymentNameMatch(beneficiary,candidate.name)>=75)
+      ? beneficiary:p.payer_name;
+    const candidates=proposePeopleForPayment(candidateName,directory,forms);
+    const formCheck=candidates.some(item=>item.formStatus==="google")?"found"
+      :candidates.some(item=>item.formStatus==="conflict")?"review"
+      :candidates.some(item=>item.formStatus==="paper")?"review":"missing";
     return ({
-    ...p, suggested:proposed, alreadyPaidPeriod,
-    proposals:proposePeopleForPayment(p.payer_name,directory,forms),
+    ...p, suggested:proposed, alreadyPaidPeriod, formCheck,
+    proposals:candidates,
     assigned: (allocations.data??[]).filter(a=>a.payment_id===p.id).map(a=>{
       const person=a.person_id?directory.find(row=>row.id===a.person_id):null;
       const member=a.member_key?forms.find(row=>row.id===a.member_key):null;
@@ -176,6 +185,27 @@ export async function revokeMembershipVerificationAction(personId:string,evidenc
  if(error){console.error("[quote-email] Revoca verifica",error.code);return {ok:false as const,error:"Impossibile revocare la verifica. Controlla il collegamento alla persona o al pagamento."};}
  await clearMembershipCache();refreshGestione();
  return {ok:true as const};
+}
+
+/** Ricerca mirata nei moduli Google: nessuna associazione o quota viene creata. */
+export async function searchGoogleFormsForPaymentAction(rawQuery:string) {
+ await requireAdmin();
+ const q=typeof rawQuery==="string"?rawQuery.trim().replace(/[%_,()\\\\]/g,"").slice(0,80):"";
+ if(q.length<2)return {ok:false as const,error:"Inserisci almeno due caratteri."};
+ const db=getGestionaleDb();
+ const terms=q.toLocaleLowerCase("it-IT").split(/\\s+/).filter(Boolean);
+ const {data,error}=await db.from("association_members")
+  .select("id,first_name,last_name,email,membership_starts_at")
+  .eq("source","google_sheet").range(0,9999);
+ if(error)return {ok:false as const,error:"Ricerca nei moduli non disponibile."};
+ const rows=(data??[]).filter(row=>{
+  const text=[row.first_name,row.last_name,row.email].filter(Boolean).join(" ").toLocaleLowerCase("it-IT");
+  return terms.every(term=>text.includes(term));
+ }).slice(0,20);
+ return {ok:true as const,results:rows.map(row=>({
+  id:row.id,name:[row.first_name,row.last_name].filter(Boolean).join(" ")||"Modulo senza nome",
+  email:row.email,submittedOn:row.membership_starts_at
+ }))};
 }
 
 export type PaymentPersonCandidate = {
