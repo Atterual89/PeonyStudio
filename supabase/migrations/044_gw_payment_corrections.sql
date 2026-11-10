@@ -39,7 +39,7 @@ begin
   where id=v_alloc.payment_id for update;
  if not found then raise exception 'Pagamento non trovato'; end if;
  if v_alloc.person_id is not null then
-  select lower(btrim(coalesce(email,''))),lower(btrim(coalesce(first_name,''))),lower(btrim(coalesce(last_name,'')))
+  select lower(btrim(coalesce(nullif(membership_email,''),email,''))),lower(btrim(coalesce(first_name,''))),lower(btrim(coalesce(last_name,'')))
    into v_email,v_first,v_last from public.gw_people where id=v_alloc.person_id;
  end if;
  -- L'abbinamento e la verifica sono corretti insieme in una transazione.
