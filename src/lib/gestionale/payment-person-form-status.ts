@@ -11,17 +11,24 @@ export type PersonFormStatus="google"|"paper"|"conflict"|"missing";
  * Stessa email da sola non basta: può appartenere ad altro nominativo.
  */
 export function formStatusForPerson(
-  person:{first_name:string|null;last_name:string|null;email:string|null},
+  person:{first_name:string|null;last_name:string|null;email:string|null;membership_email?:string|null},
   evidence:readonly FormEvidenceForCandidate[],
 ):PersonFormStatus{
-  const identity={firstName:person.first_name,lastName:person.last_name,email:person.email};
-  const candidateEmail=normalizeMembershipEmail(person.email);
+  const candidateEmails=[...new Set([person.email,person.membership_email]
+    .map(normalizeMembershipEmail).filter(value=>value.includes("@")))];
+  const identities=candidateEmails.map(email=>({
+    firstName:person.first_name,lastName:person.last_name,email,
+  }));
+  if(!identities.length)identities.push({
+    firstName:person.first_name,lastName:person.last_name,email:null as string|null,
+  });
   const relevant=evidence.filter(row=>row.source==="google_sheet" ||
     (row.source==="manual_form"&&row.membership_status==="verified"));
-  const matching=relevant.filter(row=>formIdentityCompatible(identity,row));
-  const sharedEmailConflict=relevant.some(row=>Boolean(candidateEmail&&
-    normalizeMembershipEmail(row.email)===candidateEmail &&
-    !formIdentityCompatible(identity,row)));
+  const compatible=(row:FormEvidenceForCandidate)=>
+    identities.some(identity=>formIdentityCompatible(identity,row));
+  const matching=relevant.filter(compatible);
+  const sharedEmailConflict=relevant.some(row=>Boolean(
+    candidateEmails.includes(normalizeMembershipEmail(row.email)) && !compatible(row)));
   if(sharedEmailConflict)return "conflict";
   if(matching.some(row=>row.source==="google_sheet"))return "google";
   if(matching.some(row=>row.source==="manual_form"))return "paper";
