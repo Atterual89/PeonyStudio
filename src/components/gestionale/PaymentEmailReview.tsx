@@ -1,10 +1,10 @@
 "use client";
 import { useState, useTransition } from "react";
 import { countAssignedPaymentSlots } from "@/lib/gestionale/payment-slot-progress";
-import { confirmAssociationPaymentAction, getMembershipVerificationDetailsAction, revokeMembershipVerificationAction, findPaymentPeopleAction, ignoreAssociationPaymentAction, restoreAssociationPaymentAction, unassignAssociationPaymentAction } from "@/app/gestione/(app)/quote-email/actions";
+import { confirmAssociationPaymentAction, getMembershipVerificationDetailsAction, revokeMembershipVerificationAction, findPaymentPeopleAction, ignoreAssociationPaymentAction, restoreAssociationPaymentAction, searchGoogleFormsForPaymentAction, unassignAssociationPaymentAction } from "@/app/gestione/(app)/quote-email/actions";
 
 type Person = {kind:"person"|"member";id:string;name:string;email:string|null;source:string};
-type Payment = {id:string;status:string;provider:string;payer_name:string|null;amount_cents:number;note:string|null;paid_at:string;availableSlots:number;slots:number[];suggested:{id:string;name:string}|null;proposals:Person[];assigned:{id:string;slot:number;name:string}[];alreadyPaidPeriod:string|null;associationPeriodFrom:string|null;associationExpiresAt:string|null};
+type Payment = {id:string;status:string;formCheck:"found"|"missing"|"review";provider:string;payer_name:string|null;amount_cents:number;note:string|null;paid_at:string;availableSlots:number;slots:number[];suggested:{id:string;name:string}|null;proposals:Person[];assigned:{id:string;slot:number;name:string}[];alreadyPaidPeriod:string|null;associationPeriodFrom:string|null;associationExpiresAt:string|null};
 type Verification = {id:string;source:string;status:string;from:string|null;until:string|null;paymentRef:string|null;linked:boolean;canRevoke:boolean;label:string};
 type VerificationPanel = {personId:string;personName:string;items:Verification[]};
 type SavedQuota = {name:string;period:string;slot:number};
@@ -14,7 +14,11 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
  payments:Payment[];periods:{from:string;label:string}[];defaultPeriod:string
 }){
  const [pending,start]=useTransition();
- const [view,setView]=useState<"pending"|"confirmed"|"ignored">("pending");
+ const [view,setView]=useState<"pending"|"missing"|"confirmed"|"ignored">("pending");
+ const [formQueries,setFormQueries]=useState<Record<string,string>>({});
+ const [formResults,setFormResults]=useState<Record<string,{id:string;name:string;email:string|null;submittedOn:string|null}[]>>({});
+ const [formPanels,setFormPanels]=useState<Record<string,boolean>>({});
+ const [formSearched,setFormSearched]=useState<Record<string,boolean>>({});
  const [removed,setRemoved]=useState<Record<string,string[]>>({});
  const [restored,setRestored]=useState<Record<string,boolean>>({});
  const [verificationPanels,setVerificationPanels]=useState<Record<string,VerificationPanel>>({});
@@ -82,6 +86,26 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
    finally{setWorking(null);}
   });
  }
+ function focusedFormLookup(paymentId:string){
+  const query=(formQueries[paymentId]??"").trim();
+  if(blocked||query.length<2)return;
+  setWorking(paymentId);
+  start(async()=>{
+   try{
+    const result=await searchGoogleFormsForPaymentAction(query);
+    if(!result.ok){setError(paymentId,result.error);return;}
+    setFormResults(prev=>({...prev,[paymentId]:result.results}));
+    setFormSearched(prev=>({...prev,[paymentId]:true}));
+   }catch{setError(paymentId,"Ricerca mirata non riuscita.");}
+   finally{setWorking(null);}
+  });
+ }
+ function openFormLookup(p:Payment){
+  if(formPanels[p.id]){setFormPanels(prev=>({...prev,[p.id]:false}));return;}
+  const raw=p.note?.match(/(?:quota\\s+(?:socio|associativa)(?:\\s+(?:di|per))?|tessera\\s+(?:di|per))\\s+([a-zà-ÿ][a-zà-ÿ'\\s-]{4,70})/i)?.[1]?.trim();
+  setFormQueries(prev=>({...prev,[p.id]:prev[p.id]??raw??p.payer_name??""}));
+  setFormPanels(prev=>({...prev,[p.id]:true}));
+ }
  const periodFor=(id:string)=>payments.find(p=>p.id===id)?.associationPeriodFrom??defaultPeriod;
  const periodLabel=(from:string)=>periods.find(p=>p.from===from)?.label??from;
  const blocked=pending||Boolean(working)||Boolean(searching);
@@ -138,14 +162,16 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
  // dopo un aggiornamento server: contare gli SLOT univoci, non le righe UI.
  const countUsed=(p:Payment)=>countAssignedPaymentSlots(p.slots.filter(slot=>!p.assigned.some(a=>a.slot===slot&&(removed[p.id]??[]).includes(a.id))),saved[p.id]??[]);
  const statusFor=(p:Payment)=>ignored[p.id]?"ignored":restored[p.id]?"pending":p.status;
- const unresolved=payments.filter(p=>statusFor(p)==="pending"&&countUsed(p)<p.availableSlots).length;
+ const pendingPayments=payments.filter(p=>statusFor(p)==="pending"&&countUsed(p)<p.availableSlots);
+ const unresolved=pendingPayments.filter(p=>p.formCheck!=="missing").length;
+ const missingCount=pendingPayments.filter(p=>p.formCheck==="missing").length;
  return <div className="space-y-4">
-  <h2 className="font-semibold">Pagamenti da verificare ({unresolved})</h2>
+  <h2 className="font-semibold">Quote da verificare ({unresolved})</h2>
   <div className="flex flex-wrap gap-2" aria-label="Filtro pagamenti">
-   {([["pending","Da verificare"],["confirmed","Assegnati"],["ignored","Ignorati"]] as const).map(([value,label])=><button key={value} type="button" onClick={()=>setView(value)} aria-pressed={view===value} className={`rounded-lg border px-3 py-2 text-sm ${view===value?"border-[#a8583e] bg-[#f6f1e9] font-semibold":"border-[#211815]/15"}`}>{label}</button>)}
+   {([["pending",`Da verificare (${unresolved})`],["missing",`Modulo da cercare (${missingCount})`],["confirmed","Assegnati"],["ignored","Ignorati"]] as const).map(([value,label])=><button key={value} type="button" onClick={()=>setView(value)} aria-pressed={view===value} className={`rounded-lg border px-3 py-2 text-sm ${view===value?"border-[#a8583e] bg-[#f6f1e9] font-semibold":"border-[#211815]/15"}`}>{label}</button>)}
   </div>
   {payments.length===0&&<p className="text-sm text-[#5f524c]">Nessun pagamento in attesa nei risultati caricati.</p>}
-  {payments.filter(p=>statusFor(p)===view).map(p=>{
+  {payments.filter(p=>view==="missing"?statusFor(p)==="pending"&&p.formCheck==="missing"&&countUsed(p)<p.availableSlots: statusFor(p)===view&&(view!=="pending"||p.formCheck!=="missing")).map(p=>{
    const extra=saved[p.id]??[];
    const activeAssigned=p.assigned.filter(item=>!(removed[p.id]??[]).includes(item.id));
    const used=countAssignedPaymentSlots(activeAssigned.map(item=>item.slot),saved[p.id]??[]);
@@ -164,6 +190,31 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
      <p className="text-xs text-[#5f524c]">Quote da 15 € assegnate: {used}/{p.availableSlots}</p>
      {!closed&&<p className="text-xs font-semibold">Annualità {periodLabel(periodFor(p.id))} · valida fino al {p.associationExpiresAt?.split("-").reverse().join("/")??"—"}</p>}
     </div>
+    {view==="missing"&&<div className="space-y-2 rounded-lg border border-[#805b26]/25 bg-[#faf8f5] p-3 text-sm">
+      <p className="font-medium">Modulo Google non individuato automaticamente</p>
+      <p className="text-xs text-[#5f524c]">Il pagamento resta in sospeso. Controlla il beneficiario effettivo prima di assegnare la quota.</p>
+      <button type="button" onClick={()=>openFormLookup(p)} disabled={blocked}
+       className="rounded-lg border border-[#805b26]/40 px-3 py-2 disabled:opacity-50">{formPanels[p.id]?"Chiudi ricerca":"Ricerca mirata modulo Google"}</button>
+      {formPanels[p.id]&&<div className="space-y-2 border-t border-[#211815]/10 pt-3">
+       <label htmlFor={`form-query-${p.id}`} className="block text-xs">Nome, cognome o email della persona iscritta</label>
+       <div className="flex gap-2">
+        <input id={`form-query-${p.id}`} value={formQueries[p.id]??""}
+         onChange={e=>setFormQueries(prev=>({...prev,[p.id]:e.target.value}))}
+         className="min-w-0 flex-1 rounded-lg border p-2" placeholder="Cerca nel modulo Google"/>
+        <button type="button" disabled={blocked||(formQueries[p.id]??"").trim().length<2}
+         onClick={()=>focusedFormLookup(p.id)} className="rounded-lg border px-3 disabled:opacity-50">Cerca</button>
+       </div>
+       {formSearched[p.id]&&formResults[p.id]?.length===0&&<p role="status" className="text-xs">Nessun modulo trovato per questa ricerca. Prova con un altro nome o email.</p>}
+       {(formResults[p.id]??[]).map(row=><div key={row.id} className="border-t border-[#211815]/10 pt-2">
+        <strong className="block">{row.name}</strong>
+        <small className="block break-all text-[#5f524c]">Modulo Google · {row.email??"Email non presente"} · {row.submittedOn??"Data non disponibile"}</small>
+        <button type="button" className="mt-2 rounded-lg border px-3 py-2 text-xs" onClick={()=>{
+         setSearch(prev=>({...prev,[p.id]:row.email??row.name}));
+         setFeedback(prev=>({...prev,[p.id]:{tone:"success",text:"Ricerca anagrafica preparata. Premi Cerca e verifica la corrispondenza prima di associare."}}));
+        }}>Cerca in anagrafica</button>
+       </div>)}
+      </div>}
+    </div>}
     {p.alreadyPaidPeriod && used===0 && !closed && <div className="space-y-2 rounded-lg border border-[#9b4b1e]/20 p-3 text-sm">
      <p className="text-[#9b4b1e]">Quota {periodLabel(p.alreadyPaidPeriod)} già registrata: controlla l’eventuale duplicazione prima di confermare.</p>
      {(()=>{const candidate=p.suggested?.id??p.proposals.find(person=>person.kind==="person")?.id;
