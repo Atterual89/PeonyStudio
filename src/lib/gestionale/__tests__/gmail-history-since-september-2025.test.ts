@@ -13,6 +13,7 @@ describe("storico quote dal 1 settembre 2025",()=>{
     expect(importer).toContain('HISTORIC_START = new Date("2025-09-01T00:00:00+02:00")');
     expect(importer).not.toContain('new Date("2024-01-01T00:00:00+01:00")');
     expect(audit).toContain('.gte("paid_at","2025-08-31T22:00:00Z")');
+    expect(action).toContain('.gte("paid_at","2025-08-31T22:00:00Z")');
     expect(audit).not.toContain('const years=["2024"');
   });
   it("resetta i token paginazione dei vecchi intervalli senza toccare i pagamenti",()=>{
