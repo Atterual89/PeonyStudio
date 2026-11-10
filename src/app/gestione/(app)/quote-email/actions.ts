@@ -12,6 +12,7 @@ import { suggestedQuotaCount } from "@/lib/gestionale/payment-email-parser";
 import { combinePaymentPersonCandidates } from "@/lib/gestionale/payment-person-candidates";
 import { proposePeopleForPayment } from "@/lib/gestionale/payment-auto-proposals";
 import { formStatusForPerson, formStatusLabel } from "@/lib/gestionale/payment-person-form-status";
+import { formIdentityCompatible } from "@/lib/association/form-identity";
 import { normalizeMembershipEmail, normalizeMembershipNameKey } from "@/lib/association/membership-state";
 import { refreshGestione } from "@/lib/gestionale/server/refresh";
 import { todayInRome } from "@/lib/gestionale/workshops";
@@ -196,10 +197,28 @@ export async function confirmAssociationPaymentAction(paymentId: string,target:P
     identity=await membershipIdentityOf(person);
     personId=person.id;
   } else {
+    // La registrazione Google è una prova della PERSONA, non un destinatario
+    // alternativo del versamento. Mai scrivere nuove allocazioni member_key.
     const member=await getMemberLink(target.id);
-    if(!member)return {ok:false as const,error:"Socio non trovato nel libro associativo."};
-    identity={email:member.email,firstName:member.firstName,lastName:member.lastName};
-    memberKey=target.id;
+    if(!member)return {ok:false as const,error:"Registrazione associativa non trovata."};
+    if(!member.email)
+      return {ok:false as const,error:"Collega prima il modulo alla scheda Persona: non è identificabile tramite email."};
+    const dbLookup=getGestionaleDb();
+    const {data:possible,error:lookupError}=await dbLookup.from("gw_people")
+      .select("id,first_name,last_name,email")
+      .ilike("email",member.email).is("deleted_at",null).is("merged_into",null).limit(20);
+    if(lookupError)return {ok:false as const,error:"Impossibile verificare l'anagrafica centrale."};
+    const matched=(possible??[]).filter(p=>formIdentityCompatible(
+      {firstName:p.first_name,lastName:p.last_name,email:p.email},
+      {first_name:member.firstName,last_name:member.lastName,email:member.email},
+    ));
+    if(matched.length!==1)
+      return {ok:false as const,error:"Registrazione non collegata univocamente a una Persona. Verifica l'anagrafica prima della quota."};
+    const person=await getPerson(matched[0].id);
+    if(!person||person.merged_into)return {ok:false as const,error:"Persona non disponibile."};
+    personId=person.id;
+    identity=await membershipIdentityOf(person);
+    // memberKey resta null: la quota appartiene sempre al person_id.
   }
   if(!identity.email&&!(identity.firstName&&identity.lastName))
     return {ok:false as const,error:"Anagrafica insufficiente per verificare la quota."};
@@ -266,7 +285,7 @@ export async function confirmAssociationPaymentAction(paymentId: string,target:P
     .select("id,slot,period_from")
     .eq("payment_id",paymentId)
     .eq("period_from",period.paymentsFrom)
-    .eq(target.kind==="person"?"person_id":"member_key",target.id)
+    .eq("person_id",personId!)
     .maybeSingle();
   if(verifyError||!allocation)return {ok:false as const,error:"Salvataggio non confermato dal database. Ricarica e controlla la quota prima di riprovare."};
   await clearMembershipCache();
