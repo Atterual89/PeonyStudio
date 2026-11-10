@@ -1,6 +1,6 @@
 import "server-only";
 
-import { requireOperator, requireOrganizer } from "@/lib/gestionale/server/auth";
+import { requireOperator } from "@/lib/gestionale/server/auth";
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
 import { comparePayments, lastUsedMethod, type FeeRow } from "@/lib/gestionale/payments";
 import type { BookingStatus, InvoiceStatus, OperatorRole, Payment, PaymentMethod, Registration } from "@/lib/gestionale/types";
@@ -149,7 +149,7 @@ export async function getFeeRows(workshopId: string): Promise<FeeRow[]> {
 
 /** Prenotazioni del workshop come le vede Ale: testo scritto da lei, quote e pagamenti. */
 export async function getRegistrations(workshopId: string): Promise<Registration[]> {
-  await requireOrganizer();
+  await requireOperator();
   if (!isUuidLike(workshopId)) return [];
 
   const [{ data, error }, hints] = await Promise.all([
