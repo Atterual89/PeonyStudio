@@ -13,13 +13,17 @@ import { isUuidLike } from "@/lib/gestionale/validation";
 
 const PAYMENT_COLUMNS = "id, kind, amount_cents, payment_type, paid_on, method, received_by, description, corrects_payment_id, created_at";
 
-const REGISTRATION_COLUMNS = [
-  "id, version, status, present, notes, invoice_status, agreed_fee_cents, fee_custom, created_at",
-  // Solo il ruolo di chi l'ha creata ("Inserito da Peony/Ale"), mai il nome.
-  "gw_operators!gw_bookings_created_by_fkey(role)",
-  "gw_booking_participants(id, person_id, is_primary, entered_as, entered_email, match_status, auto_created_person, removed_at, gw_people!gw_booking_participants_person_id_fkey(first_name, last_name, nickname, email, merged_into))",
-  `gw_payments(${PAYMENT_COLUMNS})`,
-].join(", ");
+const BASE_PARTICIPANTS = "id, is_primary, entered_as, entered_email, match_status, auto_created_person, removed_at";
+function registrationColumns(withIdentity: boolean): string {
+  return [
+    "id, version, status, present, notes, invoice_status, agreed_fee_cents, fee_custom, created_at",
+    "gw_operators!gw_bookings_created_by_fkey(role)",
+    withIdentity
+      ? `gw_booking_participants(${BASE_PARTICIPANTS}, person_id, gw_people!gw_booking_participants_person_id_fkey(first_name, last_name, nickname, email, merged_into))`
+      : `gw_booking_participants(${BASE_PARTICIPANTS})`,
+    `gw_payments(${PAYMENT_COLUMNS})`,
+  ].join(", ");
+}
 
 export type PaymentRecord = {
   id: string;
@@ -149,14 +153,18 @@ export async function getFeeRows(workshopId: string): Promise<FeeRow[]> {
 }
 
 /** Prenotazioni del workshop come le vede Ale: testo scritto da lei, quote e pagamenti. */
-export async function getRegistrations(workshopId: string): Promise<Registration[]> {
+export async function getRegistrations(
+  workshopId: string, {includeLinkedProfile = false}: {includeLinkedProfile?: boolean} = {},
+): Promise<Registration[]> {
   const operator = await requireOperator();
   if (!isUuidLike(workshopId)) return [];
+  // Conti e report non devono caricare nessuna identità dal registro persone.
+  const withIdentity = includeLinkedProfile && operator.role === "organizzatrice";
 
   const [{ data, error }, hints] = await Promise.all([
     getGestionaleDb()
       .from("gw_bookings")
-      .select(REGISTRATION_COLUMNS)
+      .select(registrationColumns(withIdentity))
       .eq("workshop_id", workshopId)
       .is("deleted_at", null)
       .is("gw_booking_participants.deleted_at", null)
@@ -170,11 +178,11 @@ export async function getRegistrations(workshopId: string): Promise<Registration
   // Non basta il collegamento del workshop: deve esistere un contatto
   // dell'Excel di questa organizzatrice già collegato allo stesso person_id.
   // Non associare automaticamente contatti per somiglianza dei nominativi.
-  const confirmedIds = [...new Set(records.flatMap(row => row.gw_booking_participants)
+  const confirmedIds = [...new Set((withIdentity ? records : []).flatMap(row => row.gw_booking_participants)
     .filter(p => !p.removed_at && p.match_status === "confermato" && !p.auto_created_person)
     .map(p => p.person_id).filter(isUuidLike))];
   const excelLinkedIds = new Set<string>();
-  if (operator.role === "organizzatrice" && confirmedIds.length) {
+  if (withIdentity && confirmedIds.length) {
     const { data: links, error: linksError } = await getGestionaleDb()
       .from("gw_ale_contacts")
       .select("person_id")
