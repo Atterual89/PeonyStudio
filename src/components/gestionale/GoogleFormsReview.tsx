@@ -118,7 +118,7 @@ export function GoogleFormsReview({cases,readCount}:{cases:FormReviewCase[];read
     <div className="flex flex-wrap gap-2">
       <button type="button" onClick={()=>router.refresh()}
         className="rounded-lg border border-[#211815]/15 px-3 py-2 text-sm">Ricarica i dati</button>
-      <Link prefetch={false} href="/gestione/altro/soci#quote-email"
+      <Link prefetch={false} href="/gestione/altro/soci?quote=1#quote-email"
         className="rounded-lg border border-[#a8583e]/35 px-3 py-2 text-sm text-[#a8583e]">
         Vai alle quote
       </Link>
