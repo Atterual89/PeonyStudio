@@ -46,15 +46,15 @@ export default async function PersonePage({
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
         <h1 className="font-serif text-xl font-medium">Persone</h1>
-        <p className="mt-1 text-sm text-[#5f524c]">Un solo elenco: nickname, anagrafica e libro soci.</p>
+        <p className="mt-1 text-sm text-[#5f524c]">Anagrafica centrale: moduli Google, nickname e partecipazioni. Accesso riservato agli admin.</p>
       </div>
       <NewPersonForm />
     </div>
     {membershipUnavailable&&
-      <Notice tone="warning">Il libro soci non è raggiungibile. Puoi comunque trovare e aprire le anagrafiche; lo stato delle quote non è disponibile.</Notice>}
+      <Notice tone="warning">Le registrazioni associative non sono disponibili. Puoi comunque trovare e aprire le anagrafiche; lo stato delle quote non è disponibile.</Notice>}
     <UnifiedPeopleDirectory key={query} contacts={contacts} initialQuery={query}/>
     <p className="text-xs text-[#5f524c]">
-      Le iscrizioni ai corsi si trovano nella sezione Eventi. Il collegamento al libro soci non registra automaticamente il pagamento della quota.
+      Le iscrizioni ai corsi si trovano nella sezione Eventi. La creazione automatica della scheda dai moduli Google non registra alcun pagamento.
     </p>
   </section>;
 }
