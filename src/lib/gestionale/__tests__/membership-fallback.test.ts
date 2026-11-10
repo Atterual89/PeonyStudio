@@ -13,7 +13,7 @@ describe("workshop admin con Google non configurato", () => {
     expect(source).toContain('source: "snapshot"');
     expect(source).toContain("getMembershipEvidenceStatus");
     expect(source).toContain('.eq("source", "google_sheet")');
-    expect(source).toContain('.eq("source","manual_override")');
+    expect(source).toContain('.in("source",["manual_override","manual_form"])');
     expect(source).toContain('readCurrentManualValidations');
   });
   it("avvisa che le verifiche da copia vanno aggiornate", () => {
