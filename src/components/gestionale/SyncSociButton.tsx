@@ -1,18 +1,16 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { RefreshCw } from "lucide-react";
 
 import {
-  applySociSyncAction,
   previewSociSyncAction,
 } from "@/app/gestione/(app)/soci/sync/actions";
 
 type Preview = Extract<Awaited<ReturnType<typeof previewSociSyncAction>>, { ok: true }>;
 
 export function SyncSociButton() {
-  const router = useRouter();
   const [busy, startTransition] = useTransition();
   const [preview, setPreview] = useState<Preview | null>(null);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
@@ -27,38 +25,9 @@ export function SyncSociButton() {
           setResult({ ok: false, message: response.message });
           return;
         }
-        const totalChanges = response.forms.creates + response.forms.updates;
-        if (totalChanges === 0) {
-          setResult({ ok: true, message: "Registrazioni Google già aggiornate." });
-          return;
-        }
         setPreview(response);
       } catch {
         setResult({ ok: false, message: "Impossibile leggere le fonti associative. Riprova più tardi." });
-      }
-    });
-  }
-
-  function apply() {
-    if (!preview || busy) return;
-    const token = preview.token;
-    setResult(null);
-    startTransition(async () => {
-      try {
-        const response = await applySociSyncAction(token);
-        setPreview(null);
-        if (response.ok) {
-          setResult({
-            ok: true,
-            message: `Domande Google aggiornate: ${response.forms.created} nuove, ${response.forms.updated} modificate.${response.warnings ? ` ${response.warnings} righe da controllare.` : ""}`,
-          });
-          router.refresh();
-        } else {
-          setResult({ ok: false, message: response.message });
-          router.refresh();
-        }
-      } catch {
-        setResult({ ok: false, message: "Operazione non completata. Non ripetere subito: verifica i dati prima di un nuovo tentativo." });
       }
     });
   }
@@ -80,18 +49,18 @@ export function SyncSociButton() {
 
       {preview ? (
         <div className="rounded-xl border border-[#211815]/15 bg-white/90 p-3 text-sm">
-          <p className="font-semibold">Modifiche da confermare</p>
+          <p className="font-semibold">Riepilogo moduli da esaminare</p>
           <div className="mt-1 space-y-1">
             {stat("Domande Google", preview.forms)}
           </div>
           <p className="mt-2 text-xs text-[#5f524c]">
-            Sincronizza le registrazioni Google (italiano e inglese). Le quote si verificano separatamente.
+            Prima esamina le nuove registrazioni, gli aggiornamenti e le identità ambigue. Non viene applicata nessuna modifica in blocco.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <button type="button" onClick={apply} disabled={busy}
-              className="h-10 rounded-xl bg-[#a8583e] px-3 text-sm font-semibold text-white disabled:opacity-60">
-              Conferma aggiornamento
-            </button>
+            <Link prefetch={false} href="/gestione/altro/soci/revisione"
+              className="inline-flex h-10 items-center rounded-xl bg-[#a8583e] px-3 text-sm font-semibold text-white">
+              Esamina le incongruenze una alla volta
+            </Link>
             <button type="button" onClick={() => setPreview(null)} disabled={busy}
               className="h-10 rounded-xl border border-[#211815]/20 px-3 text-sm">
               Chiudi

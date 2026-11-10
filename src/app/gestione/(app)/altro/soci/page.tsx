@@ -70,22 +70,40 @@ export default async function SociPage({searchParams}:{searchParams:Promise<{quo
       <h1 className="font-serif text-xl font-medium">Verifiche soci e quote</h1>
       <Link prefetch={false} href="/gestione/altro" className="text-sm text-[#5f524c] underline">Altre impostazioni</Link>
     </div>
-    <div className="flex flex-wrap items-start gap-2">
+    <div className="space-y-2 rounded-xl border border-[#211815]/10 bg-white/75 p-3">
+      <h2 className="text-sm font-semibold">1. Moduli Google e anagrafica</h2>
       <SyncSociButton/>
-      <Suspense fallback={<span role="status" className="px-2 py-3 text-xs text-[#5f524c]">Controllo connessione Gmail…</span>}>
-        <AssociationMailSyncControl/>
-      </Suspense>
+      <Link prefetch={false} href="/gestione/altro/soci/revisione"
+        className="inline-flex min-h-10 items-center rounded-lg border border-[#a8583e]/35 px-3 text-sm font-semibold text-[#a8583e]">
+        Apri revisione una per una
+      </Link>
+      <p className="text-xs text-[#5f524c]">
+        Controlla nuovi moduli, duplicati, email diverse e quote senza modulo.
+        Nessun pagamento viene modificato in questa fase.
+      </p>
     </div>
-    <p className="text-xs text-[#5f524c]">
-      I moduli Google registrano le persone; le quote si verificano dalle email PayPal/Qonto o manualmente.
-      Team Artist non è necessario per queste verifiche.
-    </p>
     <div className="flex justify-end">
       <Link prefetch={false} href={`/gestione/persone${typeof params.q==="string"?`?q=${encodeURIComponent(params.q.slice(0,100))}`:""}`}
         className="inline-flex min-h-10 items-center rounded-lg border border-[#a8583e] px-3 text-sm font-semibold text-[#a8583e]">
         Apri anagrafiche
       </Link>
     </div>
+    <details id="quote-email" open={params.quote==="1"}
+      className="rounded-xl border border-[#211815]/10 bg-white/75 p-3">
+      <summary className="cursor-pointer text-sm font-semibold">2. Verifica delle quote (email o manuali)</summary>
+      <div className="mt-3 space-y-3">
+        <Suspense fallback={<span role="status" className="text-xs text-[#5f524c]">Controllo connessione Gmail…</span>}>
+          <AssociationMailSyncControl/>
+        </Suspense>
+        <p className="text-xs text-[#5f524c]">Dopo la verifica anagrafica, controlla i pagamenti PayPal/Qonto o usa Quota OK sulle schede persona.</p>
+        <Suspense fallback={<p role="status" className="py-2 text-sm text-[#5f524c]">Caricamento dei pagamenti da verificare…</p>}>
+          <PaymentReviews open={true}/>
+        </Suspense>
+      </div>
+    </details>
+    <details className="rounded-xl border border-[#211815]/10 bg-white/55 p-3">
+      <summary className="cursor-pointer text-sm font-semibold text-[#5f524c]">Altre operazioni</summary>
+      <div className="mt-3 space-y-3 text-sm">
     <Link prefetch={false} href="/gestione/altro/soci/abbinamenti-ale"
       className="flex min-h-12 items-center justify-between rounded-xl border border-[#211815]/10 bg-white/80 px-3 text-sm font-semibold text-[#a8583e]">
       <span>Matching anagrafica Alessandra ↔ Persone e libro soci</span>
@@ -94,14 +112,6 @@ export default async function SociPage({searchParams}:{searchParams:Promise<{quo
     <Suspense fallback={<p role="status" className="py-2 text-sm text-[#5f524c]">Caricamento delle proposte di abbinamento…</p>}>
       <MemberProposals/>
     </Suspense>
-    <div id="quote-email">
-      <Suspense fallback={<p role="status" className="py-2 text-sm text-[#5f524c]">Caricamento dei pagamenti da verificare…</p>}>
-        <PaymentReviews open={params.quote==="1"}/>
-      </Suspense>
-    </div>
-    <details className="rounded-xl border border-[#211815]/10 bg-white/55 p-3">
-      <summary className="cursor-pointer text-sm font-semibold text-[#5f524c]">Altre operazioni</summary>
-      <div className="mt-3 flex flex-wrap gap-2 text-sm">
         <RefreshMembershipButton/>
         <Suspense fallback={<span className="text-xs text-[#5f524c]">Controllo anagrafiche…</span>}>
           <ExtraMaintenance/>

@@ -31,8 +31,9 @@ describe("sync soci nel gestionale PIN", () => {
   it("presenta solo registrazioni Google e verifica quote separata", () => {
     const ui = source("src/components/gestionale/SyncSociButton.tsx");
     expect(ui).toContain("Aggiorna moduli Google");
-    expect(ui).toContain("Conferma aggiornamento");
-    expect(ui).toContain("Registrazioni Google già aggiornate.");
+    expect(ui).toContain("Esamina le incongruenze una alla volta");
+    expect(ui).not.toContain("onClick={apply}");
+    expect(ui).toContain("/gestione/altro/soci/revisione");
     expect(ui).not.toContain('stat("Libro soci"');
     const home = source("src/app/gestione/(app)/page.tsx");
     expect(home).toContain("<SyncTicketTailorButton />");
