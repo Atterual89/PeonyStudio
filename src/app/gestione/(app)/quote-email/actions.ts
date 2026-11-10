@@ -137,6 +137,7 @@ export async function getMembershipVerificationDetailsAction(personId:string) {
  const {data,error}=await db.from("association_members")
   .select("id,first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at,notes_admin")
   .in("source",["manual_override","google_sheet","manual_form","official_members_book"])
+  .ilike("last_name",identity.lastName?.trim()||"__no_last_name__")
   .order("membership_starts_at",{ascending:false}).limit(500);
  if(error)return {ok:false as const,error:"Impossibile leggere le verifiche."};
  const matches=(data??[]).filter(row=>{
