@@ -3,7 +3,7 @@ import { useState, useTransition } from "react";
 import { confirmAssociationPaymentAction, findPaymentPeopleAction, ignoreAssociationPaymentAction } from "@/app/gestione/(app)/quote-email/actions";
 
 type Person = {kind:"person"|"member";id:string;name:string;email:string|null;source:string};
-type Payment = {id:string;provider:string;payer_name:string|null;amount_cents:number;note:string|null;paid_at:string;availableSlots:number;slots:number[];suggested:{id:string;name:string}|null;alreadyPaidPeriod:string|null;associationPeriodFrom:string|null;associationExpiresAt:string|null};
+type Payment = {id:string;provider:string;payer_name:string|null;amount_cents:number;note:string|null;paid_at:string;availableSlots:number;slots:number[];suggested:{id:string;name:string}|null;proposals:Person[];assigned:{slot:number;name:string}[];alreadyPaidPeriod:string|null;associationPeriodFrom:string|null;associationExpiresAt:string|null};
 type SavedQuota = {name:string;period:string;slot:number};
 type Notice = {tone:"error"|"success";text:string};
 
@@ -95,25 +95,41 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
     <p className="text-sm">{p.payer_name||"Pagante non riconosciuto"}</p>
     {p.note&&<p className="text-xs text-[#5f524c]">Messaggio: {p.note}</p>}
     <div className="flex flex-wrap items-end justify-between gap-2">
-     <p className="text-xs text-[#5f524c]">Quote assegnate: {used}/{p.availableSlots}</p>
+     <p className="text-xs text-[#5f524c]">Quote da 15 € assegnate: {used}/{p.availableSlots}</p>
      {!closed&&<p className="text-xs font-semibold">Annualità {periodLabel(periodFor(p.id))} · valida fino al {p.associationExpiresAt?.split("-").reverse().join("/")??"—"}</p>}
     </div>
     {p.alreadyPaidPeriod && !closed && <p className="text-sm text-[#9b4b1e]">Quota {periodLabel(p.alreadyPaidPeriod)} già registrata: controlla l’eventuale duplicazione prima di confermare.</p>}
     {extra.map((item,i)=><p key={`${item.slot}-${i}`} role="status" className="rounded-lg border border-[#326941]/30 bg-[#eef6ee] p-3 text-sm text-[#326941]">
      Quota salvata nel database: <strong>{item.name}</strong> · periodo {item.period} · quota {item.slot}/{p.availableSlots}.
     </p>)}
+    {p.assigned.map(item=><p key={item.slot} className="rounded-lg border border-[#326941]/20 bg-[#eef6ee] px-3 py-2 text-sm text-[#326941]">
+      Quota {item.slot}/{p.availableSlots} già assegnata: <strong>{item.name}</strong>.
+    </p>)}
     {ignored[p.id]&&<p role="status" className="rounded-lg bg-[#f2ede3] p-3 text-sm">Pagamento ignorato e salvato.</p>}
     {notice?.tone==="error"&&<p role="alert" className="rounded-lg border border-[#9b4b1e]/30 bg-[#fdf3e9] p-3 text-sm font-medium text-[#9b4b1e]">{notice.text}</p>}
     {!closed&&<>
-     {p.suggested&&!(results[p.id]??[]).some(person=>person.kind==="person"&&person.id===p.suggested?.id)&&<div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[#f6f1e9] p-2 text-sm">
-      <span>Persona proposta: <strong>{p.suggested.name}</strong></span>
-      <button type="button" disabled={blocked||periodAlreadyPaid} className="min-h-10 rounded-lg bg-[#a8583e] px-3 py-2 text-white disabled:opacity-50"
-       onClick={()=>assign(p.id,{kind:"person",id:p.suggested!.id},p.suggested!.name)}>
-       {isWorking?"Salvataggio…":"Conferma"}
-      </button>
+     <p className="text-sm font-semibold text-[#5f524c]">
+       {p.availableSlots>1?`Quota ${used+1} di ${p.availableSlots} (15 €): ${used===0?"scegli la prima persona":"scegli un'altra persona per la quota rimanente"}`:"Assegna la quota da 15 €"}
+     </p>
+     {used===0&&p.proposals.length>0&&<div className="space-y-2 rounded-lg bg-[#f6f1e9] p-3 text-sm">
+       <p className="text-xs font-semibold">Persone proposte automaticamente</p>
+       {p.proposals.map(person=><div key={person.kind+person.id}
+         className="flex flex-wrap items-center justify-between gap-2 border-t border-[#211815]/10 pt-2">
+         <span><strong className="block">{person.name}</strong>
+           <small className="block break-all text-[#5f524c]">{person.source}{person.email?` · ${person.email}`:""}</small>
+         </span>
+         <button type="button" disabled={blocked||(periodAlreadyPaid&&person.kind==="person"&&person.id===p.suggested?.id)}
+           className="min-h-10 rounded-lg bg-[#a8583e] px-3 py-2 text-white disabled:opacity-50"
+           onClick={()=>assign(p.id,{kind:person.kind,id:person.id},person.name)}>
+           Associa 15 €
+         </button>
+       </div>)}
      </div>}
+     {used>0&&p.availableSlots>1&&<p className="text-xs text-[#805b26]">
+       La prima quota è già attribuita: ricerca il partner o un'altra persona. Non assegnare due quote alla stessa persona.
+     </p>}
      <div className="flex gap-2">
-      <input className="min-w-0 flex-1 rounded-lg border p-2 text-sm" placeholder="Nome, nickname o email nel libro persone"
+      <input className="min-w-0 flex-1 rounded-lg border p-2 text-sm" placeholder={used>0?"Cerca la seconda persona: nome, nickname o email":"Cerca un altro nominativo"}
        aria-label={`Cerca persona per ${p.payer_name||p.id}`}
        value={search[p.id]||""} onChange={e=>setSearch(prev=>({...prev,[p.id]:e.target.value}))}/>
       <button type="button" disabled={blocked||(search[p.id]||"").trim().length<2}
@@ -126,7 +142,7 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
       </span>
       <button type="button" disabled={blocked} className="min-h-10 rounded-lg bg-[#a8583e] px-3 py-2 text-white disabled:opacity-50"
        onClick={()=>assign(p.id,{kind:person.kind,id:person.id},person.name)}>
-       {isWorking?"Salvataggio…":"Associa quota"}
+       {isWorking?"Salvataggio…":"Associa 15 €"}
       </button>
      </div>)}
      {used===0&&<button type="button" disabled={blocked} onClick={()=>ignore(p.id)}

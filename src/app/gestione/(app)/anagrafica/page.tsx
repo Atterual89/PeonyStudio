@@ -5,15 +5,25 @@ import { SharedDirectory } from "@/components/gestionale/SharedDirectory";
 import { AleContactsManager } from "@/components/gestionale/AleContactsManager";
 
 export default async function AnagraficaPage() {
-  await requireOrganizer();
+  const organizer = await requireOrganizer();
   const db = getGestionaleDb();
 
-  const { data: bookings, error: bookingsError } = await db.from("gw_bookings")
-    .select("id,workshop_id,created_by,gw_workshops(name)")
-    .is("deleted_at", null)
-    .limit(10000);
-  if (bookingsError) throw new Error("Impossibile caricare i corsi.");
-  const bookingIds = (bookings ?? []).map(b => b.id);
+  // Alessandra vede solo i workshop che gestisce: la presenza di una
+  // scheda nell'anagrafica centrale non la rende automaticamente visibile.
+  // Si considerano anche prenotazioni admin dello stesso workshop, non quelle
+  // degli altri workshop Peony.
+  const {data: owned, error: ownedError}=await db.from("gw_bookings")
+    .select("workshop_id").eq("created_by",organizer.id)
+    .is("deleted_at",null).limit(10000);
+  if(ownedError)throw new Error("Impossibile determinare i workshop dell'organizzatrice.");
+  const allowedWorkshops=[...new Set((owned??[]).map(row=>row.workshop_id).filter(Boolean))];
+  const {data:bookings,error:bookingsError}=allowedWorkshops.length
+    ? await db.from("gw_bookings")
+        .select("id,workshop_id,created_by,gw_workshops(name)")
+        .in("workshop_id",allowedWorkshops).is("deleted_at",null).limit(10000)
+    : {data:[],error:null};
+  if(bookingsError)throw new Error("Impossibile caricare i corsi.");
+  const bookingIds=(bookings??[]).map(b=>b.id);
   const workshopNames = new Map((bookings ?? []).map(b => {
     const w = Array.isArray(b.gw_workshops) ? b.gw_workshops[0] : b.gw_workshops;
     return [b.id, w?.name ?? "Workshop"];
@@ -55,7 +65,7 @@ export default async function AnagraficaPage() {
     <AleContactsManager />
     <details className="rounded-xl border border-[#211815]/15 bg-white/70 p-3">
       <summary className="cursor-pointer py-1 font-semibold">Persone già inserite nei workshop ({directory.length})</summary>
-      <p className="mt-2 text-xs text-[#5f524c]">Queste sono le persone usate dalle iscrizioni ai corsi. Puoi aggiornare i recapiti senza confermare un'associazione o una quota.</p>
+      <p className="mt-2 text-xs text-[#5f524c]">Queste sono solo le persone presenti nei tuoi workshop. Puoi aggiornare i recapiti senza confermare un'associazione o una quota.</p>
       <div className="mt-3"><SharedDirectory people={directory}/></div>
     </details>
   </section>;

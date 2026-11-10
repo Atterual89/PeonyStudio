@@ -20,13 +20,20 @@ export async function saveSharedPersonAction(input: {
   const db = getGestionaleDb();
   // La scheda e' accessibile all'organizzatrice solo se collegata a una sua iscrizione.
   if (operator.role !== "admin") {
-    const { data: links, error: linkError } = await db.from("gw_booking_participants")
-      .select("booking_id, gw_bookings!inner(created_by,deleted_at)")
-      .eq("person_id", input.personId).is("deleted_at", null).limit(200);
-    if (linkError) return { ok: false, error: "Impossibile verificare l'accesso." };
-    const permitted = (links ?? []).some((row) => {
-      const booking = Array.isArray(row.gw_bookings) ? row.gw_bookings[0] : row.gw_bookings;
-      return Boolean(booking && !booking.deleted_at);
+    const [linksResult,ownedResult] = await Promise.all([
+      db.from("gw_booking_participants")
+        .select("booking_id,gw_bookings!inner(workshop_id,deleted_at)")
+        .eq("person_id",input.personId)
+        .is("deleted_at",null).is("removed_at",null).limit(200),
+      db.from("gw_bookings").select("workshop_id")
+        .eq("created_by",operator.id).is("deleted_at",null).limit(10000),
+    ]);
+    if(linksResult.error||ownedResult.error)
+      return {ok:false,error:"Impossibile verificare l'accesso."};
+    const allowed=new Set((ownedResult.data??[]).map(row=>row.workshop_id));
+    const permitted=(linksResult.data??[]).some(row=>{
+      const booking=Array.isArray(row.gw_bookings)?row.gw_bookings[0]:row.gw_bookings;
+      return Boolean(booking&&!booking.deleted_at&&allowed.has(booking.workshop_id));
     });
     if (!permitted) return { ok: false, error: "Questa persona non risulta tra le tue iscrizioni." };
   }

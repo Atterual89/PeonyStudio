@@ -10,6 +10,8 @@ import { readAllMemberEvidence } from "@/lib/gestionale/server/peony-events";
 import { membershipPeriodForPayment } from "@/lib/association/membership-periods";
 import { suggestedQuotaCount } from "@/lib/gestionale/payment-email-parser";
 import { combinePaymentPersonCandidates } from "@/lib/gestionale/payment-person-candidates";
+import { proposePeopleForPayment } from "@/lib/gestionale/payment-auto-proposals";
+import { normalizeMembershipEmail, normalizeMembershipNameKey } from "@/lib/association/membership-state";
 import { refreshGestione } from "@/lib/gestionale/server/refresh";
 import { todayInRome } from "@/lib/gestionale/workshops";
 import { isUuidLike } from "@/lib/gestionale/validation";
@@ -48,7 +50,7 @@ export async function getAssociationMailState() {
   if (state.error || payments.error) return {ok:false as const,error:"Archivio pagamenti non disponibile. Verifica che la migrazione sia stata applicata."};
   const ids=(payments.data??[]).map(p=>p.id);
   const allocations=ids.length
-    ? await db.from("gw_association_payment_allocations").select("payment_id,slot,person_id").in("payment_id",ids)
+    ? await db.from("gw_association_payment_allocations").select("payment_id,slot,person_id,member_key").in("payment_id",ids)
     : {data:[],error:null};
   if (allocations.error) return {ok:false as const,error:"Impossibile caricare gli abbinamenti delle quote."};
 
@@ -63,6 +65,27 @@ export async function getAssociationMailState() {
       id:matches[0].person_id,name:matches[0].person_name
     });
   }
+  // Le proposte non dipendono più dalla ricerca manuale o dalla presenza di una
+  // scheda preesistente. I moduli Google sono considerati senza creare quote.
+  const [directoryRows,formRows]=await Promise.all([
+    db.from("gw_people").select("id,first_name,last_name,nickname,email")
+      .is("deleted_at",null).is("merged_into",null).range(0,9999),
+    db.from("association_members").select("first_name,last_name,email")
+      .eq("source","google_sheet").range(0,9999),
+  ]);
+  if(directoryRows.error||formRows.error)
+    return {ok:false as const,error:"Impossibile proporre le persone dai moduli Google."};
+  const directory=(directoryRows.data??[]).map(p=>({
+    kind:"person" as const,id:p.id,
+    name:[p.first_name,p.last_name].filter(Boolean).join(" ")||p.nickname||p.email||"Persona",
+    email:p.email,source:"Anagrafica",
+  }));
+  const forms=(formRows.data??[]).filter(p=>Boolean(p.email))
+    .map(p=>({
+      kind:"member" as const,id:"e:"+normalizeMembershipEmail(p.email),
+      name:[p.first_name,p.last_name].filter(Boolean).join(" ")||p.email||"Persona",
+      email:p.email,source:"Modulo Google",
+    }));
   const suggestedIds=[...new Set([...suggestionsByPayment.values()].map(x=>x.id))];
   const suggestedPeople=suggestedIds.length
     ? await db.from("gw_people").select("id,first_name,last_name,email")
@@ -84,6 +107,12 @@ export async function getAssociationMailState() {
     ).paymentMatchMethod==="payment_email"?period.paymentsFrom:null;
     return ({
     ...p, suggested:proposed, alreadyPaidPeriod,
+    proposals:proposePeopleForPayment(p.payer_name,directory,forms),
+    assigned: (allocations.data??[]).filter(a=>a.payment_id===p.id).map(a=>{
+      const person=a.person_id?directory.find(row=>row.id===a.person_id):null;
+      const member=a.member_key?forms.find(row=>row.id===a.member_key):null;
+      return {slot:a.slot as number,name:person?.name??member?.name??"Persona già associata"};
+    }),
     associationPeriodFrom: period?.paymentsFrom ?? null,
     associationExpiresAt: period?.validUntil ?? null,
     availableSlots:suggestedQuotaCount({
@@ -117,7 +146,7 @@ export async function findPaymentPeopleAction(query: string): Promise<PaymentPer
   const book=members.map(m=>({
     kind:"member" as const,id:m.id,
     name:[m.first_name,m.last_name].filter(Boolean).join(" ")||m.email||"Socio",
-    email:m.email,source:`Libro soci / modulo${m.matchedAlias?` · ${m.matchedAlias}`:""}`
+    email:m.email,source:`Modulo Google / registrazione${m.matchedAlias?` · ${m.matchedAlias}`:""}`
   }));
   return combinePaymentPersonCandidates([...local,...book]);
 }
@@ -161,6 +190,32 @@ export async function confirmAssociationPaymentAction(paymentId: string,target:P
   if(!identity.email&&!(identity.firstName&&identity.lastName))
     return {ok:false as const,error:"Anagrafica insufficiente per verificare la quota."};
   const db=getGestionaleDb();
+  // Nello stesso bonifico da 30€ la seconda quota deve essere assegnata
+  // a un'altra persona, anche quando la prima era collegata come "member".
+  const {data:prior,error:priorError}=await db.from("gw_association_payment_allocations")
+    .select("person_id,member_key").eq("payment_id",paymentId);
+  if(priorError)return {ok:false as const,error:"Impossibile controllare le quote già assegnate."};
+  const targetMail=normalizeMembershipEmail(identity.email);
+  const targetName=normalizeMembershipNameKey(identity.firstName,identity.lastName);
+  for(const row of prior??[]){
+    if((personId&&row.person_id===personId)||(memberKey&&row.member_key===memberKey))
+      return {ok:false as const,error:"Questa persona ha già una quota associata al pagamento."};
+    let priorIdentity:{email:string|null;firstName:string|null;lastName:string|null}|null=null;
+    if(row.person_id){
+      const existing=await getPerson(row.person_id);
+      if(existing)priorIdentity=await membershipIdentityOf(existing);
+    }else if(row.member_key){
+      const member=await getMemberLink(row.member_key);
+      if(member)priorIdentity={email:member.email,firstName:member.firstName,lastName:member.lastName};
+    }
+    if(!priorIdentity)continue;
+    const priorMail=normalizeMembershipEmail(priorIdentity.email);
+    const priorName=normalizeMembershipNameKey(priorIdentity.firstName,priorIdentity.lastName);
+    if((targetMail&&priorMail&&targetMail===priorMail)||
+       (targetName&&priorName&&targetName===priorName)){
+      return {ok:false as const,error:"Le due quote devono essere assegnate a persone diverse."};
+    }
+  }
   const {data:payment,error}=await db.from("gw_association_payment_emails")
     .select("id,provider,amount_cents,status,paid_at").eq("id",paymentId).maybeSingle();
   if(error||!payment||payment.status!=="pending")
