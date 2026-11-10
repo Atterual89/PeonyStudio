@@ -38,6 +38,8 @@ describe("Persone: quota confermata ma modulo da verificare", () => {
     expect(page).toContain("<Suspense");
     expect(page).not.toContain("<SyncOfficialBookButton/>");
     expect(page).toContain("<SyncSociButton/>");
+    expect(page).toContain("1. Moduli Google e anagrafica");
+    expect(page).toContain("2. Verifica delle quote");
     expect(page.indexOf("<SyncSociButton/>")).toBeLessThan(page.indexOf("<AssociationMailSyncControl/>"));
     expect(page).not.toContain('await Promise.all([\n  findMemberLinkProposals()');
     const loading=readFileSync("src/app/gestione/(app)/altro/soci/loading.tsx","utf8");
