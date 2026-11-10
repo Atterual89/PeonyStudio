@@ -146,22 +146,6 @@ const readCurrentManualValidations = cache(async (): Promise<EvidenceRow[]> => {
   return rows;
 });
 
-/** Tessere verificate del libro ufficiale: lettura corrente, separata da Google e dalle quote email. */
-const readCurrentOfficialBook = cache(async (): Promise<EvidenceRow[]> => {
-  await requireAdmin();
-  const rows: EvidenceRow[] = [];
-  for(let offset=0;offset<10000;offset+=500){
-    const {data,error}=await getGestionaleDb().from("association_members")
-      .select("id,first_name,last_name,email,source,membership_status,membership_starts_at,membership_expires_at")
-      .eq("source","official_members_book").order("id",{ascending:true})
-      .range(offset,offset+499);
-    if(error)throw new Error("Gestionale (libro soci ufficiale): "+error.message);
-    rows.push(...(data??[]).map(row=>pick(row,null)));
-    if((data??[]).length<500)break;
-  }
-  return rows;
-});
-
 /** Per segnalare all'admin se le verifiche derivano da fonti live o da copia. */
 export async function getMembershipEvidenceStatus(): Promise<{
   source: "live" | "snapshot";
@@ -182,13 +166,12 @@ async function loadEvidenceWithOrder(): Promise<Evidence> {
       if (evidenceCache?.evidence === evidence) evidenceCache = null;
     });
   }
-  const [sources, manual, official]=await Promise.all([
+  const [sources, manual]=await Promise.all([
     evidenceCache.evidence,
     readCurrentManualValidations(),
-    readCurrentOfficialBook(),
   ]);
-  // Le prove del libro ufficiale sono valide solo nel periodo della tessera.
-  return {...sources, rows:[...sources.rows, ...manual, ...official]};
+  // La domanda Google è la fonte di registrazione; la quota è email o manuale.
+  return {...sources, rows:[...sources.rows, ...manual]};
 }
 
 async function loadEvidence(): Promise<EvidenceRow[]> {
