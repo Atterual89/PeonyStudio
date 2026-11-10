@@ -20,6 +20,7 @@ export function formIdentityCompatible(
   const x=key(person.firstName,person.lastName).split(" ").filter(Boolean);
   const y=key(form.first_name,form.last_name).split(" ").filter(Boolean);
   if(x.length>=2&&y.length>=2){
+    if(!a&&!b)return x.join(" ")===y.join(" ");
     const xs=new Set(x),ys=new Set(y);
     return x.every(t=>ys.has(t))||y.every(t=>xs.has(t));
   }
