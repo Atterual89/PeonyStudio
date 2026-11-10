@@ -2,6 +2,7 @@
 
 import { requireOrganizer } from "@/lib/gestionale/server/auth";
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
+import { dispatchAlePush } from "@/lib/gestionale/server/admin-push";
 import { refreshGestione } from "@/lib/gestionale/server/refresh";
 import { readBillingFile } from "@/lib/gestionale/billing-file";
 import { mappedAleRows,suggestAleColumns } from "@/lib/gestionale/ale-billing-mapping";
@@ -45,6 +46,8 @@ export async function importAleFileAction(form:FormData){
       p_operator_id:operator.id,p_rows:rows,
     });
     if(error)throw new Error("Importazione non riuscita: verifica le colonne o l'allineamento del database.");
+    try { await dispatchAlePush(operator.id); }
+    catch (pushError) { console.error("[gestionale] Invio push nuovi contatti:", pushError); }
     refreshGestione();
     return {ok:true as const,data:data as {created:number;updated:number;skipped:number}};
   }catch(error){return fail(error);}
