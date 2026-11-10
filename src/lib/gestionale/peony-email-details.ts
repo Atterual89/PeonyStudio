@@ -1,7 +1,7 @@
 import {
   emailAssets, emailBox, emailButton, emailParagraph, emailSection, escapeHtml,
 } from "@/lib/gestionale/email/layout";
-import { membershipPeriodFor } from "@/lib/association/membership-periods";
+import { membershipPeriodForPayment } from "@/lib/association/membership-periods";
 import {
   isRopeJamEvent, isWorkshopEvent, peonyAssociationFormUrl,
   type PeonyEmailAudience, type PeonyEmailEventContext, type PeonyEmailLanguage,
@@ -72,7 +72,7 @@ function dateRange(input:{dateLabel:string;context?:PeonyEmailEventContext}):str
   return input.dateLabel && input.dateLabel!=="Data da definire" ? input.dateLabel : "";
 }
 function periodUntil(context?:PeonyEmailEventContext):string|null {
-  const period=context?.startsOn ? membershipPeriodFor(context.startsOn) : null;
+  const period=context?.startsOn ? membershipPeriodForPayment(new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" })) : null;
   if (!period)return null;
   const [year,month,day]=period.validUntil.split("-");
   return day+"/"+month+"/"+year;
