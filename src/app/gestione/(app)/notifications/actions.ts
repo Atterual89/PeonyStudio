@@ -61,12 +61,12 @@ export async function markAllAdminNotificationsReadAction(): Promise<void> {
 
 export async function getAdminPushKeyAction(): Promise<string | null> {
   await requireAdmin();
-  return pushConfigured() ? publicVapidKey() : null;
+  return (await pushConfigured()) ? await publicVapidKey() : null;
 }
 
 export async function saveAdminPushSubscriptionAction(value: unknown): Promise<void> {
   const operator = await requireAdmin();
-  if (!pushConfigured()) throw new Error("Push non configurate sul server.");
+  if (!(await pushConfigured())) throw new Error("Push non configurate sul server.");
   if (!validPushSubscription(value)) throw new Error("Sottoscrizione push non valida.");
   const { endpoint, keys } = value;
   const { error } = await getGestionaleDb().from("gw_admin_push_subscriptions")
@@ -88,7 +88,7 @@ export async function removeAdminPushSubscriptionAction(endpoint: string): Promi
 
 export async function testAdminPushAction(endpoint: string): Promise<boolean> {
   const operator = await requireAdmin();
-  if (!pushConfigured() || typeof endpoint !== "string") return false;
+  if (!(await pushConfigured()) || typeof endpoint !== "string") return false;
   const { data } = await getGestionaleDb().from("gw_admin_push_subscriptions")
     .select("operator_id,endpoint,p256dh,auth").eq("operator_id", operator.id)
     .eq("endpoint", endpoint).maybeSingle();
