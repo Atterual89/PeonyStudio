@@ -142,7 +142,7 @@ export function UnifiedPeopleDirectory({contacts,initialQuery=""}:{contacts:Unif
               </p>}
             {contact.identityConflict&&<p className="rounded-lg border border-[#9b4b1e]/25 bg-[#fff8eb] p-2 text-xs text-[#8b531d]">
               Attenzione: questa email compare su un modulo intestato a un altro nome.
-              Non collegare automaticamente. <Link className="underline" href="/gestione/altro/soci/controllo">Controlla identità</Link>.
+              Non collegare automaticamente. <Link prefetch={false} className="underline" href="/gestione/altro/soci/controllo">Controlla identità</Link>.
             </p>}
             <details className="text-xs text-[#5f524c]">
               <summary className="cursor-pointer text-[#a8583e]">Origine e abbinamento</summary>
