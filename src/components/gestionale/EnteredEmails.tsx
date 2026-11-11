@@ -27,7 +27,7 @@ function ParticipantLine({entry,suggestedEmail}:{
   const [pending,startTransition]=useTransition();
   const display=registrationPersonLabel(entry);
   const workshopLinked=entry.matchStatus==="confermato"&&!entry.autoCreated;
-  const status=display.linked?"Excel e anagrafica abbinati":workshopLinked?"Contatto Excel da abbinare":entry.matchStatus==="automatico"?"Abbinamento da confermare":"Da abbinare";
+  const status=display.linked?"Workshop ed Excel abbinati":workshopLinked?"Workshop abbinato · Excel non collegato":entry.matchStatus==="automatico"?"Abbinamento da confermare":"Da abbinare";
   useEffect(()=>{
     if(editing)return;
     setName(entry.enteredAs??"");
@@ -71,10 +71,10 @@ function ParticipantLine({entry,suggestedEmail}:{
             {status}
           </p>
           <p className="break-all text-sm text-[#5f524c]">
-            {display.email||"Email mancante"}
+            {display.email||(workshopLinked?"Email non inserita nell’iscrizione":"Email non presente")}
             {display.emailSource?<span className="ml-1 text-xs">· {display.emailSource==="anagrafica"?"dall'anagrafica":"inserita nel workshop"}</span>:null}
           </p>
-          {workshopLinked && !display.linked ? <p className="text-xs text-[#7a5212]">Il workshop ha già un profilo collegato. Per visualizzarne i dati, l’admin deve abbinare anche il contatto importato da Excel.</p> : null}
+          {workshopLinked && !display.linked ? <p className="text-xs text-[#7a5212]">Il workshop è già abbinato. Nome ed email della scheda principale si mostrano quando l’admin collega anche il contatto Excel di Alessandra; se non è stato importato, va prima aggiunto all’Excel.</p> : null}
           {entry.enteredEmail && entry.linkedProfile?.email &&
             entry.enteredEmail.trim().toLowerCase()!==entry.linkedProfile.email.trim().toLowerCase() ?
             <p className="break-all text-xs text-[#7a5212]">

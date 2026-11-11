@@ -72,7 +72,17 @@ export function OrganizerPersonMatcher({participantId,enteredAs,linked=false}:{
       if(!r.ok){setError(r.error);return;}
       const refreshed=await organizerMatchContextAction({participantId});
       if(refreshed.ok)setContext(refreshed.data);
-      setDone("Abbinamento salvato.");
+      // La RPC può terminare senza scrivere nulla se la persona è già collegata.
+      // Non dichiarare "salvato" per un no-op, né confondere workshop ed Excel.
+      const workshopResult=r.data.alreadyLinked
+        ? "Abbinamento workshop già presente e verificato."
+        : "Abbinamento workshop salvato e verificato.";
+      const excelResult=r.data.excelLinked===true
+        ? "Contatto Excel già collegato all'anagrafica."
+        : r.data.excelLinked===false
+          ? "Contatto Excel non collegato: è una verifica separata, gestita dagli admin."
+          : "Collegamento Excel non verificabile in questo momento.";
+      setDone(workshopResult+" "+excelResult);
       setOpened(false);setConfirm(false);router.refresh();
     });
   }
