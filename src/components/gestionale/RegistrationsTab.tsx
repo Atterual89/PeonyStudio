@@ -755,10 +755,11 @@ export function RegistrationsTab({
                           {registration.people.map(person => {
                             const label = registrationPersonLabel(person);
                             return <span key={person.participantId} className={label.linked ? "mr-2 text-[#326941]" : "mr-2 text-[#9b5928]"}>
-                              {label.linked ? "Excel e anagrafica abbinati" : person.matchStatus==="confermato" && !person.autoCreated ? "Contatto Excel da abbinare" : person.matchStatus==="automatico" ? "Abbinamento da confermare" : "Da abbinare"}
+                              {label.linked ? "Workshop ed Excel abbinati" : person.matchStatus==="confermato" && !person.autoCreated ? "Workshop abbinato · Excel non collegato" : person.matchStatus==="automatico" ? "Abbinamento da confermare" : "Da abbinare"}
                             </span>;
                           })}
-                          {registration.people.some(person => !registrationPersonLabel(person).email) ?
+                          {registration.people.some(person => !registrationPersonLabel(person).email &&
+                            !(person.matchStatus==="confermato" && !person.autoCreated)) ?
                             <span className="text-[#9b2c2c]">· Email mancante</span> : null}
                         </span>
                         <StatusTag status={registration.status} />
