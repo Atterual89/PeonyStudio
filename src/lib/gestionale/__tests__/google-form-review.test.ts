@@ -45,6 +45,17 @@ describe("revisione associativa per persona e non per fonte",()=>{
    expect(cases.find(c=>c.id==="form:527")).toMatchObject({kind:"new",canConfirm:true});
    expect(cases.find(c=>c.id==="missing:m2")).toMatchObject({kind:"missing_form",canConfirm:false});
  });
+ it("un numero Google riciclato per Casper e Olivier è un conflitto, non un duplicato",()=>{
+   const rows:ReviewMember[]=[
+     {id:"casper",source:"google_sheet",source_row_id:"184",first_name:"Casper",last_name:"Laustsen",email:"casper@example.test",membership_status:"expired"},
+     {id:"olivier",source:"google_sheet",source_row_id:"184",first_name:"Olivier",last_name:"Barroso",email:"olivier@example.test",membership_status:"expired"},
+   ];
+   const cases=buildGoogleFormReviewQueue({preview,members:rows,people:[]});
+   expect(cases.find(c=>c.id==="source_conflict:184")).toMatchObject({
+     kind:"source_conflict",canConfirm:false,relatedRecords:2,
+   });
+   expect(cases.some(c=>c.id==="duplicate:184")).toBe(false);
+ });
  it("propone una scheda esistente senza crearne una nuova automaticamente",()=>{
    const cases=buildGoogleFormReviewQueue({
      preview,members,
