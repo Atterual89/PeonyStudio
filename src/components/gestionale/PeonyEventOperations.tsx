@@ -33,8 +33,8 @@ function formattedSync(value: string | null): string {
 }
 
 function peonyStatus(info:PeonyMembership|null,required:boolean):AssociationDotStatus{
-  if(info?.status==="valid")return "verified";
   if(!required)return "not_required";
+  if(info?.status==="valid")return "verified";
   if(!info)return "unknown";
   return info.status==="payment_missing"?"payment_missing":"missing_form";
 }
