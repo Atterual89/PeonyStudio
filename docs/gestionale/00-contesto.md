@@ -521,3 +521,18 @@ Le quattro categorie sono **richiesta di associazione**, **partner da conoscere*
 Tutte le email sono HTML, con lo stesso layout grafico del modello Level 2+ (680px, palette sabbia/bordeaux, logo, riquadri ◆ e pulsanti, CSS inline). Sorgenti originali in `docs/gestionale/email/`, asset in `public/email/` con URL assoluti. `src/lib/gestionale/email/` contiene i generatori e l'escaping dei testi. L'interfaccia presenta anteprima sandbox e copia Gmail HTML e plain text. I dati variabili del workshop sono versionati in `gw_email_texts`, quelli globali in `gw_settings` (`email_defaults`), modificabili solo dagli admin in `/gestione/altro/impostazioni-email`. La migrazione è `028_gw_email.sql` con rollback, da applicare separatamente dopo i test; nessuna scrittura automatica sul database reale.
 
 La FASE 7 non si considera completata senza TypeScript, test del gestionale, test SQL, verifica di Gmail desktop e valutazione del comportamento mobile. La pull request rimane draft finché queste verifiche non sono completate.
+
+---
+
+## Stato reale (Fase A, 11 novembre 2026)
+
+Questa sezione **non cambia le decisioni sopra**: elenca dove il codice oggi se ne discosta. Le fasi B–F dell'audit anagrafica (`Audit anagrafica — Gestionale Peony`) riportano il codice entro queste regole.
+
+- **D11 — `association_members` in sola lettura.** Non è più vero. Le migrazioni 022, 029, 035, 043, 044, 045, 046 e 047 scrivono, aggiornano o cancellano righe di `association_members`, e la 045 vi aggiunge il trigger `gw_create_google_form_person`. Le quote confermate da email e le spunte "Quota ok" sono salvate lì come righe `source = manual_override`. Dettaglio in `docs/gestionale/migrazioni.md`. Il test `code-rules.test.ts` controlla solo il codice TypeScript, non l'SQL.
+- **Regola 1 — rollback e reload.** Dalla 029 in poi nessuna migrazione ha il suo `.down.sql`. La regola vale di nuovo dalla **050**.
+- **Numerazione.** Otto numeri (029, 030, 031, 032, 041, 042, 044, 045) sono usati da due file ciascuno; le coppie sono indipendenti. Nessun file esistente si rinomina.
+- **Libro soci TeamArtist.** `deriveMembershipState` non lo usa più come prova di modulo o quota; altri moduli (`central-person-resolution.ts`, `unified-directory.ts`) lo leggono ancora per risolvere le identità. Decisione di Laura (11 nov 2026): **solo archivio**, non conta per verde/giallo/rosso.
+- **Anagrafica.** Il collegamento persona ↔ fonti associative si ricalcola confrontando email e nome a ogni caricamento, anziché leggere un `person_id` salvato. Decisioni di Laura (11 nov 2026) per il refactor:
+  - iscrizioni di Ale con il solo nickname: si salvano, con avviso "dati mancanti";
+  - abbinamento automatico solo se email e nome+cognome indicano una sola persona; omonimi ed email condivise vanno in coda all'admin.
+- **Lint.** `react/no-unescaped-entities` ora vieta solo `>` e `}` (l'apostrofo italiano è ammesso). Restano 7 errori `react-hooks` (stato aggiornato dentro `useEffect`, `Date.now()` in render) da sistemare senza cambiare comportamento.

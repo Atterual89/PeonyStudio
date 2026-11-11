@@ -731,7 +731,7 @@ function PartnerExpandedRow({
     }
   }
 
-  function useCandidate(candidate: MemberCandidate) {
+  function applyCandidate(candidate: MemberCandidate) {
     setEmail(candidate.email ?? "");
     setFirstName(candidate.first_name ?? "");
     setLastName(candidate.last_name ?? "");
@@ -996,7 +996,7 @@ function PartnerExpandedRow({
                   </span>
                   <button
                     type="button"
-                    onClick={() => useCandidate(candidate)}
+                    onClick={() => applyCandidate(candidate)}
                     className="rounded-full border border-[#211815]/18 px-3 py-1.5 text-xs font-semibold"
                   >
                     Usa

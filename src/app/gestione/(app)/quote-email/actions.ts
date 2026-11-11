@@ -277,7 +277,7 @@ export async function confirmAssociationPaymentAction(paymentId: string,target:P
     return {ok:false as const,error:"Periodo associativo non valido."};
   let identity: {email:string|null;firstName:string|null;lastName:string|null};
   let personId:string|null=null;
-  let memberKey:string|null=null;
+  const memberKey:string|null=null;
   if(target.kind==="person") {
     if(!isUuidLike(target.id))return {ok:false as const,error:"Persona non valida."};
     const person=await getPerson(target.id);

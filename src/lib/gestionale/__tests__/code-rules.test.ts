@@ -67,6 +67,8 @@ describe("D14 — events e ticket_tailor_* in sola lettura", () => {
       "src/app/gestione/(app)/peony/actions.ts",
       "src/lib/gestionale/server/peony-events.ts",
       "src/lib/gestionale/server/peony-person-history.ts",
+      // Sola lettura degli ordini completati per gli introiti; requireAdmin + server-only.
+      "src/lib/gestionale/server/peony-revenue.ts",
     ]);
   });
 
