@@ -354,8 +354,26 @@ export async function confirmAssociationPaymentAction(paymentId: string,target:P
   // La prova da email prevale sulla validazione manuale, ma un secondo
   // pagamento confermato via email per lo stesso periodo non va duplicato.
   const state=deriveMembershipState(evidence,identity,window);
-  if(state.currentYearPaid&&state.paymentMatchMethod!=="manual")
-    return {ok:false as const,error:`Quota ${period.validUntil.slice(0,4)} già verificata via email: non è stato salvato nulla.`};
+  if(state.currentYearPaid&&state.paymentMatchMethod!=="manual") {
+    // Quota già verificata dalla STESSA transazione, ma collegamento contabile
+    // rimasto non salvato: riconcilia senza creare un'altra quota.
+    if(!personId)return {ok:false as const,error:"Collega prima il modulo all'anagrafica centrale."};
+    const {error:reconcileError}=await db.rpc("gw_reconcile_verified_email_payment",{
+      p_payment_id:paymentId,p_person_id:personId,p_period_from:period.paymentsFrom,
+      p_operator_id:operator.id,
+    });
+    if(reconcileError){
+      console.error("[quote-email] Riconciliazione non riuscita",reconcileError.code);
+      return {ok:false as const,error:"La quota risulta già verificata, ma non è stato possibile collegare questo pagamento. Controlla il riferimento della transazione e lo storico."};
+    }
+    const {data:linked,error:linkedError}=await db.from("gw_association_payment_allocations")
+      .select("slot,period_from").eq("payment_id",paymentId)
+      .eq("person_id",personId).eq("period_from",period.paymentsFrom).maybeSingle();
+    if(linkedError||!linked)return {ok:false as const,error:"Collegamento non confermato dal database."};
+    await clearMembershipCache();
+    refreshGestione();
+    return {ok:true as const,data:{slot:linked.slot,periodFrom:linked.period_from}};
+  }
   // Una verifica esclusivamente manuale NON blocca un pagamento documentato:
   // la funzione SQL sostituisce la sua prova conservando l'abbinamento e lo storico.
   const {error:rpcError}=await db.rpc("gw_confirm_association_payment",{
