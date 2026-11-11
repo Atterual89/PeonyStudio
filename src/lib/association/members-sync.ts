@@ -150,12 +150,16 @@ export async function applyAssociationMembersSync(
 
   // Il gestionale PIN non cancella soci assenti dall'export corrente.
   // Gli endpoint Admin legacy mantengono il comportamento precedente.
-  const removed = options.removeStaleRows === false ? 0 : await removeStaleSourceRows(
+  // La sincronizzazione ordinaria è solo incrementale: una risposta assente
+  // dal foglio corrente non autorizza la cancellazione di prove storiche.
+  // Anche una riga invalidata per conflitto deve rimanere intatta.
+  const removed = options.removeStaleRows === true && preview.invalidRows===0 && preview.errors.length===0
+    ? await removeStaleSourceRows(
     supabase,
     "google_sheet",
     new Set(preview.validSourceRows.map((row) => row.source_row_id)),
     errors,
-  );
+  ) : 0;
 
   return {
     ...serializePreview(preview),
