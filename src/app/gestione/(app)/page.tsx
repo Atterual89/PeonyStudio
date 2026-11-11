@@ -11,6 +11,7 @@ import { availableYears, conguagliText, homeView, parseYearFilter, recapLine } f
 import { requireOperator } from "@/lib/gestionale/server/auth";
 import { loadPeonyEventsSummary, type PeonyEventSummary } from "@/lib/gestionale/server/peony-events";
 import { getDashboard } from "@/lib/gestionale/server/data";
+import { loadPeonyRevenue, euro, type PeonyRevenue } from "@/lib/gestionale/server/peony-revenue";
 import type { OperatorRole } from "@/lib/gestionale/types";
 import { groupByTime, todayInRome, type DashboardEntry } from "@/lib/gestionale/workshops";
 
@@ -113,7 +114,7 @@ function AdminEventTabs({ active, year }: {
   );
 }
 
-function PeonyEventList({ entries }: { entries: PeonyEventSummary[] }) {
+function PeonyEventList({ entries, revenue }: { entries: PeonyEventSummary[]; revenue: ReadonlyMap<string,PeonyRevenue> }) {
   if (entries.length === 0) return <p className="text-sm text-[#5f524c]">Nessun evento.</p>;
   // Mostra subito i prossimi sei eventi; gli altri rimangono accessibili senza
   // allungare inutilmente la home su telefono.
@@ -128,7 +129,7 @@ function PeonyEventList({ entries }: { entries: PeonyEventSummary[] }) {
             <p className="mt-1 text-sm text-[#5f524c]">
               {event.startsOn ? formatDateRange(event.startsOn, event.endsOn) : "Data da definire"}
             </p>
-            <p className="mt-2 text-sm"><strong>{event.ticketCount}</strong> biglietti</p>
+            <p className="mt-2 text-sm"><strong>{event.ticketCount}</strong> biglietti · Incassato TT <strong>{euro(revenue.get(event.id)?.netCents ?? 0)}</strong></p>
           </a>
         </li>
       ))}
@@ -149,8 +150,8 @@ function PeonyEventList({ entries }: { entries: PeonyEventSummary[] }) {
   );
 }
 
-function PeonyEventsSection({ entries, today, year }: {
-  entries: PeonyEventSummary[]; today: string; year: number | "tutti";
+function PeonyEventsSection({ entries, today, year, revenue }: {
+  entries: PeonyEventSummary[]; today: string; year: number | "tutti"; revenue: ReadonlyMap<string,PeonyRevenue>;
 }) {
   const displayable = entries.filter((event) => event.startsOn && (
     event.startsOn >= today || year === "tutti" || event.startsOn.startsWith(String(year))
@@ -164,15 +165,15 @@ function PeonyEventsSection({ entries, today, year }: {
       <div className="mt-2">
         {groups.in_corso.length > 0 ? (
           <Section title="In corso" count={groups.in_corso.length} defaultOpen>
-            <PeonyEventList entries={groups.in_corso} />
+            <PeonyEventList entries={groups.in_corso} revenue={revenue} />
           </Section>
         ) : null}
         <Section title="Prossimi" count={groups.prossimo.length} defaultOpen>
-          <PeonyEventList entries={groups.prossimo} />
+          <PeonyEventList entries={groups.prossimo} revenue={revenue} />
         </Section>
         {groups.passato.length > 0 ? (
           <Section title={year === "tutti" ? "Passati" : `Passati · ${year}`} count={groups.passato.length}>
-            <PeonyEventList entries={groups.passato} />
+            <PeonyEventList entries={groups.passato} revenue={revenue} />
           </Section>
         ) : null}
       </div>
@@ -196,13 +197,14 @@ export default async function WorkshopDashboard({
   const activeTab = viewer === "admin" && vista === "luxuria" ? "luxuria" : "peony";
   // Carichiamo solo il contenuto della scheda visibile: una lunga lista
   // Peony non rallenta piu' la consultazione dei workshop di Ale.
-  const [entries, peonyEvents] = await Promise.all([
+  const [entries, peonyEvents, peonyRevenue] = await Promise.all([
     viewer === "organizzatrice" || activeTab === "luxuria"
       ? getDashboard()
       : Promise.resolve([]),
     viewer === "admin" && activeTab === "peony"
       ? loadPeonyEventsSummary()
       : Promise.resolve([]),
+    viewer === "admin" && activeTab === "peony" ? loadPeonyRevenue() : Promise.resolve(new Map<string,PeonyRevenue>()),
   ]);
   const today = todayInRome();
   const year = parseYearFilter(anno, today);
@@ -288,7 +290,24 @@ export default async function WorkshopDashboard({
           <div className="flex justify-end">
             <YearSelect value={year} years={years} vista="peony" />
           </div>
-          <PeonyEventsSection entries={peonyEvents} today={today} year={year} />
+          <div className="mb-4 rounded-xl border border-[#211815]/10 bg-white/60 p-4">
+            <h2 className="font-semibold">Introiti Ticket Tailor · {year === "tutti" ? "tutti gli anni" : year}</h2>
+            {(() => {
+              const selected=peonyEvents.filter(e=>year==="tutti" || e.startsOn?.startsWith(String(year)));
+              const totals=selected.reduce((acc,e)=>{
+                const amount=peonyRevenue.get(e.id);
+                acc.paid+=amount?.paidCents??0; acc.refunds+=amount?.refundedCents??0;
+                acc.orders+=amount?.orders??0; return acc;
+              },{paid:0,refunds:0,orders:0});
+              return <div className="mt-2 grid gap-3 sm:grid-cols-3 text-sm">
+                <p><span className="block text-[#5f524c]">Incassato online</span><strong className="text-lg">{euro(totals.paid)}</strong></p>
+                <p><span className="block text-[#5f524c]">Rimborsi</span><strong className="text-lg">{euro(totals.refunds)}</strong></p>
+                <p><span className="block text-[#5f524c]">Netto dopo rimborsi</span><strong className="text-lg">{euro(totals.paid-totals.refunds)}</strong> <span className="text-[#5f524c]">· {totals.orders} ordini</span></p>
+              </div>;
+            })()}
+            <p className="mt-2 text-xs text-[#5f524c]">Solo pagamenti registrati su Ticket Tailor. Non comprende incassi in sede; commissioni di pagamento non detratte.</p>
+          </div>
+          <PeonyEventsSection entries={peonyEvents} today={today} year={year} revenue={peonyRevenue} />
         </>
       ) : (
         <>
