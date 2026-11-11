@@ -33,7 +33,8 @@ describe("quote email: suggerimenti dai moduli e divisione in due",()=>{
   expect(ui).toContain("Quota ${used+1} di ${p.availableSlots}");
   expect(ui).toContain("persone proposte automaticamente".replace("persone","Persone"));
   expect(ui).toContain("La prima quota è già attribuita");
-  expect(ui).toContain("p.assigned.map");
+  expect(ui).toContain("activeAssigned.map");
+  expect(ui).toContain("p.assigned.filter(item=>!(removed[p.id]??[]).includes(item.id))");
   expect(action).toContain("Le due quote devono essere assegnate a persone diverse.");
  });
  it("la vista Alessandra carica solo i suoi workshop prima dei partecipanti",()=>{
