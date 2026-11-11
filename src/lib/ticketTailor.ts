@@ -66,8 +66,9 @@ export async function getTicketTailorEvents(options?: { since?: string }): Promi
     return options?.since
       ? enriched.filter((event) => isTicketTailorEventFromDate(event, options.since!))
       : enriched.filter(isVisibleTicketTailorEvent);
-  } catch {
-    return [];
+  } catch (error) {
+    console.error("[Ticket Tailor] Impossibile recuperare gli eventi", error);
+    throw error;
   }
 }
 
@@ -188,7 +189,7 @@ function inferEventCode(title: string): string | undefined {
 
 async function fetchTicketTailorRecords(apiKey: string) {
   const [eventRecords, seriesRecords] = await Promise.all([
-    fetchTicketTailorEndpoint(apiKey, TICKET_TAILOR_EVENTS_ENDPOINT),
+    fetchAllTicketTailorEvents(apiKey),
     fetchTicketTailorEndpoint(apiKey, TICKET_TAILOR_EVENT_SERIES_ENDPOINT),
   ]);
 
@@ -205,6 +206,40 @@ async function fetchTicketTailorRecords(apiKey: string) {
   );
 
   return [...eventRecords, ...occurrenceGroups.flat()];
+}
+
+/** Ticket Tailor paginates the event list (maximum 100 per request).
+ * Reading just the first page silently misses newer or older workshops.
+ * Always bypass Next's request cache for a user-triggered synchronization.
+ */
+async function fetchAllTicketTailorEvents(apiKey: string): Promise<TicketTailorRecord[]> {
+  const results: TicketTailorRecord[] = [];
+  const seen = new Set<string>();
+  let nextUrl: string | null = `${TICKET_TAILOR_EVENTS_ENDPOINT}?limit=100`;
+
+  for (let page = 0; nextUrl && page < 100; page++) {
+    if (seen.has(nextUrl)) throw new Error("Ticket Tailor: paginazione eventi ripetuta.");
+    seen.add(nextUrl);
+    const response = await fetch(nextUrl, {
+      headers: getTicketTailorHeaders(apiKey),
+      cache: "no-store",
+    });
+    if (!response.ok) throw new Error(`Ticket Tailor: elenco eventi HTTP ${response.status}.`);
+    const payload: unknown = await response.json();
+    const pageRecords = extractTicketTailorRecords(payload);
+    results.push(...pageRecords);
+
+    const next = findNextPageUrl(payload);
+    if (!next) return results;
+    // Never forward API credentials to third-party hosts through an untrusted next link.
+    const resolved = new URL(next, TICKET_TAILOR_API_BASE_URL);
+    if (resolved.origin !== TICKET_TAILOR_API_BASE_URL || resolved.pathname !== "/v1/events") {
+      throw new Error("Ticket Tailor: link di paginazione eventi non valido.");
+    }
+    nextUrl = resolved.toString();
+  }
+
+  throw new Error("Ticket Tailor: elenco eventi oltre 100 pagine; sincronizzazione incompleta.");
 }
 
 async function fetchTicketTailorEndpoint(apiKey: string, url: string) {

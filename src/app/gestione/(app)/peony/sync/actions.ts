@@ -30,7 +30,7 @@ export async function syncTicketTailorFromGestionale(): Promise<TicketTailorSync
     if (!events.ok) {
       return {
         ok: false,
-        message: "La sincronizzazione degli eventi ha segnalato errori. Nessun conteggio è stato dichiarato aggiornato.",
+        message: `Eventi Ticket Tailor: ${events.upserted} aggiornati, ${events.skipped} saltati. ${events.errors.slice(0, 3).map((item) => `${item.title || item.ticketTailorEventId || "Evento"}: ${item.message}`).join("; ")}${events.errors.length > 3 ? ` (+${events.errors.length - 3} altri errori)` : ""}`,
       };
     }
 
@@ -107,7 +107,7 @@ export async function syncTicketTailorPageFromGestionale(
     const effectiveCursor=continuing?state!.tt_pending_cursor:null;
     if(firstPage&&!continuing&&!eventId){
       const events=await syncTicketTailorEvents();
-      if(!events.ok)return {ok:false,message:"Impossibile aggiornare gli eventi Ticket Tailor."};
+      if(!events.ok)return {ok:false,message:`Eventi Ticket Tailor: ${events.upserted} aggiornati; ${events.errors.slice(0, 3).map((item) => `${item.title || item.ticketTailorEventId || "Evento"}: ${item.message}`).join("; ")}`};
       eventCount=events.upserted;
     }
     const tickets=await syncTicketTailorIssuedTickets({
@@ -149,7 +149,9 @@ export async function syncTicketTailorPageFromGestionale(
         ?"Ticket Tailor ha raggiunto il limite di richieste. Riprova più tardi."
         :msg.includes("timeout")||msg.includes("Timeout")||msg.includes("aborted")
           ?"Ticket Tailor non ha risposto entro il tempo previsto. I dati già salvati restano disponibili."
-          :"Aggiornamento Ticket Tailor interrotto. I dati precedenti restano disponibili.";
+          :msg.startsWith("Ticket Tailor:")
+            ? msg
+            :"Aggiornamento Ticket Tailor interrotto. I dati precedenti restano disponibili.";
     return {ok:false,message};
   }
 }
