@@ -13,7 +13,7 @@ export function paymentNameMatch(payer:string|null|undefined,candidate:string|nu
   if(a.length<2||b.length<2)return 0;
   const aa=new Set(a),bb=new Set(b);
   if(aa.size===bb.size && [...aa].every(t=>bb.has(t)))return 100;
-  // Nomi con secondo cognome (Raquel Paredes Camí / Camí Raquel).
+  // Nomi con secondo cognome (Ana Lopez Ruiz / Ruiz Ana).
   if(bb.size>=2&&[...bb].every(t=>aa.has(t)))return 80;
   if(aa.size>=2&&[...aa].every(t=>bb.has(t)))return 75;
   return 0;

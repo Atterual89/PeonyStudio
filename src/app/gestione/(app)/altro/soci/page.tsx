@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { MemberLinkReview } from "@/components/gestionale/MemberLinkReview";
 import { PaymentEmailReview } from "@/components/gestionale/PaymentEmailReview";
+import { PaymentCausaleConflicts } from "@/components/gestionale/PaymentCausaleConflicts";
 import { CompleteAllFromMembers } from "@/components/gestionale/CompleteAllFromMembers";
 import { RefreshMembershipButton } from "@/components/gestionale/QuotaOk";
 import { SyncSociButton } from "@/components/gestionale/SyncSociButton";
@@ -101,6 +102,9 @@ export default async function SociPage({searchParams}:{searchParams:Promise<{quo
       <div className="mt-3 space-y-3">
         <Suspense fallback={<span role="status" className="text-xs text-[#5f524c]">Controllo connessione Gmail…</span>}>
           <AssociationMailSyncControl/>
+        </Suspense>
+        <Suspense fallback={<p className="text-xs text-[#5f524c]">Confronto causali e assegnazioni…</p>}>
+          <PaymentCausaleConflicts/>
         </Suspense>
         <p className="text-xs text-[#5f524c]">Dopo la verifica anagrafica, controlla i pagamenti PayPal/Qonto o usa Quota OK sulle schede persona.</p>
         <Suspense fallback={<p role="status" className="py-2 text-sm text-[#5f524c]">Caricamento dei pagamenti da verificare…</p>}>

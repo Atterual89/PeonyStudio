@@ -36,7 +36,7 @@ export function parsePaymentNotification(input: {
       payerName: match![1].trim(),
       amountCents: amount,
       transactionRef: line(body, /Codice transazione\s*\n\s*\[?([A-Z0-9]{12,25})/i),
-      note: line(body, /Messaggio da [^\n]+\n([^\n]+)/i),
+      note: line(body, /Messaggio da [^\n]{2,120}\n\s*([^\n]{2,250})/i),
     };
   }
   if (subject === "hai ricevuto un bonifico" && isQonto) {

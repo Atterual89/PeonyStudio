@@ -38,5 +38,15 @@ export function paymentMailBody(part:GmailPart|null|undefined): string {
     for(const child of node.parts??[])visit(child);
   }
   visit(part);
-  return plain.filter(Boolean).join("\n") || html.filter(Boolean).join("\n");
+  const text=plain.filter(Boolean).join("\n");
+  const markup=html.filter(Boolean).join("\n");
+  if(!text)return markup;
+  // Non sostituire importi della versione testuale con numeri eventualmente
+  // diversi presenti nell'HTML. Importa soltanto la causale omessa.
+  const message=/Messaggio da [^\n]{2,120}\n\s*([^\n]{2,250})/i;
+  if(!message.test(text)){
+    const detail=markup.match(message);
+    if(detail)return text+"\nMessaggio da PayPal\n"+detail[1].trim();
+  }
+  return text;
 }

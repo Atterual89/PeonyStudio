@@ -4,7 +4,7 @@ import { countAssignedPaymentSlots } from "@/lib/gestionale/payment-slot-progres
 import { confirmAssociationPaymentAction, getMembershipVerificationDetailsAction, revokeMembershipVerificationAction, findPaymentPeopleAction, ignoreAssociationPaymentAction, restoreAssociationPaymentAction, searchGoogleFormsForPaymentAction, unassignAssociationPaymentAction } from "@/app/gestione/(app)/quote-email/actions";
 
 type Person = {kind:"person"|"member";id:string;name:string;email:string|null;source:string};
-type Payment = {id:string;status:string;formCheck:"found"|"missing"|"review";provider:string;payer_name:string|null;amount_cents:number;note:string|null;paid_at:string;availableSlots:number;slots:number[];suggested:{id:string;name:string}|null;proposals:Person[];assigned:{id:string;slot:number;name:string}[];alreadyPaidPeriod:string|null;associationPeriodFrom:string|null;associationExpiresAt:string|null};
+type Payment = {id:string;status:string;formCheck:"found"|"missing"|"review";provider:string;payer_name:string|null;amount_cents:number;note:string|null;paid_at:string;availableSlots:number;slots:number[];suggested:{id:string;name:string}|null;proposals:Person[];assigned:{id:string;slot:number;name:string}[];alreadyPaidPeriod:string|null;associationPeriodFrom:string|null;associationExpiresAt:string|null;noteKind:"membership"|"other"|"uncertain";beneficiaryHints:string[]};
 type Verification = {id:string;source:string;status:string;from:string|null;until:string|null;paymentRef:string|null;linked:boolean;canRevoke:boolean;label:string};
 type VerificationPanel = {personId:string;personName:string;items:Verification[]};
 type SavedQuota = {name:string;period:string;slot:number};
@@ -165,13 +165,15 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
  const countUsed=(p:Payment)=>countAssignedPaymentSlots(p.slots.filter(slot=>!p.assigned.some(a=>a.slot===slot&&(removed[p.id]??[]).includes(a.id))),saved[p.id]??[]);
  const statusFor=(p:Payment)=>ignored[p.id]?"ignored":restored[p.id]?"pending":p.status;
  const pendingPayments=payments.filter(p=>statusFor(p)==="pending"&&countUsed(p)<p.availableSlots);
- const unresolved=pendingPayments.filter(p=>p.formCheck!=="missing").length;
+ const unresolved=pendingPayments.filter(p=>p.formCheck!=="missing"&&p.noteKind!=="other").length;
+ const nonFee=pendingPayments.filter(p=>p.noteKind==="other").length;
  const missingCount=pendingPayments.filter(p=>p.formCheck==="missing").length;
  return <div className="space-y-4">
   <h2 className="font-semibold">Quote da verificare ({unresolved})</h2>
   <div className="flex flex-wrap gap-2" aria-label="Filtro pagamenti">
    {([["pending",`Da verificare (${unresolved})`],["missing",`Modulo da cercare (${missingCount})`],["confirmed","Assegnati"],["ignored","Ignorati"]] as const).map(([value,label])=><button key={value} type="button" onClick={()=>setView(value)} aria-pressed={view===value} className={`rounded-lg border px-3 py-2 text-sm ${view===value?"border-[#a8583e] bg-[#f6f1e9] font-semibold":"border-[#211815]/15"}`}>{label}</button>)}
   </div>
+  {nonFee>0&&<p className="text-xs text-[#805b26]">{nonFee} pagamenti con causale riferita a eventi: da escludere o verificare separatamente.</p>}
   {payments.length===0&&<p className="text-sm text-[#5f524c]">Nessun pagamento in attesa nei risultati caricati.</p>}
   {payments.filter(p=>view==="missing"?statusFor(p)==="pending"&&p.formCheck==="missing"&&countUsed(p)<p.availableSlots: statusFor(p)===view&&(view!=="pending"||p.formCheck!=="missing")).map(p=>{
    const extra=saved[p.id]??[];
@@ -181,13 +183,27 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
    const isWorking=working===p.id;
    const notice=feedback[p.id];
    const periodAlreadyPaid=Boolean(p.alreadyPaidPeriod&&periodFor(p.id)===p.alreadyPaidPeriod);
+   const eligible=p.proposals.filter(person=>!p.assigned.some(a=>a.name.toLowerCase()===person.name.toLowerCase())&&
+     !extra.some(a=>a.name.toLowerCase()===person.name.toLowerCase()));
    return <section key={p.id} className="space-y-3 rounded-xl border border-[#211815]/15 bg-white p-3 sm:p-4">
     <div className="flex justify-between gap-2">
      <strong>{p.provider.toUpperCase()} · {(p.amount_cents/100).toLocaleString("it-IT",{style:"currency",currency:"EUR"})}</strong>
      <span className="text-xs text-[#5f524c]">{new Date(p.paid_at).toLocaleDateString("it-IT")}</span>
     </div>
     <p className="text-sm">{p.payer_name||"Pagante non riconosciuto"}</p>
-    {p.note&&<p className="text-xs text-[#5f524c]">Messaggio: {p.note}</p>}
+    {p.note&&<p className="rounded-lg bg-[#f6f1e9] p-2 text-xs text-[#5f524c]">
+      <strong>Causale originale:</strong> {p.note}
+    </p>}
+    {p.beneficiaryHints.length>0&&<p className="text-sm">
+      <strong>Beneficiari indicati:</strong> {p.beneficiaryHints.join(" · ")}
+    </p>}
+    {p.noteKind==="other"&&<p className="rounded-lg border border-[#d5a052]/30 bg-[#fff8eb] p-2 text-sm text-[#805b26]">
+      La causale sembra riferirsi a un evento o un'attività, non alla quota associativa.
+      {used>0?" Una quota è già stata assegnata: serve una verifica dell'abbinamento.":" Non assegnare quote su questo pagamento."}
+    </p>}
+    {p.noteKind==="uncertain"&&<p className="text-xs text-[#805b26]">
+      Importo compatibile con una quota, ma la causale non conferma il beneficiario. Verifica prima di associare.
+    </p>}
     <div className="flex flex-wrap items-end justify-between gap-2">
      <p className="text-xs text-[#5f524c]">Quote da 15 € assegnate: {used}/{p.availableSlots}</p>
      {!closed&&<p className="text-xs font-semibold">Annualità {periodLabel(periodFor(p.id))} · valida fino al {p.associationExpiresAt?.split("-").reverse().join("/")??"—"}</p>}
@@ -274,13 +290,15 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
     {notice?.tone==="success"&&<p role="status" className="rounded-lg bg-[#eef6ee] p-3 text-sm">{notice.text}</p>}
     {notice?.tone==="error"&&<p role="alert" className="rounded-lg border border-[#9b4b1e]/30 bg-[#fdf3e9] p-3 text-sm font-medium text-[#9b4b1e]">{notice.text}</p>}
     {statusFor(p)==="ignored"&&<button type="button" disabled={blocked} onClick={()=>restore(p.id)} className="rounded-lg border px-3 py-2 text-sm">Ripristina pagamento</button>}
-    {!closed&&statusFor(p)==="pending"&&<>
+    {p.noteKind==="other"&&!closed&&statusFor(p)==="pending"&&used===0&&<button type="button" disabled={blocked} onClick={()=>ignore(p.id)}
+      className="min-h-10 text-xs font-semibold text-[#a8583e] underline">Escludi dalla verifica quote</button>}
+    {!closed&&statusFor(p)==="pending"&&p.noteKind!=="other"&&<>
      <p className="text-sm font-semibold text-[#5f524c]">
        {p.availableSlots>1?`Quota ${used+1} di ${p.availableSlots} (15 €): ${used===0?"scegli la prima persona":"scegli un'altra persona per la quota rimanente"}`:"Assegna la quota da 15 €"}
      </p>
-     {used===0&&p.proposals.length>0&&<div className="space-y-2 rounded-lg bg-[#f6f1e9] p-3 text-sm">
-       <p className="text-xs font-semibold">Persone proposte automaticamente</p>
-       {p.proposals.map(person=><div key={person.kind+person.id}
+     {eligible.length>0&&<div className="space-y-2 rounded-lg bg-[#f6f1e9] p-3 text-sm">
+       <p className="text-xs font-semibold">{p.beneficiaryHints.length?"Corrispondenze suggerite dalla causale":"Pagante proposto: verifica che sia il beneficiario"}</p>
+       {eligible.map(person=><div key={person.kind+person.id}
          className="flex flex-wrap items-center justify-between gap-2 border-t border-[#211815]/10 pt-2">
          <span><strong className="block">{person.name}</strong>
            <small className="block break-all text-[#5f524c]">{person.source}{person.email?` · ${person.email}`:""}</small>
