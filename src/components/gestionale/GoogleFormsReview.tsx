@@ -7,7 +7,7 @@ import { confirmReviewedGoogleFormAction, consolidateIdenticalGoogleFormsAction 
 import type { FormReviewCase,FormReviewKind } from "@/lib/gestionale/google-form-review";
 
 const kinds:Record<FormReviewKind,string>={
-  new:"Nuovi moduli",duplicate:"Duplicati",homonym:"Omonimi / email diverse",
+  new:"Nuovi moduli",duplicate:"Versioni duplicate",source_conflict:"ERRORE · identità diverse",homonym:"Omonimi / email diverse",
   missing_form:"Quota senza modulo",changed:"Dati modificati",
 };
 const filters:Array<{value:"all"|FormReviewKind;label:string}>=[
@@ -115,7 +115,7 @@ export function GoogleFormsReview({cases,readCount}:{cases:FormReviewCase[];read
         <div className="mt-2 space-y-2">
           {current.evidence.map((row,i)=><div key={row.id+"-"+i}
             className="rounded-lg border border-[#211815]/10 bg-white p-2 text-xs">
-            <p className="font-semibold">{row.source} · {row.name} {current.kind==="duplicate"?`· Copia ${i+1}`:""}</p>
+            <p className="font-semibold">{row.source} · {row.name} {current.kind==="duplicate"?`· Versione ${i+1}`:""}</p>
             {row.email&&<p className="break-all">{row.email}</p>}
             <p className="text-[#5f524c]">Stato: {row.status??"non disponibile"}{row.expiresAt?` · Scadenza registrata: ${row.expiresAt.split("-").reverse().join("/")}`:""}</p>
           </div>)}
@@ -127,13 +127,14 @@ export function GoogleFormsReview({cases,readCount}:{cases:FormReviewCase[];read
           <div><strong>{p.name}</strong>{p.email&&<p className="break-all text-xs">{p.email}</p>}</div>
           <Link prefetch={false} className="text-[#a8583e] underline" href={`/gestione/p/${p.id}`}>Apri / modifica</Link>
         </div>)}
-        {current.candidates.length>1&&<Link prefetch={false}
+        {current.kind!=="source_conflict"&&current.candidates.length>1&&<Link prefetch={false}
           className="inline-flex rounded-lg border border-[#a8583e]/35 px-3 py-2 text-sm font-semibold text-[#a8583e]"
           href={`/gestione/p/${current.candidates[0].id}/unisci/${current.candidates[1].id}`}>
           Valuta accorpamento delle prime due schede
         </Link>}
       </div>}
       <div className="flex flex-wrap gap-2">
+        {current.kind==="source_conflict"&&<p role="alert" className="w-full rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-900">Non associare e non consolidare: l'identificativo Google è condiviso da persone diverse. Apri le anagrafiche separatamente e correggi l'importazione.</p>}
         {current.kind==="duplicate"&&current.sourceRowId&&<button type="button" disabled={pending} onClick={()=>setConfirmConsolidateFor(current.sourceRowId!)}
           className="min-h-10 rounded-lg bg-[#a8583e] px-4 text-sm font-semibold text-white disabled:opacity-50">
           {pending?"Controllo in corso…":"Consolida versioni della stessa risposta"}
