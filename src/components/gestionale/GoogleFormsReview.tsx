@@ -22,22 +22,24 @@ export function GoogleFormsReview({cases,readCount}:{cases:FormReviewCase[];read
   const [approved,setApproved]=useState<string[]>([]);
   const [deferred,setDeferred]=useState<string[]>([]);
   const [feedback,setFeedback]=useState<{kind:"error"|"success";text:string}|null>(null);
+  const [confirmConsolidateFor,setConfirmConsolidateFor]=useState<string|null>(null);
   const [pending,startTransition]=useTransition();
   const visible=useMemo(()=>cases.filter(c=>
     !approved.includes(c.id)&&!deferred.includes(c.id)&&
     (filter==="all"||c.kind===filter)),[cases,approved,deferred,filter]);
   const current=visible[Math.min(index,Math.max(0,visible.length-1))];
   const counter=(kind:FormReviewKind)=>cases.filter(c=>c.kind===kind&&!approved.includes(c.id)&&!deferred.includes(c.id)).length;
-  function chooseFilter(next:"all"|FormReviewKind){setFilter(next);setIndex(0);setFeedback(null);}
-  function go(step:number){setIndex(old=>Math.max(0,Math.min(visible.length-1,old+step)));setFeedback(null);}
+  function chooseFilter(next:"all"|FormReviewKind){setFilter(next);setIndex(0);setFeedback(null);setConfirmConsolidateFor(null);}
+  function go(step:number){setIndex(old=>Math.max(0,Math.min(visible.length-1,old+step)));setFeedback(null);setConfirmConsolidateFor(null);}
   function defer(){
     if(!current)return;
     setDeferred(old=>[...old,current.id]);
-    setIndex(0);setFeedback(null);
+    setIndex(0);setFeedback(null);setConfirmConsolidateFor(null);
   }
   function consolidate(){
     if(!current||current.kind!=="duplicate"||!current.sourceRowId)return;
-    if(!window.confirm("Confrontare con il modulo Google attuale e archiviare le copie precedenti? Se i dati personali differiscono, il consolidamento sarà bloccato."))return;
+    if(confirmConsolidateFor!==current.sourceRowId)return;
+    setConfirmConsolidateFor(null);
     setFeedback(null);
     startTransition(async()=>{
       try{
@@ -132,7 +134,7 @@ export function GoogleFormsReview({cases,readCount}:{cases:FormReviewCase[];read
         </Link>}
       </div>}
       <div className="flex flex-wrap gap-2">
-        {current.kind==="duplicate"&&current.sourceRowId&&<button type="button" disabled={pending} onClick={consolidate}
+        {current.kind==="duplicate"&&current.sourceRowId&&<button type="button" disabled={pending} onClick={()=>setConfirmConsolidateFor(current.sourceRowId!)}
           className="min-h-10 rounded-lg bg-[#a8583e] px-4 text-sm font-semibold text-white disabled:opacity-50">
           {pending?"Controllo in corso…":"Consolida versioni della stessa risposta"}
         </button>}
@@ -149,6 +151,13 @@ export function GoogleFormsReview({cases,readCount}:{cases:FormReviewCase[];read
           Rinvia
         </button>
       </div>
+      {current.kind==="duplicate"&&current.sourceRowId&&confirmConsolidateFor===current.sourceRowId&&<div className="space-y-2 rounded-lg border border-[#a8583e]/30 bg-[#fcfaf5] p-3 text-sm">
+        <p>Confrontare con il modulo Google attuale e archiviare le copie precedenti? Se i dati personali differiscono, il consolidamento sarà bloccato.</p>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" disabled={pending} onClick={consolidate} className="rounded-lg bg-[#a8583e] px-3 py-2 font-semibold text-white disabled:opacity-50">Conferma consolidamento</button>
+          <button type="button" disabled={pending} onClick={()=>setConfirmConsolidateFor(null)} className="rounded-lg border px-3 py-2">Annulla</button>
+        </div>
+      </div>}
       <div className="flex items-center justify-between border-t border-[#211815]/10 pt-3">
         <button disabled={index===0||pending} onClick={()=>go(-1)} className="text-sm underline disabled:opacity-40">Precedente</button>
         <button disabled={index>=visible.length-1||pending} onClick={()=>go(1)} className="text-sm underline disabled:opacity-40">Successivo</button>

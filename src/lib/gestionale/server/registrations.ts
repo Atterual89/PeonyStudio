@@ -6,20 +6,24 @@ import { comparePayments, lastUsedMethod, type FeeRow } from "@/lib/gestionale/p
 import type { BookingStatus, InvoiceStatus, OperatorRole, Payment, PaymentMethod, Registration } from "@/lib/gestionale/types";
 import { isUuidLike } from "@/lib/gestionale/validation";
 
-// Letture per l'organizzatrice (D18, tab Iscrizioni). Si selezionano SOLO il
-// testo scritto da Ale (entered_as) e i dati economici: MAI colonne di
-// gw_people né del libro soci. Un test controlla le chiavi restituite. Le
-// righe eliminate (D22) non si leggono.
+// Le identità centrali sono esposte all'organizzatrice solo quando sia
+// l'iscrizione sia un suo contatto Excel sono collegati alla stessa persona.
+// Non si espongono ID o informazioni associative.
+// Le righe eliminate (D22) non si leggono.
 
 const PAYMENT_COLUMNS = "id, kind, amount_cents, payment_type, paid_on, method, received_by, description, corrects_payment_id, created_at";
 
-const REGISTRATION_COLUMNS = [
-  "id, version, status, present, notes, invoice_status, agreed_fee_cents, fee_custom, created_at",
-  // Solo il ruolo di chi l'ha creata ("Inserito da Peony/Ale"), mai il nome.
-  "gw_operators!gw_bookings_created_by_fkey(role)",
-  "gw_booking_participants(id, is_primary, entered_as, entered_email, match_status, auto_created_person, removed_at)",
-  `gw_payments(${PAYMENT_COLUMNS})`,
-].join(", ");
+const BASE_PARTICIPANTS = "id, is_primary, entered_as, entered_email, match_status, auto_created_person, removed_at";
+function registrationColumns(withIdentity: boolean): string {
+  return [
+    "id, version, status, present, notes, invoice_status, agreed_fee_cents, fee_custom, created_at",
+    "gw_operators!gw_bookings_created_by_fkey(role)",
+    withIdentity
+      ? `gw_booking_participants(${BASE_PARTICIPANTS}, person_id, gw_people!gw_booking_participants_person_id_fkey(first_name, last_name, nickname, email, merged_into))`
+      : `gw_booking_participants(${BASE_PARTICIPANTS})`,
+    `gw_payments(${PAYMENT_COLUMNS})`,
+  ].join(", ");
+}
 
 export type PaymentRecord = {
   id: string;
@@ -64,7 +68,7 @@ type RegistrationRecord = {
   fee_custom: boolean;
   created_at: string;
   gw_operators?: { role: OperatorRole } | { role: OperatorRole }[] | null;
-  gw_booking_participants: { id: string; is_primary: boolean; entered_as: string | null; entered_email: string | null; match_status: "automatico"|"da_abbinare"|"confermato"; auto_created_person: boolean; removed_at: string | null }[];
+  gw_booking_participants: { id: string; person_id: string; is_primary: boolean; entered_as: string | null; entered_email: string | null; match_status: "automatico"|"da_abbinare"|"confermato"; auto_created_person: boolean; removed_at: string | null; gw_people?: {first_name:string|null;last_name:string|null;nickname:string|null;email:string|null;merged_into:string|null}|null }[];
   gw_payments: PaymentRecord[];
 };
 
@@ -149,14 +153,18 @@ export async function getFeeRows(workshopId: string): Promise<FeeRow[]> {
 }
 
 /** Prenotazioni del workshop come le vede Ale: testo scritto da lei, quote e pagamenti. */
-export async function getRegistrations(workshopId: string): Promise<Registration[]> {
-  await requireOperator();
+export async function getRegistrations(
+  workshopId: string, {includeLinkedProfile = false}: {includeLinkedProfile?: boolean} = {},
+): Promise<Registration[]> {
+  const operator = await requireOperator();
   if (!isUuidLike(workshopId)) return [];
+  // Conti e report non devono caricare nessuna identità dal registro persone.
+  const withIdentity = includeLinkedProfile && operator.role === "organizzatrice";
 
   const [{ data, error }, hints] = await Promise.all([
     getGestionaleDb()
       .from("gw_bookings")
-      .select(REGISTRATION_COLUMNS)
+      .select(registrationColumns(withIdentity))
       .eq("workshop_id", workshopId)
       .is("deleted_at", null)
       .is("gw_booking_participants.deleted_at", null)
@@ -166,7 +174,25 @@ export async function getRegistrations(workshopId: string): Promise<Registration
   ]);
   if (error) throw new Error(`Gestionale (iscrizioni): ${error.message}`);
 
-  return ((data ?? []) as unknown as RegistrationRecord[]).map((row) => ({
+  const records = (data ?? []) as unknown as RegistrationRecord[];
+  // Non basta il collegamento del workshop: deve esistere un contatto
+  // dell'Excel di questa organizzatrice già collegato allo stesso person_id.
+  // Non associare automaticamente contatti per somiglianza dei nominativi.
+  const confirmedIds = [...new Set((withIdentity ? records : []).flatMap(row => row.gw_booking_participants)
+    .filter(p => !p.removed_at && p.match_status === "confermato" && !p.auto_created_person)
+    .map(p => p.person_id).filter(isUuidLike))];
+  const excelLinkedIds = new Set<string>();
+  if (withIdentity && confirmedIds.length) {
+    const { data: links, error: linksError } = await getGestionaleDb()
+      .from("gw_ale_contacts")
+      .select("person_id")
+      .eq("owner_operator_id", operator.id)
+      .in("person_id", confirmedIds);
+    if (linksError) throw new Error("Gestionale (contatti Excel): verifica collegamenti non disponibile.");
+    for (const contact of links ?? []) if (contact.person_id) excelLinkedIds.add(contact.person_id);
+  }
+
+  return records.map((row) => ({
     bookingId: row.id,
     version: row.version,
     status: row.status,
@@ -180,15 +206,27 @@ export async function getRegistrations(workshopId: string): Promise<Registration
     people: row.gw_booking_participants
       .filter((p) => !p.removed_at)
       .sort((a, b) => Number(b.is_primary) - Number(a.is_primary))
-      .map((p) => ({
-        participantId: p.id,
-        isPrimary: p.is_primary,
-        enteredAs: p.entered_as,
-        enteredEmail: p.entered_email ?? null,
-        alreadyAs: hints.get(p.id) ?? null,
-        matchStatus: p.match_status ?? "da_abbinare",
-        autoCreated: Boolean(p.auto_created_person),
-      })),
+      .map((p) => {
+        // Un link tecnico (automatico/provvisorio) non equivale a un'identità
+        // confermata; non mostrare dati di altre schede finché non lo è.
+        const profile = p.gw_people;
+        const confirmed = p.match_status === "confermato" && !p.auto_created_person && profile && !profile.merged_into && excelLinkedIds.has(p.person_id);
+        const fullName = profile ? [profile.first_name, profile.last_name].filter(Boolean).join(" ").trim() : "";
+        return {
+          participantId: p.id,
+          isPrimary: p.is_primary,
+          enteredAs: p.entered_as,
+          enteredEmail: p.entered_email ?? null,
+          alreadyAs: hints.get(p.id) ?? null,
+          matchStatus: p.match_status ?? "da_abbinare",
+          autoCreated: Boolean(p.auto_created_person),
+          linkedProfile: confirmed ? {
+            name: fullName || profile.nickname || p.entered_as || "Persona senza nome",
+            nickname: profile.nickname,
+            email: profile.email,
+          } : null,
+        };
+      }),
     payments: sortPayments(row.gw_payments.map(toPayment)),
   }));
 }

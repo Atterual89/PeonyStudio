@@ -34,8 +34,8 @@ function CandidateList({items,selected,onSelect,radioName}:{items:OrganizerMatch
 /** Ale può scegliere soltanto il profilo della singola persona.
  * Non può modificare dati associativi o eseguire merge.
  */
-export function OrganizerPersonMatcher({participantId,enteredAs}:{
- participantId:string;enteredAs:string;
+export function OrganizerPersonMatcher({participantId,enteredAs,linked=false}:{
+ participantId:string;enteredAs:string;linked?:boolean;
 }){
   const router=useRouter();
   const [opened,setOpened]=useState(false);
@@ -79,7 +79,7 @@ export function OrganizerPersonMatcher({participantId,enteredAs}:{
   const chosen=results?.find(p=>p.id===selected);
   return <div className="space-y-2">
     <button type="button" onClick={open} className="min-h-9 text-sm font-semibold text-[#a8583e] underline"
-      aria-expanded={opened}>{opened?"Chiudi abbinamento":"Abbina all'anagrafica"}</button>
+      aria-expanded={opened}>{opened?"Chiudi abbinamento":linked?"Modifica abbinamento":"Abbina all'anagrafica"}</button>
     {done&&<p role="status" className="text-xs text-[#326941]">{done}</p>}
     {opened&&<div className="space-y-3 rounded-lg border border-[#a8583e]/20 bg-[#f8f3ec] p-3">
       {context?.current?<p className="text-sm">

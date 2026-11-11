@@ -8,8 +8,8 @@ import { describe, expect, it } from "vitest";
 
 import { existingFromRegistration, findExisting } from "../parse-roster";
 import { newPaymentPreset, refundPlan } from "../payments";
-import { alreadyEnrolledHint, alreadyEnrolledText } from "../registrations";
-import type { Payment } from "../types";
+import { alreadyEnrolledHint, alreadyEnrolledText, registrationPersonLabel, registrationTitle, matchesSearch } from "../registrations";
+import type { Payment, Registration } from "../types";
 
 function payment(id: string, amountCents: number, extra: Partial<Payment> = {}): Payment {
   return {
@@ -121,5 +121,33 @@ describe("#28 + #5 — Sembra già iscritta come «X»", () => {
     const fn = sql.slice(sql.indexOf("create function public.gw_preview_entered_matches"), sql.indexOf("create or replace function public.gw_import_roster"));
     expect(fn).toContain("jsonb_build_object('booking_id', bp.booking_id, 'entered_as', bp.entered_as)");
     expect(fn).not.toMatch(/insert into|gw_create_person|update gw_/);
+  });
+});
+
+
+describe("anagrafica visibile nel workshop di Ale", () => {
+  const linked = {
+    participantId: "p", isPrimary: true, enteredAs: "Pikushi", enteredEmail: null,
+    alreadyAs: null, matchStatus: "confermato", autoCreated: false,
+    linkedProfile: { name: "Barbara Hochstrasser", nickname: "Pikushii", email: "barbara@example.test" },
+  } as Registration["people"][number];
+
+  it("mostra nome reale, nickname piccolo e usa l'email anagrafica", () => {
+    expect(registrationPersonLabel(linked)).toEqual({
+      name: "Barbara Hochstrasser", alias: "Pikushii", linked: true,
+      email: "barbara@example.test", emailSource: "anagrafica",
+    });
+    expect(registrationTitle({ people: [linked] })).toBe("Barbara Hochstrasser");
+    expect(matchesSearch({ people: [linked] }, "Pikushi")).toBe(true);
+    expect(matchesSearch({ people: [linked] }, "Hochstrasser")).toBe(true);
+    expect(matchesSearch({ people: [linked] }, "barbara@example")).toBe(true);
+  });
+
+  it("non spaccia l'email dell'iscrizione per email anagrafica", () => {
+    const provisional: Registration["people"][number] = { ...linked, matchStatus: "da_abbinare", linkedProfile: null, enteredEmail: "ale@example.test" };
+    expect(registrationPersonLabel(provisional)).toEqual({
+      name: "Pikushi", alias: null, linked: false,
+      email: "ale@example.test", emailSource: "iscrizione",
+    });
   });
 });

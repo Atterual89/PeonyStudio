@@ -40,10 +40,10 @@ export default async function WorkshopDetailPage({
   if (!workshop) notFound();
 
   const isAdmin = operator.role === "admin";
-  // L'organizzatrice legge solo le prenotazioni senza anagrafica (D18).
+  // L'organizzatrice vede solo le identità delle persone associate al suo Excel.
   const [bookings, registrations] = isAdmin
     ? [await getWorkshopBookings(workshop), null]
-    : [null, await getRegistrations(workshop.id)];
+    : [null, await getRegistrations(workshop.id, {includeLinkedProfile:true})];
   // Le credenziali Google non devono impedire di consultare iscrizioni o conti.
   // Se stiamo usando il libro soci salvato, il suo aggiornamento va dichiarato.
   const membershipEvidence = isAdmin && bookings && bookings.some((booking) => booking.people.length > 0)

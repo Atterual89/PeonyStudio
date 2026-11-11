@@ -215,8 +215,18 @@ export type MemberSummary = {
 };
 
 /**
- * Una prenotazione come la vede l'organizzatrice (D18): SOLO testo scritto da
- * Ale e dati economici, mai campi di gw_people né del libro soci.
+ * Vista minima dell'identità confermata. Solo nome, nickname ed email
+ * servono per sapere a quale scheda è collegata l'iscrizione.
+ */
+export type OrganizerLinkedProfile = {
+  name: string;
+  nickname: string | null;
+  email: string | null;
+};
+
+/**
+ * Prenotazione dell'organizzatrice: dati inseriti, dati economici e soltanto
+ * l'identità del profilo confermato (senza ID o dettagli associativi).
  */
 export type Registration = {
   bookingId: string;
@@ -233,11 +243,12 @@ export type Registration = {
   createdByRole: OperatorRole | null;
   /**
    * Principale per primo. enteredAs null = inserita da un admin con la ricerca.
-   * enteredEmail (4d, B2): SOLO l'email scritta da Ale, mai quella della scheda.
+   * enteredEmail (4d, B2): email scritta da Ale; linkedProfile.email,
+   * se presente, è l'email dell'anagrafica centrale, senza sovrascriverla.
    * alreadyAs (4e, #28): il server ha abbinato la persona a un'altra iscrizione
    * di questo workshop, scritta da Ale così ("Sembra già iscritta come «X»").
    */
-  people: { participantId: string; isPrimary: boolean; enteredAs: string | null; enteredEmail: string | null; alreadyAs: string | null; matchStatus?: MatchStatus; autoCreated?: boolean }[];
+  people: { participantId: string; isPrimary: boolean; enteredAs: string | null; enteredEmail: string | null; alreadyAs: string | null; matchStatus?: MatchStatus; autoCreated?: boolean; linkedProfile?: OrganizerLinkedProfile | null }[];
   payments: Payment[];
 };
 

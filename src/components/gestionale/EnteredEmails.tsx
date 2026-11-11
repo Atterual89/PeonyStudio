@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 
 import { updateEnteredParticipantAction } from "@/app/gestione/(app)/w/registration-actions";
 import { EMAIL_PATTERN, findEmail } from "@/lib/gestionale/parse-roster";
+import { registrationPersonLabel } from "@/lib/gestionale/registrations";
 import { suggestCoupleSplit } from "@/lib/gestionale/couple-input";
 import { OrganizerPersonMatcher, OrganizerCompoundSplitter } from "./OrganizerPersonMatcher";
 import type { Registration } from "@/lib/gestionale/types";
@@ -24,6 +25,9 @@ function ParticipantLine({entry,suggestedEmail}:{
   const [email,setEmail]=useState(entry.enteredEmail??"");
   const [message,setMessage]=useState<Message>(null);
   const [pending,startTransition]=useTransition();
+  const display=registrationPersonLabel(entry);
+  const workshopLinked=entry.matchStatus==="confermato"&&!entry.autoCreated;
+  const status=display.linked?"Excel e anagrafica abbinati":workshopLinked?"Contatto Excel da abbinare":entry.matchStatus==="automatico"?"Abbinamento da confermare":"Da abbinare";
   useEffect(()=>{
     if(editing)return;
     setName(entry.enteredAs??"");
@@ -59,11 +63,25 @@ function ParticipantLine({entry,suggestedEmail}:{
         <p className="text-xs font-semibold uppercase tracking-wide text-[#7a5212]">
           {entry.isPrimary?"1 · Intestatario":"2 · Partner"}
         </p>
-        <p className="break-words text-base font-semibold">{entry.enteredAs||"Nome mancante"}</p>
-        {!editing&&<p className="break-all text-sm text-[#5f524c]">
-          {entry.enteredEmail||"Email mancante"}
-          <span className="ml-2 text-xs">{entry.matchStatus==="confermato"&&!entry.autoCreated?"· Anagrafica collegata":"· Da abbinare"}</span>
-        </p>}
+        <p className="break-words text-base font-semibold">
+          {display.name}{display.alias ? <span className="ml-1 font-normal text-xs text-[#5f524c]">({display.alias})</span> : null}
+        </p>
+        {!editing&&<>
+          <p className={`text-xs font-semibold ${display.linked?"text-[#326941]":"text-[#9b5928]"}`}>
+            {status}
+          </p>
+          <p className="break-all text-sm text-[#5f524c]">
+            {display.email||"Email mancante"}
+            {display.emailSource?<span className="ml-1 text-xs">· {display.emailSource==="anagrafica"?"dall'anagrafica":"inserita nel workshop"}</span>:null}
+          </p>
+          {workshopLinked && !display.linked ? <p className="text-xs text-[#7a5212]">Il workshop ha già un profilo collegato. Per visualizzarne i dati, l’admin deve abbinare anche il contatto importato da Excel.</p> : null}
+          {entry.enteredEmail && entry.linkedProfile?.email &&
+            entry.enteredEmail.trim().toLowerCase()!==entry.linkedProfile.email.trim().toLowerCase() ?
+            <p className="break-all text-xs text-[#7a5212]">
+              Email diversa nell'iscrizione: {entry.enteredEmail}
+            </p> : null}
+        </>}
+
       </div>
       {!editing&&<button type="button" className={buttonClass.secondary}
         onClick={()=>{setEditing(true);setMessage(null);}}>
@@ -102,7 +120,7 @@ function ParticipantLine({entry,suggestedEmail}:{
     {message&&<Notice tone={message.tone}>{message.text}</Notice>}
     {!editing&&!(entry.autoCreated&&entry.matchStatus==="da_abbinare"&&
       suggestCoupleSplit(entry.enteredAs??""))&&
-      <OrganizerPersonMatcher participantId={entry.participantId} enteredAs={entry.enteredAs??""}/>}
+      <OrganizerPersonMatcher participantId={entry.participantId} enteredAs={entry.enteredAs??""} linked={workshopLinked}/>}
     {!editing&&entry.autoCreated&&entry.matchStatus==="da_abbinare"&&
       suggestCoupleSplit(entry.enteredAs??"")&&
       <p className="text-xs text-[#7a5212]">Prima dividi la coppia; poi abbina le due persone separatamente.</p>}

@@ -26,7 +26,7 @@ import {
   type FeeRow,
 } from "@/lib/gestionale/payments";
 import { canMarkPresent } from "@/lib/gestionale/presence";
-import { alreadyEnrolledHint, matchesSearch, registrationTitle } from "@/lib/gestionale/registrations";
+import { alreadyEnrolledHint, matchesSearch, registrationPersonLabel, registrationTitle } from "@/lib/gestionale/registrations";
 import type { BookingStatus, InvoiceStatus, Party, PaymentMethod, Registration } from "@/lib/gestionale/types";
 
 import { AddRegistration } from "./AddRegistration";
@@ -743,7 +743,23 @@ export function RegistrationsTab({
                     <span className="min-w-0 space-y-1">
                       <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         <span className="block w-full break-words font-serif text-[22px] font-semibold leading-tight text-[#211815]">
-                          {registrationTitle(registration)}
+                          {registration.people.map((person, index) => {
+                            const label = registrationPersonLabel(person);
+                            return <span key={person.participantId}>
+                              {index > 0 ? " + " : null}{label.name}
+                              {label.alias ? <span className="ml-1 font-sans text-xs font-normal text-[#5f524c]">({label.alias})</span> : null}
+                            </span>;
+                          })}
+                        </span>
+                        <span className="block w-full text-xs font-medium">
+                          {registration.people.map(person => {
+                            const label = registrationPersonLabel(person);
+                            return <span key={person.participantId} className={label.linked ? "mr-2 text-[#326941]" : "mr-2 text-[#9b5928]"}>
+                              {label.linked ? "Excel e anagrafica abbinati" : person.matchStatus==="confermato" && !person.autoCreated ? "Contatto Excel da abbinare" : person.matchStatus==="automatico" ? "Abbinamento da confermare" : "Da abbinare"}
+                            </span>;
+                          })}
+                          {registration.people.some(person => !registrationPersonLabel(person).email) ?
+                            <span className="text-[#9b2c2c]">· Email mancante</span> : null}
                         </span>
                         <StatusTag status={registration.status} />
                         {lastSaved?.id === registration.bookingId ? (
