@@ -78,6 +78,13 @@ export default async function SociPage({searchParams}:{searchParams:Promise<{quo
         Modulo Google o cartaceo, quota pagata, anagrafica e doppioni: tutto in una schermata, con stati separati.
       </p>
     </Link>
+    <Link prefetch={false} href="/gestione/altro/soci/confronto"
+      className="block rounded-xl border border-[#211815]/15 bg-white/90 p-4">
+      <span className="font-semibold">Confronto stato soci (nuovo calcolo)</span>
+      <p className="mt-1 text-sm text-[#5f524c]">
+        Chi cambierebbe colore nelle pagine evento usando i collegamenti salvati invece del confronto per email e nome.
+      </p>
+    </Link>
     <div className="space-y-2 rounded-xl border border-[#211815]/10 bg-white/75 p-3">
       <h2 className="text-sm font-semibold">1. Moduli Google e anagrafica</h2>
       <SyncSociButton/>

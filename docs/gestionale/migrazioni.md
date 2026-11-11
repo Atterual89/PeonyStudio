@@ -81,6 +81,7 @@ Legenda: **Sito** = scrive su tabelle del sito (non `gw_`) o vi aggiunge trigger
 | 048 repair_email_payment_allocation | Riconcilia una verifica email esistente | funzione | no | no |
 | 049 reconcile_payment_provider_reference | Riconcilia riferimento del provider | funzione (legge `association_members`) | no | no |
 | 050 gw_person_sources | Fase B: registro unico dei collegamenti fonte → persona, `gw_norm_email`, backfill | `gw_person_sources` + funzioni | no (legge soltanto) | sì |
+| 051 gw_person_sources_live | Fase C: registro sempre aggiornato (trigger su tabelle `gw_`), biglietti TT, contatti di Ale, decisioni admin | funzioni + trigger su tabelle `gw_`; nuovo corpo di `gw_google_form_person_trigger` | no (il trigger su `association_members` della 045 resta, cambia solo la funzione `gw_` che chiama) | sì |
 
 ## Migrazioni che scrivono su tabelle del sito
 
@@ -97,7 +98,7 @@ Il refactor dell'anagrafica (fasi B–D dell'audit) sposterà queste scritture s
 
 ## Regole da qui in avanti
 
-1. La prossima migrazione è la **051**. Prima di crearne una, controlla questo file e il branch `main`: un numero si usa una volta sola.
+1. La prossima migrazione è la **052**. Prima di crearne una, controlla questo file e il branch `main`: un numero si usa una volta sola.
 2. Ogni migrazione ha il suo `<nome>.down.sql` e entrambi terminano con `notify pgrst, 'reload schema';`.
 3. Solo migrazioni additive sulle tabelle del sito; nessuna nuova scrittura su `association_members`.
 4. Dopo averla applicata in produzione, aggiungi una riga a questo registro.

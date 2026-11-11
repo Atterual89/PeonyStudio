@@ -2,6 +2,7 @@
 
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { getGestionaleDb } from "@/lib/gestionale/server/db";
+import { refreshPersonSources, registerEventTickets } from "@/lib/gestionale/server/linked-membership";
 import { getPeonyEvent } from "@/lib/gestionale/server/peony-events";
 import { refreshGestione } from "@/lib/gestionale/server/refresh";
 import { syncTicketTailorEvents } from "@/lib/ticket-tailor/sync-events";
@@ -43,6 +44,8 @@ export async function syncTicketTailorFromGestionale(): Promise<TicketTailorSync
       };
     }
 
+    // Fase C: biglietti nuovi nel registro dei collegamenti (errori solo nei log).
+    await refreshPersonSources();
     // Invalidare la home e le schede dopo che ordini e biglietti sono stati salvati.
     refreshGestione();
     return {
@@ -137,7 +140,12 @@ export async function syncTicketTailorPageFromGestionale(
       updated_at:now,
     },{onConflict:"source"});
     if(checkpointError)return {ok:false,message:"Biglietti salvati, ma checkpoint non registrato. Ripetere l'operazione senza perdita dati."};
-    if(done)refreshGestione();
+    if(done){
+      // Fase C: biglietti nuovi nel registro dei collegamenti (errori solo nei log).
+      if(ticketTailorEventId)await registerEventTickets(ticketTailorEventId);
+      else await refreshPersonSources();
+      refreshGestione();
+    }
     return {ok:true,events:eventCount,orders:tickets.ordersUpserted,
       tickets:tickets.upserted,warnings:tickets.errors.length,nextCursor};
   }catch(error){
