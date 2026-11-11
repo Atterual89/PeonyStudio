@@ -2,7 +2,7 @@ import type { AssociationMembersSyncPreview } from "@/lib/association/members-sy
 import { normalizeMembershipEmail, normalizeMembershipNameKey } from "@/lib/association/membership-state";
 
 /** La revisione non applica modifiche: classifica soltanto le evidenze. */
-export type FormReviewKind = "new" | "changed" | "duplicate" | "homonym" | "missing_form";
+export type FormReviewKind = "new" | "changed" | "duplicate" | "source_conflict" | "homonym" | "missing_form";
 export type FormReviewCase = {
   id: string;
   kind: FormReviewKind;
@@ -81,16 +81,32 @@ export function buildGoogleFormReviewQueue(input:{
     if(rows.length<2)continue;
     duplicateSourceIds.add(sourceRowId);
     const first=rows[0];
+    // Il numero di riga può essere stato riutilizzato: NON implica che le
+    // registrazioni appartengano alla stessa persona.
+    const identities=new Set(rows.map(row=>email(row.email)||normName(row.first_name,row.last_name)));
+    const conflicting=identities.size>1 || rows.some(row=>
+      normName(row.first_name,row.last_name)!==normName(first.first_name,first.last_name));
     result.push({
-      id:`duplicate:${sourceRowId}`,kind:"duplicate",
-      name:name(first.first_name,first.last_name),email:first.email,
+      id:`${conflicting?"source_conflict":"duplicate"}:${sourceRowId}`,
+      kind:conflicting?"source_conflict":"duplicate",
+      name:conflicting?"Conflitto identificativo Google "+sourceRowId:name(first.first_name,first.last_name),
+      email:conflicting?null:first.email,
       sourceRowId,sourceHash:null,relatedRecords:rows.length,
-      differences:[...new Set(rows.map(row=>row.membership_expires_at??"—"))].length>1
-       ? [{label:"Scadenza registrata",before:rows[0].membership_expires_at??"—",
-          after:rows.at(-1)?.membership_expires_at??"—"}]:[],
+      differences:conflicting
+        ?[{label:"Identità diverse",before:`${name(first.first_name,first.last_name)} · ${first.email??"senza email"}`,
+          after:rows.slice(1).map(row=>`${name(row.first_name,row.last_name)} · ${row.email??"senza email"}`).join("; ")}]
+        : [...new Set(rows.map(row=>row.membership_expires_at??"—"))].length>1
+          ? [{label:"Scadenza registrata",before:rows[0].membership_expires_at??"—",
+              after:rows.at(-1)?.membership_expires_at??"—"}]:[],
       evidence:evidenceOf(rows),
-      candidates:candidates(name(first.first_name,first.last_name),first.email),
-      explanation:`${rows.length} copie tecniche della stessa risposta Google, create durante le sincronizzazioni. Gli ID sono del database, non nuovi moduli compilati. Confronta le versioni prima di consolidare.`,
+      candidates:conflicting
+        ?unique(rows.flatMap(row=>candidates(name(row.first_name,row.last_name),row.email).map(p=>p.id)))
+           .map(id=>people.find(p=>p.id===id)).filter((p):p is ReviewPerson=>Boolean(p))
+           .map(p=>({id:p.id,name:name(p.first_name,p.last_name),email:p.email}))
+        :candidates(name(first.first_name,first.last_name),first.email),
+      explanation:conflicting
+        ?"ERRORE DI IDENTITÀ: lo stesso identificativo numerico è stato assegnato a persone diverse. Non sono copie dello stesso modulo. Non unirle: verifica la provenienza di entrambe le registrazioni."
+        :`${rows.length} versioni dello stesso modulo con identità coerente. Confronta le date e i dati prima di consolidare.`,
       canConfirm:false,
     });
   }
@@ -178,7 +194,7 @@ export function buildGoogleFormReviewQueue(input:{
       canConfirm:false,
     });
   }
-  const order:Record<FormReviewKind,number>={new:0,duplicate:1,homonym:2,missing_form:3,changed:4};
+  const order:Record<FormReviewKind,number>={source_conflict:0,new:1,duplicate:2,homonym:3,missing_form:4,changed:5};
   return result.sort((a,b)=>order[a.kind]-order[b.kind]||a.name.localeCompare(b.name,"it"));
 }
 function personNameParts(value:string):[string|null,string|null] {
