@@ -25,6 +25,8 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
  const [reasons,setReasons]=useState<Record<string,string>>({});
  const [revoked,setRevoked]=useState<Record<string,boolean>>({});
  const [working,setWorking]=useState<string|null>(null);
+ const [confirmUnassign,setConfirmUnassign]=useState<string|null>(null);
+ const [confirmRevoke,setConfirmRevoke]=useState<string|null>(null);
  const [searching,setSearching]=useState<string|null>(null);
  const [search,setSearch]=useState<Record<string,string>>({});
  const [results,setResults]=useState<Record<string,Person[]>>({});
@@ -32,7 +34,7 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
  const [saved,setSaved]=useState<Record<string,SavedQuota[]>>({});
  const [ignored,setIgnored]=useState<Record<string,boolean>>({});
  function unassign(paymentId:string,allocationId:string){
-  if(blocked||!window.confirm("Disassociare questa quota? Lo stato associativo sarà ricalcolato e la correzione registrata."))return;
+  if(blocked)return;
   setWorking(paymentId);
   start(async()=>{
    try {
@@ -74,7 +76,7 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
   const panel=verificationPanels[paymentId];
   const reason=(reasons[recordId]??"").trim();
   if(blocked||!panel||reason.length<5)return;
-  if(!window.confirm("Revocare questa specifica verifica? Il modulo Google e i pagamenti resteranno invariati."))return;
+  // Conferma esplicita mediante i pulsanti nella scheda prima di chiamare questa funzione.
   setWorking(paymentId);
   start(async()=>{
    try{
@@ -238,8 +240,17 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
         onChange={e=>setReasons(prev=>({...prev,[record.id]:e.target.value}))}
         placeholder="Es. attribuita alla persona sbagliata" maxLength={300}/>
        <button type="button" disabled={blocked||(reasons[record.id]??"").trim().length<5}
-        onClick={()=>revokeVerification(p.id,record.id)}
+        onClick={()=>setConfirmRevoke(record.id)}
         className="rounded-lg border border-[#9b4b1e]/40 px-3 py-2 text-[#9b4b1e] disabled:opacity-50">Revoca questa verifica</button>
+       {confirmRevoke===record.id&&<div className="space-y-2 rounded-lg border border-[#9b4b1e]/30 bg-white p-3">
+        <p className="text-sm">Confermi la revoca di questa verifica? Il modulo Google e i pagamenti resteranno invariati.</p>
+        <div className="flex flex-wrap gap-2">
+         <button type="button" disabled={blocked||(reasons[record.id]??"").trim().length<5}
+          onClick={()=>{setConfirmRevoke(null);revokeVerification(p.id,record.id);}}
+          className="rounded-lg bg-[#9b4b1e] px-3 py-2 text-sm text-white disabled:opacity-50">Conferma revoca</button>
+         <button type="button" disabled={blocked} onClick={()=>setConfirmRevoke(null)} className="rounded-lg border px-3 py-2 text-sm">Annulla</button>
+        </div>
+       </div>}
       </>}
       {!record.canRevoke&&!revoked[record.id]&&!record.linked&&<p className="text-xs text-[#5f524c]">Questa fonte non è revocabile qui.</p>}
      </div>)}
@@ -249,7 +260,15 @@ export function PaymentEmailReview({payments,periods,defaultPeriod}:{
     </p>)}
     {activeAssigned.map(item=><div key={item.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#326941]/20 bg-[#eef6ee] px-3 py-2 text-sm">
       <span>Quota {item.slot}/{p.availableSlots} assegnata: <strong>{item.name}</strong></span>
-      <button type="button" disabled={blocked} onClick={()=>unassign(p.id,item.id)} className="rounded-lg border border-[#9b4b1e]/40 px-3 py-2 text-[#9b4b1e] disabled:opacity-50">Disassocia</button>
+      <button type="button" disabled={blocked} onClick={()=>setConfirmUnassign(item.id)} className="rounded-lg border border-[#9b4b1e]/40 px-3 py-2 text-[#9b4b1e] disabled:opacity-50">Disassocia</button>
+      {confirmUnassign===item.id&&<div className="w-full space-y-2 rounded-lg border border-[#9b4b1e]/30 bg-white p-3">
+       <p>Confermi la disassociazione della quota di {item.name}? Lo stato associativo sarà ricalcolato e la correzione registrata.</p>
+       <div className="flex flex-wrap gap-2">
+        <button type="button" disabled={blocked} onClick={()=>{setConfirmUnassign(null);unassign(p.id,item.id);}}
+         className="rounded-lg bg-[#9b4b1e] px-3 py-2 text-white disabled:opacity-50">Conferma disassociazione</button>
+        <button type="button" disabled={blocked} onClick={()=>setConfirmUnassign(null)} className="rounded-lg border px-3 py-2">Annulla</button>
+       </div>
+      </div>}
     </div>)}
     {ignored[p.id]&&<p role="status" className="rounded-lg bg-[#f2ede3] p-3 text-sm">Pagamento ignorato e salvato.</p>}
     {notice?.tone==="success"&&<p role="status" className="rounded-lg bg-[#eef6ee] p-3 text-sm">{notice.text}</p>}
