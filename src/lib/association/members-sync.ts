@@ -276,6 +276,24 @@ function buildPreview(
   }
 
   const previewRows = sheetResult.rows.map<AssociationMemberPreviewRow>((row) => {
+    // Una riga numerica riutilizzata non autorizza a sovrascrivere dati di
+    // un'altra persona. Blocca anche gli omonimi con email discordanti.
+    const atSource=existingMembers.filter(member=>member.source_row_id===row.source_row_id);
+    const incompatible=atSource.some(member=>{
+      const savedEmail=normalizeNullableEmail(member.email);
+      const incomingEmail=normalizeNullableEmail(row.email);
+      const savedName=normalizeNameKey(member.first_name,member.last_name);
+      const incomingName=normalizeNameKey(row.first_name,row.last_name);
+      return Boolean((savedEmail&&incomingEmail&&savedEmail!==incomingEmail) ||
+        (savedName&&incomingName&&savedName!==incomingName));
+    });
+    if(incompatible) {
+      return {
+        ...mapBasePreviewRow(row),matchMethod:"none",action:"invalid",
+        errors:["Identificativo Google già attribuito a un'altra identità: nessuna sovrascrittura."],
+        notes:[],existingMemberId:null,preserveManualStatus:false,
+      };
+    }
     const rowErrors = row.errors.filter(
       (error) => !error.startsWith("Data iscrizione non valida"),
     );
@@ -366,7 +384,9 @@ function findExistingMember(
   const nameMatches = existingByName.get(
     normalizeNameKey(row.first_name, row.last_name),
   );
-  if (nameMatches?.length === 1) {
+  if (nameMatches?.length === 1 &&
+      (!row.email || !nameMatches[0].email ||
+       normalizeNullableEmail(row.email)===normalizeNullableEmail(nameMatches[0].email))) {
     return { member: nameMatches[0], method: "name" as const };
   }
 
