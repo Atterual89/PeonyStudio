@@ -7,6 +7,7 @@ import { PeonyEventOperations } from "@/components/gestionale/PeonyEventOperatio
 import { SyncTicketTailorButton } from "@/components/gestionale/SyncTicketTailorButton";
 import { getPeonyEvent, loadPeonyAttendees } from "@/lib/gestionale/server/peony-events";
 import { loadPeonyEmailState } from "@/lib/gestionale/server/peony-email";
+import { loadPeonyRevenue, euro } from "@/lib/gestionale/server/peony-revenue";
 
 export default async function PeonyEventPage({ params,searchParams }: {
   params: Promise<{ id: string }>;
@@ -17,9 +18,10 @@ export default async function PeonyEventPage({ params,searchParams }: {
   const initialTicketId=typeof search.ticket==="string"&&search.ticket.length<200?search.ticket:null;
   const event = await getPeonyEvent(id); // 404 per Ale, e per eventi LuXuria
   if (!event) notFound();
-  const [roster, email] = await Promise.all([
+  const [roster, email, revenue] = await Promise.all([
     loadPeonyAttendees(event),
     loadPeonyEmailState(event),
+    loadPeonyRevenue(),
   ]);
 
   return (
@@ -36,6 +38,15 @@ export default async function PeonyEventPage({ params,searchParams }: {
       </div>
       <div className="grid gap-2 sm:flex sm:items-start">
         <SyncTicketTailorButton eventId={event.id} />
+      </div>
+      <div className="rounded-xl border border-[#211815]/10 bg-white/60 p-4">
+        <h2 className="font-semibold">Introiti Ticket Tailor</h2>
+        <div className="mt-2 grid gap-3 sm:grid-cols-3 text-sm">
+          <p>Incassato online <strong className="block text-lg">{euro(revenue.get(event.id)?.paidCents ?? 0)}</strong></p>
+          <p>Rimborsi <strong className="block text-lg">{euro(revenue.get(event.id)?.refundedCents ?? 0)}</strong></p>
+          <p>Netto dopo rimborsi <strong className="block text-lg">{euro(revenue.get(event.id)?.netCents ?? 0)}</strong></p>
+        </div>
+        <p className="mt-2 text-xs text-[#5f524c]">{revenue.get(event.id)?.orders ?? 0} ordini completati · incassi in sede esclusi · commissioni non detratte</p>
       </div>
       <PeonyEventOperations
         eventId={event.id}
