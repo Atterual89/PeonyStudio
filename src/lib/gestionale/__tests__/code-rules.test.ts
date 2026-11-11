@@ -145,6 +145,8 @@ describe("moduli compatti: menu a tendina", () => {
         !path.endsWith("/ui.tsx") &&
         // Scelta di un socio da un elenco di risultati, non un'opzione di modulo.
         !path.endsWith("/MemberLinker.tsx") &&
+        // Filtri della lista di quote (non opzioni di un modulo).
+        !path.endsWith("/PaymentEmailReview.tsx") &&
         /aria-pressed|ChoiceChips/.test(code),
     ).map((f) => f.path);
     expect(offenders).toEqual([]);
