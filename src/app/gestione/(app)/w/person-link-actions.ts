@@ -115,18 +115,45 @@ export async function searchOrganizerPeopleAction(input:{participantId:string;qu
   }))};
 }
 
+export type OrganizerLinkReceipt={
+  alreadyLinked:boolean;
+  excelLinked:boolean|null;
+};
+
+/** Il successo vale solo dopo lettura del collegamento realmente salvato.
+ * Il collegamento al contatto Excel è separato e non viene inventato/modificato.
+ */
 export async function linkOrganizerPersonAction(input:{participantId:string;personId:string}):
-  Promise<Result<null>>{
+  Promise<Result<OrganizerLinkReceipt>>{
   const operator=await requireOrganizer();
   if(!isUuidLike(input?.participantId)||!isUuidLike(input?.personId))return invalid;
-  const {error}=await getGestionaleDb().rpc("gw_organizer_link_workshop_person",{
+  const before=await activeParticipant(input.participantId);
+  if(!before)return fail("Partecipante non disponibile. Ricarica il workshop.");
+  const alreadyLinked=before.person_id===input.personId &&
+    before.match_status==="confermato"&&!before.auto_created_person;
+  const db=getGestionaleDb();
+  const {error}=await db.rpc("gw_organizer_link_workshop_person",{
     p_operator_id:operator.id,p_participant_id:input.participantId,p_person_id:input.personId,
   });
   if(error)return fail(error.code==="GW409"?
     "Questa persona è già iscritta al workshop. Controlla l'altra iscrizione.":
     "Abbinamento non salvato. Riprova dopo aver verificato la persona.");
-  refreshGestione();
-  return {ok:true,data:null};
+
+  const {data:saved,error:readError}=await db.from("gw_booking_participants")
+    .select("person_id,match_status,auto_created_person")
+    .eq("id",input.participantId).is("removed_at",null).is("deleted_at",null).maybeSingle();
+  if(readError||!saved||saved.person_id!==input.personId||
+    saved.match_status!=="confermato"||saved.auto_created_person)
+    return fail("Non è stato possibile verificare l'abbinamento nel database. Ricarica il workshop.");
+
+  const {data:excelRows,error:excelError}=await db.from("gw_ale_contacts")
+    .select("id").eq("owner_operator_id",operator.id)
+    .eq("person_id",input.personId).limit(1);
+  if(!alreadyLinked)refreshGestione();
+  return {ok:true,data:{
+    alreadyLinked,
+    excelLinked:excelError?null:Boolean(excelRows?.length),
+  }};
 }
 
 export async function splitOrganizerCompoundAction(input:{
