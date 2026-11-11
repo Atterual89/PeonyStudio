@@ -11,16 +11,16 @@ const form=(id:string,name:string,email:string):AutoPaymentCandidate=>({
 
 describe("quote email: suggerimenti dai moduli e divisione in due",()=>{
  it("trova Cristian dai moduli anche se non esiste ancora la scheda persona",()=>{
-  expect(proposePeopleForPayment("Cristian Pintea",[],[
-    form("e:cristian@example.test","Cristian Pintea","cristian@example.test")
-  ])).toMatchObject([{kind:"member",name:"Cristian Pintea"}]);
+  expect(proposePeopleForPayment("Dario Colonna",[],[
+    form("e:dario@example.test","Dario Colonna","dario@example.test")
+  ])).toMatchObject([{kind:"member",name:"Dario Colonna"}]);
  });
- it("propone Raquel Camí nonostante il secondo cognome nel bonifico",()=>{
-  expect(paymentNameMatch("Raquel Paredes Cami","Camí Raquel")).toBe(80);
-  expect(proposePeopleForPayment("Raquel Paredes Cami",[
-    person("p1","Camí Raquel","raquel@example.test"),
+ it("propone Ana Ruiz nonostante il secondo cognome nel bonifico",()=>{
+  expect(paymentNameMatch("Ana Lopez Ruiz","Ruiz Ana")).toBe(80);
+  expect(proposePeopleForPayment("Ana Lopez Ruiz",[
+    person("p1","Ruiz Ana","ana@example.test"),
   ],[
-    form("e:raquel@example.test","Camí Raquel","raquel@example.test"),
+    form("e:ana@example.test","Ruiz Ana","ana@example.test"),
   ])).toMatchObject([{kind:"person",id:"p1"}]);
  });
  it("non suggerisce una persona per la sola email o un cognome comune",()=>{
@@ -31,7 +31,7 @@ describe("quote email: suggerimenti dai moduli e divisione in due",()=>{
   const ui=readFileSync("src/components/gestionale/PaymentEmailReview.tsx","utf8");
   const action=readFileSync("src/app/gestione/(app)/quote-email/actions.ts","utf8");
   expect(ui).toContain("Quota ${used+1} di ${p.availableSlots}");
-  expect(ui).toContain("persone proposte automaticamente".replace("persone","Persone"));
+  expect(ui).toContain("Corrispondenze suggerite dalla causale");
   expect(ui).toContain("La prima quota è già attribuita");
   expect(ui).toContain("activeAssigned.map");
   expect(ui).toContain("p.assigned.filter(item=>!(removed[p.id]??[]).includes(item.id))");

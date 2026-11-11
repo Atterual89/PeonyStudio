@@ -10,7 +10,7 @@ import { readAllMemberEvidence } from "@/lib/gestionale/server/peony-events";
 import { membershipPeriodForPayment } from "@/lib/association/membership-periods";
 import { suggestedQuotaCount } from "@/lib/gestionale/payment-email-parser";
 import { combinePaymentPersonCandidates } from "@/lib/gestionale/payment-person-candidates";
-import { proposePeopleForPayment, paymentNameMatch } from "@/lib/gestionale/payment-auto-proposals";
+import { proposalsFromPayment, classifyPaymentNote, suspiciousAllocation } from "@/lib/gestionale/payment-causale-review";
 import { formStatusForPerson, formStatusLabel } from "@/lib/gestionale/payment-person-form-status";
 import { formIdentityCompatible } from "@/lib/association/form-identity";
 import { normalizeMembershipEmail, normalizeMembershipNameKey } from "@/lib/association/membership-state";
@@ -100,25 +100,24 @@ export async function getAssociationMailState() {
   const verifiedPayments=evidence.filter(row=>row.source==="manual_override");
 
   return {ok:true as const, state:state.data, payments:(payments.data??[]).map(p=>{
-    const proposed=suggestionsByPayment.get(p.id)??null;
+    const auto=proposalsFromPayment(p.payer_name,p.note,directory,forms);
+    const proposed=auto.beneficiaryHints.length===0?suggestionsByPayment.get(p.id)??null:null;
     const person=proposed?peopleById.get(proposed.id):null;
     const period=membershipPeriodForPayment(new Intl.DateTimeFormat("sv-SE",{timeZone:"Europe/Rome"}).format(new Date(p.paid_at)));
     const alreadyPaidPeriod=person&&period&&deriveMembershipState(
       verifiedPayments,{email:person.email,firstName:person.first_name,lastName:person.last_name},
       {paymentsFrom:period.paymentsFrom,paymentsUntil:period.validUntil}
     ).paymentMatchMethod==="payment_email"?period.paymentsFrom:null;
-    // Il nome del pagante non coincide sempre con quello del beneficiario.
-    // Riconosci solo i messaggi che indicano esplicitamente il destinatario.
-    const beneficiary=p.note?.match(/(?:quota\s+(?:socio|associativa)(?:\s+(?:di|per))?|tessera\s+(?:di|per))\s+([a-zà-ÿ][a-zà-ÿ'\s-]{4,70})/i)?.[1]?.trim()??null;
-    const candidateName=beneficiary&&[...directory,...forms].some(candidate=>paymentNameMatch(beneficiary,candidate.name)>=75)
-      ? beneficiary:p.payer_name;
-    const candidates=proposePeopleForPayment(candidateName,directory,forms);
+    // Il beneficiario può essere diverso dal pagante: le proposte partono dai
+    // nomi indicati nella causale (payment-causale-review.ts), se presenti.
+    const candidates=auto.proposals;
     const formCheck:"found"|"review"|"missing"=candidates.some(item=>item.formStatus==="google")?"found"
       :candidates.some(item=>item.formStatus==="conflict")?"review"
       :candidates.some(item=>item.formStatus==="paper")?"review":"missing";
     return ({
     ...p, suggested:proposed, alreadyPaidPeriod, formCheck,
     proposals:candidates,
+    noteKind:auto.kind,beneficiaryHints:auto.beneficiaryHints,
     assigned: (allocations.data??[]).filter(a=>a.payment_id===p.id).map(a=>{
       const person=a.person_id?directory.find(row=>row.id===a.person_id):null;
       const member=a.member_key?forms.find(row=>row.id===a.member_key):null;
@@ -338,9 +337,15 @@ export async function confirmAssociationPaymentAction(paymentId: string,target:P
     }
   }
   const {data:payment,error}=await db.from("gw_association_payment_emails")
-    .select("id,provider,amount_cents,status,paid_at").eq("id",paymentId).maybeSingle();
+    .select("id,provider,amount_cents,status,paid_at,note").eq("id",paymentId).maybeSingle();
   if(error||!payment||payment.status!=="pending")
     return {ok:false as const,error:"Pagamento già chiuso o inesistente."};
+  // Non trasformare un ingresso o un workshop in una quota perché vale 15/30€.
+  if(classifyPaymentNote(payment.note)==="other")
+    return {ok:false as const,error:"La causale indica un evento o un'attività, non una quota associativa. Verifica prima di assegnare."};
+  const allocatedName=[identity.firstName,identity.lastName].filter(Boolean).join(" ");
+  const mismatch=suspiciousAllocation(payment.note,allocatedName);
+  if(mismatch)return {ok:false as const,error:mismatch+" Nessun abbinamento salvato."};
   // È la data effettiva del pagamento a decidere l’annualità, mai il menu.
   if (membershipPeriodForPayment(new Intl.DateTimeFormat("sv-SE",{timeZone:"Europe/Rome"}).format(new Date(payment.paid_at)))?.paymentsFrom !== period.paymentsFrom)
     return {ok:false as const,error:"La quota deve essere assegnata all’annualità determinata dalla data del pagamento."};
