@@ -1,6 +1,8 @@
 # Fase C — Verifica soci dalla pagina evento
 
-Migrazione: `supabase/migrations/051_gw_person_sources_live.sql` (rollback: `051_gw_person_sources_live.down.sql`). Richiede la 050.
+Migrazioni: `051_gw_person_sources_live.sql` e `052_gw_person_sources_fixes.sql` (con i loro `.down.sql`). Richiedono la 050.
+
+La 052 corregge due regole dopo il primo confronto: le quote da email assegnate a un socio del libro soci (non a una persona) ora si collegano alla persona quando la chiave ne indica una sola; i biglietti con un'email che non è in anagrafica propongono chi ha lo stesso nome e cognome (sempre da confermare).
 
 ## Cosa cambia
 
@@ -31,7 +33,7 @@ Ale non vede la sezione (solo admin).
 ## Come provarla
 
 1. **Applica la 051** nell'SQL editor di Supabase (dopo la 050). In fondo esegue `gw_refresh_person_sources()` e restituisce quante righe ha registrato: biglietti, quote, contatti di Ale chiusi.
-2. **Guarda il confronto** in *Verifiche → Confronto stato soci* (`/gestione/altro/soci/confronto`): per gli eventi degli ultimi 30 giorni e dei prossimi 60 elenca chi cambierebbe colore. Funziona anche con l'interruttore spento.
+2. **Guarda il confronto** in *Verifiche → Confronto stato soci* (`/gestione/altro/soci/confronto`): per gli eventi dei prossimi 60 giorni (a richiesta anche gli ultimi 30) elenca chi cambierebbe colore. Le righe gialle si chiariscono lì. Funziona anche con l'interruttore spento.
 3. **Accendi l'interruttore solo in anteprima:** in Netlify → *Site configuration → Environment variables*, aggiungi `GW_LINKED_MEMBERSHIP` = `1` con contesto **Deploy previews**, poi riapri l'anteprima della PR.
 4. Quando il confronto ti convince, aggiungi la stessa variabile per **Production** e ripubblica.
 

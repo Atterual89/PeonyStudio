@@ -4,6 +4,7 @@ import "server-only";
 // email e nome a ogni caricamento) e quello nuovo (collegamenti salvati in
 // gw_person_sources). Serve a decidere quando accendere GW_LINKED_MEMBERSHIP.
 
+import type { EventMembershipRow } from "@/components/gestionale/EventMembershipCheck";
 import type { EventDotColor } from "@/lib/gestionale/linked-membership";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { getWorkshopBookings, listWorkshopsForCopy } from "@/lib/gestionale/server/data";
@@ -20,6 +21,8 @@ export type ComparisonRow = {
   before: EventDotColor | "non_collegata";
   after: EventDotColor;
   reason: string;
+  /** Riga della pagina evento: serve a chiarire i gialli dal confronto. */
+  row: EventMembershipRow;
 };
 
 export type ComparisonResult = {
@@ -46,10 +49,13 @@ function colorOfPeony(association: PeonyMembership | null): ComparisonRow["befor
   return association.status === "valid" ? "verde" : "rosso";
 }
 
-/** Eventi dagli ultimi 30 giorni ai prossimi 60. Mostra solo le persone il cui pallino cambia. */
-export async function compareLinkedMembership(today: string): Promise<ComparisonResult> {
+/**
+ * Eventi dei prossimi 60 giorni (con includePast anche degli ultimi 30).
+ * Mostra solo le persone il cui pallino cambia.
+ */
+export async function compareLinkedMembership(today: string, includePast = false): Promise<ComparisonResult> {
   await requireAdmin();
-  const from = addDays(today, -30);
+  const from = includePast ? addDays(today, -30) : today;
   const until = addDays(today, 60);
   const rows: ComparisonRow[] = [];
   const errors: string[] = [];
@@ -74,7 +80,7 @@ export async function compareLinkedMembership(today: string): Promise<Comparison
           rows.push({
             eventId: workshop.id, eventName: workshop.name, eventDate: workshop.startsOn,
             href: `/gestione/w/${workshop.id}?tab=partecipanti`,
-            name: person.displayName, before, after: after.color, reason: after.reason,
+            name: person.displayName, before, after: after.color, reason: after.reason, row: after,
           });
         }
       }
@@ -105,7 +111,7 @@ export async function compareLinkedMembership(today: string): Promise<Comparison
           rows.push({
             eventId: event.id, eventName: event.title, eventDate: event.startsOn ?? "",
             href: `/gestione/peony/${event.id}`,
-            name, before, after: after.color, reason: after.reason,
+            name, before, after: after.color, reason: after.reason, row: after,
           });
         }
       }

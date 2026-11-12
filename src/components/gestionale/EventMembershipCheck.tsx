@@ -146,7 +146,7 @@ function RowContent({ row }: { row: EventMembershipRow }) {
   );
 }
 
-function Resolver({ row, onDone }: { row: EventMembershipRow; onDone: () => void }) {
+export function Resolver({ row, onDone }: { row: EventMembershipRow; onDone: () => void }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
