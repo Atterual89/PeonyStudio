@@ -5,7 +5,6 @@
 // posto scegliendo la persona. Visibile solo con GW_LINKED_MEMBERSHIP=1.
 
 import { CircleCheck, CircleHelp, CircleX, Copy, Search } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 
 import {
@@ -147,7 +146,6 @@ function RowContent({ row }: { row: EventMembershipRow }) {
 }
 
 export function Resolver({ row, onDone }: { row: EventMembershipRow; onDone: () => void }) {
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -169,10 +167,18 @@ export function Resolver({ row, onDone }: { row: EventMembershipRow; onDone: () 
   function run(action: () => Promise<{ ok: boolean; error?: string }>) {
     setError(null);
     startTransition(async () => {
-      const result = await action();
+      let result: { ok: boolean; error?: string };
+      try {
+        result = await action();
+      } catch {
+        // Di solito la scelta è salvata ma la pagina ci ha messo troppo a
+        // ricaricarsi: meglio un messaggio che la pagina d'errore.
+        setError("Non ho ricevuto la conferma. Ricarica la pagina: se la riga non è più gialla, la scelta è salvata.");
+        return;
+      }
       if (!result.ok) { setError(result.error ?? "Operazione non riuscita."); return; }
       onDone();
-      router.refresh();
+      // L'azione aggiorna già la pagina aperta (refreshGestione): niente secondo ricaricamento.
     });
   }
   const pick = (personId: string) => run(() => linkEventSourceAction({ target: row.target, personId }));

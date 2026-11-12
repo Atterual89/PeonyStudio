@@ -62,61 +62,78 @@ export async function compareLinkedMembership(today: string, includePast = false
   let events = 0;
   let people = 0;
 
-  const workshops = (await listWorkshopsForCopy(""))
-    .filter((w) => w.startsOn >= from && w.startsOn <= until);
-  for (const workshop of workshops) {
-    try {
-      const bookings = await getWorkshopBookings(workshop);
-      const linked = new Map((await workshopMembershipRows(bookings, workshop.startsOn)).map((row) => [row.key, row]));
-      events += 1;
-      for (const booking of bookings) {
-        if (booking.status === "cancellato") continue;
-        for (const person of booking.people) {
-          const after = linked.get(person.participantId);
-          if (!after) continue;
-          people += 1;
-          const before = colorOfBadge(person.membership);
-          if (before === after.color) continue;
-          rows.push({
-            eventId: workshop.id, eventName: workshop.name, eventDate: workshop.startsOn,
-            href: `/gestione/w/${workshop.id}?tab=partecipanti`,
-            name: person.displayName, before, after: after.color, reason: after.reason, row: after,
-          });
-        }
-      }
-    } catch (error) {
-      errors.push(`${workshop.name}: ${(error as Error).message}`);
-    }
-  }
+  const [allWorkshops, allPeony] = await Promise.all([listWorkshopsForCopy(""), loadPeonyEventsSummary()]);
+  const workshops = allWorkshops.filter((w) => w.startsOn >= from && w.startsOn <= until);
+  const peonyEvents = allPeony.filter((e) => e.startsOn && e.startsOn >= from && e.startsOn <= until);
 
-  const peonyEvents = (await loadPeonyEventsSummary())
-    .filter((e) => e.startsOn && e.startsOn >= from && e.startsOn <= until);
-  for (const event of peonyEvents) {
-    try {
-      const roster = await loadPeonyAttendees(event);
-      const linked = new Map((await peonyMembershipRows(event, roster.attendees)).map((row) => [row.key, row]));
-      events += 1;
-      for (const attendee of roster.attendees) {
-        if (!attendee.associationRequired) continue;
-        const pairs: [string, string, PeonyMembership | null][] = [[`h:${attendee.ticketId}`, attendee.name, attendee.association]];
-        if (attendee.partner) {
-          pairs.push([`p:${attendee.ticketId}`, attendee.partner.name ?? "Partner", attendee.partner.membership]);
+  // Gli eventi si calcolano in parallelo (a gruppi): uno dopo l'altro la pagina
+  // superava il tempo massimo di risposta del server.
+  type EventResult = { rows: ComparisonRow[]; people: number } | { error: string };
+  const tasks: (() => Promise<EventResult>)[] = [
+    ...workshops.map((workshop) => async (): Promise<EventResult> => {
+      try {
+        const bookings = await getWorkshopBookings(workshop);
+        const linked = new Map((await workshopMembershipRows(bookings, workshop.startsOn)).map((row) => [row.key, row]));
+        const out: ComparisonRow[] = [];
+        let count = 0;
+        for (const booking of bookings) {
+          if (booking.status === "cancellato") continue;
+          for (const person of booking.people) {
+            const after = linked.get(person.participantId);
+            if (!after) continue;
+            count += 1;
+            const before = colorOfBadge(person.membership);
+            if (before === after.color) continue;
+            out.push({
+              eventId: workshop.id, eventName: workshop.name, eventDate: workshop.startsOn,
+              href: `/gestione/w/${workshop.id}?tab=partecipanti`,
+              name: person.displayName, before, after: after.color, reason: after.reason, row: after,
+            });
+          }
         }
-        for (const [key, name, association] of pairs) {
-          const after = linked.get(key);
-          if (!after) continue;
-          people += 1;
-          const before = colorOfPeony(association);
-          if (before === after.color) continue;
-          rows.push({
-            eventId: event.id, eventName: event.title, eventDate: event.startsOn ?? "",
-            href: `/gestione/peony/${event.id}`,
-            name, before, after: after.color, reason: after.reason, row: after,
-          });
-        }
+        return { rows: out, people: count };
+      } catch (error) {
+        return { error: `${workshop.name}: ${(error as Error).message}` };
       }
-    } catch (error) {
-      errors.push(`${event.title}: ${(error as Error).message}`);
+    }),
+    ...peonyEvents.map((event) => async (): Promise<EventResult> => {
+      try {
+        const roster = await loadPeonyAttendees(event);
+        const linked = new Map((await peonyMembershipRows(event, roster.attendees)).map((row) => [row.key, row]));
+        const out: ComparisonRow[] = [];
+        let count = 0;
+        for (const attendee of roster.attendees) {
+          if (!attendee.associationRequired) continue;
+          const pairs: [string, string, PeonyMembership | null][] = [[`h:${attendee.ticketId}`, attendee.name, attendee.association]];
+          if (attendee.partner) {
+            pairs.push([`p:${attendee.ticketId}`, attendee.partner.name ?? "Partner", attendee.partner.membership]);
+          }
+          for (const [key, name, association] of pairs) {
+            const after = linked.get(key);
+            if (!after) continue;
+            count += 1;
+            const before = colorOfPeony(association);
+            if (before === after.color) continue;
+            out.push({
+              eventId: event.id, eventName: event.title, eventDate: event.startsOn ?? "",
+              href: `/gestione/peony/${event.id}`,
+              name, before, after: after.color, reason: after.reason, row: after,
+            });
+          }
+        }
+        return { rows: out, people: count };
+      } catch (error) {
+        return { error: `${event.title}: ${(error as Error).message}` };
+      }
+    }),
+  ];
+  const PARALLEL = 4;
+  for (let i = 0; i < tasks.length; i += PARALLEL) {
+    for (const result of await Promise.all(tasks.slice(i, i + PARALLEL).map((task) => task()))) {
+      if ("error" in result) { errors.push(result.error); continue; }
+      events += 1;
+      people += result.people;
+      rows.push(...result.rows);
     }
   }
 
