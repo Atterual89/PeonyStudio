@@ -3,7 +3,7 @@
 import Link from "next/link";
 import {useEffect,useMemo,useState,useTransition} from "react";
 import {useRouter} from "next/navigation";
-import {matchAleContactAction,type AleMatchRow} from "@/app/gestione/(app)/altro/soci/abbinamenti-ale/actions";
+import {confirmAutomaticAleMatchesAction,matchAleContactAction,type AleMatchRow} from "@/app/gestione/(app)/altro/soci/abbinamenti-ale/actions";
 
 export type AleMatchCandidate={
   key:string;personId:string|null;name:string;nickname:string|null;email:string|null;
@@ -52,8 +52,23 @@ export function AdminAleMatchingPanel({rows,candidates,focusedContactId}:{rows:A
   },[candidateQuery,candidates]);
   function openRow(row:AleMatchRow){
     setOpen(open===row.id?null:row.id);
-    setCandidateQuery(row.displayName);
-    setSelected(null);setConfirming(false);setError("");setMessage("");
+    // Con una proposta del registro: cerca e preseleziona quella persona.
+    const proposed=row.suggestion&&candidates.some(c=>c.personId===row.suggestion!.personId)?row.suggestion:null;
+    setCandidateQuery(proposed?proposed.name:row.displayName);
+    setSelected(proposed?proposed.personId:null);setConfirming(false);setError("");setMessage("");
+  }
+  const automatic=rows.filter(row=>!row.personId&&!matchedLocal[row.id]&&row.suggestion?.automatic);
+  const [confirmingAll,setConfirmingAll]=useState(false);
+  function confirmAll(){
+    setError("");setMessage("");setConfirmingAll(false);
+    startTransition(async()=>{
+      const result=await confirmAutomaticAleMatchesAction();
+      if(!result.ok){setError(result.error);return;}
+      const {confirmed,failed}=result.data;
+      setMessage(`${confirmed} ${confirmed===1?"abbinamento confermato":"abbinamenti confermati"}.`+
+        (failed?` ${failed} non ${failed===1?"riuscito":"riusciti"}: aprili uno alla volta.`:""));
+      router.refresh();
+    });
   }
   function commit(row:AleMatchRow){
     if(!selected)return;
@@ -74,6 +89,19 @@ export function AdminAleMatchingPanel({rows,candidates,focusedContactId}:{rows:A
       Confronta i contatti importati da Alessandra con Persone, libro soci, moduli Google e quote.
       I risultati sono solo suggerimenti: nessun abbinamento viene eseguito prima della tua conferma.
     </p>
+    {automatic.length>0&&<div className="rounded-xl border border-[#326941]/30 bg-[#eef6ee] p-3 text-sm">
+      <p><strong>{automatic.length}</strong> {automatic.length===1?"contatto ha":"contatti hanno"} email e nome e cognome
+        uguali a una sola persona dell&apos;anagrafica.</p>
+      {!confirmingAll?<button type="button" disabled={busy} onClick={()=>setConfirmingAll(true)}
+        className="mt-2 min-h-10 rounded-lg bg-[#326941] px-3 text-sm font-semibold text-white">
+        Conferma {automatic.length===1?"l'abbinamento automatico":`i ${automatic.length} abbinamenti automatici`}</button>:
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <button type="button" disabled={busy} onClick={confirmAll}
+            className="min-h-10 rounded-lg bg-[#326941] px-3 text-sm font-semibold text-white">Sì, conferma tutti</button>
+          <button type="button" className="text-sm underline" onClick={()=>setConfirmingAll(false)}>Annulla</button>
+          <span className="text-xs text-[#5f524c]">Puoi controllarli prima: nell&apos;elenco hanno la scritta &quot;Abbinamento automatico&quot;.</span>
+        </div>}
+    </div>}
     {message&&<p role="status" className="rounded-lg bg-[#eef6ee] p-3 text-sm text-[#326941]">{message}</p>}
     {error&&<p role="alert" className="rounded-lg bg-[#fff1f0] p-3 text-sm text-[#9b2c2c]">{error}</p>}
     <label className="block text-sm">Stato abbinamenti
@@ -98,6 +126,9 @@ export function AdminAleMatchingPanel({rows,candidates,focusedContactId}:{rows:A
             <span className="min-w-0">
               <span className="block font-semibold">{row.displayName}</span>
               <span className="block break-all text-xs text-[#5f524c]">{row.email||"Email non presente"}</span>
+              {!linked&&row.suggestion?<span className={`block text-xs ${row.suggestion.automatic?"text-[#326941]":"text-[#7a5212]"}`}>
+                {row.suggestion.automatic?"Abbinamento automatico":"Proposta"}: {row.suggestion.name}
+              </span>:null}
             </span>
             <span className="shrink-0 text-xs text-[#5f524c]">
               {linked?"Abbinato":open===row.id?"Chiudi":"Abbina"}
