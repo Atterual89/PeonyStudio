@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { AccountsTab } from "@/components/gestionale/AccountsTab";
 import { DeleteWorkshopSection } from "@/components/gestionale/Deletion";
+import { EventMembershipCheck } from "@/components/gestionale/EventMembershipCheck";
 import { EmailTab } from "@/components/gestionale/EmailTab";
 import { ParticipantsTab } from "@/components/gestionale/ParticipantsTab";
 import { RegistrationsTab } from "@/components/gestionale/RegistrationsTab";
@@ -15,6 +16,7 @@ import { getAccounts, getTaxNotes, listCarryoverDestinations } from "@/lib/gesti
 import { requireOperator } from "@/lib/gestionale/server/auth";
 import { getWorkshopBookings, getWorkshopView, listWorkshopsForCopy } from "@/lib/gestionale/server/data";
 import { getFeeRows, getLastPaymentMethod, getRegistrations } from "@/lib/gestionale/server/registrations";
+import { isLinkedMembershipEnabled, workshopMembershipRows } from "@/lib/gestionale/server/linked-membership";
 import { getMembershipEvidenceStatus } from "@/lib/gestionale/server/membership";
 import { WORKSHOP_TABS, resolveWorkshopTab, workshopTabRedirect } from "@/lib/gestionale/tabs";
 import type { WorkshopView } from "@/lib/gestionale/types";
@@ -48,6 +50,10 @@ export default async function WorkshopDetailPage({
   // Se stiamo usando il libro soci salvato, il suo aggiornamento va dichiarato.
   const membershipEvidence = isAdmin && bookings && bookings.some((booking) => booking.people.length > 0)
     ? await getMembershipEvidenceStatus()
+    : null;
+  // Fase C audit anagrafica: verifica soci dai collegamenti salvati (solo admin, dietro interruttore).
+  const membershipRows = isAdmin && bookings && active === "partecipanti" && isLinkedMembershipEnabled()
+    ? await workshopMembershipRows(bookings, workshop.startsOn)
     : null;
   // 4g (#10): metodo proposto nel modulo del pagamento.
   const lastMethod = !isAdmin && active === "iscrizioni" ? await getLastPaymentMethod(operator.id) : null;
@@ -124,6 +130,7 @@ export default async function WorkshopDetailPage({
       </nav>
 
       <div className="mt-3">
+        {active === "partecipanti" && membershipRows ? <div className="mb-4"><EventMembershipCheck rows={membershipRows} /></div> : null}
         {active === "partecipanti" && bookings ? <ParticipantsTab workshopId={workshop.id} workshopStartsOn={workshop.startsOn} today={today} showPresence={presence} bookings={bookings} focusBookingId={typeof booking === "string" ? booking : undefined} /> : null}
         {active === "iscrizioni" && registrations ? (
           <RegistrationsTab

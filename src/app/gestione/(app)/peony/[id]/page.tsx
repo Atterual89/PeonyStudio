@@ -3,8 +3,10 @@ export const maxDuration = 120;
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { EventMembershipCheck } from "@/components/gestionale/EventMembershipCheck";
 import { PeonyEventOperations } from "@/components/gestionale/PeonyEventOperations";
 import { SyncTicketTailorButton } from "@/components/gestionale/SyncTicketTailorButton";
+import { isLinkedMembershipEnabled, peonyMembershipRows } from "@/lib/gestionale/server/linked-membership";
 import { getPeonyEvent, loadPeonyAttendees } from "@/lib/gestionale/server/peony-events";
 import { loadPeonyEmailState } from "@/lib/gestionale/server/peony-email";
 import { loadPeonyRevenue, euro } from "@/lib/gestionale/server/peony-revenue";
@@ -23,6 +25,8 @@ export default async function PeonyEventPage({ params,searchParams }: {
     loadPeonyEmailState(event),
     loadPeonyRevenue(),
   ]);
+  // Fase C audit anagrafica: verifica soci dai collegamenti salvati (dietro interruttore).
+  const membershipRows = isLinkedMembershipEnabled() ? await peonyMembershipRows(event, roster.attendees) : null;
 
   return (
     <section className="space-y-4">
@@ -48,6 +52,7 @@ export default async function PeonyEventPage({ params,searchParams }: {
         </div>
         <p className="mt-2 text-xs text-[#5f524c]">{revenue.get(event.id)?.orders ?? 0} ordini completati · incassi in sede esclusi · commissioni non detratte</p>
       </div>
+      {membershipRows ? <EventMembershipCheck rows={membershipRows} /> : null}
       <PeonyEventOperations
         eventId={event.id}
         initialTicketId={initialTicketId}
