@@ -49,7 +49,8 @@ export default async function ConfrontoStatoSociPage({
       {result ? (
         <>
           <p className="text-sm">
-            <strong>{result.rows.length}</strong> differenze su {result.people} persone in {result.events} eventi.
+            <strong>{result.rows.length}</strong> {result.rows.length === 1 ? "differenza" : "differenze"} su {result.people}{" "}
+            {result.people === 1 ? "persona" : "persone"} in {result.events} {result.events === 1 ? "evento" : "eventi"}.
           </p>
           {result.errors.length ? (
             <ul className="rounded-xl bg-[#fdf3e1] p-3 text-sm">
