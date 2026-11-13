@@ -1,7 +1,7 @@
 "use server";
 
 import { buildAssociationMembersSyncPreview, applyReviewedGoogleFormRow } from "@/lib/association/members-sync";
-import { buildGoogleFormReviewQueue, type FormReviewCase } from "@/lib/gestionale/google-form-review";
+import { buildGoogleFormReviewQueue, doubtfulFormCases, type FormReviewCase } from "@/lib/gestionale/google-form-review";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { loadPeople } from "@/lib/gestionale/server/data";
 import { clearMembershipCache } from "@/lib/gestionale/server/membership";
@@ -23,9 +23,11 @@ export async function loadGoogleFormReviewAction():Promise<QueueResult>{
     if(membersResponse.error)throw new Error(membersResponse.error.message);
     if(preview.errors.length||preview.validRows<Math.max(1,Math.floor(preview.totalRows*.7)))
       throw new Error("La lettura Google è incompleta: non è stata applicata alcuna modifica.");
-    const cases=buildGoogleFormReviewQueue({
+    // Solo i dubbi: i moduli chiari si importano con "Aggiorna tutto" e le
+    // quote senza modulo sono in "Chi non è in regola".
+    const cases=doubtfulFormCases(buildGoogleFormReviewQueue({
       preview,members:membersResponse.data??[],people,
-    });
+    }));
     return {ok:true,cases,readCount:preview.validRows};
   }catch(error){
     console.error("[soci] Revisione moduli Google non disponibile",error);

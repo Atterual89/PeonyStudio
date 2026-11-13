@@ -12,7 +12,8 @@ describe("sync soci nel gestionale PIN", () => {
   it("autorizza solo gli admin in entrambe le azioni", () => {
     expect(actions).toContain("export async function previewSociSyncAction()");
     expect(actions).toContain("export async function applySociSyncAction(");
-    expect(actions.match(/await requireAdmin\(\)/g)).toHaveLength(3);
+    expect(actions.match(/await requireAdmin\(\)/g)).toHaveLength(4);
+    expect(actions).toContain("export async function importClearGoogleFormsAction()");
   });
 
   it("aggiorna le domande separatamente dal libro ufficiale e senza cancellazioni", () => {
@@ -39,10 +40,10 @@ describe("sync soci nel gestionale PIN", () => {
     expect(home).toContain("<SyncTicketTailorButton />");
     expect(home).not.toContain("<SyncSociButton />");
     const settings = source("src/app/gestione/(app)/altro/soci/page.tsx");
-    expect(settings).toMatch(/<SyncSociButton\s*\/>/);
+    // Verifiche: un solo «Aggiorna tutto», poi i moduli prima delle quote.
+    expect(settings).toContain("<UpdateAllSourcesButton");
     expect(settings).not.toContain("<SyncOfficialBookButton/>");
-    expect(settings.indexOf("<SyncSociButton/>")).toBeLessThan(settings.indexOf("<AssociationMailSyncControl/>"));
-    expect(settings.indexOf("<SyncSociButton/>")).toBeLessThan(settings.indexOf("<AssociationMailSyncControl/>"));
+    expect(settings.indexOf("<FormsStep />")).toBeLessThan(settings.indexOf("<PaymentsStep"));
     expect(settings).toContain("<Suspense");
   });
 

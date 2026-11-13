@@ -1,5 +1,5 @@
 import { describe,expect,it } from "vitest";
-import { buildGoogleFormReviewQueue, type ReviewMember, type ReviewPerson } from "@/lib/gestionale/google-form-review";
+import { buildGoogleFormReviewQueue, clearFormCases, doubtfulFormCases, type ReviewMember, type ReviewPerson } from "@/lib/gestionale/google-form-review";
 import type { AssociationMembersSyncPreview } from "@/lib/association/members-sync";
 
 const mk=(r:{id:string;first:string;last:string;email:string;sourceRowId:string;action:"create"|"update"|"unchanged"})=>r;
@@ -64,5 +64,30 @@ describe("revisione associativa per persona e non per fonte",()=>{
    expect(cases.find(c=>c.id==="form:527")).toMatchObject({
      kind:"new",canConfirm:true,candidates:[{id:"p1"}],
    });
+ });
+});
+
+describe("moduli chiari e persone da chiarire",()=>{
+ it("importa da soli solo i moduli con al massimo una persona possibile",()=>{
+   const cases=buildGoogleFormReviewQueue({preview,members,people});
+   expect(clearFormCases(cases).map(c=>c.id)).toEqual(["form:527"]);
+ });
+ it("due schede possibili: resta da chiarire",()=>{
+   const cases=buildGoogleFormReviewQueue({
+     preview,members,
+     people:[
+       {id:"p1",first_name:"Nuova",last_name:"Socia",nickname:null,email:"nuova@example.test",merged_into:null},
+       {id:"p2",first_name:"Nuova",last_name:"Socia",nickname:null,email:"altra@example.test",merged_into:null},
+     ],
+   });
+   expect(clearFormCases(cases).some(c=>c.id==="form:527")).toBe(false);
+   expect(doubtfulFormCases(cases).some(c=>c.id==="form:527"||c.kind==="homonym")).toBe(true);
+ });
+ it("le persone da chiarire non includono i moduli chiari né le quote senza modulo",()=>{
+   const cases=buildGoogleFormReviewQueue({preview,members,people});
+   const ids=doubtfulFormCases(cases).map(c=>c.id);
+   expect(ids).not.toContain("form:527");
+   expect(ids).not.toContain("missing:m2");
+   expect(ids).toContain("duplicate:12");
  });
 });

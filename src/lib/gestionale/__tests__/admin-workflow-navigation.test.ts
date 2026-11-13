@@ -21,7 +21,7 @@ describe("flusso admin compatto - Eventi, Persone, Verifiche",()=>{
  });
  it("l'admin aggiorna le fonti associative soltanto nella schermata Verifiche",()=>{
   expect(soci).toContain("<AssociationMailSyncControl");
-  expect(soci).toContain("<SyncSociButton");
+  expect(soci).toContain("<UpdateAllSourcesButton");
   expect(soci).toContain("<PaymentEmailReview");
   expect(soci).toContain("<MemberLinkReview");
   expect(home).not.toContain("<AssociationMailSyncControl");

@@ -10,13 +10,14 @@ export default async function RevisioneModuliPage(){
   const queue=await loadGoogleFormReviewAction();
   return <section className="mx-auto max-w-3xl space-y-4">
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <h1 className="font-serif text-xl font-medium">Revisione moduli e anagrafiche</h1>
+      <h1 className="font-serif text-xl font-medium">Persone da chiarire</h1>
       <Link prefetch={false} className="text-sm text-[#a8583e] underline"
         href="/gestione/altro/soci">Torna a Verifiche</Link>
     </div>
     <p className="text-sm text-[#5f524c]">
-      Prima controlla le incongruenze nelle registrazioni Google e nell'anagrafica unica.
-      Ogni risposta può essere approvata separatamente; quote e pagamenti restano invariati.
+      I moduli chiari si collegano da soli quando premi «Aggiorna tutto». Qui restano solo i dubbi:
+      lo stesso nome con email diverse, più schede possibili, moduli registrati due volte.
+      Quote e pagamenti restano invariati.
     </p>
     {queue.ok?<GoogleFormsReview cases={queue.cases} readCount={queue.readCount}/>:
       <p role="alert" className="rounded-xl border border-[#a8583e]/35 bg-[#f3e8d4] p-3 text-sm text-[#733a18]">

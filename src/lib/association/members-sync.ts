@@ -532,6 +532,23 @@ export async function applyReviewedGoogleFormRow(
   if(!/^(eng:)?[0-9]{1,7}$/.test(sourceRowId)||!/^[a-f0-9]{64}$/.test(expectedSourceHash))
     throw new Error("Riferimento del modulo non valido.");
   const preview=await buildAssociationMembersSyncPreview(supabase);
+  return applyPreviewedGoogleFormRow(supabase,preview,sourceRowId,expectedSourceHash);
+}
+
+/**
+ * Come applyReviewedGoogleFormRow, ma su una lettura Google già fatta: serve
+ * all'importazione automatica dei moduli chiari, che legge il foglio una volta
+ * sola. Stessi blocchi: copie doppie, nome con email diverse, email diversa
+ * dalla riga esistente.
+ */
+export async function applyPreviewedGoogleFormRow(
+  supabase: SupabaseClient,
+  preview: AssociationMembersSyncPreview,
+  sourceRowId: string,
+  expectedSourceHash: string,
+): Promise<{kind:"created"|"updated"|"unchanged";name:string}> {
+  if(!/^(eng:)?[0-9]{1,7}$/.test(sourceRowId)||!/^[a-f0-9]{64}$/.test(expectedSourceHash))
+    throw new Error("Riferimento del modulo non valido.");
   const form=preview.validSourceRows.find(row=>row.source_row_id===sourceRowId);
   const item=preview.previewRows.find(row=>row.source_row_id===sourceRowId);
   if(!form||!item||form.source_hash!==expectedSourceHash||item.action==="invalid"||item.action==="skipped")
