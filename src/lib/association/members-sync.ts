@@ -587,3 +587,32 @@ function normalizeNameKeyForReview(first:string,last:string):string{
   return [first,last].join(" ").trim().toLowerCase().normalize("NFD")
     .replace(/[\u0300-\u036f]/g,"").split(/\s+/).filter(Boolean).sort().join(" ");
 }
+
+/**
+ * Copie doppie dello stesso modulo dove nessuna ha la versione Google attuale:
+ * porta alla versione attuale la copia collegata alla scheda persona (o la più
+ * recente), così la consolidazione può tenere quella. Non crea né cancella.
+ */
+export async function refreshGoogleFormCopyToCurrent(
+  supabase: SupabaseClient,
+  preview: AssociationMembersSyncPreview,
+  sourceRowId: string,
+): Promise<boolean> {
+  const form = preview.validSourceRows.find((row) => row.source_row_id === sourceRowId);
+  const item = preview.previewRows.find((row) => row.source_row_id === sourceRowId);
+  if (!form || !item) return false;
+  const { data: copies, error } = await supabase.from("association_members")
+    .select("id,updated_at,created_at").eq("source", "google_sheet").eq("source_row_id", sourceRowId);
+  if (error || !copies?.length) return false;
+  const ids = copies.map((row) => row.id as string);
+  const { data: linked } = await supabase.from("gw_people").select("association_member_id").in("association_member_id", ids);
+  const linkedIds = [...new Set((linked ?? []).map((row) => row.association_member_id as string))];
+  if (linkedIds.length > 1) return false;
+  const newest = [...copies].sort((a, b) =>
+    String(b.updated_at ?? b.created_at ?? "").localeCompare(String(a.updated_at ?? a.created_at ?? "")))[0];
+  const target = linkedIds[0] ?? (newest.id as string);
+  const { error: updateError } = await supabase.from("association_members")
+    .update({ ...mapSheetRowToMemberUpdatePayload(form, item.preserveManualStatus), updated_at: new Date().toISOString() })
+    .eq("id", target);
+  return !updateError;
+}

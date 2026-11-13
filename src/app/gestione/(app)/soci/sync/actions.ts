@@ -6,11 +6,12 @@ import { MAX_BOOK_FILE_SIZE, parseWorkbook, replaceMembersBook, validateMembersB
 import {
   applyAssociationMembersSync,
   applyPreviewedGoogleFormRow,
+  refreshGoogleFormCopyToCurrent,
   buildAssociationMembersSyncPreview,
   type AssociationMembersSyncPreview,
 } from "@/lib/association/members-sync";
 import { applyOfficialMembersBookSync } from "@/lib/association/members-book-sync";
-import { buildGoogleFormReviewQueue, clearFormCases, doubtfulFormCases } from "@/lib/gestionale/google-form-review";
+import { buildGoogleFormReviewQueue, clearFormCases, doubtfulFormCases, type FormReviewCase } from "@/lib/gestionale/google-form-review";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
 import { loadPeople } from "@/lib/gestionale/server/data";
 import { clearMembershipCache } from "@/lib/gestionale/server/membership";
@@ -168,30 +169,102 @@ export async function applySociSyncAction(expectedToken: string): Promise<SyncOu
 }
 
 export type ClearFormsImport =
-  | { ok: true; created: number; updated: number; failed: number; toClarify: number }
+  | { ok: true; consolidated: number; created: number; updated: number; failed: number; toClarify: number }
   | { ok: false; message: string };
 
+type Db = ReturnType<typeof createSupabaseAdminClient>;
+
+async function loadReviewCases(db: Db, forms: AssociationMembersSyncPreview) {
+  const [people, membersResponse] = await Promise.all([
+    loadPeople(),
+    db.from("association_members")
+      .select("id,source,source_row_id,first_name,last_name,email,membership_status,contact,membership_starts_at,membership_expires_at")
+      .in("source", ["google_sheet", "manual_override", "manual_form"]).order("id").range(0, 9999),
+  ]);
+  if (membersResponse.error) throw new SociSyncError("Impossibile leggere i moduli già salvati. Nessun dato modificato.");
+  return buildGoogleFormReviewQueue({ preview: forms, members: membersResponse.data ?? [], people });
+}
+
 /**
- * Passo 1 di Verifiche ("Aggiorna tutto"): legge i moduli Google una volta e
- * importa da soli quelli chiari (nessuna persona o una sola persona possibile).
- * Il database crea o collega la scheda (trigger 045 e registro 051); omonimi,
- * email diverse e moduli doppi restano in "Persone da chiarire".
- * Nessuna riga viene cancellata, quote e pagamenti non cambiano.
+ * Copie dello stesso modulo Google con la stessa persona: tiene la versione
+ * attuale e archivia le altre (gw_consolidate_identical_google_form_copies,
+ * migrazione 047: blocca se nomi, email o dati differiscono, o se le copie
+ * sono collegate a persone diverse). I conflitti di identità non si toccano.
+ */
+async function consolidateDuplicateCopies(db: Db, operatorId: string, forms: AssociationMembersSyncPreview, cases: readonly FormReviewCase[]) {
+  let consolidated = 0, failed = 0;
+  for (const item of cases) {
+    if (item.kind !== "duplicate" || !item.sourceRowId) continue;
+    const hash = forms.validSourceRows.find((row) => row.source_row_id === item.sourceRowId)?.source_hash;
+    if (!hash || !/^[a-f0-9]{64}$/.test(hash)) { failed += 1; continue; }
+    const consolidate = () => db.rpc("gw_consolidate_identical_google_form_copies", {
+      p_source_row_id: item.sourceRowId, p_operator_id: operatorId, p_expected_source_hash: hash,
+    });
+    let { data, error } = await consolidate();
+    // Nessuna copia ha ancora la versione Google attuale: aggiornane una e riprova.
+    if (error && /non è ancora importata/.test(error.message) &&
+        await refreshGoogleFormCopyToCurrent(db, forms, item.sourceRowId)) {
+      ({ data, error } = await consolidate());
+    }
+    if (error) {
+      failed += 1;
+      console.warn("[gestionale] Copie modulo lasciate alla revisione", item.sourceRowId, error.message);
+    } else consolidated += Number(data) || 0;
+  }
+  if (consolidated) await dropStaleFormSources(db);
+  return { consolidated, failed };
+}
+
+/**
+ * Le copie archiviate non sono più fonti: toglie dal registro le righe
+ * automatiche o da confermare che puntano a un modulo non più presente.
+ * Le decisioni esplicite (confermato, rifiutato) restano.
+ */
+async function dropStaleFormSources(db: Db) {
+  const sources: { id: string; source_ref: string }[] = [];
+  for (let offset = 0; offset < 20000; offset += 1000) {
+    const { data, error } = await db.from("gw_person_sources").select("id,source_ref")
+      .eq("source_kind", "modulo_google").in("status", ["automatico", "da_confermare"])
+      .order("id").range(offset, offset + 999);
+    if (error) { console.error("[gestionale] Registro moduli non leggibile", error.code); return; }
+    sources.push(...(data ?? []));
+    if ((data ?? []).length < 1000) break;
+  }
+  const existing = new Set<string>();
+  for (let offset = 0; offset < 20000; offset += 1000) {
+    const { data, error } = await db.from("association_members").select("id")
+      .eq("source", "google_sheet").order("id").range(offset, offset + 999);
+    if (error) { console.error("[gestionale] Moduli non leggibili", error.code); return; }
+    for (const row of data ?? []) existing.add(row.id as string);
+    if ((data ?? []).length < 1000) break;
+  }
+  const stale = sources.filter((row) => !existing.has(row.source_ref)).map((row) => row.id);
+  for (let i = 0; i < stale.length; i += 200) {
+    const { error } = await db.from("gw_person_sources").delete().in("id", stale.slice(i, i + 200));
+    if (error) console.error("[gestionale] Pulizia registro moduli non riuscita", error.code);
+  }
+}
+
+/**
+ * Passo 1 di Verifiche ("Aggiorna tutto"): legge i moduli Google, archivia le
+ * copie doppie della stessa persona e importa da soli i moduli chiari
+ * (nessuna persona o una sola persona possibile). Il database crea o collega
+ * la scheda (trigger 045 e registro 051); omonimi, email diverse e copie con
+ * dati diversi restano in "Persone da chiarire". Quote e pagamenti non cambiano.
  */
 export async function importClearGoogleFormsAction(): Promise<ClearFormsImport> {
-  await requireAdmin();
+  const operator = await requireAdmin();
   if (missingConfig()) return configError();
   try {
-    const { forms } = await loadPreview();
     const db = createSupabaseAdminClient();
-    const [people, membersResponse] = await Promise.all([
-      loadPeople(),
-      db.from("association_members")
-        .select("id,source,source_row_id,first_name,last_name,email,membership_status,contact,membership_starts_at,membership_expires_at")
-        .in("source", ["google_sheet", "manual_override", "manual_form"]).order("id").range(0, 9999),
-    ]);
-    if (membersResponse.error) throw new SociSyncError("Impossibile leggere i moduli già salvati. Nessun dato modificato.");
-    const cases = buildGoogleFormReviewQueue({ preview: forms, members: membersResponse.data ?? [], people });
+    let { forms } = await loadPreview();
+    let cases = await loadReviewCases(db, forms);
+    const copies = await consolidateDuplicateCopies(db, operator.id, forms, cases);
+    if (copies.consolidated) {
+      // Le righe archiviate cambiano cosa va creato o aggiornato: rileggi.
+      ({ forms } = await loadPreview());
+      cases = await loadReviewCases(db, forms);
+    }
     let created = 0, updated = 0, failed = 0;
     for (const item of clearFormCases(cases)) {
       try {
@@ -204,11 +277,11 @@ export async function importClearGoogleFormsAction(): Promise<ClearFormsImport> 
         console.warn("[gestionale] Modulo Google lasciato alla revisione", item.sourceRowId, error instanceof Error ? error.message : error);
       }
     }
-    if (created || updated) {
+    if (created || updated || copies.consolidated) {
       await clearMembershipCache();
       refreshGestione();
     }
-    return { ok: true, created, updated, failed, toClarify: doubtfulFormCases(cases).length + failed };
+    return { ok: true, consolidated: copies.consolidated, created, updated, failed, toClarify: doubtfulFormCases(cases).length + failed };
   } catch (error) {
     console.error("[gestionale] Importazione automatica moduli Google non riuscita", error);
     return { ok: false, message: error instanceof SociSyncError ? error.message : "Impossibile leggere i moduli Google. Nessun dato modificato." };

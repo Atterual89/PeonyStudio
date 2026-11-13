@@ -33,9 +33,10 @@ export function UpdateAllSourcesButton({ gmailConnected }: { gmailConnected: boo
       try {
         const forms = await importClearGoogleFormsAction();
         push(forms.ok
-          ? { label: "Moduli Google", ok: true, text: forms.created || forms.updated
-              ? `${forms.created} nuovi e ${forms.updated} aggiornati, collegati da soli.`
-              : "Nessun modulo nuovo." }
+          ? { label: "Moduli Google", ok: true, text: [
+              forms.consolidated ? `${forms.consolidated} copie doppie archiviate` : null,
+              forms.created || forms.updated ? `${forms.created} nuovi e ${forms.updated} aggiornati, collegati da soli` : null,
+            ].filter(Boolean).join(" · ") || "Nessun modulo nuovo." }
           : { label: "Moduli Google", ok: false, text: forms.message });
       } catch {
         push({ label: "Moduli Google", ok: false, text: "Richiesta interrotta. Nessun dato modificato: riprova." });
