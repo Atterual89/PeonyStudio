@@ -201,3 +201,23 @@ function personNameParts(value:string):[string|null,string|null] {
   const parts=value.trim().split(/\s+/);
   return parts.length>1?[parts.slice(0,-1).join(" "),parts[parts.length-1]]:[value,null];
 }
+
+/**
+ * Moduli chiari: nuovi o aggiornati, con al massimo una persona possibile
+ * (email e nome non portano a due schede). Si importano da soli con
+ * "Aggiorna tutto"; il database poi crea la scheda o la collega (trigger 045
+ * e registro 051), e manda all'admin i casi che restano dubbi.
+ */
+export function clearFormCases(cases: readonly FormReviewCase[]): FormReviewCase[] {
+  return cases.filter(c => (c.kind === "new" || c.kind === "changed") && c.canConfirm &&
+    Boolean(c.sourceRowId) && Boolean(c.sourceHash));
+}
+
+/**
+ * Persone da chiarire: quello che resta dopo l'importazione automatica.
+ * Le quote senza modulo non sono qui: si vedono in "Chi non è in regola".
+ */
+export function doubtfulFormCases(cases: readonly FormReviewCase[]): FormReviewCase[] {
+  const clear = new Set(clearFormCases(cases).map(c => c.id));
+  return cases.filter(c => c.kind !== "missing_form" && !clear.has(c.id));
+}

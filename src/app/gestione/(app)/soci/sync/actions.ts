@@ -5,11 +5,14 @@ import { isGoogleFormImportSuspicious } from "@/lib/association/form-import-inte
 import { MAX_BOOK_FILE_SIZE, parseWorkbook, replaceMembersBook, validateMembersBook } from "@/lib/association/book-upload";
 import {
   applyAssociationMembersSync,
+  applyPreviewedGoogleFormRow,
   buildAssociationMembersSyncPreview,
   type AssociationMembersSyncPreview,
 } from "@/lib/association/members-sync";
 import { applyOfficialMembersBookSync } from "@/lib/association/members-book-sync";
+import { buildGoogleFormReviewQueue, clearFormCases, doubtfulFormCases } from "@/lib/gestionale/google-form-review";
 import { requireAdmin } from "@/lib/gestionale/server/auth";
+import { loadPeople } from "@/lib/gestionale/server/data";
 import { clearMembershipCache } from "@/lib/gestionale/server/membership";
 import { refreshGestione } from "@/lib/gestionale/server/refresh";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -161,6 +164,54 @@ export async function applySociSyncAction(expectedToken: string): Promise<SyncOu
       ok: false,
       message: "Sincronizzazione non completata. I dati precedenti sono consultabili; controlla le registrazioni prima di riprovare.",
     };
+  }
+}
+
+export type ClearFormsImport =
+  | { ok: true; created: number; updated: number; failed: number; toClarify: number }
+  | { ok: false; message: string };
+
+/**
+ * Passo 1 di Verifiche ("Aggiorna tutto"): legge i moduli Google una volta e
+ * importa da soli quelli chiari (nessuna persona o una sola persona possibile).
+ * Il database crea o collega la scheda (trigger 045 e registro 051); omonimi,
+ * email diverse e moduli doppi restano in "Persone da chiarire".
+ * Nessuna riga viene cancellata, quote e pagamenti non cambiano.
+ */
+export async function importClearGoogleFormsAction(): Promise<ClearFormsImport> {
+  await requireAdmin();
+  if (missingConfig()) return configError();
+  try {
+    const { forms } = await loadPreview();
+    const db = createSupabaseAdminClient();
+    const [people, membersResponse] = await Promise.all([
+      loadPeople(),
+      db.from("association_members")
+        .select("id,source,source_row_id,first_name,last_name,email,membership_status,contact,membership_starts_at,membership_expires_at")
+        .in("source", ["google_sheet", "manual_override", "manual_form"]).order("id").range(0, 9999),
+    ]);
+    if (membersResponse.error) throw new SociSyncError("Impossibile leggere i moduli già salvati. Nessun dato modificato.");
+    const cases = buildGoogleFormReviewQueue({ preview: forms, members: membersResponse.data ?? [], people });
+    let created = 0, updated = 0, failed = 0;
+    for (const item of clearFormCases(cases)) {
+      try {
+        const result = await applyPreviewedGoogleFormRow(db, forms, item.sourceRowId!, item.sourceHash!);
+        if (result.kind === "created") created += 1;
+        else if (result.kind === "updated") updated += 1;
+      } catch (error) {
+        // Bloccato dai controlli (es. email diversa dalla riga esistente): resta da chiarire.
+        failed += 1;
+        console.warn("[gestionale] Modulo Google lasciato alla revisione", item.sourceRowId, error instanceof Error ? error.message : error);
+      }
+    }
+    if (created || updated) {
+      await clearMembershipCache();
+      refreshGestione();
+    }
+    return { ok: true, created, updated, failed, toClarify: doubtfulFormCases(cases).length + failed };
+  } catch (error) {
+    console.error("[gestionale] Importazione automatica moduli Google non riuscita", error);
+    return { ok: false, message: error instanceof SociSyncError ? error.message : "Impossibile leggere i moduli Google. Nessun dato modificato." };
   }
 }
 

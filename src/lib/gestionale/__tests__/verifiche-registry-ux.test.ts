@@ -37,10 +37,10 @@ describe("Persone: quota confermata ma modulo da verificare", () => {
     const page=readFileSync("src/app/gestione/(app)/altro/soci/page.tsx","utf8");
     expect(page).toContain("<Suspense");
     expect(page).not.toContain("<SyncOfficialBookButton/>");
-    expect(page).toContain("<SyncSociButton/>");
-    expect(page).toContain("1. Moduli Google e anagrafica");
-    expect(page).toContain("2. Verifica delle quote");
-    expect(page.indexOf("<SyncSociButton/>")).toBeLessThan(page.indexOf("<AssociationMailSyncControl/>"));
+    expect(page).toContain("<UpdateAllSourcesButton");
+    expect(page).toContain('title="Persone da chiarire"');
+    expect(page).toContain('title="Quote da assegnare"');
+    expect(page.indexOf("<UpdateStep />")).toBeLessThan(page.indexOf("<FormsStep />"));
     expect(page).not.toContain('await Promise.all([\n  findMemberLinkProposals()');
     const loading=readFileSync("src/app/gestione/(app)/altro/soci/loading.tsx","utf8");
     expect(loading).not.toContain("Lettura del libro soci…");
